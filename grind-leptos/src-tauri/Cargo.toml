@@ -1,0 +1,17 @@
+[package]
+name = "grindstone"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "grindstone_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6", features = [] }
+
+[dependencies]
+tauri = { version = "2.11", features = [] }
+serde.workspace = true
+rusqlite = { version = "0.40", features = ["bundled"] }
+grind-core.workspace = true
