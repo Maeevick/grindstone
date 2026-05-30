@@ -1,0 +1,146 @@
+:root {
+	--bg: #18181b;
+	--card: #1f1f23;
+	--inset: #121214;
+	--line: #2e2e33;
+	--txt: #e4e4e7;
+	--mut: #8e8e96;
+	--acc: #e8b04b;
+	--ok: #5fd99f;
+	--bad: #f87171;
+	--mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+	color-scheme: dark;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--txt);
+	font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.wrap {
+	max-width: 760px;
+	margin: 0 auto;
+	padding: max(14px, env(safe-area-inset-top)) 12px 24px;
+}
+
+.top {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+h1 {
+	margin: 0;
+	font: 700 1.1rem/1.2 var(--mono);
+	letter-spacing: 0.12em;
+}
+
+.tag {
+	color: var(--mut);
+	font-style: italic;
+	font-size: 0.78rem;
+}
+
+.card {
+	background: var(--card);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 14px;
+	margin: 12px 0;
+}
+
+h2 {
+	margin: 0 0 10px;
+	font-size: 0.78rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--mut);
+	font-weight: 500;
+}
+
+.row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1 1 0;
+	min-width: 84px;
+	font-size: 0.74rem;
+	color: var(--mut);
+}
+
+.field.grow2 {
+	flex-grow: 2;
+}
+
+input {
+	width: 100%;
+	height: 44px;
+	padding: 0 10px;
+	background: var(--inset);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	color: var(--txt);
+	font: 1rem var(--mono);
+}
+
+input:focus {
+	outline: 2px solid var(--acc);
+	outline-offset: 1px;
+}
+
+.cta {
+	width: 100%;
+	height: 46px;
+	margin-top: 12px;
+	border: 0;
+	border-radius: 8px;
+	background: var(--acc);
+	color: var(--bg);
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.bad {
+	color: var(--bad);
+	font-size: 0.85rem;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	font: 0.86rem var(--mono);
+}
+
+th {
+	text-align: left;
+	font-size: 0.66rem;
+	text-transform: uppercase;
+	color: var(--mut);
+	font-weight: 500;
+	padding: 6px 4px;
+}
+
+td {
+	padding: 8px 4px;
+	border-top: 1px solid var(--line);
+}
+
+.empty {
+	color: var(--mut);
+	font-style: italic;
+	font-size: 0.85rem;
+}
