@@ -11,7 +11,7 @@ The versions follow the Android project that Tauri CLI 2.12.1 generates: Gradle 
 | JDK 21 | Gradle and the Android Gradle Plugin run on it. Plugin 9 needs Java 17 or later; 21 is the long-term release. The JDK 27 already installed is newer than this Gradle release can be counted on, and 11 is too old. |
 | Android command-line tools | `sdkmanager`, to install the pieces below without Android Studio |
 | `platform-tools` | `adb`, to reach the phone over USB and install the app |
-| `platforms;android-37` | the Android API the app compiles against |
+| `platforms;android-37.0` | Android 17, the API the app compiles against. Since Android 16, platform packages carry a minor version, hence the `.0`. |
 | NDK | compiles the Rust part of the app for the phone's processor |
 | Rust Android targets | the four Android targets of the Rust compiler |
 | build tools | fetched by Gradle on the first build, once the licences are accepted |
@@ -53,8 +53,15 @@ source ~/.zshrc
 ### 4. Android SDK pieces and licences
 
 ```sh
-sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-37" "ndk;27.2.12479018"
+sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-37.0" "ndk;27.2.12479018"
 sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+```
+
+- `sdkmanager` prints that it is deprecated in favour of `android sdk`. The warning is harmless: it still installs the packages.
+- One unknown package name stops the whole install. To check the names:
+
+```sh
+sdkmanager --sdk_root="$ANDROID_HOME" --list | grep -E "platforms;android-37|ndk;27"
 ```
 
 `ndk;27.2.12479018` is NDK r27c, a long-term release. A newer NDK works too:
