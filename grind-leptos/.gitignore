@@ -1,2 +1,4 @@
 /target
 /ui/dist
+/src-tauri/gen/android/keystore.properties
+*.jks
