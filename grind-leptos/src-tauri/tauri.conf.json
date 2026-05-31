@@ -4,9 +4,9 @@
 	"version": "0.1.0",
 	"identifier": "com.maeevick.grindstone",
 	"build": {
-		"beforeDevCommand": { "script": "trunk serve", "cwd": "ui" },
+		"beforeDevCommand": { "script": "trunk serve", "cwd": "../ui" },
 		"devUrl": "http://localhost:1420",
-		"beforeBuildCommand": { "script": "trunk build --release", "cwd": "ui" },
+		"beforeBuildCommand": { "script": "trunk build --release", "cwd": "../ui" },
 		"frontendDist": "../ui/dist"
 	},
 	"app": {
