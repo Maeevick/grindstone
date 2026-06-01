@@ -15,6 +15,10 @@ fn today() -> String {
     )
 }
 
+fn row_key(weighed: &WeighIn) -> String {
+    format!("{}:{}", weighed.date, weighed.kg)
+}
+
 fn message_of(failure: &Failure) -> String {
     match failure {
         Failure::Refused(Refusal::NotADate) => "Not a real date".into(),
@@ -109,7 +113,7 @@ pub fn App() -> impl IntoView {
                         <tbody>
                             <For
                                 each=move || weigh_ins.get()
-                                key=|weighed| weighed.date.clone()
+                                key=row_key
                                 children=|weighed| {
                                     view! {
                                         <tr>
@@ -124,5 +128,24 @@ pub fn App() -> impl IntoView {
                 </Show>
             </section>
         </main>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_day_weighed_again_gets_a_new_row_so_the_list_redraws_it() {
+        let first = WeighIn {
+            date: "2026-10-03".into(),
+            kg: 72.4,
+        };
+        let again = WeighIn {
+            date: "2026-10-03".into(),
+            kg: 72.1,
+        };
+
+        assert_ne!(row_key(&first), row_key(&again));
     }
 }
