@@ -102,7 +102,7 @@ Expected: one line ending in `device`. Otherwise see USB debugging in [ANDROID_T
 
 ## 8. Build
 
-`make phone` runs steps 8 and 9 in one go.
+`make android` runs steps 8 and 9 in one go.
 
 ```sh
 cargo tauri android build --apk --target aarch64
@@ -134,7 +134,7 @@ Expected: `Success`.
 
 ```sh
 git pull
-make check phone
+make check android
 ```
 
 `-r` replaces the app and keeps its data, as long as the APK is signed with the same keystore.

@@ -31,7 +31,7 @@ make check   # formatting, lints and tests, as before a commit
 
 ```sh
 make mac     # the Mac app, in /Applications
-make phone   # the phone over USB, once the Android toolchain is in place
+make android   # the phone over USB, once the Android toolchain is in place
 ```
 
 ## Data

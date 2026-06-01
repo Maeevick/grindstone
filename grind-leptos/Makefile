@@ -20,7 +20,7 @@ check: ## formatting, lints and tests, as before a commit
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
 
-phone: ## build the release APK and install it on the phone plugged over USB, keeping its data
+android: ## build the release APK and install it on the phone plugged over USB, keeping its data
 	cargo tauri android build --apk --target aarch64
 	adb install -r $(APK)
 
