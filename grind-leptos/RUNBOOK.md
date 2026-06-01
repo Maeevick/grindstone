@@ -51,12 +51,12 @@ Create the keystore. Keep its password in your password manager and the file in 
 keytool -genkey -v -keystore ~/.android/grindstone-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias grindstone
 ```
 
-Create `src-tauri/gen/android/keystore.properties`, which git ignores:
+Write `src-tauri/gen/android/keystore.properties`, which git ignores. The password is asked without being shown:
 
-```properties
-password=<the keystore password>
-keyAlias=grindstone
-storeFile=/Users/<you>/.android/grindstone-release.jks
+```sh
+printf 'Keystore password: ' && read -rs password && echo
+printf 'password=%s\nkeyAlias=grindstone\nstoreFile=%s\n' "$password" "$HOME/.android/grindstone-release.jks" > src-tauri/gen/android/keystore.properties
+unset password
 ```
 
 Edit `src-tauri/gen/android/app/build.gradle.kts`. At the top of the file:
@@ -112,6 +112,8 @@ Expected, at the end:
 src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 ```
 
+Gradle prints warnings about the Android Gradle Plugin's deprecated DSL: they come from Tauri 2.12.1's template and are harmless.
+
 ## 9. Install
 
 ```sh
@@ -141,6 +143,7 @@ adb install -r src-tauri/gen/android/app/build/outputs/apk/universal/release/app
 
 | Symptom | Fix |
 | --- | --- |
+| `Keystore file … not found for signing config 'release'` | `storeFile` in `src-tauri/gen/android/keystore.properties` does not point at the keystore: write the file again as in step 6. |
 | `INSTALL_PARSE_FAILED_NO_CERTIFICATES` | The APK is unsigned (`app-universal-release-unsigned.apk`): finish step 6. |
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | The installed app was signed with another key. `adb uninstall com.maeevick.grindstone` erases its data; then install again. |
 | `init` or `build` cannot find the SDK or NDK | Open a new terminal after editing `~/.zshrc`, then `echo $ANDROID_HOME $NDK_HOME`. |
