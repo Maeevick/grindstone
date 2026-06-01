@@ -27,6 +27,13 @@ make test    # the Rust tests
 make check   # formatting, lints and tests, as before a commit
 ```
 
+## Install
+
+```sh
+make mac     # the Mac app, in /Applications
+make phone   # the phone over USB, once the Android toolchain is in place
+```
+
 ## Data
 
 The app keeps its SQLite file at:

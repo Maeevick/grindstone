@@ -102,6 +102,8 @@ Expected: one line ending in `device`. Otherwise see USB debugging in [ANDROID_T
 
 ## 8. Build
 
+`make phone` runs steps 8 and 9 in one go.
+
 ```sh
 cargo tauri android build --apk --target aarch64
 ```
@@ -132,9 +134,7 @@ Expected: `Success`.
 
 ```sh
 git pull
-make check
-cargo tauri android build --apk --target aarch64
-adb install -r src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+make check phone
 ```
 
 `-r` replaces the app and keeps its data, as long as the APK is signed with the same keystore.
@@ -153,6 +153,7 @@ adb install -r src-tauri/gen/android/app/build/outputs/apk/universal/release/app
 ## Mac app (optional)
 
 ```sh
-cargo tauri build --bundles app
-cp -R target/release/bundle/macos/Grindstone.app /Applications/
+make mac
 ```
+
+It builds the app and replaces `/Applications/Grindstone.app`. The data stays in `~/Library/Application Support/com.maeevick.grindstone`.
