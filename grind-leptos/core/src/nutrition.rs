@@ -1,10 +1,6 @@
 #![cfg_attr(not(test), expect(dead_code, reason = "the day's quota comes next"))]
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Gender {
-    Male,
-    Female,
-}
+use crate::gender::Gender;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Volitional {
