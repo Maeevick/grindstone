@@ -1,18 +1,51 @@
-#![cfg_attr(not(test), expect(dead_code, reason = "the day's quota comes next"))]
-
 use crate::gender::Gender;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct Volitional {
-    sitting_min: f64,
-    standing_min: f64,
-    moving_km: f64,
+pub struct Volitional {
+    pub sitting_min: f64,
+    pub standing_min: f64,
+    pub moving_km: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct Deficit {
-    trailing_deficit_kcal: f64,
-    weeks_in_deficit: u32,
+pub struct Deficit {
+    pub trailing_deficit_kcal: f64,
+    pub weeks_in_deficit: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Macro {
+    pub protein: f64,
+    pub fat: f64,
+    pub fib: f64,
+    pub carb: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Intake {
+    pub energy: f64,
+    pub macros: Macro,
+}
+
+pub fn daily_energy_budget(
+    age: u32,
+    ffm: f64,
+    fm: f64,
+    gender: Gender,
+    volitional: Volitional,
+    deficit: Deficit,
+    intake: Intake,
+) -> f64 {
+    let Macro {
+        protein,
+        fat,
+        fib,
+        carb,
+    } = intake.macros;
+    bmr_by_katch_and_mcardle(age, ffm)
+        + organ_overhead_by_elia(age, ffm, fm)
+        + tef_by_calcagno_et_al(age, protein, fat, fib, carb)
+        + neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit)
 }
 
 fn bmr_by_katch_and_mcardle(age: u32, ffm: f64) -> f64 {
@@ -64,6 +97,24 @@ mod tests {
 
     fn about(actual: f64, expected: f64) -> bool {
         (actual - expected).abs() < 1e-9
+    }
+
+    #[test]
+    fn a_mans_budget_adds_up_his_resting_organ_digestion_and_non_exercise_burns() {
+        let intake = Intake {
+            energy: 2500.0,
+            macros: Macro {
+                protein: 150.0,
+                fat: 70.0,
+                fib: 35.0,
+                carb: 300.0,
+            },
+        };
+
+        assert!(about(
+            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake),
+            1774.0 * 0.9685 + 102.5 + 275.75 + 431.52
+        ));
     }
 
     #[test]
