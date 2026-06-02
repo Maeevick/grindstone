@@ -16,16 +16,17 @@ struct Deficit {
 }
 
 fn bmr_by_katch_and_mcardle(age: u32, ffm: f64) -> f64 {
-    (370.0 + 21.6 * ffm) * (1.0 - 0.0015 * f64::from(age.saturating_sub(20)))
+    (370.0 + 21.6 * ffm.max(0.0)) * (1.0 - 0.0015 * f64::from(age.saturating_sub(20))).max(0.0)
 }
 
 fn organ_overhead_by_elia(age: u32, ffm: f64, fm: f64) -> f64 {
-    (1.5 * ffm + 0.5 * fm) * (1.0 - 0.0025 * f64::from(age.saturating_sub(55)))
+    (1.5 * ffm.max(0.0) + 0.5 * fm.max(0.0))
+        * (1.0 - 0.0025 * f64::from(age.saturating_sub(55))).max(0.0)
 }
 
 fn tef_by_calcagno_et_al(age: u32, protein: f64, fat: f64, fib: f64, carb: f64) -> f64 {
-    (protein + 0.225 * fat + 0.4 * fib + 0.32 * carb)
-        * (1.0 - 0.002 * f64::from(age.saturating_sub(50)))
+    (protein.max(0.0) + 0.225 * fat.max(0.0) + 0.4 * fib.max(0.0) + 0.32 * carb.max(0.0))
+        * (1.0 - 0.002 * f64::from(age.saturating_sub(50))).max(0.0)
 }
 
 fn neat_by_mayo_clinic(
@@ -36,6 +37,7 @@ fn neat_by_mayo_clinic(
     volitional: Volitional,
     deficit: Deficit,
 ) -> f64 {
+    let (ffm, fm) = (ffm.max(0.0), fm.max(0.0));
     let (male_standing_premium, female_walking_premium) = match gender {
         Gender::Male => (0.015, 0.0),
         Gender::Female => (0.0, 0.025),
@@ -81,6 +83,16 @@ mod tests {
     }
 
     #[test]
+    fn a_lean_mass_below_nothing_leaves_only_the_intercept() {
+        assert!(about(bmr_by_katch_and_mcardle(20, -10.0), 370.0));
+    }
+
+    #[test]
+    fn a_mistyped_age_stops_the_basal_rate_at_nothing_rather_than_below() {
+        assert!(about(bmr_by_katch_and_mcardle(4100, 65.0), 0.0));
+    }
+
+    #[test]
     fn up_to_fifty_five_the_organs_cost_one_and_a_half_kcal_per_lean_kilo_and_half_a_kcal_per_fat_kilo()
      {
         assert!(about(organ_overhead_by_elia(41, 65.0, 10.0), 102.5));
@@ -90,6 +102,16 @@ mod tests {
     #[test]
     fn every_year_past_fifty_five_takes_a_quarter_of_a_percent_off_the_organs() {
         assert!(about(organ_overhead_by_elia(65, 65.0, 10.0), 102.5 * 0.975));
+    }
+
+    #[test]
+    fn a_composition_below_nothing_costs_the_organs_nothing() {
+        assert!(about(organ_overhead_by_elia(41, -65.0, -10.0), 0.0));
+    }
+
+    #[test]
+    fn a_mistyped_age_stops_the_organs_at_nothing_rather_than_below() {
+        assert!(about(organ_overhead_by_elia(4100, 65.0, 10.0), 0.0));
     }
 
     #[test]
@@ -109,6 +131,22 @@ mod tests {
         assert!(about(
             tef_by_calcagno_et_al(60, 150.0, 70.0, 35.0, 300.0),
             275.75 * 0.98
+        ));
+    }
+
+    #[test]
+    fn grams_below_nothing_cost_nothing_to_digest() {
+        assert!(about(
+            tef_by_calcagno_et_al(41, -150.0, -70.0, -35.0, -300.0),
+            0.0
+        ));
+    }
+
+    #[test]
+    fn a_mistyped_age_stops_digestion_at_nothing_rather_than_below() {
+        assert!(about(
+            tef_by_calcagno_et_al(4100, 150.0, 70.0, 35.0, 300.0),
+            0.0
         ));
     }
 
@@ -239,5 +277,12 @@ mod tests {
             a_mans_neat(41, NOTHING_BUT_FIDGETING, surplus),
             234.0
         ));
+    }
+
+    #[test]
+    fn a_composition_below_nothing_leaves_only_the_postural_intercepts() {
+        let burned = neat_by_mayo_clinic(41, -65.0, -10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT);
+
+        assert!(about(burned, 5.28 + 4.44));
     }
 }
