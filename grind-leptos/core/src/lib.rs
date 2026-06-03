@@ -1,4 +1,4 @@
-pub mod body_composition;
+pub mod composition;
 pub mod failure;
 pub mod gender;
 pub mod nutrition;
