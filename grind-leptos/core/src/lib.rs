@@ -3,3 +3,4 @@ pub mod failure;
 pub mod gender;
 pub mod nutrition;
 pub mod weigh_in;
+pub mod workout;
