@@ -2,7 +2,7 @@
 
 From a bare Mac to Grindstone installed on the phone, then each update.
 
-- Commands run from `grind-leptos/` unless a step says otherwise.
+- Commands run from `grindstone/` unless a step says otherwise.
 - Steps 5 to 10 have not run on this Mac yet: they wait for the Android toolchain. Step 4 and the Mac app passed here.
 
 ## 1. Mac prerequisites
@@ -24,7 +24,6 @@ cargo install tauri-cli --version "^2" --locked
 
 ```sh
 git clone git@github.com:Maeevick/grindstone.git
-cd grindstone/grind-leptos
 ```
 
 ## 4. Check

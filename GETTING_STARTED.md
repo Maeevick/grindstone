@@ -14,7 +14,6 @@ cargo install tauri-cli --version "^2" --locked
 ## Run
 
 ```sh
-cd grind-leptos
 make dev
 ```
 
