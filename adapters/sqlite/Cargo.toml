@@ -1,0 +1,8 @@
+[package]
+name = "grind-sqlite"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+grind-core.workspace = true
+rusqlite.workspace = true

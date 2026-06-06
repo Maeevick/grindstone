@@ -2,10 +2,9 @@ use std::sync::Mutex;
 
 use grind_core::failure::Failure;
 use grind_core::weigh_in::{WeighIn, weigh_in};
+use grind_sqlite as storage;
 use rusqlite::Connection;
 use tauri::{Manager, State};
-
-pub mod storage;
 
 const RECENT_WEIGH_INS: u32 = 14;
 
