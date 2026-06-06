@@ -7,3 +7,6 @@ pub enum Failure {
     Refused(Refusal),
     Broken(String),
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Broken(pub String);
