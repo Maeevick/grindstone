@@ -2,7 +2,7 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check phone mac
+.PHONY: help dev test check android mac
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 
