@@ -6,7 +6,7 @@ A personal tracker for body mass, food and training, carried on an Android phone
 
 - The tracker must work where training happens: outdoors, on the phone, with or without a network.
 - The data belongs on the device: SQLite, no account, no server for now.
-- Two earlier attempts taught what to avoid. The Sycamore draft (`../../grindstone_draft`) kept its data in the browser's storage. The SvelteKit spike (`../grind-svelte`) became too large before reaching the phone.
+- Two earlier attempts taught what to avoid. The Sycamore draft (`../grindstone_draft`) kept its data in the browser's storage. The SvelteKit spike (`../grind-svelte`) became too large before reaching the phone.
 - This spike puts a usable app on the phone first, then grows one real need at a time.
 
 ## What
