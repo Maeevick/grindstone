@@ -29,3 +29,84 @@ pub fn log_weigh_in(
         .map_err(|poisoned| Failure::Broken(poisoned.to_string()))?;
     for_tracking::log_weigh_in(&*records, &date, kg)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{Value, json};
+    use tauri::ipc::{CallbackFn, InvokeBody};
+    use tauri::test::{
+        INVOKE_KEY, MockRuntime, get_ipc_response, mock_builder, mock_context, noop_assets,
+    };
+    use tauri::webview::InvokeRequest;
+    use tauri::{App, WebviewWindow, WebviewWindowBuilder};
+
+    fn launched() -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
+        let records = Sqlite::in_memory().expect("an in-memory database opens");
+        let app = mock_builder()
+            .manage(Records(Mutex::new(records)))
+            .invoke_handler(tauri::generate_handler![recent_weigh_ins, log_weigh_in])
+            .build(mock_context(noop_assets()))
+            .expect("the app builds on the mock runtime");
+        let screen = WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .expect("the screen opens");
+        (app, screen)
+    }
+
+    fn invoke(
+        screen: &WebviewWindow<MockRuntime>,
+        command: &str,
+        arguments: Value,
+    ) -> Result<Value, Value> {
+        get_ipc_response(
+            screen,
+            InvokeRequest {
+                cmd: command.into(),
+                callback: CallbackFn(0),
+                error: CallbackFn(1),
+                url: "tauri://localhost".parse().expect("a valid origin"),
+                body: InvokeBody::Json(arguments),
+                headers: Default::default(),
+                invoke_key: INVOKE_KEY.to_string(),
+            },
+        )
+        .map(|answer| answer.deserialize::<Value>().expect("a JSON answer"))
+    }
+
+    #[test]
+    fn a_first_launch_answers_no_weigh_in() {
+        let (_app, screen) = launched();
+
+        assert_eq!(
+            invoke(&screen, "recent_weigh_ins", json!({})),
+            Ok(json!([]))
+        );
+    }
+
+    #[test]
+    fn logging_a_weigh_in_answers_the_recent_ones_as_the_screen_reads_them() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(
+            &screen,
+            "log_weigh_in",
+            json!({ "date": "2026-10-03", "kg": 72.149 }),
+        );
+
+        assert_eq!(answer, Ok(json!([{ "date": "2026-10-03", "kg": 72.15 }])));
+    }
+
+    #[test]
+    fn an_impossible_mass_comes_back_as_a_refusal_the_screen_understands() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(
+            &screen,
+            "log_weigh_in",
+            json!({ "date": "2026-10-03", "kg": 0.0 }),
+        );
+
+        assert_eq!(answer, Err(json!({ "Refused": "NotAMass" })));
+    }
+}
