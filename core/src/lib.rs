@@ -1,6 +1,7 @@
 pub mod composition;
 pub mod failure;
 pub mod for_storing_weigh_ins;
+pub mod for_tracking;
 pub mod gender;
 pub mod nutrition;
 #[cfg(any(test, feature = "testing"))]

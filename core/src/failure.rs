@@ -10,3 +10,9 @@ pub enum Failure {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Broken(pub String);
+
+impl From<Broken> for Failure {
+    fn from(Broken(reason): Broken) -> Self {
+        Failure::Broken(reason)
+    }
+}
