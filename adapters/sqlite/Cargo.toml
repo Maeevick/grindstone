@@ -6,3 +6,6 @@ edition.workspace = true
 [dependencies]
 grind-core.workspace = true
 rusqlite.workspace = true
+
+[dev-dependencies]
+grind-core = { workspace = true, features = ["testing"] }

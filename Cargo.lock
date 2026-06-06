@@ -1471,7 +1471,6 @@ version = "0.1.0"
 dependencies = [
  "grind-core",
  "grind-sqlite",
- "rusqlite",
  "serde",
  "tauri",
  "tauri-build",

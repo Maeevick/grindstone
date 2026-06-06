@@ -1,9 +1,36 @@
+use std::path::Path;
+
+use grind_core::failure::Broken;
+use grind_core::for_storing_weigh_ins::ForStoringWeighIns;
 use grind_core::weigh_in::WeighIn;
 use rusqlite::{Connection, params};
 
 const MIGRATIONS: &[&str] = &["create table weigh_ins (date text primary key, kg real not null)"];
 
-pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
+pub struct Sqlite(Connection);
+
+impl Sqlite {
+    pub fn open(file: &Path) -> Result<Self, Broken> {
+        Connection::open(file).map_err(broken).and_then(migrated)
+    }
+
+    pub fn in_memory() -> Result<Self, Broken> {
+        Connection::open_in_memory()
+            .map_err(broken)
+            .and_then(migrated)
+    }
+}
+
+fn broken(error: rusqlite::Error) -> Broken {
+    Broken(error.to_string())
+}
+
+fn migrated(connection: Connection) -> Result<Sqlite, Broken> {
+    migrate(&connection).map_err(broken)?;
+    Ok(Sqlite(connection))
+}
+
+fn migrate(connection: &Connection) -> rusqlite::Result<()> {
     let applied: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
     for (version, migration) in (1_i64..).zip(MIGRATIONS) {
         if version > applied {
@@ -14,82 +41,78 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
     Ok(())
 }
 
-pub fn save_weigh_in(connection: &Connection, weigh_in: &WeighIn) -> rusqlite::Result<()> {
-    connection.execute(
-        "insert into weigh_ins (date, kg) values (?1, ?2)
-         on conflict (date) do update set kg = excluded.kg",
-        params![weigh_in.date, weigh_in.kg],
-    )?;
-    Ok(())
-}
+impl ForStoringWeighIns for Sqlite {
+    fn save(&self, weigh_in: &WeighIn) -> Result<(), Broken> {
+        self.0
+            .execute(
+                "insert into weigh_ins (date, kg) values (?1, ?2)
+                 on conflict (date) do update set kg = excluded.kg",
+                params![weigh_in.date, weigh_in.kg],
+            )
+            .map(|_| ())
+            .map_err(broken)
+    }
 
-pub fn recent_weigh_ins(connection: &Connection, count: u32) -> rusqlite::Result<Vec<WeighIn>> {
-    connection
-        .prepare("select date, kg from weigh_ins order by date desc limit ?1")?
-        .query_map([count], |row| {
-            Ok(WeighIn {
-                date: row.get(0)?,
-                kg: row.get(1)?,
+    fn recent(&self, count: u32) -> Result<Vec<WeighIn>, Broken> {
+        self.0
+            .prepare("select date, kg from weigh_ins order by date desc limit ?1")
+            .and_then(|mut statement| {
+                statement
+                    .query_map([count], |row| {
+                        Ok(WeighIn {
+                            date: row.get(0)?,
+                            kg: row.get(1)?,
+                        })
+                    })?
+                    .collect()
             })
-        })?
-        .collect()
+            .map_err(broken)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use grind_core::testing::honouring_for_storing_weigh_ins;
     use grind_core::weigh_in::weigh_in;
 
-    fn migrated() -> Connection {
-        let connection = Connection::open_in_memory().expect("an in-memory database opens");
-        migrate(&connection).expect("a fresh database migrates");
-        connection
-    }
-
-    fn weighed(date: &str, kg: f64) -> WeighIn {
-        weigh_in(date, kg).expect("a valid weigh-in")
+    fn database() -> Sqlite {
+        Sqlite::in_memory().expect("an in-memory database opens and migrates")
     }
 
     #[test]
     fn recent_weigh_ins_come_newest_first_and_no_more_than_asked() {
-        let connection = migrated();
-        for (date, kg) in [
-            ("2026-10-01", 72.0),
-            ("2026-10-03", 72.1),
-            ("2026-10-02", 72.2),
-        ] {
-            save_weigh_in(&connection, &weighed(date, kg)).unwrap();
-        }
-
-        assert_eq!(
-            recent_weigh_ins(&connection, 2).unwrap(),
-            vec![weighed("2026-10-03", 72.1), weighed("2026-10-02", 72.2)]
+        honouring_for_storing_weigh_ins::recent_weigh_ins_come_newest_first_and_no_more_than_asked(
+            &database(),
         );
     }
 
     #[test]
     fn a_day_weighed_twice_keeps_its_second_weigh_in() {
-        let connection = migrated();
-        save_weigh_in(&connection, &weighed("2026-10-03", 72.4)).unwrap();
-
-        save_weigh_in(&connection, &weighed("2026-10-03", 72.1)).unwrap();
-
-        assert_eq!(
-            recent_weigh_ins(&connection, 7).unwrap(),
-            vec![weighed("2026-10-03", 72.1)]
-        );
+        honouring_for_storing_weigh_ins::a_day_weighed_twice_keeps_its_second_weigh_in(&database());
     }
 
     #[test]
-    fn migrating_a_migrated_database_changes_nothing() {
-        let connection = migrated();
-        save_weigh_in(&connection, &weighed("2026-10-03", 72.1)).unwrap();
+    fn a_database_opened_again_keeps_its_weigh_ins_and_migrates_nothing_twice() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-opened-again-{}.sqlite",
+            std::process::id()
+        ));
+        let weighed = weigh_in("2026-10-03", 72.1).expect("a valid weigh-in");
+        Sqlite::open(&file)
+            .and_then(|database| database.save(&weighed))
+            .expect("a first opening saves a weigh-in");
 
-        migrate(&connection).unwrap();
+        let reopened = Sqlite::open(&file).and_then(|database| database.recent(7));
 
-        assert_eq!(
-            recent_weigh_ins(&connection, 7).unwrap(),
-            vec![weighed("2026-10-03", 72.1)]
-        );
+        std::fs::remove_file(&file).expect("the test database is removed");
+        assert_eq!(reopened, Ok(vec![weighed]));
+    }
+
+    #[test]
+    fn a_database_that_cannot_be_opened_says_it_is_broken() {
+        let nowhere = std::env::temp_dir().join("grind-sqlite-no-such-folder/grindstone.sqlite");
+
+        assert!(matches!(Sqlite::open(&nowhere), Err(Broken(_))));
     }
 }
