@@ -2,9 +2,10 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check android mac
+.PHONY: help dev test check test-ui mutants android mac
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri))\.rs
 
 help: ## list the targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -15,10 +16,17 @@ dev: ## run the app on the Mac, reloading on change
 test: ## every Rust test
 	cargo test --workspace
 
-check: ## formatting, lints and tests, as before a commit
+check: ## formatting, lints, tests and no uncovered line outside the wiring, as before a commit
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets -- -D warnings
-	cargo test --workspace
+	cargo clippy -p grind-ui --target wasm32-unknown-unknown --all-targets -- -D warnings
+	cargo llvm-cov --workspace --ignore-filename-regex '$(WIRING)' --fail-uncovered-lines 0 --summary-only
+
+test-ui: ## the screen's tests, mounted in a headless Chrome
+	wasm-pack test --headless --chrome ui
+
+mutants: ## mutation testing of the core, at the end of a slice
+	cargo mutants -p grind-core
 
 android: ## build the release APK and install it on the phone plugged over USB, keeping its data
 	cargo tauri android build --apk --target aarch64
