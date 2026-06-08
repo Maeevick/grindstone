@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, PoisonError};
 
 use grind_core::failure::Failure;
 use grind_core::for_tracking;
@@ -10,10 +10,7 @@ pub struct Records(pub Mutex<Sqlite>);
 
 #[tauri::command]
 pub fn recent_weigh_ins(records: State<Records>) -> Result<Vec<WeighIn>, Failure> {
-    let records = records
-        .0
-        .lock()
-        .map_err(|poisoned| Failure::Broken(poisoned.to_string()))?;
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_tracking::recent_weigh_ins(&*records)
 }
 
@@ -23,10 +20,7 @@ pub fn log_weigh_in(
     date: String,
     kg: f64,
 ) -> Result<Vec<WeighIn>, Failure> {
-    let records = records
-        .0
-        .lock()
-        .map_err(|poisoned| Failure::Broken(poisoned.to_string()))?;
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_tracking::log_weigh_in(&*records, &date, kg)
 }
 
