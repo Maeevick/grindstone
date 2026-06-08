@@ -1,6 +1,6 @@
 # Getting started
 
-Run and test Grindstone on the Mac. Built and tested on macOS (Apple silicon) with Rust 1.98.1, Trunk 0.21.14 and Tauri CLI 2.12.1.
+Run and test Grindstone on the Mac. Built and tested on macOS (Apple silicon) with Rust 1.99.0, Trunk 0.21.14, Tauri CLI 2.12.1 and cargo-llvm-cov 0.8.5.
 
 ## Install once
 
@@ -10,6 +10,17 @@ rustup target add wasm32-unknown-unknown
 cargo install trunk --locked
 cargo install tauri-cli --version "^2" --locked
 ```
+
+For the tests and their gates:
+
+```sh
+rustup component add llvm-tools-preview
+cargo install cargo-llvm-cov --locked   # the coverage gate in make check
+cargo install cargo-mutants --locked    # make mutants
+cargo install wasm-pack --locked        # make test-ui: it fetches the matching test runner and chromedriver
+```
+
+Google Chrome must be installed for `make test-ui`.
 
 ## Run
 
@@ -22,8 +33,10 @@ The app opens in a window and rebuilds on every saved change. The first run comp
 ## Test
 
 ```sh
-make test    # the Rust tests
-make check   # formatting, lints and tests, as before a commit
+make test      # the Rust tests
+make check     # formatting, lints, tests and no uncovered line outside the wiring, as before a commit
+make test-ui   # the screen mounted in a headless Chrome, its commands answered by a stub
+make mutants   # mutation testing of the core, at the end of a slice
 ```
 
 ## Install
