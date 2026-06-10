@@ -1,1 +1,5 @@
 exclude_globs = ["core/src/testing.rs"]
+
+# A Navy reading lands exactly on 0 or 1 only for a denominator of exactly 1.1 or 0.9, which no tape produces:
+# moving the guard's boundaries changes nothing a body can measure.
+exclude_re = ["replace > with >= in fat_ratio_from_navy_formula", "replace < with <= in fat_ratio_from_navy_formula"]
