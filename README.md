@@ -24,10 +24,11 @@ Next: the features you choose, rethought around how you train and eat, not porte
 | Part | Technology | Role |
 | --- | --- | --- |
 | `ui` | Leptos 0.8, client-side, compiled to WebAssembly by Trunk | the screen |
-| `src-tauri` | Tauri 2 | the app shell on Android and macOS, its commands, SQLite through rusqlite |
-| `core` | plain Rust | the rules shared by the screen and the app, tested with `cargo test` |
+| `src-tauri` | Tauri 2 | the app shell on Android and macOS: its commands and the configurator that wires everything at start |
+| `core` | plain Rust | the application: its rules, what it offers (driving ports) and what it needs (driven ports) |
+| `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage port |
 
-The screen calls the app's commands (`recent_weigh_ins`, `log_weigh_in`) through Tauri. The app applies the rules from `core` and reads or writes SQLite in its data folder.
+The screen calls the app's commands (`recent_weigh_ins`, `log_weigh_in`) through Tauri. Each command hands over to the core's `for_tracking` port, which stores through the SQLite adapter in the app's data folder.
 
 ## Documents
 
