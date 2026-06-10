@@ -22,8 +22,8 @@ check: ## formatting, lints, tests and no uncovered line outside the wiring, as 
 	cargo clippy -p grind-ui --target wasm32-unknown-unknown --all-targets -- -D warnings
 	cargo llvm-cov --workspace --ignore-filename-regex '$(WIRING)' --fail-uncovered-lines 0 --summary-only
 
-test-ui: ## the screen's tests, mounted in a headless Chrome
-	wasm-pack test --headless --chrome ui
+test-ui: ## the screen's tests in a headless Chrome, driven by the ChromeDriver of the installed Chrome rather than the newest
+	driver=$$(scripts/chromedriver-for-installed-chrome) && wasm-pack test --headless --chrome --chromedriver "$$driver" ui
 
 mutants: ## mutation testing of the core, at the end of a slice
 	cargo mutants -p grind-core

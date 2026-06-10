@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+major=$("$chrome" --version | awk '{ split($3, version, "."); print version[1] }')
+platform=$([ "$(uname -m)" = arm64 ] && echo mac-arm64 || echo mac-x64)
+folder="$HOME/Library/Caches/grindstone/chromedriver-$major"
+driver="$folder/chromedriver-$platform/chromedriver"
+
+if [ ! -x "$driver" ]; then
+  release=$(curl -fsSL "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_$major")
+  mkdir -p "$folder"
+  curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/$release/$platform/chromedriver-$platform.zip" -o "$folder/chromedriver.zip"
+  unzip -oq "$folder/chromedriver.zip" -d "$folder"
+fi
+
+echo "$driver"
