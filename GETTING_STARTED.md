@@ -17,10 +17,10 @@ For the tests and their gates:
 rustup component add llvm-tools-preview
 cargo install cargo-llvm-cov --locked   # the coverage gate in make check
 cargo install cargo-mutants --locked    # make mutants
-cargo install wasm-pack --locked        # make test-ui: it fetches the matching test runner and chromedriver
+cargo install wasm-pack --locked        # make test-ui: it fetches the matching wasm-bindgen test runner
 ```
 
-Google Chrome must be installed for `make test-ui`.
+`make test-ui` needs Google Chrome. It fetches, once per Chrome major version, the ChromeDriver matching the installed Chrome from Chrome for Testing into `~/Library/Caches/grindstone`, since the newest driver refuses a Chrome that has not updated yet.
 
 ## Run
 
