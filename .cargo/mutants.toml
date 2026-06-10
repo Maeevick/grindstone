@@ -1,0 +1,1 @@
+exclude_globs = ["core/src/testing.rs"]
