@@ -4,7 +4,9 @@ pub enum Figure {
 }
 
 pub fn shown(figure: Figure) -> String {
-    String::new()
+    match figure {
+        Figure::Mass(kg) => format!("{kg:.1} kg"),
+    }
 }
 
 #[cfg(test)]
