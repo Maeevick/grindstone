@@ -9,7 +9,7 @@ pub fn shown(figure: Figure) -> String {
     match figure {
         Figure::Mass(kg) => format!("{kg:.1} kg"),
         Figure::Length(cm) => format!("{cm:.1} cm"),
-        Figure::Ratio(_) => String::new(),
+        Figure::Ratio(ratio) => format!("{:.1}%", ratio * 100.0),
     }
 }
 
