@@ -7,7 +7,7 @@ pub enum Figure {
 pub fn shown(figure: Figure) -> String {
     match figure {
         Figure::Mass(kg) => format!("{kg:.1} kg"),
-        Figure::Length(_) => String::new(),
+        Figure::Length(cm) => format!("{cm:.1} cm"),
     }
 }
 
