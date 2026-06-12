@@ -5,11 +5,15 @@ pub enum Figure {
     Ratio(f64),
 }
 
+fn to_the_tenth(value: f64) -> f64 {
+    (value * 10.0).round() / 10.0
+}
+
 pub fn shown(figure: Figure) -> String {
     match figure {
-        Figure::Mass(kg) => format!("{kg:.1} kg"),
-        Figure::Length(cm) => format!("{cm:.1} cm"),
-        Figure::Ratio(ratio) => format!("{:.1}%", ratio * 100.0),
+        Figure::Mass(kg) => format!("{:.1} kg", to_the_tenth(kg)),
+        Figure::Length(cm) => format!("{:.1} cm", to_the_tenth(cm)),
+        Figure::Ratio(ratio) => format!("{:.1}%", to_the_tenth(ratio * 100.0)),
     }
 }
 
