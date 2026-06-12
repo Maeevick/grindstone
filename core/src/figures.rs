@@ -31,4 +31,9 @@ mod tests {
     fn a_ratio_shows_as_a_percentage_to_the_tenth() {
         assert_eq!(shown(Figure::Ratio(0.1521)), "15.2%");
     }
+
+    #[test]
+    fn a_figure_halfway_between_two_tenths_shows_the_upper_one() {
+        assert_eq!(shown(Figure::Mass(72.25)), "72.3 kg");
+    }
 }
