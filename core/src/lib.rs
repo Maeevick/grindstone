@@ -4,6 +4,7 @@ pub mod figures;
 pub mod for_storing_weigh_ins;
 pub mod for_tracking;
 pub mod gender;
+pub mod measurement;
 pub mod nutrition;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
