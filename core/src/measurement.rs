@@ -12,6 +12,10 @@ pub enum Refusal {
     NotADate,
 }
 
+fn to_two_decimals(figure: f64) -> f64 {
+    (figure * 100.0).round() / 100.0
+}
+
 pub fn measurement(
     date: &str,
     body_mass_kg: f64,
@@ -20,7 +24,7 @@ pub fn measurement(
     let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
     Ok(Measurement {
         day,
-        body_mass_kg,
+        body_mass_kg: to_two_decimals(body_mass_kg),
         waist_cm,
     })
 }
