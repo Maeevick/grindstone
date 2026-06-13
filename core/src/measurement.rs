@@ -29,6 +29,22 @@ pub fn measurement(
 mod tests {
     use super::*;
 
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    #[test]
+    fn a_measurement_keeps_its_day_and_its_mass_to_two_decimals() {
+        assert_eq!(
+            measurement("2026-10-10", 72.149, None),
+            Ok(Measurement {
+                day: day("2026-10-10"),
+                body_mass_kg: 72.15,
+                waist_cm: None,
+            })
+        );
+    }
+
     #[test]
     fn a_date_that_does_not_exist_is_refused() {
         assert_eq!(measurement("2026-02-30", 72.1, None), Err(Refusal::NotADate));
