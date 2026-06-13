@@ -17,6 +17,10 @@ fn to_two_decimals(figure: f64) -> f64 {
     (figure * 100.0).round() / 100.0
 }
 
+fn to_the_tenth(figure: f64) -> f64 {
+    (figure * 10.0).round() / 10.0
+}
+
 pub fn measurement(
     date: &str,
     body_mass_kg: f64,
@@ -29,7 +33,7 @@ pub fn measurement(
     Ok(Measurement {
         day,
         body_mass_kg: to_two_decimals(body_mass_kg),
-        waist_cm,
+        waist_cm: waist_cm.map(to_the_tenth),
     })
 }
 
