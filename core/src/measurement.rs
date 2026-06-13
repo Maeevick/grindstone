@@ -54,6 +54,14 @@ mod tests {
     }
 
     #[test]
+    fn a_waist_is_kept_to_the_tenth() {
+        assert_eq!(
+            measurement("2026-10-10", 72.1, Some(84.46)).map(|measured| measured.waist_cm),
+            Ok(Some(84.5))
+        );
+    }
+
+    #[test]
     fn a_date_that_does_not_exist_is_refused() {
         assert_eq!(measurement("2026-02-30", 72.1, None), Err(Refusal::NotADate));
         assert_eq!(measurement("yesterday", 72.1, None), Err(Refusal::NotADate));
