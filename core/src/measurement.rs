@@ -10,6 +10,7 @@ pub struct Measurement {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {
     NotADate,
+    NotAMass,
 }
 
 fn to_two_decimals(figure: f64) -> f64 {
@@ -53,5 +54,12 @@ mod tests {
     fn a_date_that_does_not_exist_is_refused() {
         assert_eq!(measurement("2026-02-30", 72.1, None), Err(Refusal::NotADate));
         assert_eq!(measurement("yesterday", 72.1, None), Err(Refusal::NotADate));
+    }
+
+    #[test]
+    fn a_mass_of_nothing_or_no_number_at_all_is_refused() {
+        for kg in [0.0, -72.1, f64::NAN, f64::INFINITY] {
+            assert_eq!(measurement("2026-10-10", kg, None), Err(Refusal::NotAMass), "{kg}");
+        }
     }
 }
