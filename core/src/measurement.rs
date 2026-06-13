@@ -17,8 +17,9 @@ pub fn measurement(
     body_mass_kg: f64,
     waist_cm: Option<f64>,
 ) -> Result<Measurement, Refusal> {
+    let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
     Ok(Measurement {
-        day: NaiveDate::MIN,
+        day,
         body_mass_kg,
         waist_cm,
     })
