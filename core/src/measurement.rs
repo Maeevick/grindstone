@@ -23,6 +23,9 @@ pub fn measurement(
     waist_cm: Option<f64>,
 ) -> Result<Measurement, Refusal> {
     let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
+    if !(body_mass_kg.is_finite() && body_mass_kg > 0.0) {
+        return Err(Refusal::NotAMass);
+    }
     Ok(Measurement {
         day,
         body_mass_kg: to_two_decimals(body_mass_kg),
