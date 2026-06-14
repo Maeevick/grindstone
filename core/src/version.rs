@@ -1,7 +1,11 @@
 use chrono::NaiveDate;
 
 pub fn version_in_force_on<V>(versions: &[(NaiveDate, V)], day: NaiveDate) -> Option<&V> {
-    None
+    versions
+        .iter()
+        .filter(|(from, _)| *from <= day)
+        .max_by_key(|(from, _)| *from)
+        .map(|(_, version)| version)
 }
 
 #[cfg(test)]
