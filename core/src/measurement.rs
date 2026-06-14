@@ -22,16 +22,20 @@ fn to_the_tenth(figure: f64) -> f64 {
     (figure * 10.0).round() / 10.0
 }
 
+fn is_a_figure_above_nothing(figure: f64) -> bool {
+    figure.is_finite() && figure > 0.0
+}
+
 pub fn measurement(
     date: &str,
     body_mass_kg: f64,
     waist_cm: Option<f64>,
 ) -> Result<Measurement, Refusal> {
     let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
-    if !(body_mass_kg.is_finite() && body_mass_kg > 0.0) {
+    if !is_a_figure_above_nothing(body_mass_kg) {
         return Err(Refusal::NotAMass);
     }
-    if waist_cm.is_some_and(|cm| !(cm.is_finite() && cm > 0.0)) {
+    if waist_cm.is_some_and(|cm| !is_a_figure_above_nothing(cm)) {
         return Err(Refusal::NotAWaist);
     }
     Ok(Measurement {
@@ -71,14 +75,21 @@ mod tests {
 
     #[test]
     fn a_date_that_does_not_exist_is_refused() {
-        assert_eq!(measurement("2026-02-30", 72.1, None), Err(Refusal::NotADate));
+        assert_eq!(
+            measurement("2026-02-30", 72.1, None),
+            Err(Refusal::NotADate)
+        );
         assert_eq!(measurement("yesterday", 72.1, None), Err(Refusal::NotADate));
     }
 
     #[test]
     fn a_mass_of_nothing_or_no_number_at_all_is_refused() {
         for kg in [0.0, -72.1, f64::NAN, f64::INFINITY] {
-            assert_eq!(measurement("2026-10-10", kg, None), Err(Refusal::NotAMass), "{kg}");
+            assert_eq!(
+                measurement("2026-10-10", kg, None),
+                Err(Refusal::NotAMass),
+                "{kg}"
+            );
         }
     }
 
