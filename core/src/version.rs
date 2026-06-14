@@ -5,6 +5,7 @@ pub fn version_in_force_on<V>(versions: &[(NaiveDate, V)], day: NaiveDate) -> Op
         .iter()
         .filter(|(from, _)| *from <= day)
         .max_by_key(|(from, _)| *from)
+        .or_else(|| versions.iter().min_by_key(|(from, _)| *from))
         .map(|(_, version)| version)
 }
 
@@ -26,12 +27,21 @@ mod tests {
 
     #[test]
     fn a_version_is_in_force_from_its_first_day_until_the_next_one() {
-        assert_eq!(version_in_force_on(&heights(), day("2026-06-22")), Some(&180.5));
-        assert_eq!(version_in_force_on(&heights(), day("2026-08-31")), Some(&180.5));
+        assert_eq!(
+            version_in_force_on(&heights(), day("2026-06-22")),
+            Some(&180.5)
+        );
+        assert_eq!(
+            version_in_force_on(&heights(), day("2026-08-31")),
+            Some(&180.5)
+        );
     }
 
     #[test]
     fn a_day_before_every_version_takes_the_earliest() {
-        assert_eq!(version_in_force_on(&heights(), day("2026-01-15")), Some(&180.0));
+        assert_eq!(
+            version_in_force_on(&heights(), day("2026-01-15")),
+            Some(&180.0)
+        );
     }
 }
