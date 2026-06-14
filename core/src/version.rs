@@ -29,4 +29,9 @@ mod tests {
         assert_eq!(version_in_force_on(&heights(), day("2026-06-22")), Some(&180.5));
         assert_eq!(version_in_force_on(&heights(), day("2026-08-31")), Some(&180.5));
     }
+
+    #[test]
+    fn a_day_before_every_version_takes_the_earliest() {
+        assert_eq!(version_in_force_on(&heights(), day("2026-01-15")), Some(&180.0));
+    }
 }
