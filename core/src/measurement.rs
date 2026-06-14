@@ -11,6 +11,7 @@ pub struct Measurement {
 pub enum Refusal {
     NotADate,
     NotAMass,
+    NotAWaist,
 }
 
 fn to_two_decimals(figure: f64) -> f64 {
@@ -75,6 +76,17 @@ mod tests {
     fn a_mass_of_nothing_or_no_number_at_all_is_refused() {
         for kg in [0.0, -72.1, f64::NAN, f64::INFINITY] {
             assert_eq!(measurement("2026-10-10", kg, None), Err(Refusal::NotAMass), "{kg}");
+        }
+    }
+
+    #[test]
+    fn a_waist_of_nothing_or_no_number_at_all_is_refused() {
+        for cm in [0.0, -84.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                measurement("2026-10-10", 72.1, Some(cm)),
+                Err(Refusal::NotAWaist),
+                "{cm}"
+            );
         }
     }
 }
