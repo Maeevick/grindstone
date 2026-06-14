@@ -31,6 +31,9 @@ pub fn measurement(
     if !(body_mass_kg.is_finite() && body_mass_kg > 0.0) {
         return Err(Refusal::NotAMass);
     }
+    if waist_cm.is_some_and(|cm| !(cm.is_finite() && cm > 0.0)) {
+        return Err(Refusal::NotAWaist);
+    }
     Ok(Measurement {
         day,
         body_mass_kg: to_two_decimals(body_mass_kg),
