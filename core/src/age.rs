@@ -1,7 +1,7 @@
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 
 pub fn age_on(birthday: NaiveDate, day: NaiveDate) -> u32 {
-    0
+    day.year().abs_diff(birthday.year())
 }
 
 #[cfg(test)]
