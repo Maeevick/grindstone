@@ -16,4 +16,9 @@ mod tests {
     fn a_birthday_adds_a_year_on_the_day_itself() {
         assert_eq!(age_on(day("1985-04-12"), day("2026-04-12")), 41);
     }
+
+    #[test]
+    fn the_day_before_a_birthday_keeps_the_age_of_the_year_before() {
+        assert_eq!(age_on(day("1985-04-12"), day("2026-04-11")), 40);
+    }
 }
