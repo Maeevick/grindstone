@@ -11,6 +11,17 @@ pub enum Tapes {
     },
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Composition {
+    pub fat_ratio: f64,
+    pub fat_mass_kg: f64,
+    pub lean_mass_kg: f64,
+}
+
+pub fn body_composition(body_mass_kg: f64, height_cm: f64, tapes: Tapes) -> Option<Composition> {
+    None
+}
+
 pub fn fat_ratio_from_navy_formula(height_cm: f64, tapes: Tapes) -> Option<f64> {
     let fat_percentage = match tapes {
         Tapes::Male { neck_cm, waist_cm } => {
@@ -38,6 +49,29 @@ mod tests {
 
     fn reads_about(reading: Option<f64>, expected: f64) -> bool {
         reading.is_some_and(|ratio| (ratio - expected).abs() < 1e-6)
+    }
+
+    #[test]
+    fn a_body_splits_into_the_fat_its_navy_ratio_reads_and_the_lean_rest() {
+        let tapes = Tapes::Male {
+            neck_cm: 38.5,
+            waist_cm: 80.0,
+        };
+
+        let composition = body_composition(80.0, 180.0, tapes);
+
+        assert!(reads_about(
+            composition.map(|split| split.fat_ratio),
+            0.116245
+        ));
+        assert!(
+            composition
+                .is_some_and(|split| (split.fat_mass_kg - 80.0 * split.fat_ratio).abs() < 1e-9)
+        );
+        assert!(
+            composition
+                .is_some_and(|split| (split.fat_mass_kg + split.lean_mass_kg - 80.0).abs() < 1e-9)
+        );
     }
 
     #[test]
