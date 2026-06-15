@@ -26,7 +26,7 @@ pub fn body_composition(body_mass_kg: f64, height_cm: f64, tapes: Tapes) -> Opti
     })
 }
 
-pub fn fat_ratio_from_navy_formula(height_cm: f64, tapes: Tapes) -> Option<f64> {
+fn fat_ratio_from_navy_formula(height_cm: f64, tapes: Tapes) -> Option<f64> {
     let fat_percentage = match tapes {
         Tapes::Male { neck_cm, waist_cm } => {
             495.0 / (1.0324 - 0.19077 * (waist_cm - neck_cm).log10() + 0.15456 * height_cm.log10())
@@ -51,44 +51,30 @@ pub fn fat_ratio_from_navy_formula(height_cm: f64, tapes: Tapes) -> Option<f64> 
 mod tests {
     use super::*;
 
+    const A_MANS_TAPES: Tapes = Tapes::Male {
+        neck_cm: 38.5,
+        waist_cm: 80.0,
+    };
+
+    fn fat_ratio_of(height_cm: f64, tapes: Tapes) -> Option<f64> {
+        body_composition(80.0, height_cm, tapes).map(|split| split.fat_ratio)
+    }
+
     fn reads_about(reading: Option<f64>, expected: f64) -> bool {
         reading.is_some_and(|ratio| (ratio - expected).abs() < 1e-6)
     }
 
     #[test]
     fn a_body_splits_into_the_fat_its_navy_ratio_reads_and_the_lean_rest() {
-        let tapes = Tapes::Male {
-            neck_cm: 38.5,
-            waist_cm: 80.0,
-        };
+        let split = body_composition(80.0, 180.0, A_MANS_TAPES).expect("a reading");
 
-        let composition = body_composition(80.0, 180.0, tapes);
-
-        assert!(reads_about(
-            composition.map(|split| split.fat_ratio),
-            0.116245
-        ));
-        assert!(
-            composition
-                .is_some_and(|split| (split.fat_mass_kg - 80.0 * split.fat_ratio).abs() < 1e-9)
-        );
-        assert!(
-            composition
-                .is_some_and(|split| (split.fat_mass_kg + split.lean_mass_kg - 80.0).abs() < 1e-9)
-        );
+        assert!((split.fat_mass_kg - 80.0 * split.fat_ratio).abs() < 1e-9);
+        assert!((split.fat_mass_kg + split.lean_mass_kg - 80.0).abs() < 1e-9);
     }
 
     #[test]
     fn a_mans_fat_ratio_reads_his_waist_against_his_neck_and_his_height() {
-        let tapes = Tapes::Male {
-            neck_cm: 38.5,
-            waist_cm: 80.0,
-        };
-
-        assert!(reads_about(
-            fat_ratio_from_navy_formula(180.0, tapes),
-            0.116245
-        ));
+        assert!(reads_about(fat_ratio_of(180.0, A_MANS_TAPES), 0.116245));
     }
 
     #[test]
@@ -99,10 +85,7 @@ mod tests {
             hip_cm: 98.0,
         };
 
-        assert!(reads_about(
-            fat_ratio_from_navy_formula(165.0, tapes),
-            0.284350
-        ));
+        assert!(reads_about(fat_ratio_of(165.0, tapes), 0.284350));
     }
 
     #[test]
@@ -112,7 +95,7 @@ mod tests {
             waist_cm: 40.0,
         };
 
-        assert_eq!(fat_ratio_from_navy_formula(180.0, tapes), None);
+        assert_eq!(fat_ratio_of(180.0, tapes), None);
     }
 
     #[test]
@@ -122,7 +105,7 @@ mod tests {
             waist_cm: 85.0,
         };
 
-        assert_eq!(fat_ratio_from_navy_formula(0.0, tapes), None);
+        assert_eq!(fat_ratio_of(0.0, tapes), None);
     }
 
     #[test]
@@ -132,6 +115,6 @@ mod tests {
             waist_cm: 41.0,
         };
 
-        assert_eq!(fat_ratio_from_navy_formula(180.0, tapes), None);
+        assert_eq!(fat_ratio_of(180.0, tapes), None);
     }
 }
