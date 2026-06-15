@@ -73,6 +73,13 @@ mod tests {
     }
 
     #[test]
+    fn a_mass_of_nothing_or_no_number_at_all_gives_no_composition() {
+        for kg in [0.0, -80.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(body_composition(kg, 180.0, A_MANS_TAPES), None, "{kg}");
+        }
+    }
+
+    #[test]
     fn a_mans_fat_ratio_reads_his_waist_against_his_neck_and_his_height() {
         assert!(reads_about(fat_ratio_of(180.0, A_MANS_TAPES), 0.116245));
     }
