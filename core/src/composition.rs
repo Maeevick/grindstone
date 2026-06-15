@@ -19,7 +19,11 @@ pub struct Composition {
 }
 
 pub fn body_composition(body_mass_kg: f64, height_cm: f64, tapes: Tapes) -> Option<Composition> {
-    None
+    fat_ratio_from_navy_formula(height_cm, tapes).map(|fat_ratio| Composition {
+        fat_ratio,
+        fat_mass_kg: body_mass_kg * fat_ratio,
+        lean_mass_kg: body_mass_kg * (1.0 - fat_ratio),
+    })
 }
 
 pub fn fat_ratio_from_navy_formula(height_cm: f64, tapes: Tapes) -> Option<f64> {
