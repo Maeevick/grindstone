@@ -54,6 +54,16 @@ mod tests {
     }
 
     #[test]
+    fn a_reading_more_than_seven_days_old_no_longer_weighs_on_the_trend() {
+        let readings = [(day("2026-10-01"), 74.0), (day("2026-10-08"), 72.0)];
+
+        assert!(reads_about(
+            &seven_day_trend(&readings),
+            &[(day("2026-10-01"), 74.0), (day("2026-10-08"), 72.0)]
+        ));
+    }
+
+    #[test]
     fn a_lone_reading_is_its_own_trend() {
         assert_eq!(
             seven_day_trend(&[(day("2026-10-01"), 72.4)]),
