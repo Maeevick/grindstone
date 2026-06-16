@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
 pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
-    Vec::new()
+    readings.to_vec()
 }
 
 #[cfg(test)]
