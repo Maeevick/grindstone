@@ -9,6 +9,7 @@ pub mod measurement;
 pub mod nutrition;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
+pub mod trend;
 pub mod version;
 pub mod weigh_in;
 pub mod workout;
