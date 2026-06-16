@@ -1,7 +1,20 @@
 use chrono::NaiveDate;
 
 pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
-    readings.to_vec()
+    readings
+        .iter()
+        .map(|(day, _)| {
+            let up_to_the_day: Vec<f64> = readings
+                .iter()
+                .filter(|(reading_day, _)| reading_day <= day)
+                .map(|(_, value)| *value)
+                .collect();
+            (
+                *day,
+                up_to_the_day.iter().sum::<f64>() / up_to_the_day.len() as f64,
+            )
+        })
+        .collect()
 }
 
 #[cfg(test)]
