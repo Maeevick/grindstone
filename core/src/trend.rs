@@ -66,6 +66,16 @@ mod tests {
     }
 
     #[test]
+    fn the_trend_follows_the_days_whatever_the_order_of_the_readings() {
+        let readings = [(day("2026-10-02"), 72.6), (day("2026-10-01"), 73.0)];
+
+        assert!(reads_about(
+            &seven_day_trend(&readings),
+            &[(day("2026-10-01"), 73.0), (day("2026-10-02"), 72.8)]
+        ));
+    }
+
+    #[test]
     fn a_lone_reading_is_its_own_trend() {
         assert_eq!(
             seven_day_trend(&[(day("2026-10-01"), 72.4)]),
