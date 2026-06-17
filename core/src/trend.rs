@@ -1,21 +1,24 @@
 use chrono::{Days, NaiveDate};
 
+fn mean(values: &[f64]) -> f64 {
+    values.iter().sum::<f64>() / values.len() as f64
+}
+
+fn is_in_the_week_ending(day: NaiveDate, reading_day: NaiveDate) -> bool {
+    reading_day <= day && reading_day + Days::new(6) >= day
+}
+
 pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
     let mut days: Vec<NaiveDate> = readings.iter().map(|(day, _)| *day).collect();
     days.sort();
-    days.iter()
+    days.into_iter()
         .map(|day| {
-            let up_to_the_day: Vec<f64> = readings
+            let the_weeks_readings: Vec<f64> = readings
                 .iter()
-                .filter(|(reading_day, _)| {
-                    reading_day <= day && *reading_day + Days::new(6) >= *day
-                })
+                .filter(|(reading_day, _)| is_in_the_week_ending(day, *reading_day))
                 .map(|(_, value)| *value)
                 .collect();
-            (
-                *day,
-                up_to_the_day.iter().sum::<f64>() / up_to_the_day.len() as f64,
-            )
+            (day, mean(&the_weeks_readings))
         })
         .collect()
 }
