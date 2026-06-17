@@ -67,6 +67,16 @@ mod tests {
     }
 
     #[test]
+    fn a_reading_six_days_old_still_weighs_on_the_trend() {
+        let readings = [(day("2026-10-01"), 74.0), (day("2026-10-07"), 72.0)];
+
+        assert!(reads_about(
+            &seven_day_trend(&readings),
+            &[(day("2026-10-01"), 74.0), (day("2026-10-07"), 73.0)]
+        ));
+    }
+
+    #[test]
     fn the_trend_follows_the_days_whatever_the_order_of_the_readings() {
         let readings = [(day("2026-10-02"), 72.6), (day("2026-10-01"), 73.0)];
 
