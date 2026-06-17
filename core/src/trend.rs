@@ -1,9 +1,10 @@
 use chrono::{Days, NaiveDate};
 
 pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
-    readings
-        .iter()
-        .map(|(day, _)| {
+    let mut days: Vec<NaiveDate> = readings.iter().map(|(day, _)| *day).collect();
+    days.sort();
+    days.iter()
+        .map(|day| {
             let up_to_the_day: Vec<f64> = readings
                 .iter()
                 .filter(|(reading_day, _)| {
