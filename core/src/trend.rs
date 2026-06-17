@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{Days, NaiveDate};
 
 pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
     readings
@@ -6,7 +6,9 @@ pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
         .map(|(day, _)| {
             let up_to_the_day: Vec<f64> = readings
                 .iter()
-                .filter(|(reading_day, _)| reading_day <= day)
+                .filter(|(reading_day, _)| {
+                    reading_day <= day && *reading_day + Days::new(6) >= *day
+                })
                 .map(|(_, value)| *value)
                 .collect();
             (
