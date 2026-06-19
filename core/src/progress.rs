@@ -9,6 +9,7 @@ pub struct Progress {
 
 pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
     let first_day = trend.first()?.0;
+    let latest = trend.last()?.1;
     let points: Vec<(f64, f64)> = trend
         .iter()
         .map(|(day, value)| ((*day - first_day).num_days() as f64, *value))
@@ -21,7 +22,7 @@ pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progr
     let per_day = (count * sum_xy - sum_x * sum_y) / (count * sum_xx - sum_x * sum_x);
     Some(Progress {
         per_week: per_day * 7.0,
-        share_per_week: 0.0,
+        share_per_week: per_day * 7.0 / latest,
         reached_on: None,
     })
 }
