@@ -63,4 +63,14 @@ mod tests {
             -0.5 / 79.0
         ));
     }
+
+    #[test]
+    fn a_target_ahead_of_the_trend_is_reached_where_its_line_crosses_it() {
+        let progress = progress_towards(78.0, &losing_half_a_kilo_a_week());
+
+        assert_eq!(
+            progress.and_then(|progress| progress.reached_on),
+            Some(day("2026-09-29"))
+        );
+    }
 }
