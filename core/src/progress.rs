@@ -91,4 +91,11 @@ mod tests {
             Some(None)
         );
     }
+
+    #[test]
+    fn a_trend_moving_away_from_its_target_reaches_none() {
+        let progress = progress_towards(81.0, &losing_half_a_kilo_a_week());
+
+        assert_eq!(progress.map(|progress| progress.reached_on), Some(None));
+    }
 }
