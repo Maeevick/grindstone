@@ -74,4 +74,18 @@ mod tests {
             Some(day("2026-09-29"))
         );
     }
+
+    #[test]
+    fn a_flat_trend_reaches_no_target() {
+        let flat = [
+            (day("2026-09-01"), 79.0),
+            (day("2026-09-08"), 79.0),
+            (day("2026-09-15"), 79.0),
+        ];
+
+        assert_eq!(
+            progress_towards(78.0, &flat).map(|progress| progress.reached_on),
+            Some(None)
+        );
+    }
 }
