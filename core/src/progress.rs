@@ -23,8 +23,11 @@ pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progr
     Some(Progress {
         per_week: per_day * 7.0,
         share_per_week: per_day * 7.0 / latest,
-        reached_on: latest_day
-            .checked_add_days(Days::new(((target - latest) / per_day).ceil() as u64)),
+        reached_on: (per_day != 0.0)
+            .then(|| {
+                latest_day.checked_add_days(Days::new(((target - latest) / per_day).ceil() as u64))
+            })
+            .flatten(),
     })
 }
 
