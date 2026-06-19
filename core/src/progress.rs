@@ -8,7 +8,22 @@ pub struct Progress {
 }
 
 pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
-    None
+    let first_day = trend.first()?.0;
+    let points: Vec<(f64, f64)> = trend
+        .iter()
+        .map(|(day, value)| ((*day - first_day).num_days() as f64, *value))
+        .collect();
+    let count = points.len() as f64;
+    let sum_x: f64 = points.iter().map(|(x, _)| x).sum();
+    let sum_y: f64 = points.iter().map(|(_, y)| y).sum();
+    let sum_xy: f64 = points.iter().map(|(x, y)| x * y).sum();
+    let sum_xx: f64 = points.iter().map(|(x, _)| x * x).sum();
+    let per_day = (count * sum_xy - sum_x * sum_y) / (count * sum_xx - sum_x * sum_x);
+    Some(Progress {
+        per_week: per_day * 7.0,
+        share_per_week: 0.0,
+        reached_on: None,
+    })
 }
 
 #[cfg(test)]
