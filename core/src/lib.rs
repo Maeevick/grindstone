@@ -7,6 +7,7 @@ pub mod for_tracking;
 pub mod gender;
 pub mod measurement;
 pub mod nutrition;
+pub mod progress;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod trend;
