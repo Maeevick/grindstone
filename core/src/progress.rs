@@ -52,4 +52,14 @@ mod tests {
 
         assert!(about(progress.map(|progress| progress.per_week), -0.5));
     }
+
+    #[test]
+    fn the_weekly_share_is_the_rate_over_the_latest_trend() {
+        let progress = progress_towards(75.0, &losing_half_a_kilo_a_week());
+
+        assert!(about(
+            progress.map(|progress| progress.share_per_week),
+            -0.5 / 79.0
+        ));
+    }
 }
