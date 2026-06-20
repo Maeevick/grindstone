@@ -8,6 +8,9 @@ pub struct Progress {
 }
 
 pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
+    if trend.len() < 2 {
+        return None;
+    }
     let first_day = trend.first()?.0;
     let (latest_day, latest) = *trend.last()?;
     let points: Vec<(f64, f64)> = trend
