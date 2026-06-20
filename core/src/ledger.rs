@@ -85,4 +85,29 @@ mod tests {
                 .is_some_and(|day| fat_ratio_reads_about(day, 0.116245))
         );
     }
+
+    #[test]
+    fn a_profile_changed_from_a_date_leaves_the_days_before_it_as_they_were() {
+        let profiles = [
+            (day("2026-03-01"), a_man(38.5)),
+            (day("2026-10-05"), a_man(36.0)),
+        ];
+
+        let days = ledger(
+            &[
+                measured("2026-10-01", 80.0, Some(80.0)),
+                measured("2026-10-10", 80.0, Some(80.0)),
+            ],
+            &profiles,
+        );
+
+        assert!(
+            days.first()
+                .is_some_and(|day| fat_ratio_reads_about(day, 0.116245))
+        );
+        assert!(
+            days.last()
+                .is_some_and(|day| !fat_ratio_reads_about(day, 0.116245))
+        );
+    }
 }
