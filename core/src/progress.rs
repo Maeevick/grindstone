@@ -98,4 +98,9 @@ mod tests {
 
         assert_eq!(progress.map(|progress| progress.reached_on), Some(None));
     }
+
+    #[test]
+    fn a_single_point_gives_no_progress() {
+        assert_eq!(progress_towards(78.0, &[(day("2026-09-15"), 79.0)]), None);
+    }
 }
