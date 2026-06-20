@@ -7,12 +7,8 @@ pub struct Progress {
     pub reached_on: Option<NaiveDate>,
 }
 
-pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
-    if trend.len() < 2 {
-        return None;
-    }
-    let first_day = trend.first()?.0;
-    let (latest_day, latest) = *trend.last()?;
+fn least_squares_slope_per_day(trend: &[(NaiveDate, f64)]) -> f64 {
+    let first_day = trend.first().map_or(NaiveDate::MIN, |(day, _)| *day);
     let points: Vec<(f64, f64)> = trend
         .iter()
         .map(|(day, value)| ((*day - first_day).num_days() as f64, *value))
@@ -22,15 +18,30 @@ pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progr
     let sum_y: f64 = points.iter().map(|(_, y)| y).sum();
     let sum_xy: f64 = points.iter().map(|(x, y)| x * y).sum();
     let sum_xx: f64 = points.iter().map(|(x, _)| x * x).sum();
-    let per_day = (count * sum_xy - sum_x * sum_y) / (count * sum_xx - sum_x * sum_x);
+    (count * sum_xy - sum_x * sum_y) / (count * sum_xx - sum_x * sum_x)
+}
+
+fn day_the_line_crosses(
+    target: f64,
+    (latest_day, latest): (NaiveDate, f64),
+    per_day: f64,
+) -> Option<NaiveDate> {
+    let days_to_go = (target - latest) / per_day;
+    (per_day != 0.0 && days_to_go >= 0.0)
+        .then(|| latest_day.checked_add_days(Days::new(days_to_go.ceil() as u64)))
+        .flatten()
+}
+
+pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
+    if trend.len() < 2 {
+        return None;
+    }
+    let latest = *trend.last()?;
+    let per_day = least_squares_slope_per_day(trend);
     Some(Progress {
         per_week: per_day * 7.0,
-        share_per_week: per_day * 7.0 / latest,
-        reached_on: (per_day != 0.0 && (target - latest) / per_day >= 0.0)
-            .then(|| {
-                latest_day.checked_add_days(Days::new(((target - latest) / per_day).ceil() as u64))
-            })
-            .flatten(),
+        share_per_week: per_day * 7.0 / latest.1,
+        reached_on: day_the_line_crosses(target, latest, per_day),
     })
 }
 
