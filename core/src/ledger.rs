@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::composition::Composition;
+use crate::composition::{Composition, Tapes, body_composition};
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 
@@ -14,7 +14,31 @@ pub struct Day {
 }
 
 pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -> Vec<Day> {
-    Vec::new()
+    measurements
+        .iter()
+        .map(|measured| {
+            let profile = profiles.first().map(|(_, profile)| profile);
+            let composition = profile
+                .zip(measured.waist_cm)
+                .and_then(|(profile, waist_cm)| {
+                    body_composition(
+                        measured.body_mass_kg,
+                        profile.height_cm,
+                        Tapes::Male {
+                            neck_cm: profile.neck_cm,
+                            waist_cm,
+                        },
+                    )
+                });
+            Day {
+                day: measured.day,
+                body_mass_kg: measured.body_mass_kg,
+                waist_cm: measured.waist_cm,
+                composition,
+                age: None,
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -56,6 +80,9 @@ mod tests {
             &[(day("2026-03-01"), a_man(38.5))],
         );
 
-        assert!(days.first().is_some_and(|day| fat_ratio_reads_about(day, 0.116245)));
+        assert!(
+            days.first()
+                .is_some_and(|day| fat_ratio_reads_about(day, 0.116245))
+        );
     }
 }
