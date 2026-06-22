@@ -111,4 +111,30 @@ mod tests {
                 .is_some_and(|day| !fat_ratio_reads_about(day, 0.116245))
         );
     }
+
+    fn lean_mass_of(day: &Day) -> Option<f64> {
+        day.composition.map(|composition| composition.lean_mass_kg)
+    }
+
+    #[test]
+    fn a_day_without_a_waist_carries_the_last_lean_mass() {
+        let days = ledger(
+            &[
+                measured("2026-10-01", 80.0, Some(80.0)),
+                measured("2026-10-02", 79.5, None),
+            ],
+            &[(day("2026-03-01"), a_man(38.5))],
+        );
+
+        let carried = days
+            .last()
+            .and_then(|day| day.composition)
+            .expect("a carried composition");
+        assert_eq!(
+            Some(carried.lean_mass_kg),
+            days.first().and_then(lean_mass_of)
+        );
+        assert!((carried.fat_mass_kg + carried.lean_mass_kg - 79.5).abs() < 1e-9);
+        assert!((carried.fat_ratio - carried.fat_mass_kg / 79.5).abs() < 1e-9);
+    }
 }
