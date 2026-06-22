@@ -3,6 +3,7 @@ use chrono::NaiveDate;
 use crate::composition::{Composition, Tapes, body_composition};
 use crate::measurement::Measurement;
 use crate::profile::Profile;
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Day {
@@ -17,7 +18,7 @@ pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -
     measurements
         .iter()
         .map(|measured| {
-            let profile = profiles.first().map(|(_, profile)| profile);
+            let profile = version_in_force_on(profiles, measured.day);
             let composition = profile
                 .zip(measured.waist_cm)
                 .and_then(|(profile, waist_cm)| {
