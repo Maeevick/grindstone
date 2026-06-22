@@ -190,4 +190,14 @@ mod tests {
 
         assert_eq!(days.last().and_then(|day| day.composition), None);
     }
+
+    #[test]
+    fn a_day_reads_its_age_from_the_birthday_in_its_profile() {
+        let days = ledger(
+            &[measured("2026-10-10", 80.0, None)],
+            &[(day("2026-03-01"), a_man(38.5))],
+        );
+
+        assert_eq!(days.first().and_then(|day| day.age), Some(41));
+    }
 }
