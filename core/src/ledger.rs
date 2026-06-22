@@ -14,30 +14,46 @@ pub struct Day {
     pub age: Option<u32>,
 }
 
+fn carried(body_mass_kg: f64, lean_mass_kg: f64) -> Composition {
+    let fat_mass_kg = body_mass_kg - lean_mass_kg;
+    Composition {
+        fat_ratio: fat_mass_kg / body_mass_kg,
+        fat_mass_kg,
+        lean_mass_kg,
+    }
+}
+
 pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -> Vec<Day> {
     measurements
         .iter()
-        .map(|measured| {
+        .scan(None, |last_lean_mass_kg: &mut Option<f64>, measured| {
             let profile = version_in_force_on(profiles, measured.day);
-            let composition = profile
-                .zip(measured.waist_cm)
-                .and_then(|(profile, waist_cm)| {
-                    body_composition(
-                        measured.body_mass_kg,
-                        profile.height_cm,
-                        Tapes::Male {
-                            neck_cm: profile.neck_cm,
-                            waist_cm,
-                        },
-                    )
-                });
-            Day {
+            let measured_composition =
+                profile
+                    .zip(measured.waist_cm)
+                    .and_then(|(profile, waist_cm)| {
+                        body_composition(
+                            measured.body_mass_kg,
+                            profile.height_cm,
+                            Tapes::Male {
+                                neck_cm: profile.neck_cm,
+                                waist_cm,
+                            },
+                        )
+                    });
+            if let Some(composition) = measured_composition {
+                *last_lean_mass_kg = Some(composition.lean_mass_kg);
+            }
+            let composition = measured_composition.or_else(|| {
+                last_lean_mass_kg.map(|lean_mass_kg| carried(measured.body_mass_kg, lean_mass_kg))
+            });
+            Some(Day {
                 day: measured.day,
                 body_mass_kg: measured.body_mass_kg,
                 waist_cm: measured.waist_cm,
                 composition,
                 age: None,
-            }
+            })
         })
         .collect()
 }
