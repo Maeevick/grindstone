@@ -14,13 +14,13 @@ pub struct Day {
     pub age: Option<u32>,
 }
 
-fn carried(body_mass_kg: f64, lean_mass_kg: f64) -> Composition {
+fn carried(body_mass_kg: f64, lean_mass_kg: f64) -> Option<Composition> {
     let fat_mass_kg = body_mass_kg - lean_mass_kg;
-    Composition {
+    (fat_mass_kg > 0.0).then_some(Composition {
         fat_ratio: fat_mass_kg / body_mass_kg,
         fat_mass_kg,
         lean_mass_kg,
-    }
+    })
 }
 
 fn measured_composition(
@@ -51,7 +51,8 @@ pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -
                 *last_lean_mass_kg = Some(composition.lean_mass_kg);
             }
             let composition = measured_composition.or_else(|| {
-                last_lean_mass_kg.map(|lean_mass_kg| carried(measured.body_mass_kg, lean_mass_kg))
+                last_lean_mass_kg
+                    .and_then(|lean_mass_kg| carried(measured.body_mass_kg, lean_mass_kg))
             });
             Some(Day {
                 day: measured.day,
