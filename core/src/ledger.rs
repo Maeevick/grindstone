@@ -153,4 +153,21 @@ mod tests {
         assert!((carried.fat_mass_kg + carried.lean_mass_kg - 79.5).abs() < 1e-9);
         assert!((carried.fat_ratio - carried.fat_mass_kg / 79.5).abs() < 1e-9);
     }
+
+    #[test]
+    fn the_days_before_the_first_waist_carry_the_earliest_lean_mass() {
+        let days = ledger(
+            &[
+                measured("2026-09-30", 80.2, None),
+                measured("2026-10-01", 80.0, Some(80.0)),
+            ],
+            &[(day("2026-03-01"), a_man(38.5))],
+        );
+
+        assert!(days.first().and_then(lean_mass_of).is_some());
+        assert_eq!(
+            days.first().and_then(lean_mass_of),
+            days.last().and_then(lean_mass_of)
+        );
+    }
 }
