@@ -23,24 +23,30 @@ fn carried(body_mass_kg: f64, lean_mass_kg: f64) -> Composition {
     }
 }
 
+fn measured_composition(
+    measured: &Measurement,
+    profiles: &[(NaiveDate, Profile)],
+) -> Option<Composition> {
+    let profile = version_in_force_on(profiles, measured.day)?;
+    body_composition(
+        measured.body_mass_kg,
+        profile.height_cm,
+        Tapes::Male {
+            neck_cm: profile.neck_cm,
+            waist_cm: measured.waist_cm?,
+        },
+    )
+}
+
 pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -> Vec<Day> {
+    let earliest_lean_mass_kg = measurements
+        .iter()
+        .find_map(|measured| measured_composition(measured, profiles))
+        .map(|composition| composition.lean_mass_kg);
     measurements
         .iter()
-        .scan(None, |last_lean_mass_kg: &mut Option<f64>, measured| {
-            let profile = version_in_force_on(profiles, measured.day);
-            let measured_composition =
-                profile
-                    .zip(measured.waist_cm)
-                    .and_then(|(profile, waist_cm)| {
-                        body_composition(
-                            measured.body_mass_kg,
-                            profile.height_cm,
-                            Tapes::Male {
-                                neck_cm: profile.neck_cm,
-                                waist_cm,
-                            },
-                        )
-                    });
+        .scan(earliest_lean_mass_kg, |last_lean_mass_kg, measured| {
+            let measured_composition = measured_composition(measured, profiles);
             if let Some(composition) = measured_composition {
                 *last_lean_mass_kg = Some(composition.lean_mass_kg);
             }
