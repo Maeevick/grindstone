@@ -176,4 +176,17 @@ mod tests {
             days.last().and_then(lean_mass_of)
         );
     }
+
+    #[test]
+    fn a_mass_below_the_carried_lean_mass_reads_no_composition_rather_than_a_negative_fat() {
+        let days = ledger(
+            &[
+                measured("2026-10-01", 80.0, Some(80.0)),
+                measured("2026-10-02", 70.0, None),
+            ],
+            &[(day("2026-03-01"), a_man(38.5))],
+        );
+
+        assert_eq!(days.last().and_then(|day| day.composition), None);
+    }
 }
