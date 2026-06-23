@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 
+use crate::age::age_on;
 use crate::composition::{Composition, Tapes, body_composition};
 use crate::measurement::Measurement;
 use crate::profile::Profile;
@@ -59,7 +60,8 @@ pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -
                 body_mass_kg: measured.body_mass_kg,
                 waist_cm: measured.waist_cm,
                 composition,
-                age: None,
+                age: version_in_force_on(profiles, measured.day)
+                    .map(|profile| age_on(profile.birthday, measured.day)),
             })
         })
         .collect()
