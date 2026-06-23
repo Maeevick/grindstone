@@ -202,4 +202,25 @@ mod tests {
 
         assert_eq!(days.first().and_then(|day| day.age), Some(41));
     }
+
+    #[test]
+    fn a_womans_day_reads_her_hip_from_her_profile() {
+        let a_woman = Profile {
+            birthday: day("1990-06-01"),
+            gender: Gender::Female,
+            height_cm: 165.0,
+            neck_cm: 33.0,
+            hip_cm: Some(98.0),
+        };
+
+        let days = ledger(
+            &[measured("2026-10-10", 65.0, Some(75.0))],
+            &[(day("2026-03-01"), a_woman)],
+        );
+
+        assert!(
+            days.first()
+                .is_some_and(|day| fat_ratio_reads_about(day, 0.284350))
+        );
+    }
 }
