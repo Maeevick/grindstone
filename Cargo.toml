@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["core", "adapters/sqlite", "ui", "src-tauri"]
+members = ["core", "adapters/sqlite", "adapters/draft", "ui", "src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -9,6 +9,8 @@ edition = "2024"
 [workspace.dependencies]
 grind-core = { path = "core" }
 grind-sqlite = { path = "adapters/sqlite" }
+grind-draft = { path = "adapters/draft" }
 serde = { version = "1", features = ["derive"] }
-chrono = { version = "0.4", default-features = false, features = ["alloc"] }
+chrono = { version = "0.4", default-features = false, features = ["alloc", "serde"] }
+serde_json = "1"
 rusqlite = { version = "0.40", features = ["bundled"] }
