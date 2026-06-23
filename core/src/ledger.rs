@@ -234,4 +234,18 @@ mod tests {
                 .is_some_and(|day| fat_ratio_reads_about(day, 0.284350))
         );
     }
+
+    #[test]
+    fn the_ledger_lists_its_days_in_their_order_whatever_the_order_measured() {
+        let days = ledger(
+            &[
+                measured("2026-10-02", 79.5, None),
+                measured("2026-10-01", 80.0, Some(80.0)),
+            ],
+            &[(day("2026-03-01"), a_man(38.5))],
+        );
+
+        let listed: Vec<NaiveDate> = days.iter().map(|day| day.day).collect();
+        assert_eq!(listed, vec![day("2026-10-01"), day("2026-10-02")]);
+    }
 }
