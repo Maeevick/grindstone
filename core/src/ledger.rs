@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 
 use crate::age::age_on;
 use crate::composition::{Composition, Tapes, body_composition};
+use crate::gender::Gender;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::version::version_in_force_on;
@@ -24,6 +25,20 @@ fn carried(body_mass_kg: f64, lean_mass_kg: f64) -> Option<Composition> {
     })
 }
 
+fn tapes(profile: &Profile, waist_cm: f64) -> Option<Tapes> {
+    match profile.gender {
+        Gender::Male => Some(Tapes::Male {
+            neck_cm: profile.neck_cm,
+            waist_cm,
+        }),
+        Gender::Female => profile.hip_cm.map(|hip_cm| Tapes::Female {
+            neck_cm: profile.neck_cm,
+            waist_cm,
+            hip_cm,
+        }),
+    }
+}
+
 fn measured_composition(
     measured: &Measurement,
     profiles: &[(NaiveDate, Profile)],
@@ -32,10 +47,7 @@ fn measured_composition(
     body_composition(
         measured.body_mass_kg,
         profile.height_cm,
-        Tapes::Male {
-            neck_cm: profile.neck_cm,
-            waist_cm: measured.waist_cm?,
-        },
+        tapes(profile, measured.waist_cm?)?,
     )
 }
 
@@ -70,7 +82,6 @@ pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gender::Gender;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
