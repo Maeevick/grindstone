@@ -16,7 +16,7 @@ pub struct Day {
     pub age: Option<u32>,
 }
 
-fn carried(body_mass_kg: f64, lean_mass_kg: f64) -> Option<Composition> {
+fn composition_carrying(lean_mass_kg: f64, body_mass_kg: f64) -> Option<Composition> {
     let fat_mass_kg = body_mass_kg - lean_mass_kg;
     (fat_mass_kg > 0.0).then_some(Composition {
         fat_ratio: fat_mass_kg / body_mass_kg,
@@ -39,7 +39,7 @@ fn tapes(profile: &Profile, waist_cm: f64) -> Option<Tapes> {
     }
 }
 
-fn measured_composition(
+fn composition_read_from_the_tapes(
     measured: &Measurement,
     profiles: &[(NaiveDate, Profile)],
 ) -> Option<Composition> {
@@ -56,18 +56,19 @@ pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -
     measurements.sort_by_key(|measured| measured.day);
     let earliest_lean_mass_kg = measurements
         .iter()
-        .find_map(|measured| measured_composition(measured, profiles))
+        .find_map(|measured| composition_read_from_the_tapes(measured, profiles))
         .map(|composition| composition.lean_mass_kg);
     measurements
         .iter()
         .scan(earliest_lean_mass_kg, |last_lean_mass_kg, measured| {
-            let measured_composition = measured_composition(measured, profiles);
-            if let Some(composition) = measured_composition {
+            let read_from_the_tapes = composition_read_from_the_tapes(measured, profiles);
+            if let Some(composition) = read_from_the_tapes {
                 *last_lean_mass_kg = Some(composition.lean_mass_kg);
             }
-            let composition = measured_composition.or_else(|| {
-                last_lean_mass_kg
-                    .and_then(|lean_mass_kg| carried(measured.body_mass_kg, lean_mass_kg))
+            let composition = read_from_the_tapes.or_else(|| {
+                last_lean_mass_kg.and_then(|lean_mass_kg| {
+                    composition_carrying(lean_mass_kg, measured.body_mass_kg)
+                })
             });
             Some(Day {
                 day: measured.day,
