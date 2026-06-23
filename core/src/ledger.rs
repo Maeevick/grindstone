@@ -52,6 +52,8 @@ fn measured_composition(
 }
 
 pub fn ledger(measurements: &[Measurement], profiles: &[(NaiveDate, Profile)]) -> Vec<Day> {
+    let mut measurements = measurements.to_vec();
+    measurements.sort_by_key(|measured| measured.day);
     let earliest_lean_mass_kg = measurements
         .iter()
         .find_map(|measured| measured_composition(measured, profiles))
