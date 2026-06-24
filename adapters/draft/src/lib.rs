@@ -1,12 +1,37 @@
 use grind_core::gather_records::GatherRecords;
+use grind_core::measurement::measurement;
+use serde::Deserialize;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DraftRefusal {
     Unreadable(String),
 }
 
+#[derive(Deserialize)]
+struct Backup {
+    #[serde(default)]
+    measurement_logs: Vec<MeasurementLog>,
+}
+
+#[derive(Deserialize)]
+struct MeasurementLog {
+    date: String,
+    weight: f64,
+    waist: Option<f64>,
+}
+
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
-    Err(DraftRefusal::Unreadable(String::new()))
+    let backup: Backup =
+        serde_json::from_str(backup).map_err(|_| DraftRefusal::Unreadable(String::new()))?;
+    Ok(GatherRecords {
+        measurements: backup
+            .measurement_logs
+            .iter()
+            .filter_map(|log| measurement(&log.date, log.weight, log.waist).ok())
+            .collect(),
+        profiles: Vec::new(),
+        goals: Vec::new(),
+    })
 }
 
 #[cfg(test)]
