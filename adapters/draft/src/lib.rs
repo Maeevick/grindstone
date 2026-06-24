@@ -14,9 +14,15 @@ pub enum DraftRefusal {
 
 #[derive(Deserialize)]
 struct Backup {
+    settings: Settings,
     measurement_bases: MeasurementBases,
     #[serde(default)]
     measurement_logs: Vec<MeasurementLog>,
+}
+
+#[derive(Deserialize)]
+struct Settings {
+    version: String,
 }
 
 #[derive(Deserialize)]
@@ -100,6 +106,9 @@ fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Goals)> {
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
     let backup: Backup =
         serde_json::from_str(backup).map_err(|_| DraftRefusal::Unreadable(String::new()))?;
+    if backup.settings.version != "0.4.0" {
+        return Err(DraftRefusal::NotAVersionWeRead(backup.settings.version));
+    }
     Ok(GatherRecords {
         measurements: backup
             .measurement_logs
