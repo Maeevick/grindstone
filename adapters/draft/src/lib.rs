@@ -220,4 +220,14 @@ mod tests {
             Err(DraftRefusal::NotAVersionWeRead("0.3.0".into()))
         );
     }
+
+    #[test]
+    fn a_backup_that_cannot_be_read_is_refused_saying_where_it_stopped() {
+        let refused = gather_from_draft("{ \"settings\": nothing }");
+
+        assert!(
+            matches!(&refused, Err(DraftRefusal::Unreadable(where_it_stopped)) if where_it_stopped.contains("line 1 column")),
+            "{refused:?}"
+        );
+    }
 }
