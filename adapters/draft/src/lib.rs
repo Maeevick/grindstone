@@ -9,6 +9,7 @@ use serde::Deserialize;
 #[derive(Clone, Debug, PartialEq)]
 pub enum DraftRefusal {
     Unreadable(String),
+    NotAVersionWeRead(String),
 }
 
 #[derive(Deserialize)]
@@ -198,6 +199,16 @@ mod tests {
                     }
                 ),
             ])
+        );
+    }
+
+    #[test]
+    fn a_backup_of_another_version_is_refused_naming_it() {
+        let older = BACKUP.replace(r#""version": "0.4.0""#, r#""version": "0.3.0""#);
+
+        assert_eq!(
+            gather_from_draft(&older),
+            Err(DraftRefusal::NotAVersionWeRead("0.3.0".into()))
         );
     }
 }
