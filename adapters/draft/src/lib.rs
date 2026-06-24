@@ -50,57 +50,50 @@ fn gender(drafted: DraftGender) -> Gender {
     }
 }
 
+fn logged_days(backup: &Backup) -> impl Iterator<Item = (NaiveDate, &MeasurementLog)> {
+    backup.measurement_logs.iter().filter_map(|log| {
+        NaiveDate::parse_from_str(&log.date, "%Y-%m-%d")
+            .ok()
+            .map(|day| (day, log))
+    })
+}
+
+fn versions_where_they_change<V: PartialEq>(
+    dated: impl Iterator<Item = (NaiveDate, V)>,
+) -> Vec<(NaiveDate, V)> {
+    dated.fold(Vec::new(), |mut versions, (day, version)| {
+        if versions.last().is_none_or(|(_, last)| *last != version) {
+            versions.push((day, version));
+        }
+        versions
+    })
+}
+
 fn profile_versions(backup: &Backup) -> Vec<(NaiveDate, Profile)> {
-    backup
-        .measurement_logs
-        .iter()
-        .filter_map(|log| {
-            let day = NaiveDate::parse_from_str(&log.date, "%Y-%m-%d").ok()?;
-            Some((
-                day,
-                Profile {
-                    birthday: backup.measurement_bases.birthday,
-                    gender: gender(log.gender),
-                    height_cm: log.height,
-                    neck_cm: log.neck,
-                    hip_cm: log.hip,
-                },
-            ))
-        })
-        .fold(
-            Vec::new(),
-            |mut versions: Vec<(NaiveDate, Profile)>, (day, profile)| {
-                if versions.last().is_none_or(|(_, last)| *last != profile) {
-                    versions.push((day, profile));
-                }
-                versions
+    versions_where_they_change(logged_days(backup).map(|(day, log)| {
+        (
+            day,
+            Profile {
+                birthday: backup.measurement_bases.birthday,
+                gender: gender(log.gender),
+                height_cm: log.height,
+                neck_cm: log.neck,
+                hip_cm: log.hip,
             },
         )
+    }))
 }
 
 fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Goals)> {
-    backup
-        .measurement_logs
-        .iter()
-        .filter_map(|log| {
-            let day = NaiveDate::parse_from_str(&log.date, "%Y-%m-%d").ok()?;
-            Some((
-                day,
-                Goals {
-                    body_mass_kg: log.weight_target,
-                    fat_ratio: log.fat_target / 100.0,
-                },
-            ))
-        })
-        .fold(
-            Vec::new(),
-            |mut versions: Vec<(NaiveDate, Goals)>, (day, goals)| {
-                if versions.last().is_none_or(|(_, last)| *last != goals) {
-                    versions.push((day, goals));
-                }
-                versions
+    versions_where_they_change(logged_days(backup).map(|(day, log)| {
+        (
+            day,
+            Goals {
+                body_mass_kg: log.weight_target,
+                fat_ratio: log.fat_target / 100.0,
             },
         )
+    }))
 }
 
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
