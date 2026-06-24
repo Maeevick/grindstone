@@ -38,7 +38,9 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
 mod tests {
     use super::*;
     use chrono::NaiveDate;
+    use grind_core::gender::Gender;
     use grind_core::measurement::Measurement;
+    use grind_core::profile::Profile;
 
     const BACKUP: &str = r#"{
         "settings": { "version": "0.4.0", "started_at": "2026-03-01" },
@@ -76,6 +78,25 @@ mod tests {
                 measured("2026-03-01", 79.5, None),
                 measured("2026-06-22", 76.4, Some(84.0)),
                 measured("2026-10-08", 72.15, Some(80.5)),
+            ])
+        );
+    }
+
+    #[test]
+    fn the_bases_frozen_on_the_logs_open_a_profile_version_wherever_they_change() {
+        let a_man = |neck_cm| Profile {
+            birthday: day("1985-04-12"),
+            gender: Gender::Male,
+            height_cm: 180.0,
+            neck_cm,
+            hip_cm: None,
+        };
+
+        assert_eq!(
+            gather_from_draft(BACKUP).map(|records| records.profiles),
+            Ok(vec![
+                (day("2026-03-01"), a_man(38.5)),
+                (day("2026-10-08"), a_man(38.0)),
             ])
         );
     }
