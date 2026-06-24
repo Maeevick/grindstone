@@ -1,5 +1,8 @@
+use chrono::NaiveDate;
 use grind_core::gather_records::GatherRecords;
+use grind_core::gender::Gender;
 use grind_core::measurement::measurement;
+use grind_core::profile::Profile;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -9,15 +12,67 @@ pub enum DraftRefusal {
 
 #[derive(Deserialize)]
 struct Backup {
+    measurement_bases: MeasurementBases,
     #[serde(default)]
     measurement_logs: Vec<MeasurementLog>,
 }
 
 #[derive(Deserialize)]
+struct MeasurementBases {
+    birthday: NaiveDate,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum DraftGender {
+    Male,
+    Female,
+}
+
+#[derive(Deserialize)]
 struct MeasurementLog {
     date: String,
+    gender: DraftGender,
+    height: f64,
+    neck: f64,
+    hip: Option<f64>,
     weight: f64,
     waist: Option<f64>,
+}
+
+fn gender(drafted: DraftGender) -> Gender {
+    match drafted {
+        DraftGender::Male => Gender::Male,
+        DraftGender::Female => Gender::Female,
+    }
+}
+
+fn profile_versions(backup: &Backup) -> Vec<(NaiveDate, Profile)> {
+    backup
+        .measurement_logs
+        .iter()
+        .filter_map(|log| {
+            let day = NaiveDate::parse_from_str(&log.date, "%Y-%m-%d").ok()?;
+            Some((
+                day,
+                Profile {
+                    birthday: backup.measurement_bases.birthday,
+                    gender: gender(log.gender),
+                    height_cm: log.height,
+                    neck_cm: log.neck,
+                    hip_cm: log.hip,
+                },
+            ))
+        })
+        .fold(
+            Vec::new(),
+            |mut versions: Vec<(NaiveDate, Profile)>, (day, profile)| {
+                if versions.last().is_none_or(|(_, last)| *last != profile) {
+                    versions.push((day, profile));
+                }
+                versions
+            },
+        )
 }
 
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
@@ -29,7 +84,7 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
             .iter()
             .filter_map(|log| measurement(&log.date, log.weight, log.waist).ok())
             .collect(),
-        profiles: Vec::new(),
+        profiles: profile_versions(&backup),
         goals: Vec::new(),
     })
 }
