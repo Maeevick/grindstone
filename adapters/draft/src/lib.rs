@@ -94,6 +94,7 @@ mod tests {
     use super::*;
     use chrono::NaiveDate;
     use grind_core::gender::Gender;
+    use grind_core::goals::Goals;
     use grind_core::measurement::Measurement;
     use grind_core::profile::Profile;
 
@@ -152,6 +153,29 @@ mod tests {
             Ok(vec![
                 (day("2026-03-01"), a_man(38.5)),
                 (day("2026-10-08"), a_man(38.0)),
+            ])
+        );
+    }
+
+    #[test]
+    fn the_goals_frozen_on_the_logs_open_a_goal_version_wherever_they_change() {
+        assert_eq!(
+            gather_from_draft(BACKUP).map(|records| records.goals),
+            Ok(vec![
+                (
+                    day("2026-03-01"),
+                    Goals {
+                        body_mass_kg: 72.0,
+                        fat_ratio: 0.12,
+                    }
+                ),
+                (
+                    day("2026-06-22"),
+                    Goals {
+                        body_mass_kg: 70.0,
+                        fat_ratio: 0.10,
+                    }
+                ),
             ])
         );
     }
