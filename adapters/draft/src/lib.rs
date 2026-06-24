@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
+use grind_core::goals::Goals;
 use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
 use serde::Deserialize;
@@ -38,6 +39,8 @@ struct MeasurementLog {
     hip: Option<f64>,
     weight: f64,
     waist: Option<f64>,
+    weight_target: f64,
+    fat_target: f64,
 }
 
 fn gender(drafted: DraftGender) -> Gender {
@@ -75,6 +78,31 @@ fn profile_versions(backup: &Backup) -> Vec<(NaiveDate, Profile)> {
         )
 }
 
+fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Goals)> {
+    backup
+        .measurement_logs
+        .iter()
+        .filter_map(|log| {
+            let day = NaiveDate::parse_from_str(&log.date, "%Y-%m-%d").ok()?;
+            Some((
+                day,
+                Goals {
+                    body_mass_kg: log.weight_target,
+                    fat_ratio: log.fat_target / 100.0,
+                },
+            ))
+        })
+        .fold(
+            Vec::new(),
+            |mut versions: Vec<(NaiveDate, Goals)>, (day, goals)| {
+                if versions.last().is_none_or(|(_, last)| *last != goals) {
+                    versions.push((day, goals));
+                }
+                versions
+            },
+        )
+}
+
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
     let backup: Backup =
         serde_json::from_str(backup).map_err(|_| DraftRefusal::Unreadable(String::new()))?;
@@ -85,7 +113,7 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
             .filter_map(|log| measurement(&log.date, log.weight, log.waist).ok())
             .collect(),
         profiles: profile_versions(&backup),
-        goals: Vec::new(),
+        goals: goal_versions(&backup),
     })
 }
 
