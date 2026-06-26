@@ -114,8 +114,15 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
         measurements: backup
             .measurement_logs
             .iter()
-            .filter_map(|log| measurement(&log.date, log.weight, log.waist).ok())
-            .collect(),
+            .map(|log| {
+                measurement(&log.date, log.weight, log.waist).map_err(|refusal| {
+                    DraftRefusal::NotAMeasurement {
+                        date: log.date.clone(),
+                        refusal,
+                    }
+                })
+            })
+            .collect::<Result<_, _>>()?,
         profiles: profile_versions(&backup),
         goals: goal_versions(&backup),
     })
