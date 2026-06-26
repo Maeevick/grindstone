@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
-use grind_core::measurement::measurement;
+use grind_core::measurement::{Refusal, measurement};
 use grind_core::profile::Profile;
 use serde::Deserialize;
 
@@ -10,6 +10,7 @@ use serde::Deserialize;
 pub enum DraftRefusal {
     Unreadable(String),
     NotAVersionWeRead(String),
+    NotAMeasurement { date: String, refusal: Refusal },
 }
 
 #[derive(Deserialize)]
@@ -126,7 +127,7 @@ mod tests {
     use chrono::NaiveDate;
     use grind_core::gender::Gender;
     use grind_core::goals::Goals;
-    use grind_core::measurement::Measurement;
+    use grind_core::measurement::{Measurement, Refusal};
     use grind_core::profile::Profile;
 
     const BACKUP: &str = r#"{
@@ -228,6 +229,19 @@ mod tests {
         assert!(
             matches!(&refused, Err(DraftRefusal::Unreadable(where_it_stopped)) if where_it_stopped.contains("line 1 column")),
             "{refused:?}"
+        );
+    }
+
+    #[test]
+    fn a_logged_day_the_app_would_refuse_is_refused_naming_its_date() {
+        let impossible = BACKUP.replace(r#""weight": 76.4"#, r#""weight": 0.0"#);
+
+        assert_eq!(
+            gather_from_draft(&impossible),
+            Err(DraftRefusal::NotAMeasurement {
+                date: "2026-06-22".into(),
+                refusal: Refusal::NotAMass,
+            })
         );
     }
 }
