@@ -2,8 +2,9 @@ use chrono::NaiveDate;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
-use grind_core::measurement::{Refusal, measurement};
+use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
+use grind_core::refusal::Refusal;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -134,7 +135,7 @@ mod tests {
     use chrono::NaiveDate;
     use grind_core::gender::Gender;
     use grind_core::goals::Goals;
-    use grind_core::measurement::{Measurement, Refusal};
+    use grind_core::measurement::Measurement;
     use grind_core::profile::Profile;
 
     const BACKUP: &str = r#"{

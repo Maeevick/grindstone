@@ -1,17 +1,12 @@
 use chrono::NaiveDate;
 
+use crate::refusal::Refusal;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Measurement {
     pub day: NaiveDate,
     pub body_mass_kg: f64,
     pub waist_cm: Option<f64>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Refusal {
-    NotADate,
-    NotAMass,
-    NotAWaist,
 }
 
 fn to_two_decimals(figure: f64) -> f64 {

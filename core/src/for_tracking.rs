@@ -22,8 +22,8 @@ pub fn log_weigh_in(
 mod tests {
     use super::*;
     use crate::failure::Broken;
+    use crate::refusal::Refusal;
     use crate::testing::WeighInsInMemory;
-    use crate::weigh_in::Refusal;
 
     struct UnwritableRecords;
 

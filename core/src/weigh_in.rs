@@ -1,15 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use crate::refusal::Refusal;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WeighIn {
     pub date: String,
     pub kg: f64,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Refusal {
-    NotADate,
-    NotAMass,
 }
 
 fn is_a_date(text: &str) -> bool {

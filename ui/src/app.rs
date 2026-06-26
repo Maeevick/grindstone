@@ -1,5 +1,6 @@
 use grind_core::failure::Failure;
-use grind_core::weigh_in::{Refusal, WeighIn};
+use grind_core::refusal::Refusal;
+use grind_core::weigh_in::WeighIn;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -23,6 +24,7 @@ fn message_of(failure: &Failure) -> String {
     match failure {
         Failure::Refused(Refusal::NotADate) => "Not a real date".into(),
         Failure::Refused(Refusal::NotAMass) => "A body mass above zero, please".into(),
+        Failure::Refused(Refusal::NotAWaist) => "A waist above zero, please".into(),
         Failure::Broken(reason) => format!("Something broke: {reason}"),
     }
 }

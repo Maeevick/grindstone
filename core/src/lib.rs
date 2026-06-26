@@ -12,6 +12,7 @@ pub mod measurement;
 pub mod nutrition;
 pub mod profile;
 pub mod progress;
+pub mod refusal;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod trend;
