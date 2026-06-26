@@ -104,8 +104,8 @@ fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Goals)> {
 }
 
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
-    let backup: Backup =
-        serde_json::from_str(backup).map_err(|_| DraftRefusal::Unreadable(String::new()))?;
+    let backup: Backup = serde_json::from_str(backup)
+        .map_err(|error| DraftRefusal::Unreadable(error.to_string()))?;
     if backup.settings.version != "0.4.0" {
         return Err(DraftRefusal::NotAVersionWeRead(backup.settings.version));
     }
