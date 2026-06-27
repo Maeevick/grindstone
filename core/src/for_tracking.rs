@@ -6,6 +6,7 @@ use crate::measurement::measurement;
 use crate::weigh_in::{WeighIn, weigh_in};
 
 const RECENT_WEIGH_INS: u32 = 14;
+const RECENT_DAYS: usize = 14;
 
 pub fn recent_weigh_ins(weigh_ins: &impl ForStoringWeighIns) -> Result<Vec<WeighIn>, Failure> {
     Ok(weigh_ins.recent(RECENT_WEIGH_INS)?)
@@ -31,7 +32,11 @@ pub fn log_measurement(
         let _ = records.save_measurement(&measured);
     }
     let gathered = records.gather_records().unwrap_or_default();
-    Ok(ledger(&gathered.measurements, &gathered.profiles))
+    Ok(ledger(&gathered.measurements, &gathered.profiles)
+        .into_iter()
+        .rev()
+        .take(RECENT_DAYS)
+        .collect())
 }
 
 #[cfg(test)]
