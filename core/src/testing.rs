@@ -13,11 +13,16 @@ pub struct GatherRecordsInMemory(RefCell<GatherRecords>);
 
 impl ForStoringGatherRecords for GatherRecordsInMemory {
     fn save_measurement(&self, measurement: &Measurement) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records
+            .measurements
+            .retain(|kept| kept.day != measurement.day);
+        records.measurements.push(*measurement);
         Ok(())
     }
 
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
-        Ok(GatherRecords::default())
+        Ok(self.0.borrow().clone())
     }
 }
 

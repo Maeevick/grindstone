@@ -1,7 +1,8 @@
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_weigh_ins::ForStoringWeighIns;
-use crate::ledger::Day;
+use crate::ledger::{Day, ledger};
+use crate::measurement::measurement;
 use crate::weigh_in::{WeighIn, weigh_in};
 
 const RECENT_WEIGH_INS: u32 = 14;
@@ -26,7 +27,11 @@ pub fn log_measurement(
     body_mass_kg: f64,
     waist_cm: Option<f64>,
 ) -> Result<Vec<Day>, Failure> {
-    Ok(Vec::new())
+    if let Ok(measured) = measurement(date, body_mass_kg, waist_cm) {
+        let _ = records.save_measurement(&measured);
+    }
+    let gathered = records.gather_records().unwrap_or_default();
+    Ok(ledger(&gathered.measurements, &[]))
 }
 
 #[cfg(test)]
