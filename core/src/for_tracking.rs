@@ -31,7 +31,7 @@ pub fn log_measurement(
         let _ = records.save_measurement(&measured);
     }
     let gathered = records.gather_records().unwrap_or_default();
-    Ok(ledger(&gathered.measurements, &[]))
+    Ok(ledger(&gathered.measurements, &gathered.profiles))
 }
 
 #[cfg(test)]

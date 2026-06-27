@@ -24,6 +24,9 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
     }
 
     fn save_profile(&self, from: NaiveDate, profile: &Profile) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.profiles.retain(|(kept_from, _)| *kept_from != from);
+        records.profiles.push((from, *profile));
         Ok(())
     }
 
