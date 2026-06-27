@@ -180,4 +180,19 @@ mod tests {
         assert_eq!(recent.first().map(|day| day.day), Some(day("2026-09-21")));
         assert_eq!(recent.last().map(|day| day.day), Some(day("2026-09-08")));
     }
+
+    #[test]
+    fn a_refused_measurement_leaves_the_records_as_they_were() {
+        let records = GatherRecordsInMemory::default();
+
+        let refused = log_measurement(&records, "2026-10-10", 0.0, None);
+
+        assert_eq!(refused, Err(Failure::Refused(Refusal::NotAMass)));
+        assert_eq!(
+            records
+                .gather_records()
+                .map(|gathered| gathered.measurements),
+            Ok(vec![])
+        );
+    }
 }
