@@ -159,4 +159,20 @@ mod tests {
             .map(|split| split.fat_ratio);
         assert!(fat_ratio.is_some_and(|ratio| (ratio - 0.116245).abs() < 1e-6));
     }
+
+    #[test]
+    fn only_the_fourteen_most_recent_days_come_back_newest_first() {
+        let records = GatherRecordsInMemory::default();
+        for date in 1..=20 {
+            log_measurement(&records, &format!("2026-09-{date:02}"), 80.0, None)
+                .expect("a measurement logs");
+        }
+
+        let recent =
+            log_measurement(&records, "2026-09-21", 79.8, None).expect("a measurement logs");
+
+        assert_eq!(recent.len(), 14);
+        assert_eq!(recent.first().map(|day| day.day), Some(day("2026-09-21")));
+        assert_eq!(recent.last().map(|day| day.day), Some(day("2026-09-08")));
+    }
 }
