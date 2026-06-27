@@ -28,9 +28,8 @@ pub fn log_measurement(
     body_mass_kg: f64,
     waist_cm: Option<f64>,
 ) -> Result<Vec<Day>, Failure> {
-    if let Ok(measured) = measurement(date, body_mass_kg, waist_cm) {
-        let _ = records.save_measurement(&measured);
-    }
+    let measured = measurement(date, body_mass_kg, waist_cm).map_err(Failure::Refused)?;
+    let _ = records.save_measurement(&measured);
     let gathered = records.gather_records().unwrap_or_default();
     Ok(ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
