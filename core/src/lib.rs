@@ -2,6 +2,7 @@ pub mod age;
 pub mod composition;
 pub mod failure;
 pub mod figures;
+pub mod for_storing_gather_records;
 pub mod for_storing_weigh_ins;
 pub mod for_tracking;
 pub mod gather_records;

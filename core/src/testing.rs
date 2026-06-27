@@ -2,8 +2,24 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use crate::failure::Broken;
+use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_weigh_ins::ForStoringWeighIns;
+use crate::gather_records::GatherRecords;
+use crate::measurement::Measurement;
 use crate::weigh_in::{WeighIn, weigh_in};
+
+#[derive(Default)]
+pub struct GatherRecordsInMemory(RefCell<GatherRecords>);
+
+impl ForStoringGatherRecords for GatherRecordsInMemory {
+    fn save_measurement(&self, measurement: &Measurement) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn gather_records(&self) -> Result<GatherRecords, Broken> {
+        Ok(GatherRecords::default())
+    }
+}
 
 #[derive(Default)]
 pub struct WeighInsInMemory(RefCell<BTreeMap<String, WeighIn>>);

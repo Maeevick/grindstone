@@ -1,5 +1,7 @@
 use crate::failure::Failure;
+use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_weigh_ins::ForStoringWeighIns;
+use crate::ledger::Day;
 use crate::weigh_in::{WeighIn, weigh_in};
 
 const RECENT_WEIGH_INS: u32 = 14;
@@ -18,12 +20,44 @@ pub fn log_weigh_in(
     recent_weigh_ins(weigh_ins)
 }
 
+pub fn log_measurement(
+    records: &impl ForStoringGatherRecords,
+    date: &str,
+    body_mass_kg: f64,
+    waist_cm: Option<f64>,
+) -> Result<Vec<Day>, Failure> {
+    Ok(Vec::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::failure::Broken;
     use crate::refusal::Refusal;
-    use crate::testing::WeighInsInMemory;
+    use crate::testing::{GatherRecordsInMemory, WeighInsInMemory};
+    use chrono::NaiveDate;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn listed(days: &[Day]) -> Vec<(NaiveDate, f64, Option<f64>)> {
+        days.iter()
+            .map(|day| (day.day, day.body_mass_kg, day.waist_cm))
+            .collect()
+    }
+
+    #[test]
+    fn a_logged_measurement_comes_back_among_the_recent_days() {
+        let records = GatherRecordsInMemory::default();
+
+        let recent = log_measurement(&records, "2026-10-10", 80.0, Some(80.0));
+
+        assert_eq!(
+            recent.map(|days| listed(&days)),
+            Ok(vec![(day("2026-10-10"), 80.0, Some(80.0))])
+        );
+    }
 
     struct UnwritableRecords;
 
