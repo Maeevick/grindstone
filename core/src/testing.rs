@@ -6,7 +6,9 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_weigh_ins::ForStoringWeighIns;
 use crate::gather_records::GatherRecords;
 use crate::measurement::Measurement;
+use crate::profile::Profile;
 use crate::weigh_in::{WeighIn, weigh_in};
+use chrono::NaiveDate;
 
 #[derive(Default)]
 pub struct GatherRecordsInMemory(RefCell<GatherRecords>);
@@ -18,6 +20,10 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
             .measurements
             .retain(|kept| kept.day != measurement.day);
         records.measurements.push(*measurement);
+        Ok(())
+    }
+
+    fn save_profile(&self, from: NaiveDate, profile: &Profile) -> Result<(), Broken> {
         Ok(())
     }
 

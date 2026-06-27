@@ -38,6 +38,8 @@ pub fn log_measurement(
 mod tests {
     use super::*;
     use crate::failure::Broken;
+    use crate::gender::Gender;
+    use crate::profile::Profile;
     use crate::refusal::Refusal;
     use crate::testing::{GatherRecordsInMemory, WeighInsInMemory};
     use chrono::NaiveDate;
@@ -133,5 +135,28 @@ mod tests {
             recent_weigh_ins(&UnwritableRecords),
             Err(Failure::Broken("the disk is full".into()))
         );
+    }
+
+    #[test]
+    fn the_recent_days_read_their_composition_through_the_profile_in_force() {
+        let records = GatherRecordsInMemory::default();
+        let a_man = Profile {
+            birthday: day("1985-04-12"),
+            gender: Gender::Male,
+            height_cm: 180.0,
+            neck_cm: 38.5,
+            hip_cm: None,
+        };
+        records
+            .save_profile(day("2026-03-01"), &a_man)
+            .expect("a profile saves");
+
+        let recent = log_measurement(&records, "2026-10-10", 80.0, Some(80.0));
+
+        let fat_ratio = recent
+            .ok()
+            .and_then(|days| days.first()?.composition)
+            .map(|split| split.fat_ratio);
+        assert!(fat_ratio.is_some_and(|ratio| (ratio - 0.116245).abs() < 1e-6));
     }
 }
