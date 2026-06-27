@@ -45,7 +45,7 @@ mod tests {
     use crate::gender::Gender;
     use crate::profile::Profile;
     use crate::refusal::Refusal;
-    use crate::testing::{GatherRecordsInMemory, WeighInsInMemory};
+    use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory, WeighInsInMemory};
     use chrono::NaiveDate;
 
     fn day(date: &str) -> NaiveDate {
@@ -192,6 +192,14 @@ mod tests {
                 .gather_records()
                 .map(|gathered| gathered.measurements),
             Ok(vec![])
+        );
+    }
+
+    #[test]
+    fn gather_records_that_cannot_be_written_come_back_broken() {
+        assert_eq!(
+            log_measurement(&BrokenGatherRecords, "2026-10-10", 80.0, None),
+            Err(Failure::Broken("the disk is full".into()))
         );
     }
 }

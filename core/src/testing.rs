@@ -35,6 +35,22 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
     }
 }
 
+pub struct BrokenGatherRecords;
+
+impl ForStoringGatherRecords for BrokenGatherRecords {
+    fn save_measurement(&self, _: &Measurement) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_profile(&self, _: NaiveDate, _: &Profile) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn gather_records(&self) -> Result<GatherRecords, Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+}
+
 #[derive(Default)]
 pub struct WeighInsInMemory(RefCell<BTreeMap<String, WeighIn>>);
 
