@@ -38,6 +38,13 @@ pub fn log_measurement(
         .collect())
 }
 
+pub fn remove_measurement(
+    records: &impl ForStoringGatherRecords,
+    date: &str,
+) -> Result<Vec<Day>, Failure> {
+    Ok(Vec::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,6 +207,20 @@ mod tests {
         assert_eq!(
             log_measurement(&BrokenGatherRecords, "2026-10-10", 80.0, None),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn removing_a_measured_day_leaves_the_other_days() {
+        let records = GatherRecordsInMemory::default();
+        log_measurement(&records, "2026-10-09", 80.2, None).expect("a measurement logs");
+        log_measurement(&records, "2026-10-10", 80.0, None).expect("a measurement logs");
+
+        let recent = remove_measurement(&records, "2026-10-10");
+
+        assert_eq!(
+            recent.map(|days| listed(&days)),
+            Ok(vec![(day("2026-10-09"), 80.2, None)])
         );
     }
 }
