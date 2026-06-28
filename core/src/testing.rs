@@ -24,6 +24,10 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
     }
 
     fn remove_measurement(&self, day: NaiveDate) -> Result<(), Broken> {
+        self.0
+            .borrow_mut()
+            .measurements
+            .retain(|kept| kept.day != day);
         Ok(())
     }
 

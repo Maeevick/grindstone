@@ -1,8 +1,11 @@
+use chrono::NaiveDate;
+
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_weigh_ins::ForStoringWeighIns;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
+use crate::refusal::Refusal;
 use crate::weigh_in::{WeighIn, weigh_in};
 
 const RECENT_WEIGH_INS: u32 = 14;
@@ -22,14 +25,7 @@ pub fn log_weigh_in(
     recent_weigh_ins(weigh_ins)
 }
 
-pub fn log_measurement(
-    records: &impl ForStoringGatherRecords,
-    date: &str,
-    body_mass_kg: f64,
-    waist_cm: Option<f64>,
-) -> Result<Vec<Day>, Failure> {
-    let measured = measurement(date, body_mass_kg, waist_cm).map_err(Failure::Refused)?;
-    records.save_measurement(&measured)?;
+fn the_recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, Failure> {
     let gathered = records.gather_records()?;
     Ok(ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
@@ -38,11 +34,25 @@ pub fn log_measurement(
         .collect())
 }
 
+pub fn log_measurement(
+    records: &impl ForStoringGatherRecords,
+    date: &str,
+    body_mass_kg: f64,
+    waist_cm: Option<f64>,
+) -> Result<Vec<Day>, Failure> {
+    let measured = measurement(date, body_mass_kg, waist_cm).map_err(Failure::Refused)?;
+    records.save_measurement(&measured)?;
+    the_recent_days(records)
+}
+
 pub fn remove_measurement(
     records: &impl ForStoringGatherRecords,
     date: &str,
 ) -> Result<Vec<Day>, Failure> {
-    Ok(Vec::new())
+    let day = NaiveDate::parse_from_str(date, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    records.remove_measurement(day)?;
+    the_recent_days(records)
 }
 
 #[cfg(test)]
@@ -51,9 +61,7 @@ mod tests {
     use crate::failure::Broken;
     use crate::gender::Gender;
     use crate::profile::Profile;
-    use crate::refusal::Refusal;
     use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory, WeighInsInMemory};
-    use chrono::NaiveDate;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
