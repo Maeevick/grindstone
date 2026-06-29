@@ -25,17 +25,13 @@ pub fn log_weigh_in(
     recent_weigh_ins(weigh_ins)
 }
 
-fn the_recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, Failure> {
+pub fn recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, Failure> {
     let gathered = records.gather_records()?;
     Ok(ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
         .rev()
         .take(RECENT_DAYS)
         .collect())
-}
-
-pub fn recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, Failure> {
-    the_recent_days(records)
 }
 
 pub fn log_measurement(
@@ -46,7 +42,7 @@ pub fn log_measurement(
 ) -> Result<Vec<Day>, Failure> {
     let measured = measurement(date, body_mass_kg, waist_cm).map_err(Failure::Refused)?;
     records.save_measurement(&measured)?;
-    the_recent_days(records)
+    recent_days(records)
 }
 
 pub fn remove_measurement(
@@ -56,7 +52,7 @@ pub fn remove_measurement(
     let day = NaiveDate::parse_from_str(date, "%Y-%m-%d")
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     records.remove_measurement(day)?;
-    the_recent_days(records)
+    recent_days(records)
 }
 
 #[cfg(test)]
