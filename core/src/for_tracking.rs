@@ -35,7 +35,7 @@ fn the_recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, F
 }
 
 pub fn recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, Failure> {
-    Ok(Vec::new())
+    the_recent_days(records)
 }
 
 pub fn log_measurement(
