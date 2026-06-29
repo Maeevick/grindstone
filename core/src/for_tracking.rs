@@ -34,6 +34,10 @@ fn the_recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, F
         .collect())
 }
 
+pub fn recent_days(records: &impl ForStoringGatherRecords) -> Result<Vec<Day>, Failure> {
+    Ok(Vec::new())
+}
+
 pub fn log_measurement(
     records: &impl ForStoringGatherRecords,
     date: &str,
@@ -60,6 +64,7 @@ mod tests {
     use super::*;
     use crate::failure::Broken;
     use crate::gender::Gender;
+    use crate::measurement::Measurement;
     use crate::profile::Profile;
     use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory, WeighInsInMemory};
 
@@ -229,6 +234,23 @@ mod tests {
         assert_eq!(
             recent.map(|days| listed(&days)),
             Ok(vec![(day("2026-10-09"), 80.2, None)])
+        );
+    }
+
+    #[test]
+    fn the_recent_days_list_what_was_measured_without_logging_anything() {
+        let records = GatherRecordsInMemory::default();
+        records
+            .save_measurement(&Measurement {
+                day: day("2026-10-10"),
+                body_mass_kg: 80.0,
+                waist_cm: None,
+            })
+            .expect("a measurement saves");
+
+        assert_eq!(
+            recent_days(&records).map(|days| listed(&days)),
+            Ok(vec![(day("2026-10-10"), 80.0, None)])
         );
     }
 }
