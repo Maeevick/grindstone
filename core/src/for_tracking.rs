@@ -249,4 +249,23 @@ mod tests {
             Ok(vec![(day("2026-10-10"), 80.0, None)])
         );
     }
+
+    #[test]
+    fn removing_a_day_the_calendar_does_not_have_is_refused() {
+        assert_eq!(
+            remove_measurement(&GatherRecordsInMemory::default(), "2026-02-30"),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+    }
+
+    #[test]
+    fn gather_records_that_cannot_be_read_or_removed_from_come_back_broken() {
+        let broken = Err(Failure::Broken("the disk is full".into()));
+
+        assert_eq!(recent_days(&BrokenGatherRecords), broken);
+        assert_eq!(
+            remove_measurement(&BrokenGatherRecords, "2026-10-10"),
+            broken
+        );
+    }
 }
