@@ -5,4 +5,5 @@ pub enum Refusal {
     NotADate,
     NotAMass,
     NotAWaist,
+    NotAHeight,
 }

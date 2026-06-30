@@ -41,4 +41,15 @@ mod tests {
             Err(Refusal::NotADate)
         );
     }
+
+    #[test]
+    fn a_height_of_nothing_or_no_number_at_all_is_refused() {
+        for cm in [0.0, -180.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                profile("1985-04-12", Gender::Male, cm, 38.5, None),
+                Err(Refusal::NotAHeight),
+                "{cm}"
+            );
+        }
+    }
 }
