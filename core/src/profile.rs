@@ -19,8 +19,10 @@ pub fn profile(
     neck_cm: f64,
     hip_cm: Option<f64>,
 ) -> Result<Profile, Refusal> {
+    let birthday =
+        NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
     Ok(Profile {
-        birthday: NaiveDate::MIN,
+        birthday,
         gender,
         height_cm,
         neck_cm,
