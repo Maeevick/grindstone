@@ -83,4 +83,12 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn a_mans_profile_leaves_out_any_hip_his_formula_never_reads() {
+        assert_eq!(
+            profile("1985-04-12", Gender::Male, 180.0, 38.5, Some(98.0)).map(|kept| kept.hip_cm),
+            Ok(None)
+        );
+    }
 }
