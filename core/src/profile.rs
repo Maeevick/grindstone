@@ -35,7 +35,7 @@ pub fn profile(
         gender,
         height_cm,
         neck_cm,
-        hip_cm,
+        hip_cm: hip_cm.filter(|_| gender == Gender::Female),
     })
 }
 
