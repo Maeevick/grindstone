@@ -27,6 +27,7 @@ fn message_of(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotAWaist) => "A waist above zero, please".into(),
         Failure::Refused(Refusal::NotAHeight) => "A height above zero, please".into(),
         Failure::Refused(Refusal::NotANeck) => "A neck above zero, please".into(),
+        Failure::Refused(Refusal::NotAHip) => "A hip above zero, please".into(),
         Failure::Broken(reason) => format!("Something broke: {reason}"),
     }
 }

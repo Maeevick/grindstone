@@ -69,4 +69,15 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn a_womans_profile_without_a_hip_or_with_one_no_body_could_have_is_refused() {
+        for hip_cm in [None, Some(0.0), Some(-98.0), Some(f64::NAN)] {
+            assert_eq!(
+                profile("1990-06-01", Gender::Female, 165.0, 33.0, hip_cm),
+                Err(Refusal::NotAHip),
+                "{hip_cm:?}"
+            );
+        }
+    }
 }

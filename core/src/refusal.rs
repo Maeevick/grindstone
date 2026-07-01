@@ -7,4 +7,5 @@ pub enum Refusal {
     NotAWaist,
     NotAHeight,
     NotANeck,
+    NotAHip,
 }
