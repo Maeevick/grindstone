@@ -91,4 +91,18 @@ mod tests {
             Ok(None)
         );
     }
+
+    #[test]
+    fn a_womans_profile_keeps_her_birthday_height_neck_and_hip() {
+        assert_eq!(
+            profile("1990-06-01", Gender::Female, 165.0, 33.0, Some(98.0)),
+            Ok(Profile {
+                birthday: NaiveDate::from_ymd_opt(1990, 6, 1).expect("a real day"),
+                gender: Gender::Female,
+                height_cm: 165.0,
+                neck_cm: 33.0,
+                hip_cm: Some(98.0),
+            })
+        );
+    }
 }
