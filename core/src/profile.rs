@@ -21,6 +21,9 @@ pub fn profile(
 ) -> Result<Profile, Refusal> {
     let birthday =
         NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
+    if !(height_cm.is_finite() && height_cm > 0.0) {
+        return Err(Refusal::NotAHeight);
+    }
     Ok(Profile {
         birthday,
         gender,
