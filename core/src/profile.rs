@@ -55,4 +55,15 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn a_neck_of_nothing_or_no_number_at_all_is_refused() {
+        for cm in [0.0, -38.5, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                profile("1985-04-12", Gender::Male, 180.0, cm, None),
+                Err(Refusal::NotANeck),
+                "{cm}"
+            );
+        }
+    }
 }
