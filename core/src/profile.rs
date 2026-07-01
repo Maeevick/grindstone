@@ -24,6 +24,9 @@ pub fn profile(
     if !(height_cm.is_finite() && height_cm > 0.0) {
         return Err(Refusal::NotAHeight);
     }
+    if !(neck_cm.is_finite() && neck_cm > 0.0) {
+        return Err(Refusal::NotANeck);
+    }
     Ok(Profile {
         birthday,
         gender,
