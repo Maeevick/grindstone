@@ -1,10 +1,12 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gender::Gender;
-use crate::profile::Profile;
+use crate::profile::{Profile, profile};
 use crate::refusal::Refusal;
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProfileForm {
@@ -16,18 +18,34 @@ pub struct ProfileForm {
     pub hip_cm: Option<f64>,
 }
 
+fn day(date: &str) -> Result<NaiveDate, Failure> {
+    NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
+}
+
 pub fn set_profile(
     records: &impl ForStoringGatherRecords,
     form: &ProfileForm,
 ) -> Result<Profile, Failure> {
-    Err(Failure::Refused(Refusal::NotADate))
+    let from = day(&form.from)?;
+    let profile = profile(
+        &form.birthday,
+        form.gender,
+        form.height_cm,
+        form.neck_cm,
+        form.hip_cm,
+    )
+    .map_err(Failure::Refused)?;
+    records.save_profile(from, &profile)?;
+    Ok(profile)
 }
 
 pub fn profile_on(
     records: &impl ForStoringGatherRecords,
-    day: &str,
+    date: &str,
 ) -> Result<Option<Profile>, Failure> {
-    Ok(None)
+    let day = day(date)?;
+    let gathered = records.gather_records()?;
+    Ok(version_in_force_on(&gathered.profiles, day).copied())
 }
 
 #[cfg(test)]
