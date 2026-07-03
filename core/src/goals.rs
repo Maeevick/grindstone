@@ -27,4 +27,11 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn a_target_mass_of_nothing_or_no_number_at_all_is_refused() {
+        for kg in [0.0, -70.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(goals(kg, 10.0), Err(Refusal::NotAMass), "{kg}");
+        }
+    }
 }
