@@ -12,6 +12,10 @@ pub struct Profile {
     pub hip_cm: Option<f64>,
 }
 
+fn is_a_figure_above_nothing(figure: f64) -> bool {
+    figure.is_finite() && figure > 0.0
+}
+
 pub fn profile(
     birthday: &str,
     gender: Gender,
@@ -21,13 +25,13 @@ pub fn profile(
 ) -> Result<Profile, Refusal> {
     let birthday =
         NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
-    if !(height_cm.is_finite() && height_cm > 0.0) {
+    if !is_a_figure_above_nothing(height_cm) {
         return Err(Refusal::NotAHeight);
     }
-    if !(neck_cm.is_finite() && neck_cm > 0.0) {
+    if !is_a_figure_above_nothing(neck_cm) {
         return Err(Refusal::NotANeck);
     }
-    if gender == Gender::Female && !hip_cm.is_some_and(|cm| cm.is_finite() && cm > 0.0) {
+    if gender == Gender::Female && !hip_cm.is_some_and(is_a_figure_above_nothing) {
         return Err(Refusal::NotAHip);
     }
     Ok(Profile {
