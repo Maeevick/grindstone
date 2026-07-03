@@ -7,6 +7,9 @@ pub struct Goals {
 }
 
 pub fn goals(body_mass_kg: f64, fat_percentage: f64) -> Result<Goals, Refusal> {
+    if !(body_mass_kg.is_finite() && body_mass_kg > 0.0) {
+        return Err(Refusal::NotAMass);
+    }
     Ok(Goals {
         body_mass_kg,
         fat_ratio: fat_percentage / 100.0,
