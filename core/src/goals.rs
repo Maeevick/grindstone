@@ -37,4 +37,11 @@ mod tests {
             assert_eq!(goals(kg, 10.0), Err(Refusal::NotAMass), "{kg}");
         }
     }
+
+    #[test]
+    fn a_fat_target_no_body_could_hold_is_refused() {
+        for percent in [0.0, 100.0, -5.0, 150.0, f64::NAN] {
+            assert_eq!(goals(70.0, percent), Err(Refusal::NotARatio), "{percent}");
+        }
+    }
 }
