@@ -5,6 +5,7 @@ use crate::failure::Broken;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_weigh_ins::ForStoringWeighIns;
 use crate::gather_records::GatherRecords;
+use crate::goals::Goals;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::weigh_in::{WeighIn, weigh_in};
@@ -38,6 +39,10 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
         Ok(())
     }
 
+    fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
+        Ok(())
+    }
+
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
         Ok(self.0.borrow().clone())
     }
@@ -55,6 +60,10 @@ impl ForStoringGatherRecords for BrokenGatherRecords {
     }
 
     fn save_profile(&self, _: NaiveDate, _: &Profile) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_goals(&self, _: NaiveDate, _: &Goals) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
