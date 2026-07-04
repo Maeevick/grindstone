@@ -144,20 +144,14 @@ mod tests {
     #[test]
     fn a_day_the_calendar_lacks_is_refused_whether_setting_or_reading() {
         let records = GatherRecordsInMemory::default();
-        let not_a_date = Err(Failure::Refused(Refusal::NotADate));
+        let not_a_date = Failure::Refused(Refusal::NotADate);
 
         assert_eq!(
             set_profile(&records, &a_mans_form("2026-02-30")),
-            not_a_date
+            Err(not_a_date.clone())
         );
-        assert_eq!(
-            profile_on(&records, "2026-02-30"),
-            not_a_date.clone().map(|_: Profile| None)
-        );
-        assert_eq!(
-            goals_on(&records, "2026-02-30"),
-            Err(Failure::Refused(Refusal::NotADate))
-        );
+        assert_eq!(profile_on(&records, "2026-02-30"), Err(not_a_date.clone()));
+        assert_eq!(goals_on(&records, "2026-02-30"), Err(not_a_date));
     }
 
     #[test]
