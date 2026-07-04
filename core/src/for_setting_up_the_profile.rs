@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gender::Gender;
-use crate::goals::Goals;
+use crate::goals::{Goals, goals};
 use crate::profile::{Profile, profile};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
@@ -60,14 +60,19 @@ pub fn set_goals(
     records: &impl ForStoringGatherRecords,
     form: &GoalsForm,
 ) -> Result<Goals, Failure> {
-    Err(Failure::Refused(Refusal::NotADate))
+    let from = day(&form.from)?;
+    let goals = goals(form.body_mass_kg, form.fat_percentage).map_err(Failure::Refused)?;
+    records.save_goals(from, &goals)?;
+    Ok(goals)
 }
 
 pub fn goals_on(
     records: &impl ForStoringGatherRecords,
     date: &str,
 ) -> Result<Option<Goals>, Failure> {
-    Ok(None)
+    let day = day(date)?;
+    let gathered = records.gather_records()?;
+    Ok(version_in_force_on(&gathered.goals, day).copied())
 }
 
 #[cfg(test)]

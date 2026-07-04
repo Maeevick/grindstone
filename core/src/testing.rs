@@ -40,6 +40,9 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
     }
 
     fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.goals.retain(|(kept_from, _)| *kept_from != from);
+        records.goals.push((from, *goals));
         Ok(())
     }
 
