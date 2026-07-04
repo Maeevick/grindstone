@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Progress {
     pub per_week: f64,
     pub share_per_week: f64,
