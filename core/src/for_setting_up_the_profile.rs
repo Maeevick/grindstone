@@ -78,7 +78,7 @@ pub fn goals_on(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::GatherRecordsInMemory;
+    use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory};
 
     fn a_mans_form(from: &str) -> ProfileForm {
         ProfileForm {
@@ -114,5 +114,73 @@ mod tests {
         );
 
         assert_eq!(goals_on(&records, "2026-10-12"), set.map(Some));
+    }
+
+    #[test]
+    fn a_refused_profile_or_refused_goals_leave_what_was_set_as_it_was() {
+        let records = GatherRecordsInMemory::default();
+        let refused_profile = ProfileForm {
+            height_cm: 0.0,
+            ..a_mans_form("2026-10-10")
+        };
+        let refused_goals = GoalsForm {
+            from: "2026-10-10".into(),
+            body_mass_kg: 70.0,
+            fat_percentage: 100.0,
+        };
+
+        assert_eq!(
+            set_profile(&records, &refused_profile),
+            Err(Failure::Refused(Refusal::NotAHeight))
+        );
+        assert_eq!(
+            set_goals(&records, &refused_goals),
+            Err(Failure::Refused(Refusal::NotARatio))
+        );
+        assert_eq!(profile_on(&records, "2026-10-12"), Ok(None));
+        assert_eq!(goals_on(&records, "2026-10-12"), Ok(None));
+    }
+
+    #[test]
+    fn a_day_the_calendar_lacks_is_refused_whether_setting_or_reading() {
+        let records = GatherRecordsInMemory::default();
+        let not_a_date = Err(Failure::Refused(Refusal::NotADate));
+
+        assert_eq!(
+            set_profile(&records, &a_mans_form("2026-02-30")),
+            not_a_date
+        );
+        assert_eq!(
+            profile_on(&records, "2026-02-30"),
+            not_a_date.clone().map(|_: Profile| None)
+        );
+        assert_eq!(
+            goals_on(&records, "2026-02-30"),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+    }
+
+    #[test]
+    fn records_that_cannot_be_written_or_read_come_back_broken() {
+        let broken = Failure::Broken("the disk is full".into());
+        let goals_form = GoalsForm {
+            from: "2026-10-10".into(),
+            body_mass_kg: 70.0,
+            fat_percentage: 10.0,
+        };
+
+        assert_eq!(
+            set_profile(&BrokenGatherRecords, &a_mans_form("2026-10-10")),
+            Err(broken.clone())
+        );
+        assert_eq!(
+            profile_on(&BrokenGatherRecords, "2026-10-10"),
+            Err(broken.clone())
+        );
+        assert_eq!(
+            set_goals(&BrokenGatherRecords, &goals_form),
+            Err(broken.clone())
+        );
+        assert_eq!(goals_on(&BrokenGatherRecords, "2026-10-10"), Err(broken));
     }
 }
