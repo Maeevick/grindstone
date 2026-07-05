@@ -1,9 +1,10 @@
-use chrono::NaiveDate;
+use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::progress::Progress;
+use crate::refusal::Refusal;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -25,7 +26,24 @@ pub fn gather_card(
     today: &str,
     window: Window,
 ) -> Result<GatherCard, Failure> {
-    Ok(GatherCard::default())
+    let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    let days_in_window = match window {
+        Window::Days30 => 30,
+    };
+    let first_day = today - Days::new(days_in_window - 1);
+    let gathered = records.gather_records()?;
+    let mut masses: Vec<(NaiveDate, f64)> = gathered
+        .measurements
+        .iter()
+        .filter(|measured| measured.day >= first_day && measured.day <= today)
+        .map(|measured| (measured.day, measured.body_mass_kg))
+        .collect();
+    masses.sort_by_key(|(day, _)| *day);
+    Ok(GatherCard {
+        masses,
+        ..GatherCard::default()
+    })
 }
 
 #[cfg(test)]
