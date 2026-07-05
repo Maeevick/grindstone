@@ -81,4 +81,35 @@ mod tests {
             Ok(vec![(day("2026-09-20"), 80.4), (day("2026-10-10"), 80.0)])
         );
     }
+
+    #[test]
+    fn the_card_traces_the_trend_of_those_masses_with_their_week_before_the_window() {
+        let records = GatherRecordsInMemory::default();
+        measured(
+            &records,
+            &[
+                ("2026-09-08", 80.6),
+                ("2026-09-12", 80.2),
+                ("2026-09-14", 80.0),
+            ],
+        );
+
+        let trend = gather_card(&records, "2026-10-10", Window::Days30)
+            .map(|card| card.trend)
+            .expect("a card");
+
+        let expected = [
+            (day("2026-09-12"), 80.4),
+            (day("2026-09-14"), (80.6 + 80.2 + 80.0) / 3.0),
+        ];
+        assert_eq!(trend.len(), expected.len());
+        assert!(
+            trend
+                .iter()
+                .zip(expected)
+                .all(|((day, mean), (expected_day, expected_mean))| {
+                    *day == expected_day && (mean - expected_mean).abs() < 1e-9
+                })
+        );
+    }
 }
