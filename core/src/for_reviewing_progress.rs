@@ -5,6 +5,7 @@ use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::progress::Progress;
 use crate::refusal::Refusal;
+use crate::trend::seven_day_trend;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -40,8 +41,18 @@ pub fn gather_card(
         .map(|measured| (measured.day, measured.body_mass_kg))
         .collect();
     masses.sort_by_key(|(day, _)| *day);
+    let every_mass: Vec<(NaiveDate, f64)> = gathered
+        .measurements
+        .iter()
+        .map(|measured| (measured.day, measured.body_mass_kg))
+        .collect();
+    let trend = seven_day_trend(&every_mass)
+        .into_iter()
+        .filter(|(day, _)| *day >= first_day && *day <= today)
+        .collect();
     Ok(GatherCard {
         masses,
+        trend,
         ..GatherCard::default()
     })
 }
