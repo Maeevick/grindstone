@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::progress::Progress;
+use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
 use crate::trend::seven_day_trend;
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -46,13 +47,17 @@ pub fn gather_card(
         .iter()
         .map(|measured| (measured.day, measured.body_mass_kg))
         .collect();
-    let trend = seven_day_trend(&every_mass)
+    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&every_mass)
         .into_iter()
         .filter(|(day, _)| *day >= first_day && *day <= today)
         .collect();
+    let target_kg = version_in_force_on(&gathered.goals, today).map(|goals| goals.body_mass_kg);
+    let progress = target_kg.and_then(|target_kg| progress_towards(target_kg, &trend));
     Ok(GatherCard {
         masses,
         trend,
+        target_kg,
+        progress,
         ..GatherCard::default()
     })
 }
