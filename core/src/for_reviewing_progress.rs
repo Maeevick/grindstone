@@ -60,6 +60,7 @@ pub fn gather_card(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::for_setting_up_the_profile::{GoalsForm, set_goals};
     use crate::for_tracking::log_measurement;
     use crate::testing::GatherRecordsInMemory;
 
@@ -121,6 +122,37 @@ mod tests {
                 .all(|((day, mean), (expected_day, expected_mean))| {
                     *day == expected_day && (mean - expected_mean).abs() < 1e-9
                 })
+        );
+    }
+
+    #[test]
+    fn the_card_reads_the_weekly_rate_towards_the_target_in_force_today() {
+        let records = GatherRecordsInMemory::default();
+        set_goals(
+            &records,
+            &GoalsForm {
+                from: "2026-03-01".into(),
+                body_mass_kg: 70.0,
+                fat_percentage: 10.0,
+            },
+        )
+        .expect("goals set");
+        measured(
+            &records,
+            &[
+                ("2026-09-19", 80.0),
+                ("2026-09-26", 79.5),
+                ("2026-10-03", 79.0),
+                ("2026-10-10", 78.5),
+            ],
+        );
+
+        let card = gather_card(&records, "2026-10-10", Window::Days30).expect("a card");
+
+        assert_eq!(card.target_kg, Some(70.0));
+        assert!(
+            card.progress
+                .is_some_and(|progress| (progress.per_week + 0.5).abs() < 1e-9)
         );
     }
 }
