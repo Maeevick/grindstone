@@ -33,7 +33,7 @@ fn day_the_line_crosses(
         .flatten()
 }
 
-pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
+pub fn progress_towards(target: Option<f64>, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
     if trend.len() < 2 {
         return None;
     }
@@ -42,7 +42,7 @@ pub fn progress_towards(target: f64, trend: &[(NaiveDate, f64)]) -> Option<Progr
     Some(Progress {
         per_week: per_day * 7.0,
         share_per_week: per_day * 7.0 / latest.1,
-        reached_on: day_the_line_crosses(target, latest, per_day),
+        reached_on: target.and_then(|target| day_the_line_crosses(target, latest, per_day)),
     })
 }
 
@@ -68,14 +68,14 @@ mod tests {
 
     #[test]
     fn a_steady_loss_of_half_a_kilo_a_week_reads_minus_half_a_kilo_a_week() {
-        let progress = progress_towards(75.0, &losing_half_a_kilo_a_week());
+        let progress = progress_towards(Some(75.0), &losing_half_a_kilo_a_week());
 
         assert!(about(progress.map(|progress| progress.per_week), -0.5));
     }
 
     #[test]
     fn the_weekly_share_is_the_rate_over_the_latest_trend() {
-        let progress = progress_towards(75.0, &losing_half_a_kilo_a_week());
+        let progress = progress_towards(Some(75.0), &losing_half_a_kilo_a_week());
 
         assert!(about(
             progress.map(|progress| progress.share_per_week),
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn a_target_ahead_of_the_trend_is_reached_where_its_line_crosses_it() {
-        let progress = progress_towards(78.0, &losing_half_a_kilo_a_week());
+        let progress = progress_towards(Some(78.0), &losing_half_a_kilo_a_week());
 
         assert_eq!(
             progress.and_then(|progress| progress.reached_on),
@@ -102,20 +102,23 @@ mod tests {
         ];
 
         assert_eq!(
-            progress_towards(78.0, &flat).map(|progress| progress.reached_on),
+            progress_towards(Some(78.0), &flat).map(|progress| progress.reached_on),
             Some(None)
         );
     }
 
     #[test]
     fn a_trend_moving_away_from_its_target_reaches_none() {
-        let progress = progress_towards(81.0, &losing_half_a_kilo_a_week());
+        let progress = progress_towards(Some(81.0), &losing_half_a_kilo_a_week());
 
         assert_eq!(progress.map(|progress| progress.reached_on), Some(None));
     }
 
     #[test]
     fn a_single_point_gives_no_progress() {
-        assert_eq!(progress_towards(78.0, &[(day("2026-09-15"), 79.0)]), None);
+        assert_eq!(
+            progress_towards(Some(78.0), &[(day("2026-09-15"), 79.0)]),
+            None
+        );
     }
 }

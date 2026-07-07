@@ -52,7 +52,7 @@ pub fn gather_card(
         .filter(|(day, _)| *day >= first_day && *day <= today)
         .collect();
     let target_kg = version_in_force_on(&gathered.goals, today).map(|goals| goals.body_mass_kg);
-    let progress = target_kg.and_then(|target_kg| progress_towards(target_kg, &trend));
+    let progress = progress_towards(target_kg, &trend);
     Ok(GatherCard {
         masses,
         trend,
