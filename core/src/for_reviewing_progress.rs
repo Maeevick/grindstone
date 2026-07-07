@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
 use crate::trend::seven_day_trend;
@@ -53,12 +54,19 @@ pub fn gather_card(
         .collect();
     let target_kg = version_in_force_on(&gathered.goals, today).map(|goals| goals.body_mass_kg);
     let progress = progress_towards(target_kg, &trend);
+    let compositions: Vec<_> = ledger(&gathered.measurements, &gathered.profiles)
+        .into_iter()
+        .filter(|day| day.day >= first_day && day.day <= today)
+        .filter_map(|day| day.composition)
+        .collect();
+    let first_and_last = compositions.first().zip(compositions.last());
     Ok(GatherCard {
         masses,
         trend,
         target_kg,
         progress,
-        ..GatherCard::default()
+        fat_change_kg: first_and_last.map(|(first, last)| last.fat_mass_kg - first.fat_mass_kg),
+        lean_change_kg: first_and_last.map(|(first, last)| last.lean_mass_kg - first.lean_mass_kg),
     })
 }
 
