@@ -12,6 +12,8 @@ use crate::version::version_in_force_on;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
     Days30,
+    Days90,
+    Everything,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -33,6 +35,7 @@ pub fn gather_card(
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     let days_in_window = match window {
         Window::Days30 => 30,
+        Window::Days90 | Window::Everything => 30,
     };
     let first_day = today - Days::new(days_in_window - 1);
     let gathered = records.gather_records()?;
@@ -225,5 +228,35 @@ mod tests {
         assert!(card.lean_change_kg.is_some_and(|change| {
             (change - (after.lean_mass_kg - before.lean_mass_kg)).abs() < 1e-9
         }));
+    }
+
+    #[test]
+    fn wider_windows_draw_older_masses() {
+        let records = GatherRecordsInMemory::default();
+        measured(
+            &records,
+            &[
+                ("2026-06-01", 83.0),
+                ("2026-08-01", 82.0),
+                ("2026-10-10", 80.0),
+            ],
+        );
+        let masses_over = |window| {
+            gather_card(&records, "2026-10-10", window)
+                .map(|card| card.masses.iter().map(|(day, _)| *day).collect::<Vec<_>>())
+        };
+
+        assert_eq!(
+            masses_over(Window::Days90),
+            Ok(vec![day("2026-08-01"), day("2026-10-10")])
+        );
+        assert_eq!(
+            masses_over(Window::Everything),
+            Ok(vec![
+                day("2026-06-01"),
+                day("2026-08-01"),
+                day("2026-10-10")
+            ])
+        );
     }
 }
