@@ -65,8 +65,10 @@ pub fn gather_card(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::for_setting_up_the_profile::{GoalsForm, set_goals};
+    use crate::composition::{Tapes, body_composition};
+    use crate::for_setting_up_the_profile::{GoalsForm, ProfileForm, set_goals, set_profile};
     use crate::for_tracking::log_measurement;
+    use crate::gender::Gender;
     use crate::testing::GatherRecordsInMemory;
 
     fn day(date: &str) -> NaiveDate {
@@ -181,5 +183,39 @@ mod tests {
                 .is_some_and(|progress| (progress.per_week + 0.5).abs() < 1e-9)
         );
         assert_eq!(card.progress.and_then(|progress| progress.reached_on), None);
+    }
+
+    #[test]
+    fn the_card_tells_how_much_fat_and_lean_mass_changed_over_the_window() {
+        let records = GatherRecordsInMemory::default();
+        set_profile(
+            &records,
+            &ProfileForm {
+                from: "2026-03-01".into(),
+                birthday: "1985-04-12".into(),
+                gender: Gender::Male,
+                height_cm: 180.0,
+                neck_cm: 38.5,
+                hip_cm: None,
+            },
+        )
+        .expect("a profile set");
+        log_measurement(&records, "2026-09-20", 80.0, Some(80.0)).expect("a measurement logs");
+        log_measurement(&records, "2026-10-10", 78.0, Some(78.0)).expect("a measurement logs");
+        let tapes = |waist_cm| Tapes::Male {
+            neck_cm: 38.5,
+            waist_cm,
+        };
+        let before = body_composition(80.0, 180.0, tapes(80.0)).expect("a composition");
+        let after = body_composition(78.0, 180.0, tapes(78.0)).expect("a composition");
+
+        let card = gather_card(&records, "2026-10-10", Window::Days30).expect("a card");
+
+        assert!(card.fat_change_kg.is_some_and(|change| {
+            (change - (after.fat_mass_kg - before.fat_mass_kg)).abs() < 1e-9
+        }));
+        assert!(card.lean_change_kg.is_some_and(|change| {
+            (change - (after.lean_mass_kg - before.lean_mass_kg)).abs() < 1e-9
+        }));
     }
 }
