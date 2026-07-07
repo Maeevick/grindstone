@@ -160,4 +160,26 @@ mod tests {
                 .is_some_and(|progress| (progress.per_week + 0.5).abs() < 1e-9)
         );
     }
+
+    #[test]
+    fn without_a_target_the_card_still_reads_the_weekly_rate() {
+        let records = GatherRecordsInMemory::default();
+        measured(
+            &records,
+            &[
+                ("2026-09-19", 80.0),
+                ("2026-09-26", 79.5),
+                ("2026-10-03", 79.0),
+                ("2026-10-10", 78.5),
+            ],
+        );
+
+        let card = gather_card(&records, "2026-10-10", Window::Days30).expect("a card");
+
+        assert!(
+            card.progress
+                .is_some_and(|progress| (progress.per_week + 0.5).abs() < 1e-9)
+        );
+        assert_eq!(card.progress.and_then(|progress| progress.reached_on), None);
+    }
 }
