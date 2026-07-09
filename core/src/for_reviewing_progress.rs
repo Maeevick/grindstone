@@ -78,7 +78,7 @@ mod tests {
     use crate::for_setting_up_the_profile::{GoalsForm, ProfileForm, set_goals, set_profile};
     use crate::for_tracking::log_measurement;
     use crate::gender::Gender;
-    use crate::testing::GatherRecordsInMemory;
+    use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory};
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
@@ -255,6 +255,40 @@ mod tests {
                 day("2026-08-01"),
                 day("2026-10-10")
             ])
+        );
+    }
+
+    #[test]
+    fn the_thirty_day_window_counts_today_and_the_twenty_nine_days_before_it() {
+        let records = GatherRecordsInMemory::default();
+        measured(
+            &records,
+            &[
+                ("2026-09-10", 81.0),
+                ("2026-09-11", 80.9),
+                ("2026-10-10", 80.0),
+            ],
+        );
+
+        let first_drawn = gather_card(&records, "2026-10-10", Window::Days30)
+            .map(|card| card.masses.first().map(|(day, _)| *day));
+
+        assert_eq!(first_drawn, Ok(Some(day("2026-09-11"))));
+    }
+
+    #[test]
+    fn a_today_the_calendar_lacks_or_broken_records_give_no_card() {
+        assert_eq!(
+            gather_card(
+                &GatherRecordsInMemory::default(),
+                "2026-02-30",
+                Window::Days30
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            gather_card(&BrokenGatherRecords, "2026-10-10", Window::Days30),
+            Err(Failure::Broken("the disk is full".into()))
         );
     }
 }
