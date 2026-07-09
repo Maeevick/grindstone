@@ -15,6 +15,7 @@ pub fn import_gather(
     records: &impl ForStoringGatherRecords,
     imported: &GatherRecords,
 ) -> Result<Imported, Failure> {
+    records.replace_gather_records(imported)?;
     Ok(Imported::default())
 }
 

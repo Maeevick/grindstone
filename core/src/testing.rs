@@ -47,6 +47,7 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
     }
 
     fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
+        *self.0.borrow_mut() = records.clone();
         Ok(())
     }
 
