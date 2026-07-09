@@ -46,6 +46,10 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
         Ok(())
     }
 
+    fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
+        Ok(())
+    }
+
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
         Ok(self.0.borrow().clone())
     }
@@ -67,6 +71,10 @@ impl ForStoringGatherRecords for BrokenGatherRecords {
     }
 
     fn save_goals(&self, _: NaiveDate, _: &Goals) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn replace_gather_records(&self, _: &GatherRecords) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
