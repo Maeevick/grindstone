@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::composition::Composition;
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::ledger::ledger;
@@ -38,36 +39,33 @@ pub fn gather_card(
         Window::Days90 => today - Days::new(89),
         Window::Everything => NaiveDate::MIN,
     };
+    let is_in_window = |day: &NaiveDate| (first_day..=today).contains(day);
     let gathered = records.gather_records()?;
-    let mut masses: Vec<(NaiveDate, f64)> = gathered
-        .measurements
-        .iter()
-        .filter(|measured| measured.day >= first_day && measured.day <= today)
-        .map(|measured| (measured.day, measured.body_mass_kg))
-        .collect();
-    masses.sort_by_key(|(day, _)| *day);
-    let every_mass: Vec<(NaiveDate, f64)> = gathered
+    let mut readings: Vec<(NaiveDate, f64)> = gathered
         .measurements
         .iter()
         .map(|measured| (measured.day, measured.body_mass_kg))
         .collect();
-    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&every_mass)
+    readings.sort_by_key(|(day, _)| *day);
+    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&readings)
         .into_iter()
-        .filter(|(day, _)| *day >= first_day && *day <= today)
+        .filter(|(day, _)| is_in_window(day))
         .collect();
     let target_kg = version_in_force_on(&gathered.goals, today).map(|goals| goals.body_mass_kg);
-    let progress = progress_towards(target_kg, &trend);
-    let compositions: Vec<_> = ledger(&gathered.measurements, &gathered.profiles)
+    let compositions: Vec<Composition> = ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
-        .filter(|day| day.day >= first_day && day.day <= today)
+        .filter(|day| is_in_window(&day.day))
         .filter_map(|day| day.composition)
         .collect();
     let first_and_last = compositions.first().zip(compositions.last());
     Ok(GatherCard {
-        masses,
+        masses: readings
+            .into_iter()
+            .filter(|(day, _)| is_in_window(day))
+            .collect(),
+        progress: progress_towards(target_kg, &trend),
         trend,
         target_kg,
-        progress,
         fat_change_kg: first_and_last.map(|(first, last)| last.fat_mass_kg - first.fat_mass_kg),
         lean_change_kg: first_and_last.map(|(first, last)| last.lean_mass_kg - first.lean_mass_kg),
     })
