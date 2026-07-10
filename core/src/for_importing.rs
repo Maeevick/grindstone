@@ -30,7 +30,7 @@ mod tests {
     use crate::goals::Goals;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
-    use crate::testing::GatherRecordsInMemory;
+    use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory};
     use chrono::NaiveDate;
 
     fn day(date: &str) -> NaiveDate {
@@ -98,6 +98,24 @@ mod tests {
                 profiles: 1,
                 goals: 1,
             })
+        );
+    }
+
+    #[test]
+    fn importing_the_same_records_twice_ends_where_importing_once_did() {
+        let records = GatherRecordsInMemory::default();
+        import_gather(&records, &drafted()).expect("a first import");
+
+        import_gather(&records, &drafted()).expect("a second import");
+
+        assert_eq!(records.gather_records(), Ok(drafted()));
+    }
+
+    #[test]
+    fn records_that_cannot_be_replaced_give_no_import() {
+        assert_eq!(
+            import_gather(&BrokenGatherRecords, &drafted()),
+            Err(Failure::Broken("the disk is full".into()))
         );
     }
 }
