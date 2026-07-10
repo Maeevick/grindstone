@@ -82,4 +82,18 @@ mod tests {
 
         assert_eq!(records.gather_records(), Ok(drafted()));
     }
+
+    #[test]
+    fn an_import_counts_what_it_brought() {
+        let imported = import_gather(&GatherRecordsInMemory::default(), &drafted());
+
+        assert_eq!(
+            imported,
+            Ok(Imported {
+                measurements: 2,
+                profiles: 1,
+                goals: 1,
+            })
+        );
+    }
 }
