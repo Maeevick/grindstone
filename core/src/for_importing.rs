@@ -16,7 +16,11 @@ pub fn import_gather(
     imported: &GatherRecords,
 ) -> Result<Imported, Failure> {
     records.replace_gather_records(imported)?;
-    Ok(Imported::default())
+    Ok(Imported {
+        measurements: imported.measurements.len(),
+        profiles: imported.profiles.len(),
+        goals: imported.goals.len(),
+    })
 }
 
 #[cfg(test)]
