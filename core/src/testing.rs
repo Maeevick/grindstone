@@ -52,7 +52,11 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
     }
 
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
-        Ok(self.0.borrow().clone())
+        let mut gathered = self.0.borrow().clone();
+        gathered.measurements.sort_by_key(|measured| measured.day);
+        gathered.profiles.sort_by_key(|(from, _)| *from);
+        gathered.goals.sort_by_key(|(from, _)| *from);
+        Ok(gathered)
     }
 }
 
