@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 grind-core.workspace = true
+chrono.workspace = true
 rusqlite.workspace = true
 
 [dev-dependencies]

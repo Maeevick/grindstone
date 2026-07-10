@@ -1,7 +1,13 @@
 use std::path::Path;
 
+use chrono::NaiveDate;
 use grind_core::failure::Broken;
+use grind_core::for_storing_gather_records::ForStoringGatherRecords;
 use grind_core::for_storing_weigh_ins::ForStoringWeighIns;
+use grind_core::gather_records::GatherRecords;
+use grind_core::goals::Goals;
+use grind_core::measurement::Measurement;
+use grind_core::profile::Profile;
 use grind_core::weigh_in::WeighIn;
 use rusqlite::{Connection, params};
 
@@ -70,9 +76,36 @@ impl ForStoringWeighIns for Sqlite {
     }
 }
 
+impl ForStoringGatherRecords for Sqlite {
+    fn save_measurement(&self, measurement: &Measurement) -> Result<(), Broken> {
+        Err(Broken("not kept yet".into()))
+    }
+
+    fn remove_measurement(&self, day: NaiveDate) -> Result<(), Broken> {
+        Err(Broken("not kept yet".into()))
+    }
+
+    fn save_profile(&self, from: NaiveDate, profile: &Profile) -> Result<(), Broken> {
+        Err(Broken("not kept yet".into()))
+    }
+
+    fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
+        Err(Broken("not kept yet".into()))
+    }
+
+    fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
+        Err(Broken("not kept yet".into()))
+    }
+
+    fn gather_records(&self) -> Result<GatherRecords, Broken> {
+        Err(Broken("not kept yet".into()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use grind_core::testing::honouring_for_storing_gather_records;
     use grind_core::testing::honouring_for_storing_weigh_ins;
     use grind_core::weigh_in::weigh_in;
 
@@ -114,5 +147,12 @@ mod tests {
         let nowhere = std::env::temp_dir().join("grind-sqlite-no-such-folder/grindstone.sqlite");
 
         assert!(matches!(Sqlite::open(&nowhere), Err(Broken(_))));
+    }
+
+    #[test]
+    fn a_day_measured_twice_keeps_its_second_measurement() {
+        honouring_for_storing_gather_records::a_day_measured_twice_keeps_its_second_measurement(
+            &database(),
+        );
     }
 }
