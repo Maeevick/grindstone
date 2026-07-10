@@ -11,7 +11,11 @@ use grind_core::profile::Profile;
 use grind_core::weigh_in::WeighIn;
 use rusqlite::{Connection, params};
 
-const MIGRATIONS: &[&str] = &["create table weigh_ins (date text primary key, kg real not null)"];
+const MIGRATIONS: &[&str] = &[
+    "create table weigh_ins (date text primary key, kg real not null)",
+    "create table measurements (day text primary key, body_mass_kg real not null, waist_cm real);
+     insert into measurements (day, body_mass_kg) select date, kg from weigh_ins;",
+];
 
 pub struct Sqlite(Connection);
 
@@ -78,27 +82,58 @@ impl ForStoringWeighIns for Sqlite {
 
 impl ForStoringGatherRecords for Sqlite {
     fn save_measurement(&self, measurement: &Measurement) -> Result<(), Broken> {
+        self.0
+            .execute(
+                "insert into measurements (day, body_mass_kg, waist_cm) values (?1, ?2, ?3)
+                 on conflict (day) do update
+                 set body_mass_kg = excluded.body_mass_kg, waist_cm = excluded.waist_cm",
+                params![
+                    measurement.day,
+                    measurement.body_mass_kg,
+                    measurement.waist_cm
+                ],
+            )
+            .map(|_| ())
+            .map_err(broken)
+    }
+
+    fn remove_measurement(&self, _day: NaiveDate) -> Result<(), Broken> {
         Err(Broken("not kept yet".into()))
     }
 
-    fn remove_measurement(&self, day: NaiveDate) -> Result<(), Broken> {
+    fn save_profile(&self, _from: NaiveDate, _profile: &Profile) -> Result<(), Broken> {
         Err(Broken("not kept yet".into()))
     }
 
-    fn save_profile(&self, from: NaiveDate, profile: &Profile) -> Result<(), Broken> {
+    fn save_goals(&self, _from: NaiveDate, _goals: &Goals) -> Result<(), Broken> {
         Err(Broken("not kept yet".into()))
     }
 
-    fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
-        Err(Broken("not kept yet".into()))
-    }
-
-    fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
+    fn replace_gather_records(&self, _records: &GatherRecords) -> Result<(), Broken> {
         Err(Broken("not kept yet".into()))
     }
 
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
-        Err(Broken("not kept yet".into()))
+        let measurements = self
+            .0
+            .prepare("select day, body_mass_kg, waist_cm from measurements")
+            .and_then(|mut statement| {
+                statement
+                    .query_map([], |row| {
+                        Ok(Measurement {
+                            day: row.get(0)?,
+                            body_mass_kg: row.get(1)?,
+                            waist_cm: row.get(2)?,
+                        })
+                    })?
+                    .collect()
+            })
+            .map_err(broken)?;
+        Ok(GatherRecords {
+            measurements,
+            profiles: Vec::new(),
+            goals: Vec::new(),
+        })
     }
 }
 
