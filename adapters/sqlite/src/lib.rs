@@ -97,8 +97,11 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
-    fn remove_measurement(&self, _day: NaiveDate) -> Result<(), Broken> {
-        Err(Broken("not kept yet".into()))
+    fn remove_measurement(&self, day: NaiveDate) -> Result<(), Broken> {
+        self.0
+            .execute("delete from measurements where day = ?1", params![day])
+            .map(|_| ())
+            .map_err(broken)
     }
 
     fn save_profile(&self, _from: NaiveDate, _profile: &Profile) -> Result<(), Broken> {
