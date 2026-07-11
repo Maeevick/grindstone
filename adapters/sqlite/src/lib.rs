@@ -190,4 +190,39 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn the_weigh_ins_already_on_the_phone_become_measurements() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-weigh-ins-carried-{}.sqlite",
+            std::process::id()
+        ));
+        let before = Connection::open(&file).expect("a database at version 1");
+        before
+            .execute_batch(
+                "create table weigh_ins (date text primary key, kg real not null);
+                 insert into weigh_ins (date, kg) values ('2026-10-03', 72.1), ('2026-10-04', 71.9);
+                 pragma user_version = 1;",
+            )
+            .expect("the version 1 weigh-ins");
+        drop(before);
+
+        let carried = Sqlite::open(&file).and_then(|database| database.gather_records());
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        let carried: Vec<(String, f64, Option<f64>)> = carried
+            .expect("the records read")
+            .measurements
+            .iter()
+            .map(|measured| {
+                (
+                    measured.day.to_string(),
+                    measured.body_mass_kg,
+                    measured.waist_cm,
+                )
+            })
+            .collect();
+        assert!(carried.contains(&("2026-10-03".into(), 72.1, None)));
+        assert!(carried.contains(&("2026-10-04".into(), 71.9, None)));
+    }
 }
