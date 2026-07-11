@@ -5,6 +5,7 @@ use grind_core::failure::Broken;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
 use grind_core::for_storing_weigh_ins::ForStoringWeighIns;
 use grind_core::gather_records::GatherRecords;
+use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
@@ -15,6 +16,11 @@ const MIGRATIONS: &[&str] = &[
     "create table weigh_ins (date text primary key, kg real not null)",
     "create table measurements (day text primary key, body_mass_kg real not null, waist_cm real);
      insert into measurements (day, body_mass_kg) select date, kg from weigh_ins;",
+    "create table profiles (
+         effective_from text primary key, birthday text not null, gender text not null,
+         height_cm real not null, neck_cm real not null, hip_cm real
+     )",
+    "create table goals (effective_from text primary key, body_mass_kg real not null, fat_ratio real not null)",
 ];
 
 pub struct Sqlite(Connection);
@@ -33,6 +39,23 @@ impl Sqlite {
 
 fn broken(error: rusqlite::Error) -> Broken {
     Broken(error.to_string())
+}
+
+fn gender_word(gender: Gender) -> &'static str {
+    match gender {
+        Gender::Male => "male",
+        Gender::Female => "female",
+    }
+}
+
+fn gender_read(word: &str) -> rusqlite::Result<Gender> {
+    match word {
+        "male" => Ok(Gender::Male),
+        "female" => Ok(Gender::Female),
+        unknown => Err(rusqlite::Error::InvalidParameterName(format!(
+            "a gender the app does not know: {unknown}"
+        ))),
+    }
 }
 
 fn migrated(connection: Connection) -> Result<Sqlite, Broken> {
@@ -104,12 +127,37 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
-    fn save_profile(&self, _from: NaiveDate, _profile: &Profile) -> Result<(), Broken> {
-        Err(Broken("not kept yet".into()))
+    fn save_profile(&self, from: NaiveDate, profile: &Profile) -> Result<(), Broken> {
+        self.0
+            .execute(
+                "insert into profiles (effective_from, birthday, gender, height_cm, neck_cm, hip_cm)
+                 values (?1, ?2, ?3, ?4, ?5, ?6)
+                 on conflict (effective_from) do update
+                 set birthday = excluded.birthday, gender = excluded.gender,
+                     height_cm = excluded.height_cm, neck_cm = excluded.neck_cm, hip_cm = excluded.hip_cm",
+                params![
+                    from,
+                    profile.birthday,
+                    gender_word(profile.gender),
+                    profile.height_cm,
+                    profile.neck_cm,
+                    profile.hip_cm
+                ],
+            )
+            .map(|_| ())
+            .map_err(broken)
     }
 
-    fn save_goals(&self, _from: NaiveDate, _goals: &Goals) -> Result<(), Broken> {
-        Err(Broken("not kept yet".into()))
+    fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
+        self.0
+            .execute(
+                "insert into goals (effective_from, body_mass_kg, fat_ratio) values (?1, ?2, ?3)
+                 on conflict (effective_from) do update
+                 set body_mass_kg = excluded.body_mass_kg, fat_ratio = excluded.fat_ratio",
+                params![from, goals.body_mass_kg, goals.fat_ratio],
+            )
+            .map(|_| ())
+            .map_err(broken)
     }
 
     fn replace_gather_records(&self, _records: &GatherRecords) -> Result<(), Broken> {
@@ -132,10 +180,49 @@ impl ForStoringGatherRecords for Sqlite {
                     .collect()
             })
             .map_err(broken)?;
+        let profiles = self
+            .0
+            .prepare(
+                "select effective_from, birthday, gender, height_cm, neck_cm, hip_cm from profiles",
+            )
+            .and_then(|mut statement| {
+                statement
+                    .query_map([], |row| {
+                        Ok((
+                            row.get(0)?,
+                            Profile {
+                                birthday: row.get(1)?,
+                                gender: gender_read(&row.get::<_, String>(2)?)?,
+                                height_cm: row.get(3)?,
+                                neck_cm: row.get(4)?,
+                                hip_cm: row.get(5)?,
+                            },
+                        ))
+                    })?
+                    .collect()
+            })
+            .map_err(broken)?;
+        let goals = self
+            .0
+            .prepare("select effective_from, body_mass_kg, fat_ratio from goals")
+            .and_then(|mut statement| {
+                statement
+                    .query_map([], |row| {
+                        Ok((
+                            row.get(0)?,
+                            Goals {
+                                body_mass_kg: row.get(1)?,
+                                fat_ratio: row.get(2)?,
+                            },
+                        ))
+                    })?
+                    .collect()
+            })
+            .map_err(broken)?;
         Ok(GatherRecords {
             measurements,
-            profiles: Vec::new(),
-            goals: Vec::new(),
+            profiles,
+            goals,
         })
     }
 }
