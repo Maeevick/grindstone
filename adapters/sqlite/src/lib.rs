@@ -233,4 +233,11 @@ mod tests {
     fn removing_a_measured_day_leaves_the_others() {
         honouring_for_storing_gather_records::removing_a_measured_day_leaves_the_others(&database());
     }
+
+    #[test]
+    fn a_profile_or_goals_saved_again_from_the_same_day_replace_the_earlier_ones() {
+        honouring_for_storing_gather_records::a_profile_or_goals_saved_again_from_the_same_day_replace_the_earlier_ones(
+            &database(),
+        );
+    }
 }
