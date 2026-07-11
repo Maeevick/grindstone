@@ -225,4 +225,9 @@ mod tests {
         assert!(carried.contains(&("2026-10-03".into(), 72.1, None)));
         assert!(carried.contains(&("2026-10-04".into(), 71.9, None)));
     }
+
+    #[test]
+    fn removing_a_measured_day_leaves_the_others() {
+        honouring_for_storing_gather_records::removing_a_measured_day_leaves_the_others(&database());
+    }
 }
