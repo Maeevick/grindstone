@@ -327,4 +327,11 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn gather_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_gather_records::gather_records_come_back_in_the_order_of_their_days(
+            &database(),
+        );
+    }
 }
