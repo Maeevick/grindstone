@@ -167,7 +167,7 @@ impl ForStoringGatherRecords for Sqlite {
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
         let measurements = self
             .0
-            .prepare("select day, body_mass_kg, waist_cm from measurements")
+            .prepare("select day, body_mass_kg, waist_cm from measurements order by day")
             .and_then(|mut statement| {
                 statement
                     .query_map([], |row| {
@@ -183,7 +183,8 @@ impl ForStoringGatherRecords for Sqlite {
         let profiles = self
             .0
             .prepare(
-                "select effective_from, birthday, gender, height_cm, neck_cm, hip_cm from profiles",
+                "select effective_from, birthday, gender, height_cm, neck_cm, hip_cm from profiles
+                 order by effective_from",
             )
             .and_then(|mut statement| {
                 statement
@@ -204,7 +205,9 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)?;
         let goals = self
             .0
-            .prepare("select effective_from, body_mass_kg, fat_ratio from goals")
+            .prepare(
+                "select effective_from, body_mass_kg, fat_ratio from goals order by effective_from",
+            )
             .and_then(|mut statement| {
                 statement
                     .query_map([], |row| {
