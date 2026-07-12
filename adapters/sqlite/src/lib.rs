@@ -160,8 +160,21 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
-    fn replace_gather_records(&self, _records: &GatherRecords) -> Result<(), Broken> {
-        Err(Broken("not kept yet".into()))
+    fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
+        let replacing = self.0.unchecked_transaction().map_err(broken)?;
+        replacing
+            .execute_batch("delete from measurements; delete from profiles; delete from goals;")
+            .map_err(broken)?;
+        for measured in &records.measurements {
+            self.save_measurement(measured)?;
+        }
+        for (from, profile) in &records.profiles {
+            self.save_profile(*from, profile)?;
+        }
+        for (from, goals) in &records.goals {
+            self.save_goals(*from, goals)?;
+        }
+        replacing.commit().map_err(broken)
     }
 
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
