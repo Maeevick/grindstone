@@ -337,4 +337,11 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn replacing_the_gather_records_leaves_only_the_new_ones() {
+        honouring_for_storing_gather_records::replacing_the_gather_records_leaves_only_the_new_ones(
+            &database(),
+        );
+    }
 }
