@@ -357,4 +357,65 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn a_replacement_failing_half_way_leaves_the_records_as_they_were() {
+        let records = database();
+        let kept = Measurement {
+            day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+            body_mass_kg: 80.0,
+            waist_cm: None,
+        };
+        records
+            .save_measurement(&kept)
+            .expect("a measurement saves");
+        let half_valid = GatherRecords {
+            measurements: vec![Measurement {
+                body_mass_kg: 76.4,
+                ..kept
+            }],
+            profiles: vec![(
+                kept.day,
+                Profile {
+                    birthday: kept.day,
+                    gender: Gender::Male,
+                    height_cm: f64::NAN,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )],
+            goals: vec![],
+        };
+
+        assert!(records.replace_gather_records(&half_valid).is_err());
+        assert_eq!(
+            records
+                .gather_records()
+                .map(|gathered| gathered.measurements),
+            Ok(vec![kept])
+        );
+    }
+
+    #[test]
+    fn a_profile_whose_gender_the_app_does_not_know_reads_as_broken() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-unknown-gender-{}.sqlite",
+            std::process::id()
+        ));
+        drop(Sqlite::open(&file).expect("a migrated database"));
+        Connection::open(&file)
+            .and_then(|raw| {
+                raw.execute(
+                    "insert into profiles (effective_from, birthday, gender, height_cm, neck_cm)
+                     values ('2026-03-01', '1985-04-12', 'goblin', 180.0, 38.5)",
+                    [],
+                )
+            })
+            .expect("a profile no app wrote");
+
+        let read = Sqlite::open(&file).and_then(|database| database.gather_records());
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        assert!(matches!(read, Err(Broken(reason)) if reason.contains("goblin")));
+    }
 }
