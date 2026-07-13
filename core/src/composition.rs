@@ -11,7 +11,7 @@ pub enum Tapes {
     },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Composition {
     pub fat_ratio: f64,
     pub fat_mass_kg: f64,

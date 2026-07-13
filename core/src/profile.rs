@@ -1,9 +1,10 @@
 use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 use crate::gender::Gender;
 use crate::refusal::Refusal;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
     pub birthday: NaiveDate,
     pub gender: Gender,

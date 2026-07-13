@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 use crate::age::age_on;
 use crate::composition::{Composition, Tapes, body_composition};
@@ -7,7 +8,7 @@ use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::version::version_in_force_on;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Day {
     pub day: NaiveDate,
     pub body_mass_kg: f64,

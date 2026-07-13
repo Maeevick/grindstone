@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::refusal::Refusal;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Goals {
     pub body_mass_kg: f64,
     pub fat_ratio: f64,
