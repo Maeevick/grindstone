@@ -36,6 +36,11 @@ pub fn log_measurement(
     for_tracking::log_measurement(&*records, &date, body_mass_kg, waist_cm)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn recent_days(records: State<Records>) -> Result<Vec<Day>, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,7 +59,8 @@ mod tests {
             .invoke_handler(tauri::generate_handler![
                 recent_weigh_ins,
                 log_weigh_in,
-                log_measurement
+                log_measurement,
+                recent_days,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -136,5 +142,12 @@ mod tests {
                 json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "composition": null, "age": null }])
             )
         );
+    }
+
+    #[test]
+    fn the_recent_days_start_empty_on_a_first_launch() {
+        let (_app, screen) = launched();
+
+        assert_eq!(invoke(&screen, "recent_days", json!({})), Ok(json!([])));
     }
 }
