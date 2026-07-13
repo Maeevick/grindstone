@@ -2,6 +2,7 @@ use std::sync::{Mutex, PoisonError};
 
 use grind_core::failure::Failure;
 use grind_core::for_tracking;
+use grind_core::ledger::Day;
 use grind_core::weigh_in::WeighIn;
 use grind_sqlite::Sqlite;
 use tauri::State;
@@ -24,6 +25,16 @@ pub fn log_weigh_in(
     for_tracking::log_weigh_in(&*records, &date, kg)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn log_measurement(
+    records: State<Records>,
+    date: String,
+    body_mass_kg: f64,
+    waist_cm: Option<f64>,
+) -> Result<Vec<Day>, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,7 +50,11 @@ mod tests {
         let records = Sqlite::in_memory().expect("an in-memory database opens");
         let app = mock_builder()
             .manage(Records(Mutex::new(records)))
-            .invoke_handler(tauri::generate_handler![recent_weigh_ins, log_weigh_in])
+            .invoke_handler(tauri::generate_handler![
+                recent_weigh_ins,
+                log_weigh_in,
+                log_measurement
+            ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
         let screen = WebviewWindowBuilder::new(&app, "main", Default::default())
@@ -102,5 +117,23 @@ mod tests {
         );
 
         assert_eq!(answer, Err(json!({ "Refused": "NotAMass" })));
+    }
+
+    #[test]
+    fn logging_a_measurement_answers_the_recent_days_as_the_screen_reads_them() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0 }),
+        );
+
+        assert_eq!(
+            answer,
+            Ok(
+                json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "composition": null, "age": null }])
+            )
+        );
     }
 }

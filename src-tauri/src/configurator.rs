@@ -17,7 +17,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::recent_weigh_ins,
-            commands::log_weigh_in
+            commands::log_weigh_in,
+            commands::log_measurement
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");
