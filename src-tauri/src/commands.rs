@@ -32,7 +32,8 @@ pub fn log_measurement(
     body_mass_kg: f64,
     waist_cm: Option<f64>,
 ) -> Result<Vec<Day>, Failure> {
-    Err(Failure::Broken("not wired yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_tracking::log_measurement(&*records, &date, body_mass_kg, waist_cm)
 }
 
 #[cfg(test)]
