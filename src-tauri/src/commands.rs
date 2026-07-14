@@ -42,6 +42,11 @@ pub fn recent_days(records: State<Records>) -> Result<Vec<Day>, Failure> {
     for_tracking::recent_days(&*records)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_measurement(records: State<Records>, date: String) -> Result<Vec<Day>, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,6 +67,7 @@ mod tests {
                 log_weigh_in,
                 log_measurement,
                 recent_days,
+                remove_measurement,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -150,5 +156,29 @@ mod tests {
         let (_app, screen) = launched();
 
         assert_eq!(invoke(&screen, "recent_days", json!({})), Ok(json!([])));
+    }
+
+    #[test]
+    fn removing_a_measured_day_answers_the_days_left() {
+        let (_app, screen) = launched();
+        for date in ["2026-10-09", "2026-10-10"] {
+            invoke(
+                &screen,
+                "log_measurement",
+                json!({ "date": date, "body_mass_kg": 80.0 }),
+            )
+            .expect("a measurement logs");
+        }
+
+        let answer = invoke(
+            &screen,
+            "remove_measurement",
+            json!({ "date": "2026-10-10" }),
+        );
+
+        assert_eq!(
+            answer.map(|days| days.as_array().map(Vec::len)),
+            Ok(Some(1))
+        );
     }
 }
