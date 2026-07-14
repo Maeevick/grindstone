@@ -44,7 +44,8 @@ pub fn recent_days(records: State<Records>) -> Result<Vec<Day>, Failure> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_measurement(records: State<Records>, date: String) -> Result<Vec<Day>, Failure> {
-    Err(Failure::Broken("not wired yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_tracking::remove_measurement(&*records, &date)
 }
 
 #[cfg(test)]
