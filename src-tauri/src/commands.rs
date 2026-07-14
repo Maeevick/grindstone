@@ -38,7 +38,8 @@ pub fn log_measurement(
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn recent_days(records: State<Records>) -> Result<Vec<Day>, Failure> {
-    Err(Failure::Broken("not wired yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_tracking::recent_days(&*records)
 }
 
 #[cfg(test)]
