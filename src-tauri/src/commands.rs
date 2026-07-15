@@ -65,12 +65,14 @@ pub fn profile_on(records: State<Records>, date: String) -> Result<Option<Profil
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn set_goals(records: State<Records>, form: GoalsForm) -> Result<Goals, Failure> {
-    Err(Failure::Broken("not wired yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::set_goals(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn goals_on(records: State<Records>, date: String) -> Result<Option<Goals>, Failure> {
-    Err(Failure::Broken("not wired yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::goals_on(&*records, &date)
 }
 
 #[cfg(test)]
