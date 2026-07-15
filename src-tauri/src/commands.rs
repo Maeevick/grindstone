@@ -1,8 +1,9 @@
 use std::sync::{Mutex, PoisonError};
 
 use grind_core::failure::Failure;
-use grind_core::for_setting_up_the_profile::{self, ProfileForm};
+use grind_core::for_setting_up_the_profile::{self, GoalsForm, ProfileForm};
 use grind_core::for_tracking;
+use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
 use grind_core::weigh_in::WeighIn;
@@ -62,6 +63,16 @@ pub fn profile_on(records: State<Records>, date: String) -> Result<Option<Profil
     for_setting_up_the_profile::profile_on(&*records, &date)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_goals(records: State<Records>, form: GoalsForm) -> Result<Goals, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn goals_on(records: State<Records>, date: String) -> Result<Option<Goals>, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,6 +96,8 @@ mod tests {
                 remove_measurement,
                 set_profile,
                 profile_on,
+                set_goals,
+                goals_on,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -211,6 +224,19 @@ mod tests {
         let in_force = invoke(&screen, "profile_on", json!({ "date": "2026-10-12" }));
 
         let expected = json!({ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null });
+        assert_eq!(set, Ok(expected.clone()));
+        assert_eq!(in_force, Ok(expected));
+    }
+
+    #[test]
+    fn goals_set_from_the_screen_are_the_ones_in_force_from_their_day() {
+        let (_app, screen) = launched();
+        let form = json!({ "from": "2026-10-10", "body_mass_kg": 70.0, "fat_percentage": 10.0 });
+
+        let set = invoke(&screen, "set_goals", json!({ "form": form }));
+        let in_force = invoke(&screen, "goals_on", json!({ "date": "2026-10-12" }));
+
+        let expected = json!({ "body_mass_kg": 70.0, "fat_ratio": 0.1 });
         assert_eq!(set, Ok(expected.clone()));
         assert_eq!(in_force, Ok(expected));
     }
