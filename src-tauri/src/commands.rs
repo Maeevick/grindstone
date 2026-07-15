@@ -82,7 +82,8 @@ pub fn gather_card(
     today: String,
     window: Window,
 ) -> Result<GatherCard, Failure> {
-    Err(Failure::Broken("not wired yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_reviewing_progress::gather_card(&*records, &today, window)
 }
 
 #[cfg(test)]
