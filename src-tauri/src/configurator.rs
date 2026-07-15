@@ -25,6 +25,7 @@ pub fn run() {
             commands::profile_on,
             commands::set_goals,
             commands::goals_on,
+            commands::gather_card,
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");

@@ -1,6 +1,7 @@
 use std::sync::{Mutex, PoisonError};
 
 use grind_core::failure::Failure;
+use grind_core::for_reviewing_progress::{self, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{self, GoalsForm, ProfileForm};
 use grind_core::for_tracking;
 use grind_core::goals::Goals;
@@ -75,6 +76,15 @@ pub fn goals_on(records: State<Records>, date: String) -> Result<Option<Goals>, 
     for_setting_up_the_profile::goals_on(&*records, &date)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn gather_card(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<GatherCard, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,6 +110,7 @@ mod tests {
                 profile_on,
                 set_goals,
                 goals_on,
+                gather_card,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -241,5 +252,30 @@ mod tests {
         let expected = json!({ "body_mass_kg": 70.0, "fat_ratio": 0.1 });
         assert_eq!(set, Ok(expected.clone()));
         assert_eq!(in_force, Ok(expected));
+    }
+
+    #[test]
+    fn the_gather_card_crosses_to_the_screen_with_its_masses_and_their_trend() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let card = invoke(
+            &screen,
+            "gather_card",
+            json!({ "today": "2026-10-10", "window": "Days30" }),
+        );
+
+        assert_eq!(
+            card,
+            Ok(json!({
+                "masses": [["2026-10-10", 80.0]], "trend": [["2026-10-10", 80.0]], "target_kg": null,
+                "progress": null, "fat_change_kg": null, "lean_change_kg": null
+            }))
+        );
     }
 }
