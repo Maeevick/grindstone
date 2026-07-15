@@ -21,6 +21,8 @@ pub fn run() {
             commands::log_measurement,
             commands::recent_days,
             commands::remove_measurement,
+            commands::set_profile,
+            commands::profile_on,
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");

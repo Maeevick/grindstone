@@ -1,8 +1,10 @@
 use std::sync::{Mutex, PoisonError};
 
 use grind_core::failure::Failure;
+use grind_core::for_setting_up_the_profile::{self, ProfileForm};
 use grind_core::for_tracking;
 use grind_core::ledger::Day;
+use grind_core::profile::Profile;
 use grind_core::weigh_in::WeighIn;
 use grind_sqlite::Sqlite;
 use tauri::State;
@@ -48,6 +50,16 @@ pub fn remove_measurement(records: State<Records>, date: String) -> Result<Vec<D
     for_tracking::remove_measurement(&*records, &date)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_profile(records: State<Records>, form: ProfileForm) -> Result<Profile, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn profile_on(records: State<Records>, date: String) -> Result<Option<Profile>, Failure> {
+    Err(Failure::Broken("not wired yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,6 +81,8 @@ mod tests {
                 log_measurement,
                 recent_days,
                 remove_measurement,
+                set_profile,
+                profile_on,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -181,5 +195,21 @@ mod tests {
             answer.map(|days| days.as_array().map(Vec::len)),
             Ok(Some(1))
         );
+    }
+
+    #[test]
+    fn a_profile_set_from_the_screen_is_the_one_in_force_from_its_day() {
+        let (_app, screen) = launched();
+        let form = json!({
+            "from": "2026-10-10", "birthday": "1985-04-12", "gender": "Male",
+            "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null
+        });
+
+        let set = invoke(&screen, "set_profile", json!({ "form": form }));
+        let in_force = invoke(&screen, "profile_on", json!({ "date": "2026-10-12" }));
+
+        let expected = json!({ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null });
+        assert_eq!(set, Ok(expected.clone()));
+        assert_eq!(in_force, Ok(expected));
     }
 }
