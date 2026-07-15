@@ -1,6 +1,8 @@
+use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
 use grind_core::failure::Failure;
+use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{self, GoalsForm, ProfileForm};
 use grind_core::for_tracking;
@@ -8,10 +10,13 @@ use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
 use grind_core::weigh_in::WeighIn;
+use grind_draft::ImportFailure;
 use grind_sqlite::Sqlite;
 use tauri::State;
 
 pub struct Records(pub Mutex<Sqlite>);
+
+pub struct DraftBackup(pub PathBuf);
 
 #[tauri::command]
 pub fn recent_weigh_ins(records: State<Records>) -> Result<Vec<WeighIn>, Failure> {
@@ -86,6 +91,14 @@ pub fn gather_card(
     for_reviewing_progress::gather_card(&*records, &today, window)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn import_draft_gather(
+    records: State<Records>,
+    backup: State<DraftBackup>,
+) -> Result<Imported, ImportFailure> {
+    Err(ImportFailure::NoBackupFound(String::new()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,10 +110,11 @@ mod tests {
     use tauri::webview::InvokeRequest;
     use tauri::{App, WebviewWindow, WebviewWindowBuilder};
 
-    fn launched() -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
+    fn launched_with(backup: PathBuf) -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
         let records = Sqlite::in_memory().expect("an in-memory database opens");
         let app = mock_builder()
             .manage(Records(Mutex::new(records)))
+            .manage(DraftBackup(backup))
             .invoke_handler(tauri::generate_handler![
                 recent_weigh_ins,
                 log_weigh_in,
@@ -112,6 +126,7 @@ mod tests {
                 set_goals,
                 goals_on,
                 gather_card,
+                import_draft_gather,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -119,6 +134,10 @@ mod tests {
             .build()
             .expect("the screen opens");
         (app, screen)
+    }
+
+    fn launched() -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
+        launched_with(PathBuf::from("/nowhere/grindstone-draft.json"))
     }
 
     fn invoke(
@@ -277,6 +296,28 @@ mod tests {
                 "masses": [["2026-10-10", 80.0]], "trend": [["2026-10-10", 80.0]], "target_kg": null,
                 "progress": null, "fat_change_kg": null, "lean_change_kg": null
             }))
+        );
+    }
+
+    #[test]
+    fn importing_the_draft_backup_pushed_over_usb_tells_what_it_brought() {
+        let backup =
+            std::env::temp_dir().join(format!("grind-tauri-draft-{}.json", std::process::id()));
+        std::fs::write(
+            &backup,
+            r#"{ "settings": { "version": "0.4.0" }, "measurement_bases": { "birthday": "1985-04-12" },
+                 "measurement_logs": [{ "date": "2026-10-08", "gender": "male", "height": 180.0, "neck": 38.5,
+                   "hip": null, "weight": 72.15, "waist": 80.5, "weight_target": 70.0, "fat_target": 10.0 }] }"#,
+        )
+        .expect("a backup pushed");
+        let (_app, screen) = launched_with(backup.clone());
+
+        let answer = invoke(&screen, "import_draft_gather", json!({}));
+
+        std::fs::remove_file(&backup).expect("the test backup is removed");
+        assert_eq!(
+            answer,
+            Ok(json!({ "measurements": 1, "profiles": 1, "goals": 1 }))
         );
     }
 }

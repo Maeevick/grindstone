@@ -1,17 +1,25 @@
 use chrono::NaiveDate;
+use grind_core::failure::Failure;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
 use grind_core::refusal::Refusal;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DraftRefusal {
     Unreadable(String),
     NotAVersionWeRead(String),
     NotAMeasurement { date: String, refusal: Refusal },
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ImportFailure {
+    NoBackupFound(String),
+    Draft(DraftRefusal),
+    Failed(Failure),
 }
 
 #[derive(Deserialize)]
