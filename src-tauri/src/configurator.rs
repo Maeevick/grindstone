@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use grind_sqlite::Sqlite;
 use tauri::Manager;
 
-use crate::commands::{self, Records};
+use crate::commands::{self, DraftBackup, Records};
 
 pub fn run() {
     tauri::Builder::default()
@@ -13,6 +13,9 @@ pub fn run() {
             let records =
                 Sqlite::open(&folder.join("grindstone.sqlite")).map_err(|broken| broken.0)?;
             app.manage(Records(Mutex::new(records)));
+            let documents = app.path().document_dir()?;
+            std::fs::create_dir_all(&documents)?;
+            app.manage(DraftBackup(documents.join("grindstone-draft.json")));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

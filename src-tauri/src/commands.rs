@@ -10,7 +10,7 @@ use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
 use grind_core::weigh_in::WeighIn;
-use grind_draft::ImportFailure;
+use grind_draft::{ImportFailure, gather_from_draft};
 use grind_sqlite::Sqlite;
 use tauri::State;
 
@@ -96,7 +96,11 @@ pub fn import_draft_gather(
     records: State<Records>,
     backup: State<DraftBackup>,
 ) -> Result<Imported, ImportFailure> {
-    Err(ImportFailure::NoBackupFound(String::new()))
+    let backup = std::fs::read_to_string(&backup.0)
+        .map_err(|_| ImportFailure::NoBackupFound(backup.0.display().to_string()))?;
+    let drafted = gather_from_draft(&backup).map_err(ImportFailure::Draft)?;
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_importing::import_gather(&*records, &drafted).map_err(ImportFailure::Failed)
 }
 
 #[cfg(test)]
