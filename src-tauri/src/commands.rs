@@ -324,4 +324,34 @@ mod tests {
             Ok(json!({ "measurements": 1, "profiles": 1, "goals": 1 }))
         );
     }
+
+    #[test]
+    fn importing_with_no_backup_pushed_says_where_it_was_expected() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(&screen, "import_draft_gather", json!({}));
+
+        assert_eq!(
+            answer,
+            Err(json!({ "NoBackupFound": "/nowhere/grindstone-draft.json" }))
+        );
+    }
+
+    #[test]
+    fn importing_a_backup_that_cannot_be_read_hands_the_screen_the_draft_refusal() {
+        let backup = std::env::temp_dir().join(format!(
+            "grind-tauri-unreadable-{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&backup, "{ not a backup").expect("a backup pushed");
+        let (_app, screen) = launched_with(backup.clone());
+
+        let answer = invoke(&screen, "import_draft_gather", json!({}));
+
+        std::fs::remove_file(&backup).expect("the test backup is removed");
+        assert!(
+            matches!(&answer, Err(refusal) if refusal["Draft"]["Unreadable"].is_string()),
+            "{answer:?}"
+        );
+    }
 }
