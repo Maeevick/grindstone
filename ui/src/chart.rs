@@ -25,9 +25,34 @@ pub fn chart_of(card: &GatherCard, _width: f64, _height: f64) -> Option<Chart> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDate;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn a_card(masses: &[(&str, f64)]) -> GatherCard {
+        GatherCard {
+            masses: masses.iter().map(|(date, kg)| (day(date), *kg)).collect(),
+            ..GatherCard::default()
+        }
+    }
 
     #[test]
     fn a_card_without_masses_draws_no_chart() {
         assert_eq!(chart_of(&GatherCard::default(), 360.0, 180.0), None);
+    }
+
+    #[test]
+    fn the_earliest_mass_sits_at_the_left_edge_and_the_latest_at_the_right() {
+        let chart = chart_of(
+            &a_card(&[("2026-10-01", 80.0), ("2026-10-11", 79.0)]),
+            360.0,
+            180.0,
+        );
+
+        let xs: Option<Vec<f64>> =
+            chart.map(|chart| chart.masses.iter().map(|(x, _)| *x).collect());
+        assert_eq!(xs, Some(vec![0.0, 360.0]));
     }
 }
