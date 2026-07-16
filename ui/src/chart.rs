@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use grind_core::for_reviewing_progress::GatherCard;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -10,7 +9,10 @@ pub struct Chart {
     pub lowest_kg: f64,
 }
 
-pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
+pub fn chart_of(card: &GatherCard, _width: f64, _height: f64) -> Option<Chart> {
+    if card.masses.is_empty() {
+        return None;
+    }
     Some(Chart {
         masses: Vec::new(),
         trend: String::new(),
@@ -23,10 +25,6 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn day(date: &str) -> NaiveDate {
-        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
-    }
 
     #[test]
     fn a_card_without_masses_draws_no_chart() {
