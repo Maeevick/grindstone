@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use grind_core::for_reviewing_progress::GatherCard;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -13,22 +14,30 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
     let first_day = card.masses.first()?.0;
     let last_day = card.masses.last()?.0;
     let days_drawn = (last_day - first_day).num_days() as f64;
-    let values = card.masses.iter().map(|(_, kg)| *kg).chain(card.target_kg);
+    let values = card
+        .masses
+        .iter()
+        .chain(&card.trend)
+        .map(|(_, kg)| *kg)
+        .chain(card.target_kg);
     let highest_kg = values.clone().fold(f64::MIN, f64::max) + 0.5;
     let lowest_kg = values.fold(f64::MAX, f64::min) - 0.5;
     let height_of = |kg: f64| (highest_kg - kg) / (highest_kg - lowest_kg) * height;
+    let point_of = |(day, kg): &(NaiveDate, f64)| {
+        (
+            (*day - first_day).num_days() as f64 / days_drawn * width,
+            height_of(*kg),
+        )
+    };
     Some(Chart {
-        masses: card
-            .masses
+        masses: card.masses.iter().map(point_of).collect(),
+        trend: card
+            .trend
             .iter()
-            .map(|(day, kg)| {
-                (
-                    (*day - first_day).num_days() as f64 / days_drawn * width,
-                    height_of(*kg),
-                )
-            })
-            .collect(),
-        trend: String::new(),
+            .map(point_of)
+            .map(|(x, y)| format!("{x:.1},{y:.1}"))
+            .collect::<Vec<_>>()
+            .join(" "),
         target: card.target_kg.map(height_of),
         highest_kg,
         lowest_kg,
@@ -38,7 +47,6 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
