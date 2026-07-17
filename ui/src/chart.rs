@@ -13,9 +13,10 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
     let first_day = card.masses.first()?.0;
     let last_day = card.masses.last()?.0;
     let days_drawn = (last_day - first_day).num_days() as f64;
-    let values = card.masses.iter().map(|(_, kg)| *kg);
+    let values = card.masses.iter().map(|(_, kg)| *kg).chain(card.target_kg);
     let highest_kg = values.clone().fold(f64::MIN, f64::max) + 0.5;
     let lowest_kg = values.fold(f64::MAX, f64::min) - 0.5;
+    let height_of = |kg: f64| (highest_kg - kg) / (highest_kg - lowest_kg) * height;
     Some(Chart {
         masses: card
             .masses
@@ -23,12 +24,12 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
             .map(|(day, kg)| {
                 (
                     (*day - first_day).num_days() as f64 / days_drawn * width,
-                    (highest_kg - kg) / (highest_kg - lowest_kg) * height,
+                    height_of(*kg),
                 )
             })
             .collect(),
         trend: String::new(),
-        target: None,
+        target: card.target_kg.map(height_of),
         highest_kg,
         lowest_kg,
     })
