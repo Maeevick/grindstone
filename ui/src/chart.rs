@@ -9,12 +9,21 @@ pub struct Chart {
     pub lowest_kg: f64,
 }
 
-pub fn chart_of(card: &GatherCard, _width: f64, _height: f64) -> Option<Chart> {
-    if card.masses.is_empty() {
-        return None;
-    }
+pub fn chart_of(card: &GatherCard, width: f64, _height: f64) -> Option<Chart> {
+    let first_day = card.masses.first()?.0;
+    let last_day = card.masses.last()?.0;
+    let days_drawn = (last_day - first_day).num_days() as f64;
     Some(Chart {
-        masses: Vec::new(),
+        masses: card
+            .masses
+            .iter()
+            .map(|(day, _)| {
+                (
+                    (*day - first_day).num_days() as f64 / days_drawn * width,
+                    0.0,
+                )
+            })
+            .collect(),
         trend: String::new(),
         target: None,
         highest_kg: 0.0,
