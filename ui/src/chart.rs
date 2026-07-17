@@ -99,4 +99,16 @@ mod tests {
                 .is_some_and(|y| (y - 10.5 / 11.0 * 180.0).abs() < 1e-9)
         );
     }
+
+    #[test]
+    fn the_trend_runs_as_one_line_through_its_points() {
+        let card = GatherCard {
+            trend: vec![(day("2026-10-01"), 79.8), (day("2026-10-11"), 79.2)],
+            ..a_card(&[("2026-10-01", 80.0), ("2026-10-11", 79.0)])
+        };
+
+        let chart = chart_of(&card, 360.0, 180.0).expect("a chart");
+
+        assert_eq!(chart.trend, "0.0,63.0 360.0,117.0");
+    }
 }
