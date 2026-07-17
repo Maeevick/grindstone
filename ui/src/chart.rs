@@ -81,4 +81,21 @@ mod tests {
         assert_eq!(ys, vec![45.0, 135.0]);
         assert_eq!((chart.highest_kg, chart.lowest_kg), (80.5, 78.5));
     }
+
+    #[test]
+    fn a_target_beyond_the_masses_widens_the_frame_to_show_its_line() {
+        let card = GatherCard {
+            target_kg: Some(70.0),
+            ..a_card(&[("2026-10-01", 80.0), ("2026-10-11", 79.0)])
+        };
+
+        let chart = chart_of(&card, 360.0, 180.0).expect("a chart");
+
+        assert_eq!(chart.lowest_kg, 69.5);
+        assert!(
+            chart
+                .target
+                .is_some_and(|y| (y - 10.5 / 11.0 * 180.0).abs() < 1e-9)
+        );
+    }
 }
