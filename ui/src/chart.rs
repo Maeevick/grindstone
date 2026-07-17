@@ -119,4 +119,11 @@ mod tests {
 
         assert_eq!(chart.trend, "0.0,63.0 360.0,117.0");
     }
+
+    #[test]
+    fn a_single_day_sits_in_the_middle() {
+        let chart = chart_of(&a_card(&[("2026-10-10", 80.0)]), 360.0, 180.0).expect("a chart");
+
+        assert_eq!(chart.masses, vec![(180.0, 90.0)]);
+    }
 }
