@@ -64,4 +64,18 @@ mod tests {
             chart.map(|chart| chart.masses.iter().map(|(x, _)| *x).collect());
         assert_eq!(xs, Some(vec![0.0, 360.0]));
     }
+
+    #[test]
+    fn the_masses_fill_the_height_with_half_a_kilo_to_spare_above_and_below() {
+        let chart = chart_of(
+            &a_card(&[("2026-10-01", 80.0), ("2026-10-11", 79.0)]),
+            360.0,
+            180.0,
+        )
+        .expect("a chart");
+
+        let ys: Vec<f64> = chart.masses.iter().map(|(_, y)| *y).collect();
+        assert_eq!(ys, vec![45.0, 135.0]);
+        assert_eq!((chart.highest_kg, chart.lowest_kg), (80.5, 78.5));
+    }
 }
