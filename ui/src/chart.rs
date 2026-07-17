@@ -9,25 +9,28 @@ pub struct Chart {
     pub lowest_kg: f64,
 }
 
-pub fn chart_of(card: &GatherCard, width: f64, _height: f64) -> Option<Chart> {
+pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
     let first_day = card.masses.first()?.0;
     let last_day = card.masses.last()?.0;
     let days_drawn = (last_day - first_day).num_days() as f64;
+    let values = card.masses.iter().map(|(_, kg)| *kg);
+    let highest_kg = values.clone().fold(f64::MIN, f64::max) + 0.5;
+    let lowest_kg = values.fold(f64::MAX, f64::min) - 0.5;
     Some(Chart {
         masses: card
             .masses
             .iter()
-            .map(|(day, _)| {
+            .map(|(day, kg)| {
                 (
                     (*day - first_day).num_days() as f64 / days_drawn * width,
-                    0.0,
+                    (highest_kg - kg) / (highest_kg - lowest_kg) * height,
                 )
             })
             .collect(),
         trend: String::new(),
         target: None,
-        highest_kg: 0.0,
-        lowest_kg: 0.0,
+        highest_kg,
+        lowest_kg,
     })
 }
 
