@@ -1,11 +1,14 @@
 #![cfg(target_arch = "wasm32")]
 
 use grind_ui::app::App;
+use grind_ui::screens::profile::ProfileScreen;
+use leptos::prelude::*;
+use leptos_router::components::Router;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_test::*;
-use web_sys::Element;
+use web_sys::{Element, Event, HtmlSelectElement};
 
 wasm_bindgen_test_configure!(run_in_browser);
 
@@ -83,4 +86,35 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
             .text_content()
             .is_some_and(|label| label.contains("draft"))
     );
+}
+
+#[wasm_bindgen_test]
+async fn the_hip_shows_in_the_profile_for_a_woman_only() {
+    answering(r#"{ "profile_on": null, "goals_on": null }"#);
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+    let hip_shown = |screen: &Element| {
+        screen
+            .query_selector("input[name=hip]")
+            .ok()
+            .flatten()
+            .is_some()
+    };
+    assert!(!hip_shown(&screen), "a man's profile asks for no hip");
+
+    let gender: HtmlSelectElement = found(&screen, "select[name=gender]");
+    gender.set_value("Female");
+    gender
+        .dispatch_event(&Event::new("change").expect("a change event"))
+        .expect("the gender changes");
+    settled().await;
+
+    assert!(hip_shown(&screen), "a woman's profile asks for her hip");
 }
