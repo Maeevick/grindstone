@@ -1,5 +1,6 @@
 pub fn figure_typed(text: &str) -> Option<f64> {
-    Some(0.0)
+    let typed = text.trim();
+    (!typed.is_empty()).then(|| typed.parse().unwrap_or(f64::NAN))
 }
 
 #[cfg(test)]
