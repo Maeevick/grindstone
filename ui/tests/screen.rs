@@ -11,9 +11,13 @@ wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen(inline_js = "
 export function answer_commands_with(answers) {
-    window.__TAURI__ = { core: { invoke: async (command) => {
+    window.__TAURI__ = { core: { invoke: async (command, args) => {
         if (!(command in answers)) { throw { Broken: `no answer for ${command}` }; }
-        return answers[command];
+        const answer = answers[command];
+        if (answer !== null && typeof answer === 'object' && '__by' in answer) {
+            return answer[args[answer.__by]];
+        }
+        return answer;
     } } };
 }
 export function a_moment() {
@@ -96,4 +100,30 @@ async fn saving_a_weigh_in_lists_it_and_empties_the_mass_for_the_next_one() {
         .unwrap_or_default();
     assert!(rows.contains("2026-10-10") && rows.contains("72.4"));
     assert_eq!(mass.value(), "");
+}
+
+#[wasm_bindgen_test]
+async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_import() {
+    answering(r#"{ "profile_on": null }"#);
+    let screen = screen();
+
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    settled().await;
+
+    let welcome = screen.text_content().unwrap_or_default();
+    assert!(welcome.contains("Greetings, rusty one"), "{welcome}");
+    assert!(
+        screen
+            .query_selector("a[href='/profile']")
+            .ok()
+            .flatten()
+            .is_some()
+    );
+    assert!(
+        screen
+            .query_selector("a[href='/settings']")
+            .ok()
+            .flatten()
+            .is_some()
+    );
 }
