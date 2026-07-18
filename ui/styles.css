@@ -144,3 +144,47 @@ td {
 	font-style: italic;
 	font-size: 0.85rem;
 }
+
+.wrap {
+	padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+.tabs {
+	position: fixed;
+	inset: auto 0 0 0;
+	display: flex;
+	justify-content: space-around;
+	padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+	background: var(--card);
+	border-top: 1px solid var(--line);
+}
+
+.tabs a {
+	color: var(--mut);
+	text-decoration: none;
+	font: 600 0.78rem var(--mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 8px 10px;
+}
+
+.tabs a[aria-current='page'] {
+	color: var(--acc);
+}
+
+a.cta {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-decoration: none;
+}
+
+.cta.ghost {
+	background: transparent;
+	color: var(--acc);
+	border: 1px solid var(--acc);
+}
+
+.welcome p {
+	margin: 0 0 4px;
+}

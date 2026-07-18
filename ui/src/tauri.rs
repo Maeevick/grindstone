@@ -109,20 +109,3 @@ pub async fn import_draft_gather() -> Result<Imported, ImportFailure> {
     })
     .await
 }
-
-#[derive(Serialize)]
-struct Weighing<'a> {
-    date: &'a str,
-    kg: f64,
-}
-
-pub async fn recent_weigh_ins() -> Result<Vec<grind_core::weigh_in::WeighIn>, Failure> {
-    call("recent_weigh_ins", Nothing {}, broken).await
-}
-
-pub async fn log_weigh_in(
-    date: &str,
-    kg: f64,
-) -> Result<Vec<grind_core::weigh_in::WeighIn>, Failure> {
-    call("log_weigh_in", Weighing { date, kg }, broken).await
-}

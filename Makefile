@@ -5,7 +5,7 @@ SHELL := bash
 .PHONY: help dev test check test-ui mutants android mac
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
-WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri))\.rs
+WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri|screens)|ui/src/screens/[a-z_]+)\.rs
 
 help: ## list the targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
