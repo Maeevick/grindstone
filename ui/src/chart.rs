@@ -23,12 +23,14 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
     let highest_kg = values.clone().fold(f64::MIN, f64::max) + 0.5;
     let lowest_kg = values.fold(f64::MAX, f64::min) - 0.5;
     let height_of = |kg: f64| (highest_kg - kg) / (highest_kg - lowest_kg) * height;
-    let point_of = |(day, kg): &(NaiveDate, f64)| {
-        (
-            (*day - first_day).num_days() as f64 / days_drawn * width,
-            height_of(*kg),
-        )
+    let along_of = |day: NaiveDate| {
+        if days_drawn == 0.0 {
+            width / 2.0
+        } else {
+            (day - first_day).num_days() as f64 / days_drawn * width
+        }
     };
+    let point_of = |(day, kg): &(NaiveDate, f64)| (along_of(*day), height_of(*kg));
     Some(Chart {
         masses: card.masses.iter().map(point_of).collect(),
         trend: card
