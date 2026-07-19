@@ -8,7 +8,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_test::*;
-use web_sys::{Element, Event, HtmlSelectElement};
+use web_sys::{Element, Event, HtmlFormElement, HtmlInputElement, HtmlSelectElement};
 
 wasm_bindgen_test_configure!(run_in_browser);
 
@@ -117,4 +117,40 @@ async fn the_hip_shows_in_the_profile_for_a_woman_only() {
     settled().await;
 
     assert!(hip_shown(&screen), "a woman's profile asks for her hip");
+}
+
+fn typed_into(screen: &Element, name: &str, text: &str) {
+    let field: HtmlInputElement = found(screen, &format!("input[name={name}]"));
+    field.set_value(text);
+    field
+        .dispatch_event(&Event::new("input").expect("an input event"))
+        .expect("the field is typed into");
+}
+
+#[wasm_bindgen_test]
+async fn a_saved_profile_says_from_which_day_it_is_kept() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null,
+             "set_profile": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "birthday", "1985-04-12");
+    typed_into(&screen, "height", "180");
+    typed_into(&screen, "neck", "38,5");
+    found::<HtmlFormElement>(&screen, "form.profile")
+        .request_submit()
+        .expect("the profile is saved");
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("kept from"), "{said}");
 }
