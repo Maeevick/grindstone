@@ -1,4 +1,4 @@
-use grind_core::for_setting_up_the_profile::ProfileForm;
+use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm};
 use grind_core::gender::Gender;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -8,6 +8,44 @@ use crate::screens::fields::{DateField, FigureField};
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figure_typed;
+
+#[component]
+fn GoalsCard() -> impl IntoView {
+    let from = RwSignal::new(today());
+    let target_mass = RwSignal::new(String::new());
+    let target_fat = RwSignal::new(String::new());
+    let said = RwSignal::new(None::<String>);
+    let save = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let form = GoalsForm {
+            from: from.get_untracked(),
+            body_mass_kg: figure_typed(&target_mass.get_untracked()).unwrap_or(f64::NAN),
+            fat_percentage: figure_typed(&target_fat.get_untracked()).unwrap_or(f64::NAN),
+        };
+        spawn_local(async move {
+            said.set(Some(match tauri::set_goals(&form).await {
+                Ok(_) => lines::goals_kept(&form.from),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card">
+            <h2>"Where the grindstone is heading"</h2>
+            <form class="goals" on:submit=save>
+                <div class="row">
+                    <DateField label="From" name="goals_from" value=from />
+                    <FigureField label="Target mass (kg)" name="target_mass" value=target_mass />
+                    <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
+                </div>
+                <button class="cta" type="submit">
+                    "Keep these goals"
+                </button>
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
+        </section>
+    }
+}
 
 #[component]
 pub fn ProfileScreen() -> impl IntoView {
@@ -79,5 +117,6 @@ pub fn ProfileScreen() -> impl IntoView {
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
+        <GoalsCard />
     }
 }

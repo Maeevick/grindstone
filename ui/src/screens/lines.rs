@@ -13,6 +13,10 @@ pub fn profile_kept(from: &str) -> String {
     format!("Filed. [Grimble licks a finger and turns a page.] This profile is kept from {from}.")
 }
 
+pub fn goals_kept(from: &str) -> String {
+    format!("Noted in the margin, in very small letters: these goals are kept from {from}.")
+}
+
 pub fn failure(failure: &Failure) -> String {
     match failure {
         Failure::Refused(Refusal::NotADate) => {
