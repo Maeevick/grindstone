@@ -21,6 +21,10 @@ pub fn goals(body_mass_kg: f64, fat_percentage: f64) -> Result<Goals, Refusal> {
     })
 }
 
+pub fn fat_percentage(goals: &Goals) -> f64 {
+    0.0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -48,5 +52,12 @@ mod tests {
         for percent in [0.0, 100.0, -5.0, 150.0, f64::NAN] {
             assert_eq!(goals(70.0, percent), Err(Refusal::NotARatio), "{percent}");
         }
+    }
+
+    #[test]
+    fn the_fat_target_reads_back_in_the_percent_it_was_typed_in() {
+        let kept = goals(70.0, 12.0).expect("goals kept");
+
+        assert_eq!(fat_percentage(&kept), 12.0);
     }
 }
