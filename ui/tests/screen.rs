@@ -154,3 +154,32 @@ async fn a_saved_profile_says_from_which_day_it_is_kept() {
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("kept from"), "{said}");
 }
+
+#[wasm_bindgen_test]
+async fn saved_goals_say_from_which_day_they_are_kept() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "set_goals": { "body_mass_kg": 70.0, "fat_ratio": 0.1 } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "target_mass", "70");
+    typed_into(&screen, "target_fat", "10");
+    found::<HtmlFormElement>(&screen, "form.goals")
+        .request_submit()
+        .expect("the goals are saved");
+    settled().await;
+
+    let said: Element = found(&screen, "form.goals .said");
+    assert!(
+        said.text_content()
+            .is_some_and(|line| line.contains("kept from"))
+    );
+}
