@@ -11,4 +11,10 @@ mod tests {
     fn nothing_typed_is_no_figure() {
         assert_eq!(figure_typed("  "), None);
     }
+
+    #[test]
+    fn a_figure_typed_with_a_decimal_comma_reads_as_with_a_point() {
+        assert_eq!(figure_typed(" 72,4 "), Some(72.4));
+        assert_eq!(figure_typed("72.4"), Some(72.4));
+    }
 }
