@@ -19,7 +19,7 @@ mod tests {
     }
 
     #[test]
-    fn something_typed_that_is_no_number_reaches_the_core_as_none_for_it_to_refuse() {
+    fn something_typed_that_is_no_number_reaches_the_core_as_not_a_number_for_it_to_refuse() {
         assert!(figure_typed("seventy").is_some_and(f64::is_nan));
     }
 }
