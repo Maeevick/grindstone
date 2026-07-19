@@ -1,3 +1,4 @@
+pub mod fields;
 pub mod home;
 pub mod lines;
 pub mod profile;

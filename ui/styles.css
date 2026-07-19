@@ -199,3 +199,25 @@ select {
 	color: var(--txt);
 	font: 1rem var(--mono);
 }
+
+.screen-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 12px;
+}
+
+.screen-top h2 {
+	margin: 0;
+}
+
+.gear {
+	color: var(--mut);
+	text-decoration: none;
+	font-size: 0.8rem;
+}
+
+.said {
+	color: var(--ok);
+	font-size: 0.85rem;
+}

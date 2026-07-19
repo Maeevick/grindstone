@@ -9,6 +9,10 @@ pub const LOADING: &str = "Grimble is fetching the ledger…";
 
 pub const LOST: &str = "Lost in the tunnels under the library. Try another tab.";
 
+pub fn profile_kept(from: &str) -> String {
+    format!("Filed. [Grimble licks a finger and turns a page.] This profile is kept from {from}.")
+}
+
 pub fn failure(failure: &Failure) -> String {
     match failure {
         Failure::Refused(Refusal::NotADate) => {

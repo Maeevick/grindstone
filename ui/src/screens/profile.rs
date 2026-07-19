@@ -1,9 +1,24 @@
+use grind_core::for_setting_up_the_profile::ProfileForm;
 use grind_core::gender::Gender;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
+use leptos_router::components::A;
+
+use crate::screens::fields::{DateField, FigureField};
+use crate::screens::{lines, today};
+use crate::tauri;
+use crate::typed::figure_typed;
 
 #[component]
 pub fn ProfileScreen() -> impl IntoView {
+    let from = RwSignal::new(today());
+    let birthday = RwSignal::new(String::new());
     let gender = RwSignal::new(Gender::Male);
+    let height = RwSignal::new(String::new());
+    let neck = RwSignal::new(String::new());
+    let hip = RwSignal::new(String::new());
+    let said = RwSignal::new(None::<String>);
+
     let chosen = move |event: leptos::ev::Event| {
         gender.set(if event_target_value(&event) == "Female" {
             Gender::Female
@@ -11,10 +26,38 @@ pub fn ProfileScreen() -> impl IntoView {
             Gender::Male
         });
     };
+    let save = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let form = ProfileForm {
+            from: from.get_untracked(),
+            birthday: birthday.get_untracked(),
+            gender: gender.get_untracked(),
+            height_cm: figure_typed(&height.get_untracked()).unwrap_or(f64::NAN),
+            neck_cm: figure_typed(&neck.get_untracked()).unwrap_or(f64::NAN),
+            hip_cm: figure_typed(&hip.get_untracked()),
+        };
+        spawn_local(async move {
+            said.set(Some(match tauri::set_profile(&form).await {
+                Ok(_) => lines::profile_kept(&form.from),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+
     view! {
-        <section class="card">
+        <header class="screen-top">
             <h2>"Profile"</h2>
-            <form>
+            <A href="/settings" attr:class="gear">
+                "⚙ Settings"
+            </A>
+        </header>
+        <section class="card">
+            <h2>"The body behind the numbers"</h2>
+            <form class="profile" on:submit=save>
+                <div class="row">
+                    <DateField label="From" name="from" value=from />
+                    <DateField label="Birthday" name="birthday" value=birthday />
+                </div>
                 <div class="row">
                     <label class="field">
                         "Gender" <select name="gender" on:change=chosen>
@@ -22,12 +65,18 @@ pub fn ProfileScreen() -> impl IntoView {
                             <option value="Female">"Female"</option>
                         </select>
                     </label>
+                    <FigureField label="Height (cm)" name="height" value=height />
+                </div>
+                <div class="row">
+                    <FigureField label="Neck (cm)" name="neck" value=neck />
                     <Show when=move || gender.get() == Gender::Female>
-                        <label class="field">
-                            "Hip (cm)" <input name="hip" inputmode="decimal" autocomplete="off" />
-                        </label>
+                        <FigureField label="Hip (cm)" name="hip" value=hip />
                     </Show>
                 </div>
+                <button class="cta" type="submit">
+                    "Keep this profile"
+                </button>
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
     }
