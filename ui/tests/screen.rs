@@ -183,3 +183,45 @@ async fn saved_goals_say_from_which_day_they_are_kept() {
             .is_some_and(|line| line.contains("kept from"))
     );
 }
+
+fn value_of(screen: &Element, name: &str) -> String {
+    found::<HtmlInputElement>(screen, &format!("input[name={name}]")).value()
+}
+
+#[wasm_bindgen_test]
+async fn the_profile_and_goals_in_force_today_fill_their_forms() {
+    answering(
+        r#"{ "profile_on": { "birthday": "1990-06-01", "gender": "Female", "height_cm": 165.0, "neck_cm": 33.0, "hip_cm": 98.0 },
+             "goals_on": { "body_mass_kg": 60.0, "fat_ratio": 0.22 } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(value_of(&screen, "birthday"), "1990-06-01");
+    assert_eq!(
+        found::<HtmlSelectElement>(&screen, "select[name=gender]").value(),
+        "Female"
+    );
+    assert_eq!(
+        [
+            value_of(&screen, "height"),
+            value_of(&screen, "neck"),
+            value_of(&screen, "hip")
+        ],
+        ["165", "33", "98"]
+    );
+    assert_eq!(
+        [
+            value_of(&screen, "target_mass"),
+            value_of(&screen, "target_fat")
+        ],
+        ["60", "22"]
+    );
+}
