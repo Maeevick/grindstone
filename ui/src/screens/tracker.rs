@@ -13,7 +13,17 @@ fn shown_or_blank(figure: Option<Figure>) -> String {
 }
 
 #[component]
-fn DayRow(day: Day) -> impl IntoView {
+fn DayRow(day: Day, days: RwSignal<Vec<Day>>, said: RwSignal<Option<String>>) -> impl IntoView {
+    let date = day.day.to_string();
+    let remove = move |_| {
+        let date = date.clone();
+        spawn_local(async move {
+            match tauri::remove_measurement(&date).await {
+                Ok(recent) => days.set(recent),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
     view! {
         <tr>
             <td>{day.day.to_string()}</td>
@@ -21,6 +31,11 @@ fn DayRow(day: Day) -> impl IntoView {
             <td>{shown_or_blank(day.waist_cm.map(Figure::Length))}</td>
             <td>{shown_or_blank(day.composition.map(|split| Figure::Ratio(split.fat_ratio)))}</td>
             <td>{shown_or_blank(day.composition.map(|split| Figure::Mass(split.lean_mass_kg)))}</td>
+            <td>
+                <button class="remove" type="button" on:click=remove aria-label="Remove this day">
+                    "×"
+                </button>
+            </td>
         </tr>
     }
 }
@@ -80,13 +95,14 @@ pub fn Tracker() -> impl IntoView {
                         <th>"Waist"</th>
                         <th>"Fat"</th>
                         <th>"Lean"</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <For
                         each=move || days.get()
                         key=|day| format!("{day:?}")
-                        children=|day| view! { <DayRow day=day /> }
+                        children=move |day| view! { <DayRow day=day days=days said=said /> }
                     />
                 </tbody>
             </table>

@@ -221,3 +221,11 @@ select {
 	color: var(--ok);
 	font-size: 0.85rem;
 }
+
+.remove {
+	background: none;
+	border: 0;
+	color: var(--mut);
+	font-size: 1.1rem;
+	padding: 0 6px;
+}
