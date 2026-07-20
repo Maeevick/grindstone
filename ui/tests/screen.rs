@@ -2,6 +2,7 @@
 
 use grind_ui::app::App;
 use grind_ui::screens::profile::ProfileScreen;
+use grind_ui::screens::tracker::Tracker;
 use leptos::prelude::*;
 use leptos_router::components::Router;
 use wasm_bindgen::JsCast;
@@ -224,4 +225,43 @@ async fn the_profile_and_goals_in_force_today_fill_their_forms() {
         ],
         ["60", "22"]
     );
+}
+
+const A_MEASURED_DAY: &str = r#"[{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "age": 41,
+    "composition": { "fat_ratio": 0.1162, "fat_mass_kg": 9.3, "lean_mass_kg": 70.7 } }]"#;
+
+#[wasm_bindgen_test]
+async fn after_logging_a_measurement_the_day_stays_and_the_form_is_ready_for_the_next() {
+    answering(&format!(
+        r#"{{ "recent_days": [], "log_measurement": {A_MEASURED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Tracker />
+            </Router>
+        }
+    });
+    settled().await;
+    let chosen_day = value_of(&screen, "day");
+
+    typed_into(&screen, "mass", "80");
+    typed_into(&screen, "waist", "80");
+    found::<HtmlFormElement>(&screen, "form.measurement")
+        .request_submit()
+        .expect("the measurement is logged");
+    settled().await;
+
+    let listed: Element = found(&screen, "tbody");
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|days| days.contains("80.0 kg") && days.contains("11.6%"))
+    );
+    assert_eq!(
+        [value_of(&screen, "mass"), value_of(&screen, "waist")],
+        ["", ""]
+    );
+    assert_eq!(value_of(&screen, "day"), chosen_day);
 }
