@@ -22,7 +22,7 @@ pub fn goals(body_mass_kg: f64, fat_percentage: f64) -> Result<Goals, Refusal> {
 }
 
 pub fn fat_percentage(goals: &Goals) -> f64 {
-    0.0
+    (goals.fat_ratio * 1000.0).round() / 10.0
 }
 
 #[cfg(test)]
