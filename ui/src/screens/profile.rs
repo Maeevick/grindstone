@@ -1,5 +1,6 @@
 use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm};
 use grind_core::gender::Gender;
+use grind_core::goals::fat_percentage;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
@@ -15,6 +16,12 @@ fn GoalsCard() -> impl IntoView {
     let target_mass = RwSignal::new(String::new());
     let target_fat = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    spawn_local(async move {
+        if let Ok(Some(goals)) = tauri::goals_on(&today()).await {
+            target_mass.set(goals.body_mass_kg.to_string());
+            target_fat.set(fat_percentage(&goals).to_string());
+        }
+    });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let form = GoalsForm {
@@ -56,6 +63,15 @@ pub fn ProfileScreen() -> impl IntoView {
     let neck = RwSignal::new(String::new());
     let hip = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    spawn_local(async move {
+        if let Ok(Some(profile)) = tauri::profile_on(&today()).await {
+            birthday.set(profile.birthday.to_string());
+            gender.set(profile.gender);
+            height.set(profile.height_cm.to_string());
+            neck.set(profile.neck_cm.to_string());
+            hip.set(profile.hip_cm.map(|cm| cm.to_string()).unwrap_or_default());
+        }
+    });
 
     let chosen = move |event: leptos::ev::Event| {
         gender.set(if event_target_value(&event) == "Female" {
@@ -98,7 +114,13 @@ pub fn ProfileScreen() -> impl IntoView {
                 </div>
                 <div class="row">
                     <label class="field">
-                        "Gender" <select name="gender" on:change=chosen>
+                        "Gender" <select
+                            name="gender"
+                            prop:value=move || {
+                                if gender.get() == Gender::Female { "Female" } else { "Male" }
+                            }
+                            on:change=chosen
+                        >
                             <option value="Male">"Male"</option>
                             <option value="Female">"Female"</option>
                         </select>
