@@ -265,3 +265,25 @@ async fn after_logging_a_measurement_the_day_stays_and_the_form_is_ready_for_the
     );
     assert_eq!(value_of(&screen, "day"), chosen_day);
 }
+
+#[wasm_bindgen_test]
+async fn removing_a_day_takes_it_off_the_list() {
+    answering(&format!(
+        r#"{{ "recent_days": {A_MEASURED_DAY}, "remove_measurement": [] }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Tracker />
+            </Router>
+        }
+    });
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "button.remove").click();
+    settled().await;
+
+    let listed: Element = found(&screen, "tbody");
+    assert_eq!(listed.text_content().unwrap_or_default(), "");
+}
