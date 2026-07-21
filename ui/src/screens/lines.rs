@@ -1,7 +1,9 @@
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown};
+use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::refusal::Refusal;
+use grind_draft::{DraftRefusal, ImportFailure};
 
 pub const WELCOME: &str = "Greetings, rusty one. I am Grimble, archivist of the Great Library of Cogsburg. \
     From today I file your every gram. [He adjusts his glasses.] Shall we begin with your profile, \
@@ -51,6 +53,50 @@ pub fn gather_figures(card: &GatherCard) -> Vec<String> {
             },
         );
     [rate, changes, target].into_iter().flatten().collect()
+}
+
+pub const IMPORT_HOW: &str = "Push the draft's latest backup from the Mac with make import-draft, \
+    the phone plugged in, then import it here. It replaces what Gather holds, so run it again with a newer backup \
+    until you switch for good.";
+
+fn counted(count: usize, one: &str, many: &str) -> String {
+    format!("{count} {}", if count == 1 { one } else { many })
+}
+
+pub fn imported(imported: &Imported) -> String {
+    format!(
+        "Filed: {}, {} and {}. [Grimble dusts off the old records.]",
+        counted(imported.measurements, "day", "days"),
+        counted(imported.profiles, "profile", "profiles"),
+        counted(imported.goals, "goal", "goals")
+    )
+}
+
+pub fn import_failure(refused: &ImportFailure) -> String {
+    match refused {
+        ImportFailure::NoBackupFound(where_expected) => format!(
+            "No backup in the tunnels. Push one with make import-draft first; I looked in {where_expected}."
+        ),
+        ImportFailure::Draft(DraftRefusal::Unreadable(where_it_stopped)) => {
+            format!(
+                "This backup reads like Trix's notes: it stops making sense at {where_it_stopped}."
+            )
+        }
+        ImportFailure::Draft(DraftRefusal::NotAVersionWeRead(version)) => {
+            format!("A backup of version {version}: I only read the draft's 0.4.0.")
+        }
+        ImportFailure::Draft(DraftRefusal::NotAMeasurement { date, refusal }) => {
+            format!(
+                "The day {date} would not be gathered: {}",
+                failure_of_refusal(*refusal)
+            )
+        }
+        ImportFailure::Failed(failed) => failure(failed),
+    }
+}
+
+fn failure_of_refusal(refusal: grind_core::refusal::Refusal) -> String {
+    failure(&Failure::Refused(refusal))
 }
 
 pub fn failure(failure: &Failure) -> String {
