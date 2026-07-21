@@ -2,6 +2,7 @@ pub mod fields;
 pub mod home;
 pub mod lines;
 pub mod profile;
+pub mod settings;
 pub mod tracker;
 
 pub fn today() -> String {

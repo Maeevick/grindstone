@@ -2,6 +2,7 @@
 
 use grind_ui::app::App;
 use grind_ui::screens::profile::ProfileScreen;
+use grind_ui::screens::settings::Settings;
 use grind_ui::screens::tracker::Tracker;
 use leptos::prelude::*;
 use leptos_router::components::Router;
@@ -313,4 +314,24 @@ async fn the_window_pills_redraw_the_card_over_the_days_they_name() {
     settled().await;
 
     assert_eq!(masses_drawn(&screen), 3);
+}
+
+#[wasm_bindgen_test]
+async fn importing_the_draft_tells_what_it_brought() {
+    answering(r#"{ "import_draft_gather": { "measurements": 215, "profiles": 5, "goals": 1 } }"#);
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Settings />
+            </Router>
+        }
+    });
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "button.import").click();
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("215 days, 5 profiles and 1 goal"), "{said}");
 }
