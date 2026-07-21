@@ -229,3 +229,51 @@ select {
 	font-size: 1.1rem;
 	padding: 0 6px;
 }
+
+.pills {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+.pill {
+	flex: 1;
+	height: 34px;
+	background: var(--inset);
+	border: 1px solid var(--line);
+	border-radius: 17px;
+	color: var(--mut);
+	font: 0.78rem var(--mono);
+}
+
+.pill.chosen {
+	border-color: var(--acc);
+	color: var(--acc);
+}
+
+.chart {
+	width: 100%;
+	height: 180px;
+	overflow: visible;
+}
+
+.chart .mass {
+	fill: var(--txt);
+}
+
+.chart .trend {
+	fill: none;
+	stroke: var(--acc);
+	stroke-width: 2;
+}
+
+.chart .target {
+	stroke: var(--ok);
+	stroke-dasharray: 4 4;
+}
+
+.figures {
+	margin: 8px 0 0;
+	padding-left: 18px;
+	font-size: 0.86rem;
+}

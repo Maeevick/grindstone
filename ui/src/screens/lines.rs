@@ -1,4 +1,6 @@
 use grind_core::failure::Failure;
+use grind_core::figures::{Figure, shown};
+use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::refusal::Refusal;
 
 pub const WELCOME: &str = "Greetings, rusty one. I am Grimble, archivist of the Great Library of Cogsburg. \
@@ -15,6 +17,40 @@ pub fn profile_kept(from: &str) -> String {
 
 pub fn goals_kept(from: &str) -> String {
     format!("Noted in the margin, in very small letters: these goals are kept from {from}.")
+}
+
+pub fn gather_figures(card: &GatherCard) -> Vec<String> {
+    let rate = card.progress.map(|progress| {
+        format!(
+            "{} a week ({}), by my meticulous observations.",
+            shown(Figure::Mass(progress.per_week)),
+            shown(Figure::Ratio(progress.share_per_week))
+        )
+    });
+    let changes = card
+        .fat_change_kg
+        .zip(card.lean_change_kg)
+        .map(|(fat, lean)| {
+            format!(
+                "Fat {}, lean {} over the window.",
+                shown(Figure::Mass(fat)),
+                shown(Figure::Mass(lean))
+            )
+        });
+    let target =
+        card.target_kg.map(
+            |target| match card.progress.and_then(|progress| progress.reached_on) {
+                Some(day) => format!(
+                    "{} reached around {day}, give or take a goblin.",
+                    shown(Figure::Mass(target))
+                ),
+                None => format!(
+                    "{}: the trend is not heading there yet.",
+                    shown(Figure::Mass(target))
+                ),
+            },
+        );
+    [rate, changes, target].into_iter().flatten().collect()
 }
 
 pub fn failure(failure: &Failure) -> String {
