@@ -5,6 +5,7 @@ use leptos_router::path;
 use crate::screens::home::Home;
 use crate::screens::lines;
 use crate::screens::profile::ProfileScreen;
+use crate::screens::settings::Settings;
 use crate::screens::tracker::Tracker;
 
 #[component]
@@ -20,6 +21,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/tracker") view=Tracker />
                     <Route path=path!("/profile") view=ProfileScreen />
+                    <Route path=path!("/settings") view=Settings />
                 </Routes>
             </main>
             <nav class="tabs">
