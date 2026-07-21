@@ -3,13 +3,11 @@ use std::path::Path;
 use chrono::NaiveDate;
 use grind_core::failure::Broken;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
-use grind_core::for_storing_weigh_ins::ForStoringWeighIns;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
-use grind_core::weigh_in::WeighIn;
 use rusqlite::{Connection, params};
 
 const MIGRATIONS: &[&str] = &[
@@ -72,35 +70,6 @@ fn migrate(connection: &Connection) -> rusqlite::Result<()> {
         }
     }
     Ok(())
-}
-
-impl ForStoringWeighIns for Sqlite {
-    fn save(&self, weigh_in: &WeighIn) -> Result<(), Broken> {
-        self.0
-            .execute(
-                "insert into weigh_ins (date, kg) values (?1, ?2)
-                 on conflict (date) do update set kg = excluded.kg",
-                params![weigh_in.date, weigh_in.kg],
-            )
-            .map(|_| ())
-            .map_err(broken)
-    }
-
-    fn recent(&self, count: u32) -> Result<Vec<WeighIn>, Broken> {
-        self.0
-            .prepare("select date, kg from weigh_ins order by date desc limit ?1")
-            .and_then(|mut statement| {
-                statement
-                    .query_map([count], |row| {
-                        Ok(WeighIn {
-                            date: row.get(0)?,
-                            kg: row.get(1)?,
-                        })
-                    })?
-                    .collect()
-            })
-            .map_err(broken)
-    }
 }
 
 impl ForStoringGatherRecords for Sqlite {
@@ -247,40 +216,32 @@ impl ForStoringGatherRecords for Sqlite {
 mod tests {
     use super::*;
     use grind_core::testing::honouring_for_storing_gather_records;
-    use grind_core::testing::honouring_for_storing_weigh_ins;
-    use grind_core::weigh_in::weigh_in;
 
     fn database() -> Sqlite {
         Sqlite::in_memory().expect("an in-memory database opens and migrates")
     }
 
     #[test]
-    fn recent_weigh_ins_come_newest_first_and_no_more_than_asked() {
-        honouring_for_storing_weigh_ins::recent_weigh_ins_come_newest_first_and_no_more_than_asked(
-            &database(),
-        );
-    }
-
-    #[test]
-    fn a_day_weighed_twice_keeps_its_second_weigh_in() {
-        honouring_for_storing_weigh_ins::a_day_weighed_twice_keeps_its_second_weigh_in(&database());
-    }
-
-    #[test]
-    fn a_database_opened_again_keeps_its_weigh_ins_and_migrates_nothing_twice() {
+    fn a_database_opened_again_keeps_its_measurements_and_migrates_nothing_twice() {
         let file = std::env::temp_dir().join(format!(
             "grind-sqlite-opened-again-{}.sqlite",
             std::process::id()
         ));
-        let weighed = weigh_in("2026-10-03", 72.1).expect("a valid weigh-in");
+        let measured = Measurement {
+            day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+            body_mass_kg: 80.0,
+            waist_cm: Some(84.0),
+        };
         Sqlite::open(&file)
-            .and_then(|database| database.save(&weighed))
-            .expect("a first opening saves a weigh-in");
+            .and_then(|database| database.save_measurement(&measured))
+            .expect("a first opening saves a measurement");
 
-        let reopened = Sqlite::open(&file).and_then(|database| database.recent(7));
+        let reopened = Sqlite::open(&file)
+            .and_then(|database| database.gather_records())
+            .map(|gathered| gathered.measurements);
 
         std::fs::remove_file(&file).expect("the test database is removed");
-        assert_eq!(reopened, Ok(vec![weighed]));
+        assert_eq!(reopened, Ok(vec![measured]));
     }
 
     #[test]
