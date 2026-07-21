@@ -287,3 +287,30 @@ async fn removing_a_day_takes_it_off_the_list() {
     let listed: Element = found(&screen, "tbody");
     assert_eq!(listed.text_content().unwrap_or_default(), "");
 }
+
+#[wasm_bindgen_test]
+async fn the_window_pills_redraw_the_card_over_the_days_they_name() {
+    answering(
+        r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
+             "gather_card": { "__by": "window",
+                 "Days30": { "masses": [["2026-09-20", 80.4], ["2026-10-10", 80.0]], "trend": [], "target_kg": 70.0,
+                             "progress": null, "fat_change_kg": null, "lean_change_kg": null },
+                 "Days90": { "masses": [["2026-08-01", 82.0], ["2026-09-20", 80.4], ["2026-10-10", 80.0]], "trend": [],
+                             "target_kg": 70.0, "progress": null, "fat_change_kg": null, "lean_change_kg": null } } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    settled().await;
+    let masses_drawn = |screen: &Element| {
+        screen
+            .query_selector_all("svg circle")
+            .map(|drawn| drawn.length())
+            .unwrap_or_default()
+    };
+    assert_eq!(masses_drawn(&screen), 2);
+
+    found::<web_sys::HtmlElement>(&screen, "button.window-Days90").click();
+    settled().await;
+
+    assert_eq!(masses_drawn(&screen), 3);
+}
