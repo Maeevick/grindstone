@@ -19,8 +19,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::recent_weigh_ins,
-            commands::log_weigh_in,
             commands::log_measurement,
             commands::recent_days,
             commands::remove_measurement,

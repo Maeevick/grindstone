@@ -9,7 +9,6 @@ use grind_core::for_tracking;
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
-use grind_core::weigh_in::WeighIn;
 use grind_draft::{ImportFailure, gather_from_draft};
 use grind_sqlite::Sqlite;
 use tauri::State;
@@ -17,22 +16,6 @@ use tauri::State;
 pub struct Records(pub Mutex<Sqlite>);
 
 pub struct DraftBackup(pub PathBuf);
-
-#[tauri::command]
-pub fn recent_weigh_ins(records: State<Records>) -> Result<Vec<WeighIn>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_tracking::recent_weigh_ins(&*records)
-}
-
-#[tauri::command]
-pub fn log_weigh_in(
-    records: State<Records>,
-    date: String,
-    kg: f64,
-) -> Result<Vec<WeighIn>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_tracking::log_weigh_in(&*records, &date, kg)
-}
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_measurement(
@@ -120,8 +103,6 @@ mod tests {
             .manage(Records(Mutex::new(records)))
             .manage(DraftBackup(backup))
             .invoke_handler(tauri::generate_handler![
-                recent_weigh_ins,
-                log_weigh_in,
                 log_measurement,
                 recent_days,
                 remove_measurement,
@@ -165,36 +146,13 @@ mod tests {
     }
 
     #[test]
-    fn a_first_launch_answers_no_weigh_in() {
-        let (_app, screen) = launched();
-
-        assert_eq!(
-            invoke(&screen, "recent_weigh_ins", json!({})),
-            Ok(json!([]))
-        );
-    }
-
-    #[test]
-    fn logging_a_weigh_in_answers_the_recent_ones_as_the_screen_reads_them() {
-        let (_app, screen) = launched();
-
-        let answer = invoke(
-            &screen,
-            "log_weigh_in",
-            json!({ "date": "2026-10-03", "kg": 72.149 }),
-        );
-
-        assert_eq!(answer, Ok(json!([{ "date": "2026-10-03", "kg": 72.15 }])));
-    }
-
-    #[test]
     fn an_impossible_mass_comes_back_as_a_refusal_the_screen_understands() {
         let (_app, screen) = launched();
 
         let answer = invoke(
             &screen,
-            "log_weigh_in",
-            json!({ "date": "2026-10-03", "kg": 0.0 }),
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 0.0 }),
         );
 
         assert_eq!(answer, Err(json!({ "Refused": "NotAMass" })));
