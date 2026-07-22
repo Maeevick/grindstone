@@ -19,6 +19,7 @@ const MIGRATIONS: &[&str] = &[
          height_cm real not null, neck_cm real not null, hip_cm real
      )",
     "create table goals (effective_from text primary key, body_mass_kg real not null, fat_ratio real not null)",
+    "drop table weigh_ins",
 ];
 
 pub struct Sqlite(Connection);
