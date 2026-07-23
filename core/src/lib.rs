@@ -6,7 +6,6 @@ pub mod for_importing;
 pub mod for_reviewing_progress;
 pub mod for_setting_up_the_profile;
 pub mod for_storing_gather_records;
-pub mod for_storing_weigh_ins;
 pub mod for_tracking;
 pub mod gather_records;
 pub mod gender;
