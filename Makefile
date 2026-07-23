@@ -2,13 +2,14 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check test-ui mutants android mac
+.PHONY: help dev test check test-ui mutants android import-draft mac
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+DRAFT_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-draft.json
 WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri|screens)|ui/src/screens/[a-z_]+)\.rs
 
 help: ## list the targets
-	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
 
 dev: ## run the app on the Mac, reloading on change
 	cargo tauri dev
@@ -31,6 +32,11 @@ mutants: ## mutation testing of the core, at the end of a slice
 android: ## build the release APK and install it on the phone plugged over USB, keeping its data
 	cargo tauri android build --apk --target aarch64
 	adb install -r $(APK)
+
+import-draft: ## push a draft backup to the phone over USB, for Settings to import: make import-draft BACKUP=path/to/backup.json
+	@test -f "$(BACKUP)" || { echo "usage: make import-draft BACKUP=path/to/backup.json"; exit 1; }
+	chmod 644 "$(BACKUP)"
+	adb push "$(BACKUP)" $(DRAFT_ON_THE_PHONE)
 
 mac: ## build the Mac app and install it in /Applications, keeping its data
 	cargo tauri build --bundles app
