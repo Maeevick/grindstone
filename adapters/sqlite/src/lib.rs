@@ -380,4 +380,9 @@ mod tests {
         std::fs::remove_file(&file).expect("the test database is removed");
         assert!(matches!(read, Err(Broken(reason)) if reason.contains("goblin")));
     }
+
+    #[test]
+    fn a_womans_profile_comes_back_with_her_hip() {
+        honouring_for_storing_gather_records::a_womans_profile_comes_back_with_her_hip(&database());
+    }
 }

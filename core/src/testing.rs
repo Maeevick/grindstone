@@ -245,6 +245,25 @@ pub mod honouring_for_storing_gather_records {
 
         assert_eq!(records.gather_records(), Ok(replacement));
     }
+
+    pub fn a_womans_profile_comes_back_with_her_hip(records: &impl ForStoringGatherRecords) {
+        let a_woman = Profile {
+            birthday: day("1990-06-01"),
+            gender: Gender::Female,
+            height_cm: 165.0,
+            neck_cm: 33.0,
+            hip_cm: Some(98.0),
+        };
+
+        records
+            .save_profile(day("2026-03-01"), &a_woman)
+            .expect("a profile saves");
+
+        assert_eq!(
+            records.gather_records().map(|gathered| gathered.profiles),
+            Ok(vec![(day("2026-03-01"), a_woman)])
+        );
+    }
 }
 
 #[cfg(test)]
@@ -282,6 +301,13 @@ mod tests {
     #[test]
     fn replacing_the_gather_records_leaves_only_the_new_ones() {
         honouring_for_storing_gather_records::replacing_the_gather_records_leaves_only_the_new_ones(
+            &GatherRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_womans_profile_comes_back_with_her_hip() {
+        honouring_for_storing_gather_records::a_womans_profile_comes_back_with_her_hip(
             &GatherRecordsInMemory::default(),
         );
     }
