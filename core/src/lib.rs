@@ -20,5 +20,4 @@ pub mod refusal;
 pub mod testing;
 pub mod trend;
 pub mod version;
-pub mod weigh_in;
 pub mod workout;
