@@ -3,7 +3,7 @@
 From a bare Mac to Grindstone installed on the phone, then each update.
 
 - Commands run from `grindstone/` unless a step says otherwise.
-- Steps 5 to 10 have not run on this Mac yet: they wait for the Android toolchain. Step 4 and the Mac app passed here.
+- Steps 5 and 6 run once. Steps 1 to 10 first ran on 2026-10-03, with the walking skeleton.
 
 ## 1. Mac prerequisites
 
@@ -125,9 +125,20 @@ Expected: `Success`.
 
 ## 10. Smoke test, on the phone
 
-1. Open **Grindstone**.
-2. Log a weigh-in: it appears under **Last weigh-ins**.
-3. Close the app from the recent apps, then open it again: the weigh-in is still there.
+1. Open **Grindstone**: Grimble's welcome shows until a profile exists.
+2. **Profile:** save a profile, then goals. Each says from which day it is kept.
+3. **Tracker:** log the day's mass and waist. The day shows its fat ratio, fat mass and lean mass.
+4. Close the app from the recent apps, then open it again: Home shows the Gather card and the day is still in Tracker.
+
+## 11. The draft's records
+
+The app must have run once, which creates its Documents folder. With the phone plugged in:
+
+```sh
+make import-draft BACKUP=../grindstone_draft/data/backups/<latest backup>.json
+```
+
+Then, in the app, Profile, the gear, **Import the draft**. Grimble tells how many days, profiles and goals he filed. The import replaces what Gather holds, so it can run again with a newer backup until the switch.
 
 ## Update
 

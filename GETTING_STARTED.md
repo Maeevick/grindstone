@@ -56,6 +56,8 @@ The app keeps its SQLite file at:
 
 To start from empty, quit the app and delete that file.
 
+To import the draft's records, copy one of its backups to `~/Documents/grindstone-draft.json`, then in the app go to Profile, the gear, **Import the draft**. macOS may first ask to let Grindstone read the Documents folder. The import replaces the measurements, profiles and goals only.
+
 ## Next
 
 - The phone: [ANDROID_TOOLCHAIN.md](ANDROID_TOOLCHAIN.md), then [RUNBOOK.md](RUNBOOK.md).

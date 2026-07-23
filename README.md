@@ -11,13 +11,14 @@ A personal tracker for body mass, food and training, carried on an Android phone
 
 ## What
 
-Today, a walking skeleton:
+Today, slice 1: the profile and Gather.
 
-- one screen to log a weigh-in on a date and read the last 14;
-- one weigh-in a day, a second one replacing the first;
-- the data kept in SQLite on the device.
+- **Profile:** birthday, gender, height, neck, and hip for a woman, then goals (a target mass and fat percentage). Each is kept from a chosen day, so changing it leaves the days before as they were.
+- **Tracker:** the day's mass and waist, one measurement a day, a second replacing the first. The last 14 days show their fat ratio, fat mass and lean mass from the US Navy formula, a day without a waist carrying the last lean mass.
+- **Home:** a welcome until a profile exists, then the Gather card over 30 days, 90 days or everything: the masses, their 7-day trend, the target line, the weekly rate, the day the target is reached at that rate, and the change in fat and lean mass.
+- **Settings**, behind the gear on Profile: the draft's measurements, profiles and goals imported from a backup pushed over USB.
 
-Next: the features you choose, rethought around how you train and eat, not ported from the draft.
+Next, one slice at a time: Burn, Fuel, the meal cooker, Hydrate, circuits, then Stats.
 
 ## How
 
@@ -27,8 +28,9 @@ Next: the features you choose, rethought around how you train and eat, not porte
 | `src-tauri` | Tauri 2 | the app shell on Android and macOS: its commands and the configurator that wires everything at start |
 | `core` | plain Rust | the application: its rules, what it offers (driving ports) and what it needs (driven ports) |
 | `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage port |
+| `adapters/draft` | serde_json | reads the draft's backup into the core's records |
 
-The screen calls the app's commands (`recent_weigh_ins`, `log_weigh_in`) through Tauri. Each command hands over to the core's `for_tracking` port, which stores through the SQLite adapter in the app's data folder.
+The screen calls the app's commands through Tauri. Each command hands over to one of the core's driving ports (`for_tracking`, `for_setting_up_the_profile`, `for_reviewing_progress`, `for_importing`), which store through the SQLite adapter in the app's data folder.
 
 ## Documents
 
