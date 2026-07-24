@@ -1,5 +1,6 @@
 pub mod age;
 pub mod composition;
+pub mod exercise;
 pub mod failure;
 pub mod figures;
 pub mod for_importing;

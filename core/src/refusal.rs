@@ -9,4 +9,11 @@ pub enum Refusal {
     NotANeck,
     NotAHip,
     NotARatio,
+    NotAName,
+    NotAMet,
+    NotADuration,
+    NotACount,
+    NotALoad,
+    NotADistance,
+    NotAnExercise,
 }
