@@ -21,4 +21,5 @@ pub mod refusal;
 pub mod testing;
 pub mod trend;
 pub mod version;
+pub mod volitional;
 pub mod workout;

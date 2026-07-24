@@ -1,11 +1,5 @@
 use crate::gender::Gender;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Volitional {
-    pub sitting_min: f64,
-    pub standing_min: f64,
-    pub moving_km: f64,
-}
+use crate::volitional::Volitional;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Deficit {
