@@ -1,3 +1,37 @@
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
+
+use crate::exercise::Exercise;
+use crate::refusal::Refusal;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Workout {
+    pub day: NaiveDate,
+    pub exercise: String,
+    pub met: f64,
+    pub minutes: f64,
+    pub reps: Option<u32>,
+    pub sets: u32,
+    pub load_kg: f64,
+}
+
+pub fn workout(
+    date: &str,
+    exercise: &Exercise,
+    minutes: f64,
+    reps: Option<u32>,
+    sets: u32,
+    load_kg: f64,
+) -> Result<Workout, Refusal> {
+    let _ = (date, exercise, minutes, reps, sets, load_kg);
+    Err(Refusal::NotADate)
+}
+
+pub fn burnt_by(workout: &Workout, body_mass_kg: f64) -> f64 {
+    let _ = (workout, body_mass_kg);
+    0.0
+}
+
 pub fn activity_induced_energy_expenditure_from_compendium(
     bodymass: f64,
     met: f64,
@@ -63,6 +97,75 @@ mod tests {
         assert!(about(
             activity_induced_energy_expenditure_from_compendium(75.0, 7.5, -30.0, 0.0),
             0.0
+        ));
+    }
+
+
+    fn push_up() -> Exercise {
+        Exercise {
+            name: "Push up".into(),
+            met: 3.8,
+        }
+    }
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    #[test]
+    fn a_workout_keeps_its_day_its_exercise_and_how_it_went() {
+        assert_eq!(
+            workout("2026-10-10", &push_up(), 0.5, Some(12), 3, 0.0),
+            Ok(Workout {
+                day: day("2026-10-10"),
+                exercise: "Push up".into(),
+                met: 3.8,
+                minutes: 0.5,
+                reps: Some(12),
+                sets: 3,
+                load_kg: 0.0,
+            })
+        );
+    }
+
+    #[test]
+    fn no_reps_at_all_reads_as_a_workout_counted_in_minutes() {
+        assert_eq!(
+            workout("2026-10-10", &push_up(), 20.0, Some(0), 1, 0.0).map(|done| done.reps),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn a_workout_that_could_not_have_happened_is_refused() {
+        assert_eq!(
+            workout("2026-02-30", &push_up(), 1.0, None, 1, 0.0),
+            Err(Refusal::NotADate)
+        );
+        for minutes in [0.0, -1.0, f64::NAN] {
+            assert_eq!(
+                workout("2026-10-10", &push_up(), minutes, None, 1, 0.0),
+                Err(Refusal::NotADuration),
+                "{minutes}"
+            );
+        }
+        assert_eq!(
+            workout("2026-10-10", &push_up(), 1.0, None, 0, 0.0),
+            Err(Refusal::NotACount)
+        );
+        assert_eq!(
+            workout("2026-10-10", &push_up(), 1.0, None, 1, f64::NAN),
+            Err(Refusal::NotALoad)
+        );
+    }
+
+    #[test]
+    fn each_set_burns_its_minutes_above_rest_at_the_body_mass_and_load_of_the_day() {
+        let done = workout("2026-10-10", &push_up(), 0.5, Some(12), 3, 10.0).expect("a workout");
+
+        assert!(about(
+            burnt_by(&done, 70.0),
+            3.0 * activity_induced_energy_expenditure_from_compendium(70.0, 3.8, 0.5, 10.0)
         ));
     }
 }
