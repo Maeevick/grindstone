@@ -260,4 +260,20 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn a_womans_logs_open_her_profile_with_her_hip() {
+        let a_womans = BACKUP
+            .replace(r#""gender": "male", "age""#, r#""gender": "female", "age""#)
+            .replace(r#""hip": null"#, r#""hip": 98.0"#);
+
+        let first_profile = gather_from_draft(&a_womans).map(|records| {
+            records
+                .profiles
+                .first()
+                .map(|(_, profile)| (profile.gender, profile.hip_cm))
+        });
+
+        assert_eq!(first_profile, Ok(Some((Gender::Female, Some(98.0)))));
+    }
 }
