@@ -116,6 +116,24 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotARatio) => {
             "A fat target between 0 and 100%, the goblin way or any other.".into()
         }
+        Failure::Refused(Refusal::NotAName) => {
+            "Even Trix names her explosions. A name, please.".into()
+        }
+        Failure::Refused(Refusal::NotAMet) => {
+            "A MET above nothing: resting already counts as one.".into()
+        }
+        Failure::Refused(Refusal::NotADuration) => "Some minutes above nothing, please.".into(),
+        Failure::Refused(Refusal::NotACount) => "At least one set, rusty one.".into(),
+        Failure::Refused(Refusal::NotALoad) => {
+            "A load in kilos, a band counting below zero.".into()
+        }
+        Failure::Refused(Refusal::NotADistance) => {
+            "Minutes and kilometres of nothing or more, and no more minutes than a day holds."
+                .into()
+        }
+        Failure::Refused(Refusal::NotAnExercise) => {
+            "That exercise is not in the catalog yet. Veil checked twice.".into()
+        }
         Failure::Broken(reason) => {
             format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
         }

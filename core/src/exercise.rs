@@ -9,8 +9,17 @@ pub struct Exercise {
 }
 
 pub fn exercise(name: &str, met: f64) -> Result<Exercise, Refusal> {
-    let _ = (name, met);
-    Err(Refusal::NotAName)
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(Refusal::NotAName);
+    }
+    if !(met.is_finite() && met > 0.0) {
+        return Err(Refusal::NotAMet);
+    }
+    Ok(Exercise {
+        name: name.into(),
+        met,
+    })
 }
 
 #[cfg(test)]
