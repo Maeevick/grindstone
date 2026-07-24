@@ -121,4 +121,14 @@ mod tests {
             None
         );
     }
+
+    #[test]
+    fn two_points_are_enough_to_read_a_weekly_rate() {
+        let progress = progress_towards(
+            None,
+            &[(day("2026-09-01"), 80.0), (day("2026-09-08"), 79.5)],
+        );
+
+        assert!(about(progress.map(|progress| progress.per_week), -0.5));
+    }
 }
