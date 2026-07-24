@@ -252,4 +252,21 @@ mod tests {
         let listed: Vec<NaiveDate> = days.iter().map(|day| day.day).collect();
         assert_eq!(listed, vec![day("2026-10-01"), day("2026-10-02")]);
     }
+
+    #[test]
+    fn a_mass_equal_to_the_carried_lean_mass_reads_no_composition_rather_than_no_fat() {
+        let profiles = [(day("2026-03-01"), a_man(38.5))];
+        let waist_day = measured("2026-10-01", 80.0, Some(80.0));
+        let lean_mass_kg = ledger(&[waist_day], &profiles)
+            .first()
+            .and_then(lean_mass_of)
+            .expect("a lean mass read from the tapes");
+
+        let days = ledger(
+            &[waist_day, measured("2026-10-02", lean_mass_kg, None)],
+            &profiles,
+        );
+
+        assert_eq!(days.last().and_then(|day| day.composition), None);
+    }
 }
