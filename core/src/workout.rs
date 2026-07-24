@@ -23,13 +23,35 @@ pub fn workout(
     sets: u32,
     load_kg: f64,
 ) -> Result<Workout, Refusal> {
-    let _ = (date, exercise, minutes, reps, sets, load_kg);
-    Err(Refusal::NotADate)
+    let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
+    if !(minutes.is_finite() && minutes > 0.0) {
+        return Err(Refusal::NotADuration);
+    }
+    if sets == 0 {
+        return Err(Refusal::NotACount);
+    }
+    if !load_kg.is_finite() {
+        return Err(Refusal::NotALoad);
+    }
+    Ok(Workout {
+        day,
+        exercise: exercise.name.clone(),
+        met: exercise.met,
+        minutes,
+        reps: reps.filter(|reps| *reps > 0),
+        sets,
+        load_kg,
+    })
 }
 
 pub fn burnt_by(workout: &Workout, body_mass_kg: f64) -> f64 {
-    let _ = (workout, body_mass_kg);
-    0.0
+    f64::from(workout.sets)
+        * activity_induced_energy_expenditure_from_compendium(
+            body_mass_kg,
+            workout.met,
+            workout.minutes,
+            workout.load_kg,
+        )
 }
 
 pub fn activity_induced_energy_expenditure_from_compendium(
@@ -99,7 +121,6 @@ mod tests {
             0.0
         ));
     }
-
 
     fn push_up() -> Exercise {
         Exercise {
