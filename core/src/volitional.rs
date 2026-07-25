@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::refusal::Refusal;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Volitional {
     pub sitting_min: f64,
@@ -7,19 +9,33 @@ pub struct Volitional {
     pub moving_km: f64,
 }
 
+const MINUTES_IN_A_DAY: f64 = 1440.0;
+
+fn is_nothing_or_more(figure: f64) -> bool {
+    figure.is_finite() && figure >= 0.0
+}
+
 pub fn volitional(
     sitting_min: f64,
     standing_min: f64,
     moving_km: f64,
-) -> Result<Volitional, crate::refusal::Refusal> {
-    let _ = (sitting_min, standing_min, moving_km);
-    Err(crate::refusal::Refusal::NotADistance)
+) -> Result<Volitional, Refusal> {
+    let readable = [sitting_min, standing_min, moving_km]
+        .into_iter()
+        .all(is_nothing_or_more);
+    if !readable || sitting_min + standing_min > MINUTES_IN_A_DAY {
+        return Err(Refusal::NotADistance);
+    }
+    Ok(Volitional {
+        sitting_min,
+        standing_min,
+        moving_km,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::refusal::Refusal;
 
     #[test]
     fn a_day_off_the_clock_keeps_its_sitting_and_standing_minutes_and_its_moving_kilometres() {
@@ -35,10 +51,7 @@ mod tests {
 
     #[test]
     fn a_day_spent_lying_down_is_a_day_off_the_clock_too() {
-        assert_eq!(
-            volitional(0.0, 0.0, 0.0),
-            Ok(Volitional::default())
-        );
+        assert_eq!(volitional(0.0, 0.0, 0.0), Ok(Volitional::default()));
     }
 
     #[test]
