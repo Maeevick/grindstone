@@ -1,11 +1,16 @@
 use std::cell::RefCell;
 
+use crate::burn_records::BurnRecords;
+use crate::exercise::Exercise;
 use crate::failure::Broken;
+use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
+use crate::volitional::Volitional;
+use crate::workout::Workout;
 use chrono::NaiveDate;
 
 #[derive(Default)]
@@ -82,6 +87,316 @@ impl ForStoringGatherRecords for BrokenGatherRecords {
 
     fn gather_records(&self) -> Result<GatherRecords, Broken> {
         Err(Broken("the disk is full".into()))
+    }
+}
+
+#[derive(Default)]
+pub struct BurnRecordsInMemory(RefCell<BurnRecords>);
+
+fn keeping_one_per_day(
+    kept: &mut Vec<(NaiveDate, Volitional)>,
+    day: NaiveDate,
+    volitional: &Volitional,
+) {
+    kept.retain(|(kept_on, _)| *kept_on != day);
+    kept.push((day, *volitional));
+}
+
+impl ForStoringBurnRecords for BurnRecordsInMemory {
+    fn save_exercise(&self, exercise: &Exercise) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.exercises.retain(|kept| kept.name != exercise.name);
+        records.exercises.push(exercise.clone());
+        Ok(())
+    }
+
+    fn remove_exercise(&self, name: &str) -> Result<(), Broken> {
+        self.0
+            .borrow_mut()
+            .exercises
+            .retain(|kept| kept.name != name);
+        Ok(())
+    }
+
+    fn save_workout(&self, workout: &Workout) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        let id = records
+            .workouts
+            .iter()
+            .map(|(id, _)| *id)
+            .max()
+            .unwrap_or(0)
+            + 1;
+        records.workouts.push((id, workout.clone()));
+        Ok(())
+    }
+
+    fn remove_workout(&self, id: i64) -> Result<(), Broken> {
+        self.0.borrow_mut().workouts.retain(|(kept, _)| *kept != id);
+        Ok(())
+    }
+
+    fn save_day_off_the_clock(
+        &self,
+        day: NaiveDate,
+        volitional: &Volitional,
+    ) -> Result<(), Broken> {
+        keeping_one_per_day(&mut self.0.borrow_mut().days_off_the_clock, day, volitional);
+        Ok(())
+    }
+
+    fn save_usual_day(&self, from: NaiveDate, volitional: &Volitional) -> Result<(), Broken> {
+        keeping_one_per_day(&mut self.0.borrow_mut().usual_days, from, volitional);
+        Ok(())
+    }
+
+    fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
+        let mut replaced = records.clone();
+        for (id, (kept_id, _)) in (1..).zip(replaced.workouts.iter_mut()) {
+            *kept_id = id;
+        }
+        *self.0.borrow_mut() = replaced;
+        Ok(())
+    }
+
+    fn burn_records(&self) -> Result<BurnRecords, Broken> {
+        let mut burnt = self.0.borrow().clone();
+        burnt
+            .exercises
+            .sort_by(|one, other| one.name.cmp(&other.name));
+        burnt.workouts.sort_by_key(|(id, done)| (done.day, *id));
+        burnt.days_off_the_clock.sort_by_key(|(day, _)| *day);
+        burnt.usual_days.sort_by_key(|(from, _)| *from);
+        Ok(burnt)
+    }
+}
+
+pub struct BrokenBurnRecords;
+
+impl ForStoringBurnRecords for BrokenBurnRecords {
+    fn save_exercise(&self, _: &Exercise) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_exercise(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_workout(&self, _: &Workout) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_workout(&self, _: i64) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_day_off_the_clock(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_usual_day(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn replace_burn_records(&self, _: &BurnRecords) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn burn_records(&self) -> Result<BurnRecords, Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+}
+
+pub mod honouring_for_storing_burn_records {
+    use super::*;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn named(name: &str, met: f64) -> Exercise {
+        Exercise {
+            name: name.into(),
+            met,
+        }
+    }
+
+    fn done(date: &str, exercise: &str, minutes: f64) -> Workout {
+        Workout {
+            day: day(date),
+            exercise: exercise.into(),
+            met: 4.0,
+            minutes,
+            reps: Some(10),
+            sets: 1,
+            load_kg: 0.0,
+        }
+    }
+
+    fn sitting(sitting_min: f64) -> Volitional {
+        Volitional {
+            sitting_min,
+            standing_min: 120.0,
+            moving_km: 3.0,
+        }
+    }
+
+    fn without_ids(records: &BurnRecords) -> Vec<Workout> {
+        records
+            .workouts
+            .iter()
+            .map(|(_, done)| done.clone())
+            .collect()
+    }
+
+    pub fn burn_records_come_back_in_the_order_of_their_days(records: &impl ForStoringBurnRecords) {
+        records
+            .save_exercise(&named("Walking", 4.0))
+            .expect("an exercise saves");
+        records
+            .save_exercise(&named("Biking", 8.0))
+            .expect("an exercise saves");
+        for workout in [
+            done("2026-10-10", "Walking", 30.0),
+            done("2026-10-09", "Biking", 45.0),
+            done("2026-10-10", "Biking", 20.0),
+        ] {
+            records.save_workout(&workout).expect("a workout saves");
+        }
+        records
+            .save_day_off_the_clock(day("2026-10-10"), &sitting(600.0))
+            .expect("a day off the clock saves");
+        records
+            .save_day_off_the_clock(day("2026-10-09"), &sitting(500.0))
+            .expect("a day off the clock saves");
+        records
+            .save_usual_day(day("2026-09-01"), &sitting(420.0))
+            .expect("a usual day saves");
+        records
+            .save_usual_day(day("2026-03-01"), &sitting(480.0))
+            .expect("a usual day saves");
+
+        let burnt = records.burn_records().expect("the records read");
+
+        assert_eq!(
+            burnt.exercises,
+            vec![named("Biking", 8.0), named("Walking", 4.0)]
+        );
+        assert_eq!(
+            without_ids(&burnt),
+            vec![
+                done("2026-10-09", "Biking", 45.0),
+                done("2026-10-10", "Walking", 30.0),
+                done("2026-10-10", "Biking", 20.0),
+            ]
+        );
+        assert_eq!(
+            burnt.days_off_the_clock,
+            vec![
+                (day("2026-10-09"), sitting(500.0)),
+                (day("2026-10-10"), sitting(600.0))
+            ]
+        );
+        assert_eq!(
+            burnt.usual_days,
+            vec![
+                (day("2026-03-01"), sitting(480.0)),
+                (day("2026-09-01"), sitting(420.0))
+            ]
+        );
+    }
+
+    pub fn what_is_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        records
+            .save_exercise(&named("Walking", 3.5))
+            .expect("an exercise saves");
+        records
+            .save_day_off_the_clock(day("2026-10-10"), &sitting(600.0))
+            .expect("a day off the clock saves");
+        records
+            .save_usual_day(day("2026-03-01"), &sitting(480.0))
+            .expect("a usual day saves");
+
+        records
+            .save_exercise(&named("Walking", 4.0))
+            .expect("an exercise saves");
+        records
+            .save_day_off_the_clock(day("2026-10-10"), &sitting(300.0))
+            .expect("a day off the clock saves");
+        records
+            .save_usual_day(day("2026-03-01"), &sitting(420.0))
+            .expect("a usual day saves");
+
+        let burnt = records.burn_records().expect("the records read");
+        assert_eq!(burnt.exercises, vec![named("Walking", 4.0)]);
+        assert_eq!(
+            burnt.days_off_the_clock,
+            vec![(day("2026-10-10"), sitting(300.0))]
+        );
+        assert_eq!(burnt.usual_days, vec![(day("2026-03-01"), sitting(420.0))]);
+    }
+
+    pub fn removing_a_workout_or_an_exercise_leaves_the_others(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        records
+            .save_exercise(&named("Walking", 4.0))
+            .expect("an exercise saves");
+        records
+            .save_exercise(&named("Biking", 8.0))
+            .expect("an exercise saves");
+        records
+            .save_workout(&done("2026-10-10", "Walking", 30.0))
+            .expect("a workout saves");
+        records
+            .save_workout(&done("2026-10-10", "Walking", 15.0))
+            .expect("a workout saves");
+        let first = records
+            .burn_records()
+            .ok()
+            .and_then(|burnt| burnt.workouts.first().map(|(id, _)| *id))
+            .expect("a first workout");
+
+        records.remove_workout(first).expect("a workout is removed");
+        records
+            .remove_exercise("Biking")
+            .expect("an exercise is removed");
+
+        let burnt = records.burn_records().expect("the records read");
+        assert_eq!(
+            without_ids(&burnt),
+            vec![done("2026-10-10", "Walking", 15.0)]
+        );
+        assert_eq!(burnt.exercises, vec![named("Walking", 4.0)]);
+    }
+
+    pub fn replacing_the_burn_records_leaves_only_the_new_ones(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        records
+            .save_exercise(&named("Walking", 4.0))
+            .expect("an exercise saves");
+        records
+            .save_workout(&done("2026-10-10", "Walking", 30.0))
+            .expect("a workout saves");
+        let replacement = BurnRecords {
+            exercises: vec![named("Biking", 8.0)],
+            workouts: vec![(0, done("2026-06-22", "Biking", 45.0))],
+            days_off_the_clock: vec![(day("2026-06-22"), sitting(500.0))],
+            usual_days: vec![(day("2026-03-01"), sitting(480.0))],
+        };
+
+        records
+            .replace_burn_records(&replacement)
+            .expect("the records are replaced");
+
+        let burnt = records.burn_records().expect("the records read");
+        assert_eq!(burnt.exercises, replacement.exercises);
+        assert_eq!(without_ids(&burnt), without_ids(&replacement));
+        assert_eq!(burnt.days_off_the_clock, replacement.days_off_the_clock);
+        assert_eq!(burnt.usual_days, replacement.usual_days);
     }
 }
 
@@ -309,6 +624,34 @@ mod tests {
     fn a_womans_profile_comes_back_with_her_hip() {
         honouring_for_storing_gather_records::a_womans_profile_comes_back_with_her_hip(
             &GatherRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn burn_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_burn_records::burn_records_come_back_in_the_order_of_their_days(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn what_is_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
+        honouring_for_storing_burn_records::what_is_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn removing_a_workout_or_an_exercise_leaves_the_others() {
+        honouring_for_storing_burn_records::removing_a_workout_or_an_exercise_leaves_the_others(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn replacing_the_burn_records_leaves_only_the_new_ones() {
+        honouring_for_storing_burn_records::replacing_the_burn_records_leaves_only_the_new_ones(
+            &BurnRecordsInMemory::default(),
         );
     }
 }
