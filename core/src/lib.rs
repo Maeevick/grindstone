@@ -1,4 +1,6 @@
 pub mod age;
+pub mod burn;
+pub mod burn_records;
 pub mod composition;
 pub mod exercise;
 pub mod failure;
