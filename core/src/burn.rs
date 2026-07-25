@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::burn_records::BurnRecords;
 use crate::measurement::Measurement;
+use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
-use crate::workout::Workout;
+use crate::workout::{Workout, burnt_by};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BurntWorkout {
@@ -22,14 +23,40 @@ pub struct Burn {
     pub off_the_clock_is_usual: bool,
 }
 
+fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]) -> Option<f64> {
+    let masses: Vec<(NaiveDate, f64)> = measurements
+        .iter()
+        .map(|measured| (measured.day, measured.body_mass_kg))
+        .collect();
+    version_in_force_on(&masses, day).copied()
+}
+
 pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measurement]) -> Burn {
-    let _ = (records, measurements);
+    let body_mass_kg = body_mass_in_force_on(day, measurements);
+    let workouts: Vec<BurntWorkout> = records
+        .workouts
+        .iter()
+        .filter(|(_, done)| done.day == day)
+        .map(|(id, done)| BurntWorkout {
+            id: *id,
+            workout: done.clone(),
+            burnt_kcal: body_mass_kg.map(|kg| burnt_by(done, kg)),
+        })
+        .collect();
+    let own_day = records
+        .days_off_the_clock
+        .iter()
+        .find(|(kept_on, _)| *kept_on == day)
+        .map(|(_, volitional)| *volitional);
     Burn {
         day,
-        workouts: vec![],
-        burnt_kcal: None,
-        off_the_clock: None,
-        off_the_clock_is_usual: false,
+        burnt_kcal: workouts
+            .iter()
+            .map(|done| done.burnt_kcal)
+            .sum::<Option<f64>>(),
+        workouts,
+        off_the_clock: own_day.or_else(|| version_in_force_on(&records.usual_days, day).copied()),
+        off_the_clock_is_usual: own_day.is_none(),
     }
 }
 
@@ -90,7 +117,10 @@ mod tests {
         let expected = burnt_by(&walked("2026-10-10", 30.0), 80.0)
             + burnt_by(&walked("2026-10-10", 15.0), 80.0);
         assert_eq!(burn.workouts.len(), 2);
-        assert!(burn.burnt_kcal.is_some_and(|kcal| (kcal - expected).abs() < 1e-9));
+        assert!(
+            burn.burnt_kcal
+                .is_some_and(|kcal| (kcal - expected).abs() < 1e-9)
+        );
     }
 
     #[test]
@@ -118,7 +148,10 @@ mod tests {
         let burn = burn_on(day("2026-10-10"), &records, &[]);
 
         assert_eq!(burn.burnt_kcal, None);
-        assert_eq!(burn.workouts.first().map(|done| done.burnt_kcal), Some(None));
+        assert_eq!(
+            burn.workouts.first().map(|done| done.burnt_kcal),
+            Some(None)
+        );
     }
 
     #[test]
