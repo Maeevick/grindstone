@@ -230,37 +230,163 @@ impl ForStoringGatherRecords for Sqlite {
     }
 }
 
+impl Sqlite {
+    fn run(&self, statement: &str, values: impl rusqlite::Params) -> Result<(), Broken> {
+        self.0
+            .execute(statement, values)
+            .map(|_| ())
+            .map_err(broken)
+    }
+
+    fn rows<Row>(
+        &self,
+        query: &str,
+        read: impl FnMut(&rusqlite::Row) -> rusqlite::Result<Row>,
+    ) -> Result<Vec<Row>, Broken> {
+        self.0
+            .prepare(query)
+            .and_then(|mut statement| statement.query_map([], read)?.collect())
+            .map_err(broken)
+    }
+}
+
+fn volitional_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Volitional)> {
+    Ok((
+        row.get(0)?,
+        Volitional {
+            sitting_min: row.get(1)?,
+            standing_min: row.get(2)?,
+            moving_km: row.get(3)?,
+        },
+    ))
+}
+
 impl ForStoringBurnRecords for Sqlite {
-    fn save_exercise(&self, _: &Exercise) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_exercise(&self, exercise: &Exercise) -> Result<(), Broken> {
+        self.run(
+            "insert into exercises (name, met) values (?1, ?2)
+             on conflict (name) do update set met = excluded.met",
+            params![exercise.name, exercise.met],
+        )
     }
 
-    fn remove_exercise(&self, _: &str) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn remove_exercise(&self, name: &str) -> Result<(), Broken> {
+        self.run("delete from exercises where name = ?1", params![name])
     }
 
-    fn save_workout(&self, _: &Workout) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_workout(&self, workout: &Workout) -> Result<(), Broken> {
+        self.run(
+            "insert into workouts (day, exercise, met, minutes, reps, sets, load_kg)
+             values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                workout.day,
+                workout.exercise,
+                workout.met,
+                workout.minutes,
+                workout.reps,
+                workout.sets,
+                workout.load_kg
+            ],
+        )
     }
 
-    fn remove_workout(&self, _: i64) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn remove_workout(&self, id: i64) -> Result<(), Broken> {
+        self.run("delete from workouts where id = ?1", params![id])
     }
 
-    fn save_day_off_the_clock(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_day_off_the_clock(
+        &self,
+        day: NaiveDate,
+        volitional: &Volitional,
+    ) -> Result<(), Broken> {
+        self.run(
+            "insert into days_off_the_clock (day, sitting_min, standing_min, moving_km)
+             values (?1, ?2, ?3, ?4)
+             on conflict (day) do update set sitting_min = excluded.sitting_min,
+                 standing_min = excluded.standing_min, moving_km = excluded.moving_km",
+            params![
+                day,
+                volitional.sitting_min,
+                volitional.standing_min,
+                volitional.moving_km
+            ],
+        )
     }
 
-    fn save_usual_day(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_usual_day(&self, from: NaiveDate, volitional: &Volitional) -> Result<(), Broken> {
+        self.run(
+            "insert into usual_days (effective_from, sitting_min, standing_min, moving_km)
+             values (?1, ?2, ?3, ?4)
+             on conflict (effective_from) do update set sitting_min = excluded.sitting_min,
+                 standing_min = excluded.standing_min, moving_km = excluded.moving_km",
+            params![
+                from,
+                volitional.sitting_min,
+                volitional.standing_min,
+                volitional.moving_km
+            ],
+        )
     }
 
-    fn replace_burn_records(&self, _: &BurnRecords) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
+        let replacing = self.0.unchecked_transaction().map_err(broken)?;
+        replacing
+            .execute_batch(
+                "delete from exercises; delete from workouts;
+                 delete from days_off_the_clock; delete from usual_days;",
+            )
+            .map_err(broken)?;
+        for exercise in &records.exercises {
+            self.save_exercise(exercise)?;
+        }
+        for (_, workout) in &records.workouts {
+            self.save_workout(workout)?;
+        }
+        for (day, volitional) in &records.days_off_the_clock {
+            self.save_day_off_the_clock(*day, volitional)?;
+        }
+        for (from, volitional) in &records.usual_days {
+            self.save_usual_day(*from, volitional)?;
+        }
+        replacing.commit().map_err(broken)
     }
 
     fn burn_records(&self) -> Result<BurnRecords, Broken> {
-        Err(Broken("not yet".into()))
+        Ok(BurnRecords {
+            exercises: self.rows("select name, met from exercises order by name", |row| {
+                Ok(Exercise {
+                    name: row.get(0)?,
+                    met: row.get(1)?,
+                })
+            })?,
+            workouts: self.rows(
+                "select id, day, exercise, met, minutes, reps, sets, load_kg from workouts
+                 order by day, id",
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        Workout {
+                            day: row.get(1)?,
+                            exercise: row.get(2)?,
+                            met: row.get(3)?,
+                            minutes: row.get(4)?,
+                            reps: row.get(5)?,
+                            sets: row.get(6)?,
+                            load_kg: row.get(7)?,
+                        },
+                    ))
+                },
+            )?,
+            days_off_the_clock: self.rows(
+                "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day",
+                volitional_read,
+            )?,
+            usual_days: self.rows(
+                "select effective_from, sitting_min, standing_min, moving_km from usual_days
+                 order by effective_from",
+                volitional_read,
+            )?,
+        })
     }
 }
 
