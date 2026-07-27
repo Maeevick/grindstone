@@ -5,6 +5,7 @@ pub mod composition;
 pub mod exercise;
 pub mod failure;
 pub mod figures;
+pub mod for_burning;
 pub mod for_importing;
 pub mod for_reviewing_progress;
 pub mod for_setting_up_the_profile;
