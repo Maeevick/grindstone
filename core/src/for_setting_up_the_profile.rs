@@ -2,12 +2,14 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
+use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::profile::{Profile, profile};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
+use crate::volitional::Volitional;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProfileForm {
@@ -73,6 +75,30 @@ pub fn goals_on(
     let day = day(date)?;
     let gathered = records.gather_records()?;
     Ok(version_in_force_on(&gathered.goals, day).copied())
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UsualDayForm {
+    pub from: String,
+    pub sitting_min: f64,
+    pub standing_min: f64,
+    pub moving_km: f64,
+}
+
+pub fn set_usual_day(
+    burn: &impl ForStoringBurnRecords,
+    form: &UsualDayForm,
+) -> Result<Volitional, Failure> {
+    let _ = (burn, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+pub fn usual_day_on(
+    burn: &impl ForStoringBurnRecords,
+    date: &str,
+) -> Result<Option<Volitional>, Failure> {
+    let _ = (burn, date);
+    Ok(None)
 }
 
 #[cfg(test)]
@@ -176,5 +202,49 @@ mod tests {
             Err(broken.clone())
         );
         assert_eq!(goals_on(&BrokenGatherRecords, "2026-10-10"), Err(broken));
+    }
+
+    fn a_desk_day_from(from: &str) -> UsualDayForm {
+        UsualDayForm {
+            from: from.into(),
+            sitting_min: 480.0,
+            standing_min: 120.0,
+            moving_km: 3.0,
+        }
+    }
+
+    #[test]
+    fn a_usual_day_set_from_a_date_is_the_one_in_force_from_that_date() {
+        let burn = crate::testing::BurnRecordsInMemory::default();
+        set_usual_day(&burn, &a_desk_day_from("2026-03-01")).expect("a usual day sets");
+
+        assert_eq!(
+            usual_day_on(&burn, "2026-10-10"),
+            Ok(Some(Volitional {
+                sitting_min: 480.0,
+                standing_min: 120.0,
+                moving_km: 3.0,
+            }))
+        );
+    }
+
+    #[test]
+    fn a_usual_day_with_more_minutes_than_a_day_holds_is_refused() {
+        let refused = set_usual_day(
+            &crate::testing::BurnRecordsInMemory::default(),
+            &UsualDayForm {
+                sitting_min: 1500.0,
+                ..a_desk_day_from("2026-03-01")
+            },
+        );
+
+        assert_eq!(refused, Err(Failure::Refused(Refusal::NotADistance)));
+        assert_eq!(
+            usual_day_on(
+                &crate::testing::BurnRecordsInMemory::default(),
+                "2026-02-30"
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
     }
 }
