@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use grind_core::burn_records::BurnRecords;
 use grind_core::failure::Failure;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
@@ -13,6 +14,8 @@ pub enum DraftRefusal {
     Unreadable(String),
     NotAVersionWeRead(String),
     NotAMeasurement { date: String, refusal: Refusal },
+    NotAnExercise { name: String, refusal: Refusal },
+    NotAWorkout { date: String, refusal: Refusal },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -28,11 +31,54 @@ struct Backup {
     measurement_bases: MeasurementBases,
     #[serde(default)]
     measurement_logs: Vec<MeasurementLog>,
+    workout_bases: Option<DraftVolitional>,
+    #[serde(default)]
+    workout_catalogs: WorkoutCatalogs,
+    #[serde(default)]
+    workout_logs: Vec<WorkoutLog>,
 }
 
 #[derive(Deserialize)]
 struct Settings {
     version: String,
+    started_at: Option<NaiveDate>,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+struct DraftVolitional {
+    sitting_min: f64,
+    standing_min: f64,
+    moving_km: f64,
+}
+
+#[derive(Default, Deserialize)]
+struct WorkoutCatalogs {
+    #[serde(default)]
+    activities: Vec<Activity>,
+}
+
+#[derive(Deserialize)]
+struct Activity {
+    name: String,
+    met: f64,
+}
+
+#[derive(Deserialize)]
+struct WorkoutLog {
+    date: String,
+    volitional: DraftVolitional,
+    #[serde(default)]
+    activities: Vec<WorkoutEntry>,
+}
+
+#[derive(Deserialize)]
+struct WorkoutEntry {
+    activity: String,
+    minutes: f64,
+    reps: u32,
+    sets: u32,
+    weight: f64,
+    aee: f64,
 }
 
 #[derive(Deserialize)]
@@ -135,6 +181,11 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
         profiles: profile_versions(&backup),
         goals: goal_versions(&backup),
     })
+}
+
+pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
+    let _ = backup;
+    Ok(BurnRecords::default())
 }
 
 #[cfg(test)]
@@ -275,5 +326,85 @@ mod tests {
         });
 
         assert_eq!(first_profile, Ok(Some((Gender::Female, Some(98.0)))));
+    }
+
+    const BURN_BACKUP: &str = r#"{
+        "settings": { "version": "0.4.0", "started_at": "2026-03-01" },
+        "measurement_bases": { "birthday": "1985-04-12" },
+        "measurement_logs": [
+            { "date": "2026-08-01", "gender": "male", "height": 180.0, "neck": 38.5, "hip": null,
+              "weight": 80.0, "waist": null, "weight_target": 72.0, "fat_target": 12.0 }
+        ],
+        "workout_bases": { "moving_km": 4.23, "sitting_min": 300.0, "standing_min": 300.0 },
+        "workout_catalogs": { "activities": [ { "id": "w", "created_at": 1, "name": "Walking", "met": 4.0 } ] },
+        "workout_logs": [
+            { "id": "l1", "created_at": 1, "date": "2026-08-10",
+              "volitional": { "moving_km": 6.0, "sitting_min": 240.0, "standing_min": 360.0 },
+              "activities": [
+                { "id": "a", "created_at": 1, "activity": "Walking", "minutes": 30.0, "reps": 0, "sets": 1, "weight": 0.0, "aee": 999.0 },
+                { "id": "b", "created_at": 2, "activity": "Star Plank", "minutes": 2.0, "reps": 10, "sets": 1, "weight": 0.0, "aee": 8.4 }
+              ] }
+        ]
+    }"#;
+
+    #[test]
+    fn the_draft_activities_become_the_exercise_catalog() {
+        assert_eq!(
+            burn_from_draft(BURN_BACKUP).map(|records| records.exercises),
+            Ok(vec![grind_core::exercise::Exercise {
+                name: "Walking".into(),
+                met: 4.0,
+            }])
+        );
+    }
+
+    #[test]
+    fn each_drafted_bout_becomes_a_workout_frozen_on_its_exercise_met_whatever_burn_the_draft_stored()
+     {
+        let workouts = burn_from_draft(BURN_BACKUP).map(|records| {
+            records
+                .workouts
+                .into_iter()
+                .map(|(_, done)| (done.day, done.exercise, done.met, done.minutes, done.reps))
+                .collect::<Vec<_>>()
+        });
+
+        assert_eq!(
+            workouts.as_ref().map(|done| done.first().cloned()),
+            Ok(Some((day("2026-08-10"), "Walking".into(), 4.0, 30.0, None)))
+        );
+    }
+
+    #[test]
+    fn a_bout_of_an_activity_gone_from_the_catalog_works_its_met_back_from_its_net_burn() {
+        let star_plank_met = burn_from_draft(BURN_BACKUP).ok().and_then(|records| {
+            records
+                .workouts
+                .into_iter()
+                .find(|(_, done)| done.exercise == "Star Plank")
+                .map(|(_, done)| done.met)
+        });
+
+        assert_eq!(star_plank_met, Some(4.0));
+    }
+
+    #[test]
+    fn each_drafted_day_keeps_its_day_off_the_clock_and_the_bases_become_the_usual_day() {
+        let records = burn_from_draft(BURN_BACKUP).expect("burn records");
+        let off_the_clock =
+            |sitting_min, standing_min, moving_km| grind_core::volitional::Volitional {
+                sitting_min,
+                standing_min,
+                moving_km,
+            };
+
+        assert_eq!(
+            records.days_off_the_clock,
+            vec![(day("2026-08-10"), off_the_clock(240.0, 360.0, 6.0))]
+        );
+        assert_eq!(
+            records.usual_days,
+            vec![(day("2026-03-01"), off_the_clock(300.0, 300.0, 4.23))]
+        );
     }
 }
