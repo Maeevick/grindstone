@@ -91,6 +91,18 @@ pub fn import_failure(refused: &ImportFailure) -> String {
                 failure_of_refusal(*refusal)
             )
         }
+        ImportFailure::Draft(DraftRefusal::NotAnExercise { name, refusal }) => {
+            format!(
+                "The activity {name} would not join the catalog: {}",
+                failure_of_refusal(*refusal)
+            )
+        }
+        ImportFailure::Draft(DraftRefusal::NotAWorkout { date, refusal }) => {
+            format!(
+                "A workout of {date} would not be filed: {}",
+                failure_of_refusal(*refusal)
+            )
+        }
         ImportFailure::Failed(failed) => failure(failed),
     }
 }

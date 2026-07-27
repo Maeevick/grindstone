@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
+use grind_core::exercise::{Exercise, exercise};
 use grind_core::failure::Failure;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
@@ -7,6 +8,9 @@ use grind_core::goals::Goals;
 use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
 use grind_core::refusal::Refusal;
+use grind_core::version::version_in_force_on;
+use grind_core::volitional::Volitional;
+use grind_core::workout::workout;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -160,11 +164,7 @@ fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Goals)> {
 }
 
 pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
-    let backup: Backup = serde_json::from_str(backup)
-        .map_err(|error| DraftRefusal::Unreadable(error.to_string()))?;
-    if backup.settings.version != "0.4.0" {
-        return Err(DraftRefusal::NotAVersionWeRead(backup.settings.version));
-    }
+    let backup = read(backup)?;
     Ok(GatherRecords {
         measurements: backup
             .measurement_logs
@@ -183,9 +183,102 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
     })
 }
 
+fn read(backup: &str) -> Result<Backup, DraftRefusal> {
+    let backup: Backup = serde_json::from_str(backup)
+        .map_err(|error| DraftRefusal::Unreadable(error.to_string()))?;
+    if backup.settings.version != "0.4.0" {
+        return Err(DraftRefusal::NotAVersionWeRead(backup.settings.version));
+    }
+    Ok(backup)
+}
+
+fn off_the_clock(drafted: DraftVolitional) -> Volitional {
+    Volitional {
+        sitting_min: drafted.sitting_min,
+        standing_min: drafted.standing_min,
+        moving_km: drafted.moving_km,
+    }
+}
+
+fn met_worked_back(entry: &WorkoutEntry, body_mass_kg: Option<f64>) -> f64 {
+    let burnt_per_met_above_rest =
+        body_mass_kg.map_or(0.0, |kg| 3.5 * (kg + entry.weight) / 200.0 * entry.minutes);
+    if burnt_per_met_above_rest > 0.0 {
+        ((entry.aee / burnt_per_met_above_rest + 1.0) * 10.0).round() / 10.0
+    } else {
+        1.0
+    }
+}
+
+fn exercise_of(
+    entry: &WorkoutEntry,
+    day: NaiveDate,
+    catalog: &[Exercise],
+    masses: &[(NaiveDate, f64)],
+) -> Exercise {
+    catalog
+        .iter()
+        .find(|known| known.name == entry.activity)
+        .cloned()
+        .unwrap_or_else(|| Exercise {
+            name: entry.activity.clone(),
+            met: met_worked_back(entry, version_in_force_on(masses, day).copied()),
+        })
+}
+
 pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
-    let _ = backup;
-    Ok(BurnRecords::default())
+    let backup = read(backup)?;
+    let catalog = backup
+        .workout_catalogs
+        .activities
+        .iter()
+        .map(|activity| {
+            exercise(&activity.name, activity.met).map_err(|refusal| DraftRefusal::NotAnExercise {
+                name: activity.name.clone(),
+                refusal,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let masses: Vec<(NaiveDate, f64)> = logged_days(&backup)
+        .map(|(day, log)| (day, log.weight))
+        .collect();
+    let mut workouts = Vec::new();
+    let mut days_off_the_clock = Vec::new();
+    for log in &backup.workout_logs {
+        let refused = |refusal| DraftRefusal::NotAWorkout {
+            date: log.date.clone(),
+            refusal,
+        };
+        let day = NaiveDate::parse_from_str(&log.date, "%Y-%m-%d")
+            .map_err(|_| refused(Refusal::NotADate))?;
+        days_off_the_clock.push((day, off_the_clock(log.volitional)));
+        for entry in &log.activities {
+            let done = workout(
+                &log.date,
+                &exercise_of(entry, day, &catalog, &masses),
+                entry.minutes,
+                Some(entry.reps),
+                entry.sets.max(1),
+                entry.weight,
+            )
+            .map_err(refused)?;
+            workouts.push((0, done));
+        }
+    }
+    let started_at = backup
+        .settings
+        .started_at
+        .or(days_off_the_clock.first().map(|(day, _)| *day));
+    Ok(BurnRecords {
+        exercises: catalog,
+        workouts,
+        days_off_the_clock,
+        usual_days: started_at
+            .zip(backup.workout_bases)
+            .map(|(from, bases)| (from, off_the_clock(bases)))
+            .into_iter()
+            .collect(),
+    })
 }
 
 #[cfg(test)]
