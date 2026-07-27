@@ -9,7 +9,7 @@ use crate::goals::{Goals, goals};
 use crate::profile::{Profile, profile};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
-use crate::volitional::Volitional;
+use crate::volitional::{Volitional, volitional};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProfileForm {
@@ -89,16 +89,19 @@ pub fn set_usual_day(
     burn: &impl ForStoringBurnRecords,
     form: &UsualDayForm,
 ) -> Result<Volitional, Failure> {
-    let _ = (burn, form);
-    Err(Failure::Broken("not yet".into()))
+    let from = day(&form.from)?;
+    let usual = volitional(form.sitting_min, form.standing_min, form.moving_km)
+        .map_err(Failure::Refused)?;
+    burn.save_usual_day(from, &usual)?;
+    Ok(usual)
 }
 
 pub fn usual_day_on(
     burn: &impl ForStoringBurnRecords,
     date: &str,
 ) -> Result<Option<Volitional>, Failure> {
-    let _ = (burn, date);
-    Ok(None)
+    let day = day(date)?;
+    Ok(version_in_force_on(&burn.burn_records()?.usual_days, day).copied())
 }
 
 #[cfg(test)]

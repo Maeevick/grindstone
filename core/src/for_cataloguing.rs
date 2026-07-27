@@ -1,10 +1,9 @@
-use crate::exercise::Exercise;
+use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 
 pub fn exercises(burn: &impl ForStoringBurnRecords) -> Result<Vec<Exercise>, Failure> {
-    let _ = burn;
-    Ok(vec![])
+    Ok(burn.burn_records()?.exercises)
 }
 
 pub fn add_exercise(
@@ -12,16 +11,16 @@ pub fn add_exercise(
     name: &str,
     met: f64,
 ) -> Result<Vec<Exercise>, Failure> {
-    let _ = (burn, name, met);
-    Ok(vec![])
+    burn.save_exercise(&exercise(name, met).map_err(Failure::Refused)?)?;
+    exercises(burn)
 }
 
 pub fn remove_exercise(
     burn: &impl ForStoringBurnRecords,
     name: &str,
 ) -> Result<Vec<Exercise>, Failure> {
-    let _ = (burn, name);
-    Ok(vec![])
+    burn.remove_exercise(name)?;
+    exercises(burn)
 }
 
 #[cfg(test)]
