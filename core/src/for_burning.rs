@@ -1,11 +1,13 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::burn::Burn;
+use crate::burn::{Burn, burn_on};
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
+use crate::volitional::volitional;
+use crate::workout::workout;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WorkoutForm {
@@ -28,13 +30,21 @@ fn day(date: &str) -> Result<NaiveDate, Failure> {
     NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
 }
 
+fn burn_of_the_day(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    day: NaiveDate,
+) -> Result<Burn, Failure> {
+    let measurements = gather.gather_records()?.measurements;
+    Ok(burn_on(day, &burn.burn_records()?, &measurements))
+}
+
 pub fn burn_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     date: &str,
 ) -> Result<Burn, Failure> {
-    let _ = (gather, burn, date);
-    Err(Failure::Broken("not yet".into()))
+    burn_of_the_day(gather, burn, day(date)?)
 }
 
 pub fn log_workout(
@@ -42,8 +52,23 @@ pub fn log_workout(
     burn: &impl ForStoringBurnRecords,
     form: &WorkoutForm,
 ) -> Result<Burn, Failure> {
-    let _ = (gather, burn, form);
-    Err(Failure::Broken("not yet".into()))
+    let exercise = burn
+        .burn_records()?
+        .exercises
+        .into_iter()
+        .find(|known| known.name == form.exercise)
+        .ok_or(Failure::Refused(Refusal::NotAnExercise))?;
+    let done = workout(
+        &form.date,
+        &exercise,
+        form.minutes,
+        form.reps,
+        form.sets,
+        form.load_kg,
+    )
+    .map_err(Failure::Refused)?;
+    burn.save_workout(&done)?;
+    burn_of_the_day(gather, burn, done.day)
 }
 
 pub fn remove_workout(
@@ -52,8 +77,9 @@ pub fn remove_workout(
     date: &str,
     id: i64,
 ) -> Result<Burn, Failure> {
-    let _ = (gather, burn, date, id, day(date));
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    burn.remove_workout(id)?;
+    burn_of_the_day(gather, burn, day)
 }
 
 pub fn set_day_off_the_clock(
@@ -62,8 +88,11 @@ pub fn set_day_off_the_clock(
     date: &str,
     form: &OffTheClockForm,
 ) -> Result<Burn, Failure> {
-    let _ = (gather, burn, date, form);
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    let off_the_clock = volitional(form.sitting_min, form.standing_min, form.moving_km)
+        .map_err(Failure::Refused)?;
+    burn.save_day_off_the_clock(day, &off_the_clock)?;
+    burn_of_the_day(gather, burn, day)
 }
 
 #[cfg(test)]
