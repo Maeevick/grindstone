@@ -1,13 +1,18 @@
 use std::path::Path;
 
 use chrono::NaiveDate;
+use grind_core::burn_records::BurnRecords;
+use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
+use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
+use grind_core::volitional::Volitional;
+use grind_core::workout::Workout;
 use rusqlite::{Connection, params};
 
 const MIGRATIONS: &[&str] = &[
@@ -20,6 +25,18 @@ const MIGRATIONS: &[&str] = &[
      )",
     "create table goals (effective_from text primary key, body_mass_kg real not null, fat_ratio real not null)",
     "drop table weigh_ins",
+    "create table exercises (name text primary key, met real not null);
+     create table workouts (
+         id integer primary key, day text not null, exercise text not null, met real not null,
+         minutes real not null, reps integer, sets integer not null, load_kg real not null
+     );
+     create table days_off_the_clock (
+         day text primary key, sitting_min real not null, standing_min real not null, moving_km real not null
+     );
+     create table usual_days (
+         effective_from text primary key, sitting_min real not null, standing_min real not null,
+         moving_km real not null
+     );",
 ];
 
 pub struct Sqlite(Connection);
@@ -213,9 +230,44 @@ impl ForStoringGatherRecords for Sqlite {
     }
 }
 
+impl ForStoringBurnRecords for Sqlite {
+    fn save_exercise(&self, _: &Exercise) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn remove_exercise(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn save_workout(&self, _: &Workout) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn remove_workout(&self, _: i64) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn save_day_off_the_clock(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn save_usual_day(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn replace_burn_records(&self, _: &BurnRecords) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn burn_records(&self) -> Result<BurnRecords, Broken> {
+        Err(Broken("not yet".into()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_gather_records;
 
     fn database() -> Sqlite {
@@ -384,5 +436,33 @@ mod tests {
     #[test]
     fn a_womans_profile_comes_back_with_her_hip() {
         honouring_for_storing_gather_records::a_womans_profile_comes_back_with_her_hip(&database());
+    }
+
+    #[test]
+    fn burn_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_burn_records::burn_records_come_back_in_the_order_of_their_days(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn what_is_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
+        honouring_for_storing_burn_records::what_is_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn removing_a_workout_or_an_exercise_leaves_the_others() {
+        honouring_for_storing_burn_records::removing_a_workout_or_an_exercise_leaves_the_others(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn replacing_the_burn_records_leaves_only_the_new_ones() {
+        honouring_for_storing_burn_records::replacing_the_burn_records_leaves_only_the_new_ones(
+            &database(),
+        );
     }
 }
