@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+use crate::burn_records::BurnRecords;
 use crate::failure::Failure;
+use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 
@@ -9,6 +11,14 @@ pub struct Imported {
     pub measurements: usize,
     pub profiles: usize,
     pub goals: usize,
+    pub exercises: usize,
+    pub workouts: usize,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Drafted {
+    pub gather: GatherRecords,
+    pub burn: BurnRecords,
 }
 
 pub fn import_gather(
@@ -20,7 +30,17 @@ pub fn import_gather(
         measurements: imported.measurements.len(),
         profiles: imported.profiles.len(),
         goals: imported.goals.len(),
+        ..Imported::default()
     })
+}
+
+pub fn import_drafted(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    drafted: &Drafted,
+) -> Result<Imported, Failure> {
+    let _ = (gather, burn, drafted);
+    Ok(Imported::default())
 }
 
 #[cfg(test)]
@@ -97,6 +117,7 @@ mod tests {
                 measurements: 2,
                 profiles: 1,
                 goals: 1,
+                ..Imported::default()
             })
         );
     }
@@ -115,6 +136,71 @@ mod tests {
     fn records_that_cannot_be_replaced_give_no_import() {
         assert_eq!(
             import_gather(&BrokenGatherRecords, &drafted()),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    fn drafted_burn() -> BurnRecords {
+        BurnRecords {
+            exercises: vec![crate::exercise::Exercise {
+                name: "Walking".into(),
+                met: 4.0,
+            }],
+            workouts: vec![(
+                0,
+                crate::workout::Workout {
+                    day: day("2026-08-10"),
+                    exercise: "Walking".into(),
+                    met: 4.0,
+                    minutes: 30.0,
+                    reps: None,
+                    sets: 1,
+                    load_kg: 0.0,
+                },
+            )],
+            ..BurnRecords::default()
+        }
+    }
+
+    #[test]
+    fn importing_the_draft_replaces_gather_and_burn_and_counts_what_it_brought() {
+        let gather = GatherRecordsInMemory::default();
+        let burn = crate::testing::BurnRecordsInMemory::default();
+
+        let imported = import_drafted(
+            &gather,
+            &burn,
+            &Drafted {
+                gather: drafted(),
+                burn: drafted_burn(),
+            },
+        );
+
+        assert_eq!(
+            imported,
+            Ok(Imported {
+                measurements: 2,
+                profiles: 1,
+                goals: 1,
+                exercises: 1,
+                workouts: 1,
+            })
+        );
+        assert_eq!(gather.gather_records(), Ok(drafted()));
+        assert_eq!(
+            burn.burn_records().map(|burnt| burnt.exercises),
+            Ok(drafted_burn().exercises)
+        );
+    }
+
+    #[test]
+    fn burn_records_that_cannot_be_replaced_give_no_import() {
+        assert_eq!(
+            import_drafted(
+                &GatherRecordsInMemory::default(),
+                &crate::testing::BrokenBurnRecords,
+                &Drafted::default(),
+            ),
             Err(Failure::Broken("the disk is full".into()))
         );
     }
