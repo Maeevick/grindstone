@@ -39,8 +39,13 @@ pub fn import_drafted(
     burn: &impl ForStoringBurnRecords,
     drafted: &Drafted,
 ) -> Result<Imported, Failure> {
-    let _ = (gather, burn, drafted);
-    Ok(Imported::default())
+    let gathered = import_gather(gather, &drafted.gather)?;
+    burn.replace_burn_records(&drafted.burn)?;
+    Ok(Imported {
+        exercises: drafted.burn.exercises.len(),
+        workouts: drafted.burn.workouts.len(),
+        ..gathered
+    })
 }
 
 #[cfg(test)]
