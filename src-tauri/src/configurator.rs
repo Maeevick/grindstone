@@ -27,7 +27,16 @@ pub fn run() {
             commands::set_goals,
             commands::goals_on,
             commands::gather_card,
-            commands::import_draft_gather,
+            commands::import_draft,
+            commands::burn_day,
+            commands::log_workout,
+            commands::remove_workout,
+            commands::set_day_off_the_clock,
+            commands::exercises,
+            commands::add_exercise,
+            commands::remove_exercise,
+            commands::set_usual_day,
+            commands::usual_day_on,
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");

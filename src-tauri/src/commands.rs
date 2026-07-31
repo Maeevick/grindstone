@@ -1,15 +1,20 @@
 use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
+use grind_core::burn::Burn;
+use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
+use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
+use grind_core::for_cataloguing;
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, GatherCard, Window};
-use grind_core::for_setting_up_the_profile::{self, GoalsForm, ProfileForm};
+use grind_core::for_setting_up_the_profile::{self, GoalsForm, ProfileForm, UsualDayForm};
 use grind_core::for_tracking;
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
-use grind_draft::{ImportFailure, gather_from_draft};
+use grind_core::volitional::Volitional;
+use grind_draft::{ImportFailure, drafted};
 use grind_sqlite::Sqlite;
 use tauri::State;
 
@@ -75,15 +80,78 @@ pub fn gather_card(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn import_draft_gather(
+pub fn import_draft(
     records: State<Records>,
     backup: State<DraftBackup>,
 ) -> Result<Imported, ImportFailure> {
-    let backup = std::fs::read_to_string(&backup.0)
-        .map_err(|_| ImportFailure::NoBackupFound(backup.0.display().to_string()))?;
-    let drafted = gather_from_draft(&backup).map_err(ImportFailure::Draft)?;
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_importing::import_gather(&*records, &drafted).map_err(ImportFailure::Failed)
+    let _ = (records, backup);
+    Err(ImportFailure::NoBackupFound("not yet".into()))
+}
+
+fn not_yet<Answer>() -> Result<Answer, Failure> {
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn burn_day(records: State<Records>, date: String) -> Result<Burn, Failure> {
+    let _ = (records, date);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn log_workout(records: State<Records>, form: WorkoutForm) -> Result<Burn, Failure> {
+    let _ = (records, form);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_workout(records: State<Records>, date: String, id: i64) -> Result<Burn, Failure> {
+    let _ = (records, date, id);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_day_off_the_clock(
+    records: State<Records>,
+    date: String,
+    form: OffTheClockForm,
+) -> Result<Burn, Failure> {
+    let _ = (records, date, form);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn exercises(records: State<Records>) -> Result<Vec<Exercise>, Failure> {
+    let _ = (records);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn add_exercise(
+    records: State<Records>,
+    name: String,
+    met: f64,
+) -> Result<Vec<Exercise>, Failure> {
+    let _ = (records, name, met);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_exercise(records: State<Records>, name: String) -> Result<Vec<Exercise>, Failure> {
+    let _ = (records, name);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_usual_day(records: State<Records>, form: UsualDayForm) -> Result<Volitional, Failure> {
+    let _ = (records, form);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn usual_day_on(records: State<Records>, date: String) -> Result<Option<Volitional>, Failure> {
+    let _ = (records, date);
+    not_yet()
 }
 
 #[cfg(test)]
@@ -111,7 +179,16 @@ mod tests {
                 set_goals,
                 goals_on,
                 gather_card,
-                import_draft_gather,
+                import_draft,
+                burn_day,
+                log_workout,
+                remove_workout,
+                set_day_off_the_clock,
+                exercises,
+                add_exercise,
+                remove_exercise,
+                set_usual_day,
+                usual_day_on,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -274,12 +351,14 @@ mod tests {
         .expect("a backup pushed");
         let (_app, screen) = launched_with(backup.clone());
 
-        let answer = invoke(&screen, "import_draft_gather", json!({}));
+        let answer = invoke(&screen, "import_draft", json!({}));
 
         std::fs::remove_file(&backup).expect("the test backup is removed");
         assert_eq!(
             answer,
-            Ok(json!({ "measurements": 1, "profiles": 1, "goals": 1 }))
+            Ok(
+                json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0 })
+            )
         );
     }
 
@@ -287,7 +366,7 @@ mod tests {
     fn importing_with_no_backup_pushed_says_where_it_was_expected() {
         let (_app, screen) = launched();
 
-        let answer = invoke(&screen, "import_draft_gather", json!({}));
+        let answer = invoke(&screen, "import_draft", json!({}));
 
         assert_eq!(
             answer,
@@ -304,12 +383,113 @@ mod tests {
         std::fs::write(&backup, "{ not a backup").expect("a backup pushed");
         let (_app, screen) = launched_with(backup.clone());
 
-        let answer = invoke(&screen, "import_draft_gather", json!({}));
+        let answer = invoke(&screen, "import_draft", json!({}));
 
         std::fs::remove_file(&backup).expect("the test backup is removed");
         assert!(
             matches!(&answer, Err(refusal) if refusal["Draft"]["Unreadable"].is_string()),
             "{answer:?}"
         );
+    }
+
+    fn with_walking_in_the_catalog(screen: &WebviewWindow<MockRuntime>) {
+        invoke(
+            screen,
+            "add_exercise",
+            json!({ "name": "Walking", "met": 4.0 }),
+        )
+        .expect("an exercise adds");
+    }
+
+    fn walked(screen: &WebviewWindow<MockRuntime>, minutes: f64) -> Result<Value, Value> {
+        invoke(
+            screen,
+            "log_workout",
+            json!({ "form": { "date": "2026-10-10", "exercise": "Walking", "minutes": minutes,
+                              "reps": null, "sets": 1, "load_kg": 0.0 } }),
+        )
+    }
+
+    #[test]
+    fn a_workout_logged_from_the_screen_comes_back_in_its_days_burn() {
+        let (_app, screen) = launched();
+        with_walking_in_the_catalog(&screen);
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let burn = walked(&screen, 60.0).expect("a burn");
+        let read_again = invoke(&screen, "burn_day", json!({ "date": "2026-10-10" }));
+
+        assert!(
+            burn["burnt_kcal"]
+                .as_f64()
+                .is_some_and(|kcal| (kcal - 252.0).abs() < 1e-9)
+        );
+        assert_eq!(read_again, Ok(burn));
+    }
+
+    #[test]
+    fn removing_a_workout_answers_the_days_burn_without_it() {
+        let (_app, screen) = launched();
+        with_walking_in_the_catalog(&screen);
+        let burn = walked(&screen, 30.0).expect("a burn");
+        let id = burn["workouts"][0]["id"].clone();
+
+        let answer = invoke(
+            &screen,
+            "remove_workout",
+            json!({ "date": "2026-10-10", "id": id }),
+        );
+
+        assert_eq!(answer.map(|burn| burn["workouts"].clone()), Ok(json!([])));
+    }
+
+    #[test]
+    fn a_day_off_the_clock_set_from_the_screen_is_that_days_own() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(
+            &screen,
+            "set_day_off_the_clock",
+            json!({ "date": "2026-10-10",
+                    "form": { "sitting_min": 600.0, "standing_min": 60.0, "moving_km": 1.0 } }),
+        );
+
+        assert_eq!(
+            answer.map(|burn| burn["off_the_clock_is_usual"].clone()),
+            Ok(json!(false))
+        );
+    }
+
+    #[test]
+    fn exercises_added_and_removed_from_the_screen_answer_the_catalog() {
+        let (_app, screen) = launched();
+        with_walking_in_the_catalog(&screen);
+
+        let listed = invoke(&screen, "exercises", json!({}));
+        let removed = invoke(&screen, "remove_exercise", json!({ "name": "Walking" }));
+
+        assert_eq!(listed, Ok(json!([{ "name": "Walking", "met": 4.0 }])));
+        assert_eq!(removed, Ok(json!([])));
+    }
+
+    #[test]
+    fn a_usual_day_set_from_the_screen_is_the_one_in_force_from_its_day() {
+        let (_app, screen) = launched();
+        let usual = json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 });
+
+        let set = invoke(
+            &screen,
+            "set_usual_day",
+            json!({ "form": { "from": "2026-03-01", "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 } }),
+        );
+        let in_force = invoke(&screen, "usual_day_on", json!({ "date": "2026-10-10" }));
+
+        assert_eq!(set, Ok(usual.clone()));
+        assert_eq!(in_force, Ok(usual));
     }
 }
