@@ -84,30 +84,29 @@ pub fn import_draft(
     records: State<Records>,
     backup: State<DraftBackup>,
 ) -> Result<Imported, ImportFailure> {
-    let _ = (records, backup);
-    Err(ImportFailure::NoBackupFound("not yet".into()))
-}
-
-fn not_yet<Answer>() -> Result<Answer, Failure> {
-    Err(Failure::Broken("not yet".into()))
+    let backup = std::fs::read_to_string(&backup.0)
+        .map_err(|_| ImportFailure::NoBackupFound(backup.0.display().to_string()))?;
+    let drafted = drafted(&backup).map_err(ImportFailure::Draft)?;
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_importing::import_drafted(&*records, &*records, &drafted).map_err(ImportFailure::Failed)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn burn_day(records: State<Records>, date: String) -> Result<Burn, Failure> {
-    let _ = (records, date);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::burn_day(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_workout(records: State<Records>, form: WorkoutForm) -> Result<Burn, Failure> {
-    let _ = (records, form);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::log_workout(&*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_workout(records: State<Records>, date: String, id: i64) -> Result<Burn, Failure> {
-    let _ = (records, date, id);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::remove_workout(&*records, &*records, &date, id)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -116,14 +115,14 @@ pub fn set_day_off_the_clock(
     date: String,
     form: OffTheClockForm,
 ) -> Result<Burn, Failure> {
-    let _ = (records, date, form);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::set_day_off_the_clock(&*records, &*records, &date, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn exercises(records: State<Records>) -> Result<Vec<Exercise>, Failure> {
-    let _ = (records);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::exercises(&*records)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -132,26 +131,26 @@ pub fn add_exercise(
     name: String,
     met: f64,
 ) -> Result<Vec<Exercise>, Failure> {
-    let _ = (records, name, met);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::add_exercise(&*records, &name, met)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_exercise(records: State<Records>, name: String) -> Result<Vec<Exercise>, Failure> {
-    let _ = (records, name);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::remove_exercise(&*records, &name)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn set_usual_day(records: State<Records>, form: UsualDayForm) -> Result<Volitional, Failure> {
-    let _ = (records, form);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::set_usual_day(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn usual_day_on(records: State<Records>, date: String) -> Result<Option<Volitional>, Failure> {
-    let _ = (records, date);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::usual_day_on(&*records, &date)
 }
 
 #[cfg(test)]
