@@ -3,6 +3,9 @@ pub enum Figure {
     Mass(f64),
     Length(f64),
     Ratio(f64),
+    Energy(f64),
+    Duration(f64),
+    Distance(f64),
 }
 
 fn to_the_tenth(value: f64) -> f64 {
@@ -14,6 +17,7 @@ pub fn shown(figure: Figure) -> String {
         Figure::Mass(kg) => (kg, " kg"),
         Figure::Length(cm) => (cm, " cm"),
         Figure::Ratio(ratio) => (ratio * 100.0, "%"),
+        Figure::Energy(_) | Figure::Duration(_) | Figure::Distance(_) => (0.0, " ?"),
     };
     format!("{:.1}{unit}", to_the_tenth(value))
 }
@@ -35,6 +39,23 @@ mod tests {
     #[test]
     fn a_ratio_shows_as_a_percentage_to_the_tenth() {
         assert_eq!(shown(Figure::Ratio(0.1521)), "15.2%");
+    }
+
+    #[test]
+    fn an_energy_shows_in_whole_kilocalories() {
+        assert_eq!(shown(Figure::Energy(251.6)), "252 kcal");
+        assert_eq!(shown(Figure::Energy(-0.4)), "0 kcal");
+    }
+
+    #[test]
+    fn a_duration_shows_in_minutes_to_the_tenth_without_a_trailing_zero() {
+        assert_eq!(shown(Figure::Duration(30.0)), "30 min");
+        assert_eq!(shown(Figure::Duration(0.25)), "0.3 min");
+    }
+
+    #[test]
+    fn a_distance_shows_in_kilometres_to_the_hundredth() {
+        assert_eq!(shown(Figure::Distance(4.234)), "4.23 km");
     }
 
     #[test]
