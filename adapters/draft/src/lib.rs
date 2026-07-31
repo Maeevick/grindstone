@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
 use grind_core::exercise::{Exercise, exercise};
 use grind_core::failure::Failure;
+use grind_core::for_importing::Drafted;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
@@ -281,6 +282,11 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
     })
 }
 
+pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
+    let _ = backup;
+    Ok(Drafted::default())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,6 +504,19 @@ mod tests {
         assert_eq!(
             records.usual_days,
             vec![(day("2026-03-01"), off_the_clock(300.0, 300.0, 4.23))]
+        );
+    }
+
+    #[test]
+    fn a_backup_drafts_the_records_of_every_section() {
+        let drafted = drafted(BURN_BACKUP).expect("drafted records");
+
+        assert_eq!(
+            (
+                drafted.gather.measurements.len(),
+                drafted.burn.workouts.len()
+            ),
+            (1, 2)
         );
     }
 }
