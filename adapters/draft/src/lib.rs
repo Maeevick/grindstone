@@ -283,8 +283,10 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
 }
 
 pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
-    let _ = backup;
-    Ok(Drafted::default())
+    Ok(Drafted {
+        gather: gather_from_draft(backup)?,
+        burn: burn_from_draft(backup)?,
+    })
 }
 
 #[cfg(test)]
