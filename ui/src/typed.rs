@@ -3,6 +3,11 @@ pub fn figure_typed(text: &str) -> Option<f64> {
     (!typed.is_empty()).then(|| typed.replace(',', ".").parse().unwrap_or(f64::NAN))
 }
 
+pub fn count_typed(text: &str) -> Option<u32> {
+    let _ = text;
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -21,5 +26,17 @@ mod tests {
     #[test]
     fn something_typed_that_is_no_number_reaches_the_core_as_not_a_number_for_it_to_refuse() {
         assert!(figure_typed("seventy").is_some_and(f64::is_nan));
+    }
+
+    #[test]
+    fn a_count_typed_reads_as_a_whole_number_and_nothing_typed_as_none() {
+        assert_eq!(count_typed(" 12 "), Some(12));
+        assert_eq!(count_typed(""), None);
+    }
+
+    #[test]
+    fn a_count_that_is_no_whole_number_reaches_the_core_as_zero_for_it_to_refuse() {
+        assert_eq!(count_typed("twelve"), Some(0));
+        assert_eq!(count_typed("-3"), Some(0));
     }
 }
