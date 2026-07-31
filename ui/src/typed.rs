@@ -4,8 +4,8 @@ pub fn figure_typed(text: &str) -> Option<f64> {
 }
 
 pub fn count_typed(text: &str) -> Option<u32> {
-    let _ = text;
-    None
+    let typed = text.trim();
+    (!typed.is_empty()).then(|| typed.parse().unwrap_or(0))
 }
 
 #[cfg(test)]
