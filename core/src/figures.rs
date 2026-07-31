@@ -12,12 +12,18 @@ fn to_the_tenth(value: f64) -> f64 {
     (value * 10.0).round() / 10.0
 }
 
+fn to_the_hundredth(value: f64) -> f64 {
+    (value * 100.0).round() / 100.0
+}
+
 pub fn shown(figure: Figure) -> String {
     let (value, unit) = match figure {
         Figure::Mass(kg) => (kg, " kg"),
         Figure::Length(cm) => (cm, " cm"),
         Figure::Ratio(ratio) => (ratio * 100.0, "%"),
-        Figure::Energy(_) | Figure::Duration(_) | Figure::Distance(_) => (0.0, " ?"),
+        Figure::Energy(kcal) => return format!("{} kcal", kcal.round() + 0.0),
+        Figure::Duration(minutes) => return format!("{} min", to_the_tenth(minutes)),
+        Figure::Distance(km) => return format!("{} km", to_the_hundredth(km)),
     };
     format!("{:.1}{unit}", to_the_tenth(value))
 }
