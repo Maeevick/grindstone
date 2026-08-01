@@ -3,10 +3,14 @@ use std::cell::RefCell;
 use crate::burn_records::BurnRecords;
 use crate::exercise::Exercise;
 use crate::failure::Broken;
+use crate::food::{Food, Nutrients, Unit};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
+use crate::intake::Intake;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
@@ -400,6 +404,266 @@ pub mod honouring_for_storing_burn_records {
     }
 }
 
+#[derive(Default)]
+pub struct FuelRecordsInMemory(RefCell<FuelRecords>);
+
+impl ForStoringFuelRecords for FuelRecordsInMemory {
+    fn save_food(&self, food: &Food) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.foods.retain(|kept| kept.name != food.name);
+        records.foods.push(food.clone());
+        Ok(())
+    }
+
+    fn remove_food(&self, name: &str) -> Result<(), Broken> {
+        self.0.borrow_mut().foods.retain(|kept| kept.name != name);
+        Ok(())
+    }
+
+    fn save_intake(&self, intake: &Intake) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        let id = records.intakes.iter().map(|(id, _)| *id).max().unwrap_or(0) + 1;
+        records.intakes.push((id, intake.clone()));
+        Ok(())
+    }
+
+    fn remove_intake(&self, id: i64) -> Result<(), Broken> {
+        self.0.borrow_mut().intakes.retain(|(kept, _)| *kept != id);
+        Ok(())
+    }
+
+    fn save_targets(&self, from: NaiveDate, targets: &FuelTargets) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.targets.retain(|(kept_from, _)| *kept_from != from);
+        records.targets.push((from, *targets));
+        Ok(())
+    }
+
+    fn replace_fuel_records(&self, records: &FuelRecords) -> Result<(), Broken> {
+        let mut replaced = records.clone();
+        for (id, (kept_id, _)) in (1..).zip(replaced.intakes.iter_mut()) {
+            *kept_id = id;
+        }
+        *self.0.borrow_mut() = replaced;
+        Ok(())
+    }
+
+    fn fuel_records(&self) -> Result<FuelRecords, Broken> {
+        let mut fuelled = self.0.borrow().clone();
+        fuelled
+            .foods
+            .sort_by(|one, other| one.name.cmp(&other.name));
+        fuelled.intakes.sort_by_key(|(id, eaten)| (eaten.day, *id));
+        fuelled.targets.sort_by_key(|(from, _)| *from);
+        Ok(fuelled)
+    }
+}
+
+pub struct BrokenFuelRecords;
+
+impl ForStoringFuelRecords for BrokenFuelRecords {
+    fn save_food(&self, _: &Food) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_food(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_intake(&self, _: &Intake) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_intake(&self, _: i64) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_targets(&self, _: NaiveDate, _: &FuelTargets) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn replace_fuel_records(&self, _: &FuelRecords) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn fuel_records(&self) -> Result<FuelRecords, Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+}
+
+pub mod honouring_for_storing_fuel_records {
+    use super::*;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn a_food(name: &str, energy_kcal: f64) -> Food {
+        Food {
+            name: name.into(),
+            unit: Unit::Gram,
+            portion: 100.0,
+            nutrients: Nutrients {
+                energy_kcal,
+                protein_g: 9.5,
+                carbs_g: 4.0,
+                fat_g: 0.2,
+                fibre_g: 0.0,
+            },
+        }
+    }
+
+    fn eaten(date: &str, food: &str, quantity: f64) -> Intake {
+        Intake {
+            day: day(date),
+            food: food.into(),
+            unit: Unit::Piece,
+            quantity,
+            nutrients: Nutrients {
+                energy_kcal: 54.0 * quantity,
+                ..Nutrients::default()
+            },
+        }
+    }
+
+    fn aiming(protein_g_per_kg: f64) -> FuelTargets {
+        FuelTargets {
+            protein_g_per_kg,
+            fat_g_per_kg: 0.9,
+            fibre_g_per_kg: 0.4,
+        }
+    }
+
+    fn without_ids(records: &FuelRecords) -> Vec<Intake> {
+        records
+            .intakes
+            .iter()
+            .map(|(_, eaten)| eaten.clone())
+            .collect()
+    }
+
+    pub fn fuel_records_come_back_in_the_order_of_their_days(records: &impl ForStoringFuelRecords) {
+        records
+            .save_food(&a_food("Skyr", 54.0))
+            .expect("a food saves");
+        records
+            .save_food(&a_food("Muesli", 365.0))
+            .expect("a food saves");
+        for intake in [
+            eaten("2026-10-10", "Skyr", 2.0),
+            eaten("2026-10-09", "Muesli", 1.0),
+            eaten("2026-10-10", "Muesli", 0.5),
+        ] {
+            records.save_intake(&intake).expect("an intake saves");
+        }
+        records
+            .save_targets(day("2026-09-01"), &aiming(2.0))
+            .expect("targets save");
+        records
+            .save_targets(day("2026-03-01"), &aiming(1.8))
+            .expect("targets save");
+
+        let fuelled = records.fuel_records().expect("the records read");
+
+        assert_eq!(
+            fuelled.foods,
+            vec![a_food("Muesli", 365.0), a_food("Skyr", 54.0)]
+        );
+        assert_eq!(
+            without_ids(&fuelled),
+            vec![
+                eaten("2026-10-09", "Muesli", 1.0),
+                eaten("2026-10-10", "Skyr", 2.0),
+                eaten("2026-10-10", "Muesli", 0.5),
+            ]
+        );
+        assert_eq!(
+            fuelled.targets,
+            vec![
+                (day("2026-03-01"), aiming(1.8)),
+                (day("2026-09-01"), aiming(2.0))
+            ]
+        );
+    }
+
+    pub fn a_food_or_targets_saved_again_replace_the_earlier_ones(
+        records: &impl ForStoringFuelRecords,
+    ) {
+        records
+            .save_food(&a_food("Skyr", 50.0))
+            .expect("a food saves");
+        records
+            .save_targets(day("2026-03-01"), &aiming(1.8))
+            .expect("targets save");
+
+        records
+            .save_food(&a_food("Skyr", 54.0))
+            .expect("a food saves");
+        records
+            .save_targets(day("2026-03-01"), &aiming(2.0))
+            .expect("targets save");
+
+        let fuelled = records.fuel_records().expect("the records read");
+        assert_eq!(fuelled.foods, vec![a_food("Skyr", 54.0)]);
+        assert_eq!(fuelled.targets, vec![(day("2026-03-01"), aiming(2.0))]);
+    }
+
+    pub fn removing_an_intake_or_a_food_leaves_the_others(records: &impl ForStoringFuelRecords) {
+        records
+            .save_food(&a_food("Skyr", 54.0))
+            .expect("a food saves");
+        records
+            .save_food(&a_food("Muesli", 365.0))
+            .expect("a food saves");
+        records
+            .save_intake(&eaten("2026-10-10", "Skyr", 2.0))
+            .expect("an intake saves");
+        records
+            .save_intake(&eaten("2026-10-10", "Skyr", 1.0))
+            .expect("an intake saves");
+        let first = records
+            .fuel_records()
+            .ok()
+            .and_then(|fuelled| fuelled.intakes.first().map(|(id, _)| *id))
+            .expect("a first intake");
+
+        records.remove_intake(first).expect("an intake is removed");
+        records.remove_food("Muesli").expect("a food is removed");
+
+        let fuelled = records.fuel_records().expect("the records read");
+        assert_eq!(
+            without_ids(&fuelled),
+            vec![eaten("2026-10-10", "Skyr", 1.0)]
+        );
+        assert_eq!(fuelled.foods, vec![a_food("Skyr", 54.0)]);
+    }
+
+    pub fn replacing_the_fuel_records_leaves_only_the_new_ones(
+        records: &impl ForStoringFuelRecords,
+    ) {
+        records
+            .save_food(&a_food("Skyr", 54.0))
+            .expect("a food saves");
+        records
+            .save_intake(&eaten("2026-10-10", "Skyr", 2.0))
+            .expect("an intake saves");
+        let replacement = FuelRecords {
+            foods: vec![a_food("Muesli", 365.0)],
+            intakes: vec![(0, eaten("2026-08-02", "Muesli", 1.0))],
+            targets: vec![(day("2026-03-01"), aiming(2.025))],
+        };
+
+        records
+            .replace_fuel_records(&replacement)
+            .expect("the records are replaced");
+
+        let fuelled = records.fuel_records().expect("the records read");
+        assert_eq!(fuelled.foods, replacement.foods);
+        assert_eq!(without_ids(&fuelled), without_ids(&replacement));
+        assert_eq!(fuelled.targets, replacement.targets);
+    }
+}
+
 pub mod honouring_for_storing_gather_records {
     use super::*;
     use crate::gender::Gender;
@@ -652,6 +916,34 @@ mod tests {
     fn replacing_the_burn_records_leaves_only_the_new_ones() {
         honouring_for_storing_burn_records::replacing_the_burn_records_leaves_only_the_new_ones(
             &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn fuel_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_fuel_records::fuel_records_come_back_in_the_order_of_their_days(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_food_or_targets_saved_again_replace_the_earlier_ones() {
+        honouring_for_storing_fuel_records::a_food_or_targets_saved_again_replace_the_earlier_ones(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn removing_an_intake_or_a_food_leaves_the_others() {
+        honouring_for_storing_fuel_records::removing_an_intake_or_a_food_leaves_the_others(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn replacing_the_fuel_records_leaves_only_the_new_ones() {
+        honouring_for_storing_fuel_records::replacing_the_fuel_records_leaves_only_the_new_ones(
+            &FuelRecordsInMemory::default(),
         );
     }
 }
