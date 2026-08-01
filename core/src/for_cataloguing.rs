@@ -1,6 +1,9 @@
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
+use crate::food::{Food, Nutrients, Unit};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
+use serde::{Deserialize, Serialize};
 
 pub fn exercises(burn: &impl ForStoringBurnRecords) -> Result<Vec<Exercise>, Failure> {
     Ok(burn.burn_records()?.exercises)
@@ -21,6 +24,29 @@ pub fn remove_exercise(
 ) -> Result<Vec<Exercise>, Failure> {
     burn.remove_exercise(name)?;
     exercises(burn)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FoodForm {
+    pub name: String,
+    pub unit: Unit,
+    pub portion: f64,
+    pub nutrients: Nutrients,
+}
+
+pub fn foods(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Food>, Failure> {
+    let _ = fuel;
+    Ok(vec![])
+}
+
+pub fn add_food(fuel: &impl ForStoringFuelRecords, form: &FoodForm) -> Result<Vec<Food>, Failure> {
+    let _ = (fuel, form);
+    Ok(vec![])
+}
+
+pub fn remove_food(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<Food>, Failure> {
+    let _ = (fuel, name);
+    Ok(vec![])
 }
 
 #[cfg(test)]
@@ -78,6 +104,51 @@ mod tests {
         assert_eq!(
             remove_exercise(&BrokenBurnRecords, "Walking"),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    fn a_food_form(name: &str, energy_kcal: f64) -> FoodForm {
+        FoodForm {
+            name: name.into(),
+            unit: Unit::Gram,
+            portion: 100.0,
+            nutrients: Nutrients {
+                energy_kcal,
+                protein_g: 9.5,
+                carbs_g: 4.0,
+                fat_g: 0.0,
+                fibre_g: 0.0,
+            },
+        }
+    }
+
+    #[test]
+    fn added_foods_come_back_in_the_catalog_by_name_and_a_food_added_again_takes_its_new_figures() {
+        let fuel = crate::testing::FuelRecordsInMemory::default();
+        add_food(&fuel, &a_food_form("Skyr", 50.0)).expect("a food adds");
+        add_food(&fuel, &a_food_form("Muesli", 365.0)).expect("a food adds");
+
+        let catalog = add_food(&fuel, &a_food_form("Skyr", 54.0)).expect("a catalog");
+
+        assert_eq!(
+            catalog
+                .iter()
+                .map(|food| (food.name.as_str(), food.nutrients.energy_kcal))
+                .collect::<Vec<_>>(),
+            vec![("Muesli", 365.0), ("Skyr", 54.0)]
+        );
+        assert_eq!(foods(&fuel), Ok(catalog));
+    }
+
+    #[test]
+    fn a_removed_food_leaves_the_catalog_and_a_nameless_one_is_refused() {
+        let fuel = crate::testing::FuelRecordsInMemory::default();
+        add_food(&fuel, &a_food_form("Skyr", 54.0)).expect("a food adds");
+
+        assert_eq!(remove_food(&fuel, "Skyr"), Ok(vec![]));
+        assert_eq!(
+            add_food(&fuel, &a_food_form(" ", 54.0)),
+            Err(Failure::Refused(Refusal::NotAName))
         );
     }
 }

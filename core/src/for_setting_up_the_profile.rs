@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::fuel_records::FuelTargets;
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::profile::{Profile, profile};
@@ -102,6 +104,30 @@ pub fn usual_day_on(
 ) -> Result<Option<Volitional>, Failure> {
     let day = day(date)?;
     Ok(version_in_force_on(&burn.burn_records()?.usual_days, day).copied())
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FuelTargetsForm {
+    pub from: String,
+    pub protein_g_per_kg: f64,
+    pub fat_g_per_kg: f64,
+    pub fibre_g_per_kg: f64,
+}
+
+pub fn set_fuel_targets(
+    fuel: &impl ForStoringFuelRecords,
+    form: &FuelTargetsForm,
+) -> Result<FuelTargets, Failure> {
+    let _ = (fuel, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+pub fn fuel_targets_on(
+    fuel: &impl ForStoringFuelRecords,
+    date: &str,
+) -> Result<FuelTargets, Failure> {
+    let _ = (fuel, date);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -249,5 +275,46 @@ mod tests {
             ),
             Err(Failure::Refused(Refusal::NotADate))
         );
+    }
+
+    #[test]
+    fn fuel_targets_set_from_a_date_are_the_ones_in_force_and_the_defaults_stand_before() {
+        let fuel = crate::testing::FuelRecordsInMemory::default();
+        let defaults = fuel_targets_on(&fuel, "2026-10-10").expect("targets");
+        set_fuel_targets(
+            &fuel,
+            &FuelTargetsForm {
+                from: "2026-03-01".into(),
+                protein_g_per_kg: 2.025,
+                fat_g_per_kg: 0.9,
+                fibre_g_per_kg: 0.4,
+            },
+        )
+        .expect("targets set");
+
+        assert_eq!(
+            fuel_targets_on(&fuel, "2026-10-10"),
+            Ok(FuelTargets {
+                protein_g_per_kg: 2.025,
+                fat_g_per_kg: 0.9,
+                fibre_g_per_kg: 0.4,
+            })
+        );
+        assert_eq!(defaults.protein_g_per_kg, 1.6);
+    }
+
+    #[test]
+    fn fuel_targets_below_nothing_are_refused() {
+        let refused = set_fuel_targets(
+            &crate::testing::FuelRecordsInMemory::default(),
+            &FuelTargetsForm {
+                from: "2026-03-01".into(),
+                protein_g_per_kg: -2.0,
+                fat_g_per_kg: 0.9,
+                fibre_g_per_kg: 0.4,
+            },
+        );
+
+        assert_eq!(refused, Err(Failure::Refused(Refusal::NotANutrient)));
     }
 }
