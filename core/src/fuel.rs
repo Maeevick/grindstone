@@ -1,11 +1,19 @@
-use chrono::NaiveDate;
+use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::age::age_on;
+use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::food::Nutrients;
-use crate::fuel_records::FuelRecords;
+use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
+use crate::gender::Gender;
 use crate::intake::Intake;
+use crate::ledger::{Day, ledger};
+use crate::nutrition::{Deficit, Intake as Eaten, Macro, daily_energy_budget};
+use crate::profile::Profile;
+use crate::version::version_in_force_on;
+use crate::volitional::Volitional;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Verdict {
@@ -47,21 +55,267 @@ pub struct Fuel {
     pub macros: Option<Macros>,
 }
 
+const PROTEIN_KCAL_PER_G: f64 = 4.0;
+const CARBS_KCAL_PER_G: f64 = 4.0;
+const FAT_KCAL_PER_G: f64 = 9.0;
+const FIBRE_KCAL_PER_G: f64 = 2.0;
+const SPARED_KCAL_PER_KG_OF_FAT: f64 = 48.5;
+const FIBRE_BEFORE_EATING_G: f64 = 28.0;
+const CARBS_FLOOR_G: f64 = 130.0;
+const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
+const DAYS_OF_ADAPTATION: u64 = 28;
+const DEFAULT_TARGETS: FuelTargets = FuelTargets {
+    protein_g_per_kg: 1.6,
+    fat_g_per_kg: 0.9,
+    fibre_g_per_kg: 0.4,
+};
+
+struct Body {
+    mass_kg: f64,
+    lean_kg: f64,
+    fat_kg: f64,
+    age: u32,
+    gender: Gender,
+}
+
+fn body_on(day: NaiveDate, ledger: &[Day], profiles: &[(NaiveDate, Profile)]) -> Option<Body> {
+    let profile = version_in_force_on(profiles, day)?;
+    let so_far = || ledger.iter().filter(move |measured| measured.day <= day);
+    let weighed = so_far().next_back().or(ledger.first())?;
+    let lean_kg = so_far()
+        .filter_map(|measured| measured.composition)
+        .next_back()
+        .or_else(|| ledger.iter().find_map(|measured| measured.composition))?
+        .lean_mass_kg;
+    Some(Body {
+        mass_kg: weighed.body_mass_kg,
+        lean_kg,
+        fat_kg: (weighed.body_mass_kg - lean_kg).max(0.0),
+        age: age_on(profile.birthday, day),
+        gender: profile.gender,
+    })
+}
+
+fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
+    intakes
+        .iter()
+        .fold(Nutrients::default(), |sum, (_, eaten)| Nutrients {
+            energy_kcal: sum.energy_kcal + eaten.nutrients.energy_kcal,
+            protein_g: sum.protein_g + eaten.nutrients.protein_g,
+            carbs_g: sum.carbs_g + eaten.nutrients.carbs_g,
+            fat_g: sum.fat_g + eaten.nutrients.fat_g,
+            fibre_g: sum.fibre_g + eaten.nutrients.fibre_g,
+        })
+}
+
+fn carbs_floor_g(body: &Body) -> f64 {
+    (CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS * body.lean_kg).max(CARBS_FLOOR_G)
+}
+
+fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eaten {
+    let macros = match eaten {
+        Some(eaten) => Macro {
+            protein: eaten.protein_g,
+            fat: eaten.fat_g,
+            fib: eaten.fibre_g,
+            carb: eaten.carbs_g,
+        },
+        None => Macro {
+            protein: targets.protein_g_per_kg * body.mass_kg,
+            fat: targets.fat_g_per_kg * body.mass_kg,
+            fib: FIBRE_BEFORE_EATING_G,
+            carb: carbs_floor_g(body),
+        },
+    };
+    Eaten {
+        energy: eaten.map_or(0.0, |eaten| eaten.energy_kcal),
+        macros,
+    }
+}
+
+fn band_for(
+    body: &Body,
+    burnt_kcal: f64,
+    off_the_clock: Volitional,
+    deficit: Deficit,
+    digested: Eaten,
+) -> Band {
+    let minimum_kcal_per_kg_of_lean_mass = match body.gender {
+        Gender::Male => 25.0,
+        Gender::Female => 30.0,
+    };
+    let minimum_kcal = minimum_kcal_per_kg_of_lean_mass * body.lean_kg + burnt_kcal;
+    let budget = daily_energy_budget(
+        body.age,
+        body.lean_kg,
+        body.fat_kg,
+        body.gender,
+        off_the_clock,
+        deficit,
+        digested,
+    );
+    let cap_kcal = (budget + burnt_kcal).max(minimum_kcal);
+    Band {
+        minimum_kcal,
+        floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
+        cap_kcal,
+    }
+}
+
+fn mean(gaps: &[f64]) -> Option<f64> {
+    (!gaps.is_empty()).then(|| gaps.iter().sum::<f64>() / gaps.len() as f64)
+}
+
+fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
+    let between = |nearest: u64, furthest: u64| -> Vec<f64> {
+        gaps.iter()
+            .filter(|(logged, _)| {
+                (day - Days::new(furthest)..=day - Days::new(nearest)).contains(logged)
+            })
+            .map(|(_, gap)| *gap)
+            .collect()
+    };
+    let weeks_in_deficit = (0..DAYS_OF_ADAPTATION / 7)
+        .take_while(|week| mean(&between(1 + 7 * week, 7 + 7 * week)).is_some_and(|gap| gap > 0.0))
+        .count();
+    Deficit {
+        trailing_deficit_kcal: mean(&between(1, DAYS_OF_ADAPTATION)).unwrap_or(0.0),
+        weeks_in_deficit: weeks_in_deficit as u32,
+    }
+}
+
+fn verdict_of(eaten: f64, floor: f64, ceiling: f64) -> Verdict {
+    let (eaten, floor, ceiling) = (eaten.round(), floor.round(), ceiling.round());
+    if eaten < floor {
+        Verdict::Low
+    } else if eaten > ceiling {
+        Verdict::High
+    } else {
+        Verdict::InBand
+    }
+}
+
+fn row(eaten_g: f64, floor_g: f64, ceiling_g: f64) -> MacroRow {
+    MacroRow {
+        eaten_g,
+        floor_g,
+        ceiling_g,
+        verdict: verdict_of(eaten_g, floor_g, ceiling_g),
+    }
+}
+
+fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
+    let energy = eaten.energy_kcal;
+    let protein = row(
+        eaten.protein_g,
+        (targets.protein_g_per_kg * body.mass_kg).max(0.20 * energy / PROTEIN_KCAL_PER_G),
+        0.333 * energy / PROTEIN_KCAL_PER_G,
+    );
+    let fat = row(
+        eaten.fat_g,
+        (targets.fat_g_per_kg * body.mass_kg).max(0.20 * energy / FAT_KCAL_PER_G),
+        0.333 * energy / FAT_KCAL_PER_G,
+    );
+    let fibre = row(
+        eaten.fibre_g,
+        (targets.fibre_g_per_kg * body.mass_kg).max(0.024 * energy / FIBRE_KCAL_PER_G),
+        0.04 * energy / FIBRE_KCAL_PER_G,
+    );
+    let spent_kcal = protein.floor_g.max(eaten.protein_g) * PROTEIN_KCAL_PER_G
+        + fat.floor_g.max(eaten.fat_g) * FAT_KCAL_PER_G
+        + fibre.floor_g.max(eaten.fibre_g) * FIBRE_KCAL_PER_G;
+    let carbs_floor = ((band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor_g(body));
+    let carbs_ceiling = ((band.cap_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor);
+    Macros {
+        protein,
+        fat,
+        fibre,
+        carbs: row(eaten.carbs_g, carbs_floor, carbs_ceiling),
+    }
+}
+
+struct Ledgers<'records> {
+    days: Vec<Day>,
+    gather: &'records GatherRecords,
+    burn: &'records BurnRecords,
+    fuel: &'records FuelRecords,
+}
+
+impl Ledgers<'_> {
+    fn intakes_on(&self, day: NaiveDate) -> Vec<(i64, Intake)> {
+        self.fuel
+            .intakes
+            .iter()
+            .filter(|(_, eaten)| eaten.day == day)
+            .cloned()
+            .collect()
+    }
+
+    fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Fuel {
+        let intakes = self.intakes_on(day);
+        let eaten = added_up(&intakes);
+        let targets = version_in_force_on(&self.fuel.targets, day)
+            .copied()
+            .unwrap_or(DEFAULT_TARGETS);
+        let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
+            let burnt = burn_on(day, self.burn, &self.gather.measurements);
+            let band = band_for(
+                &body,
+                burnt.burnt_kcal.unwrap_or(0.0),
+                burnt.off_the_clock.unwrap_or_default(),
+                deficit_before(day, gaps),
+                digested((!intakes.is_empty()).then_some(eaten), &body, targets),
+            );
+            (band, macros_for(eaten, &body, targets, band))
+        });
+        Fuel {
+            day,
+            intakes,
+            eaten,
+            band: banded.map(|(band, _)| band),
+            energy: banded
+                .map(|(band, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
+            macros: banded.map(|(_, macros)| macros),
+        }
+    }
+}
+
 pub fn fuel_over(
     days: &[NaiveDate],
     gather: &GatherRecords,
     burn: &BurnRecords,
     fuel: &FuelRecords,
 ) -> Vec<Fuel> {
-    let _ = (gather, burn, fuel);
+    let ledgers = Ledgers {
+        days: ledger(&gather.measurements, &gather.profiles),
+        gather,
+        burn,
+        fuel,
+    };
+    let last_asked = days.iter().max().copied();
+    let mut logged: Vec<NaiveDate> = fuel
+        .intakes
+        .iter()
+        .map(|(_, eaten)| eaten.day)
+        .filter(|logged| last_asked.is_some_and(|last| *logged < last))
+        .collect();
+    logged.sort();
+    logged.dedup();
+    let gaps = logged.iter().fold(Vec::new(), |mut gaps, logged| {
+        let fuelled = ledgers.fuel_on(*logged, &gaps);
+        if let Some(band) = fuelled.band {
+            gaps.push((*logged, band.cap_kcal - fuelled.eaten.energy_kcal));
+        }
+        gaps
+    });
     days.iter()
-        .map(|day| Fuel {
-            day: *day,
-            intakes: vec![],
-            eaten: Nutrients::default(),
-            band: None,
-            energy: None,
-            macros: None,
+        .map(|day| {
+            let before: Vec<(NaiveDate, f64)> = gaps
+                .iter()
+                .filter(|(logged, _)| logged < day)
+                .copied()
+                .collect();
+            ledgers.fuel_on(*day, &before)
         })
         .collect()
 }
@@ -71,13 +325,8 @@ mod tests {
     use super::*;
     use crate::exercise::Exercise;
     use crate::food::{Food, Unit};
-    use crate::fuel_records::FuelTargets;
-    use crate::gender::Gender;
     use crate::intake::intake;
     use crate::measurement::Measurement;
-    use crate::nutrition::{Deficit, Intake as Eaten, Macro, daily_energy_budget};
-    use crate::profile::Profile;
-    use crate::volitional::Volitional;
     use crate::workout::{burnt_by, workout};
 
     fn day(date: &str) -> NaiveDate {
