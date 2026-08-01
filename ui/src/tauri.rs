@@ -1,10 +1,14 @@
+use grind_core::burn::Burn;
+use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
+use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{GatherCard, Window};
-use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm};
+use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm, UsualDayForm};
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
+use grind_core::volitional::Volitional;
 use grind_draft::ImportFailure;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -103,8 +107,67 @@ pub async fn gather_card(today: &str, window: Window) -> Result<GatherCard, Fail
     call("gather_card", Reviewing { today, window }, broken).await
 }
 
-pub async fn import_draft_gather() -> Result<Imported, ImportFailure> {
-    call("import_draft_gather", Nothing {}, |reason| {
+#[derive(Serialize)]
+struct Removing<'a> {
+    date: &'a str,
+    id: i64,
+}
+
+#[derive(Serialize)]
+struct OnDayWith<'a, Filled> {
+    date: &'a str,
+    form: &'a Filled,
+}
+
+#[derive(Serialize)]
+struct Naming<'a> {
+    name: &'a str,
+}
+
+#[derive(Serialize)]
+struct Cataloguing<'a> {
+    name: &'a str,
+    met: f64,
+}
+
+pub async fn burn_day(date: &str) -> Result<Burn, Failure> {
+    call("burn_day", OnDay { date }, broken).await
+}
+
+pub async fn log_workout(form: &WorkoutForm) -> Result<Burn, Failure> {
+    call("log_workout", Form { form }, broken).await
+}
+
+pub async fn remove_workout(date: &str, id: i64) -> Result<Burn, Failure> {
+    call("remove_workout", Removing { date, id }, broken).await
+}
+
+pub async fn set_day_off_the_clock(date: &str, form: &OffTheClockForm) -> Result<Burn, Failure> {
+    call("set_day_off_the_clock", OnDayWith { date, form }, broken).await
+}
+
+pub async fn exercises() -> Result<Vec<Exercise>, Failure> {
+    call("exercises", Nothing {}, broken).await
+}
+
+pub async fn add_exercise(name: &str, met: f64) -> Result<Vec<Exercise>, Failure> {
+    call("add_exercise", Cataloguing { name, met }, broken).await
+}
+
+pub async fn remove_exercise(name: &str) -> Result<Vec<Exercise>, Failure> {
+    call("remove_exercise", Naming { name }, broken).await
+}
+
+pub async fn set_usual_day(form: &UsualDayForm) -> Result<Volitional, Failure> {
+    call("set_usual_day", Form { form }, broken).await
+}
+
+pub async fn usual_day_on(date: &str) -> Result<Option<Volitional>, Failure> {
+    call("usual_day_on", OnDay { date }, broken).await
+}
+
+pub async fn import_draft() -> Result<Imported, ImportFailure> {
+    call("import_draft", Nothing {}, |reason| {
         ImportFailure::Failed(Failure::Broken(reason))
     })
     .await

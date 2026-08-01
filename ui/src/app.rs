@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{A, Route, Router, Routes};
 use leptos_router::path;
 
+use crate::screens::catalog::Catalog;
 use crate::screens::home::Home;
 use crate::screens::lines;
 use crate::screens::profile::ProfileScreen;
@@ -20,6 +21,7 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <p class="empty">{lines::LOST}</p> }>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/tracker") view=Tracker />
+                    <Route path=path!("/catalog") view=Catalog />
                     <Route path=path!("/profile") view=ProfileScreen />
                     <Route path=path!("/settings") view=Settings />
                 </Routes>
@@ -27,6 +29,7 @@ pub fn App() -> impl IntoView {
             <nav class="tabs">
                 <A href="/">"Home"</A>
                 <A href="/tracker">"Tracker"</A>
+                <A href="/catalog">"Catalog"</A>
                 <A href="/profile">"Profile"</A>
             </nav>
         </Router>

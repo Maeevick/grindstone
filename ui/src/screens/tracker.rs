@@ -3,6 +3,7 @@ use grind_core::ledger::Day;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::screens::burn::BurnDay;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::{lines, today};
 use crate::tauri;
@@ -41,8 +42,7 @@ fn DayRow(day: Day, days: RwSignal<Vec<Day>>, said: RwSignal<Option<String>>) ->
 }
 
 #[component]
-pub fn Tracker() -> impl IntoView {
-    let day = RwSignal::new(today());
+fn GatherDay(day: RwSignal<String>) -> impl IntoView {
     let mass = RwSignal::new(String::new());
     let waist = RwSignal::new(String::new());
     let days = RwSignal::new(Vec::<Day>::new());
@@ -75,7 +75,6 @@ pub fn Tracker() -> impl IntoView {
             <h2>"Gather"</h2>
             <form class="measurement" on:submit=log>
                 <div class="row">
-                    <DateField label="Day" name="day" value=day />
                     <FigureField label="Body mass (kg)" name="mass" value=mass />
                     <FigureField label="Waist (cm)" name="waist" value=waist />
                 </div>
@@ -107,5 +106,45 @@ pub fn Tracker() -> impl IntoView {
                 </tbody>
             </table>
         </section>
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Segment {
+    Gather,
+    Burn,
+}
+
+const SEGMENTS: [(Segment, &str); 2] = [(Segment::Gather, "Gather"), (Segment::Burn, "Burn")];
+
+#[component]
+pub fn Tracker() -> impl IntoView {
+    let day = RwSignal::new(today());
+    let segment = RwSignal::new(Segment::Gather);
+    view! {
+        <section class="card day">
+            <DateField label="Day" name="day" value=day />
+            <div class="pills">
+                {SEGMENTS
+                    .into_iter()
+                    .map(|(named, label)| {
+                        view! {
+                            <button
+                                type="button"
+                                class=format!("pill segment-{named:?}")
+                                class:chosen=move || segment.get() == named
+                                on:click=move |_| segment.set(named)
+                            >
+                                {label}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+        </section>
+        {move || match segment.get() {
+            Segment::Gather => view! { <GatherDay day=day /> }.into_any(),
+            Segment::Burn => view! { <BurnDay day=day /> }.into_any(),
+        }}
     }
 }

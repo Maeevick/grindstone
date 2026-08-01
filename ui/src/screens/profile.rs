@@ -1,4 +1,4 @@
-use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm};
+use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm, UsualDayForm};
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
 use leptos::prelude::*;
@@ -47,6 +47,57 @@ fn GoalsCard() -> impl IntoView {
                 </div>
                 <button class="cta" type="submit">
                     "Keep these goals"
+                </button>
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
+        </section>
+    }
+}
+
+#[component]
+fn UsualDayCard() -> impl IntoView {
+    let from = RwSignal::new(today());
+    let sitting = RwSignal::new(String::new());
+    let standing = RwSignal::new(String::new());
+    let moving = RwSignal::new(String::new());
+    let said = RwSignal::new(None::<String>);
+    spawn_local(async move {
+        if let Ok(Some(usual)) = tauri::usual_day_on(&today()).await {
+            sitting.set(usual.sitting_min.to_string());
+            standing.set(usual.standing_min.to_string());
+            moving.set(usual.moving_km.to_string());
+        }
+    });
+    let save = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let form = UsualDayForm {
+            from: from.get_untracked(),
+            sitting_min: figure_typed(&sitting.get_untracked()).unwrap_or(0.0),
+            standing_min: figure_typed(&standing.get_untracked()).unwrap_or(0.0),
+            moving_km: figure_typed(&moving.get_untracked()).unwrap_or(0.0),
+        };
+        spawn_local(async move {
+            said.set(Some(match tauri::set_usual_day(&form).await {
+                Ok(_) => lines::usual_day_kept(&form.from),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card">
+            <h2>"The usual day off the clock"</h2>
+            <p class="hint">
+                "Outside workouts: the minutes you usually sit and stand, the kilometres you usually move. It prices the day's NEAT."
+            </p>
+            <form class="usual-day" on:submit=save>
+                <div class="row">
+                    <DateField label="From" name="usual_from" value=from />
+                    <FigureField label="Sitting (min)" name="usual_sitting" value=sitting />
+                    <FigureField label="Standing (min)" name="usual_standing" value=standing />
+                    <FigureField label="Moving (km)" name="usual_moving" value=moving />
+                </div>
+                <button class="cta" type="submit">
+                    "Keep this usual day"
                 </button>
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
@@ -140,5 +191,6 @@ pub fn ProfileScreen() -> impl IntoView {
             </form>
         </section>
         <GoalsCard />
+        <UsualDayCard />
     }
 }

@@ -1,3 +1,4 @@
+use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown};
 use grind_core::for_importing::Imported;
@@ -65,12 +66,46 @@ fn counted(count: usize, one: &str, many: &str) -> String {
 
 pub fn imported(imported: &Imported) -> String {
     format!(
-        "Filed: {}, {} and {}. [Grimble dusts off the old records.]",
+        "Filed: {}, {}, {}, {} and {}. [Grimble dusts off the old records.]",
         counted(imported.measurements, "day", "days"),
         counted(imported.profiles, "profile", "profiles"),
-        counted(imported.goals, "goal", "goals")
+        counted(imported.goals, "goal", "goals"),
+        counted(imported.exercises, "exercise", "exercises"),
+        counted(imported.workouts, "workout", "workouts")
     )
 }
+
+pub const NO_WORKOUT: &str = "No workout on this day. A rest day counts as work: \
+    the point is to have decided, not to have moved.";
+
+pub const NO_EXERCISE: &str = "The catalog is empty. Add an exercise and its MET \
+    (the 2024 Compendium of Physical Activities lists them), or import the draft's.";
+
+pub fn burnt(burn: &Burn) -> String {
+    match burn.burnt_kcal {
+        Some(kcal) => format!(
+            "{} burnt beyond the day off the clock.",
+            shown(Figure::Energy(kcal))
+        ),
+        None => {
+            "Weigh in first: I price a workout on the body that did it, not on a stand-in.".into()
+        }
+    }
+}
+
+pub fn off_the_clock(burn: &Burn) -> &'static str {
+    if burn.off_the_clock_is_usual {
+        "The usual day off the clock, as set in Profile. Change it for this day only:"
+    } else {
+        "This day's own day off the clock:"
+    }
+}
+
+pub fn usual_day_kept(from: &str) -> String {
+    format!("Filed: the usual day off the clock is kept from {from}.")
+}
+
+pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only. [Grimble underlines it twice.]";
 
 pub fn import_failure(refused: &ImportFailure) -> String {
     match refused {
