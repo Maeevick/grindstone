@@ -1,3 +1,5 @@
+pub mod burn;
+pub mod catalog;
 pub mod fields;
 pub mod home;
 pub mod lines;

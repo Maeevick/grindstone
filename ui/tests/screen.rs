@@ -1,6 +1,8 @@
 #![cfg(target_arch = "wasm32")]
 
 use grind_ui::app::App;
+use grind_ui::screens::burn::BurnDay;
+use grind_ui::screens::catalog::Catalog;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::settings::Settings;
 use grind_ui::screens::tracker::Tracker;
@@ -318,7 +320,9 @@ async fn the_window_pills_redraw_the_card_over_the_days_they_name() {
 
 #[wasm_bindgen_test]
 async fn importing_the_draft_tells_what_it_brought() {
-    answering(r#"{ "import_draft_gather": { "measurements": 215, "profiles": 5, "goals": 1 } }"#);
+    answering(
+        r#"{ "import_draft": { "measurements": 215, "profiles": 5, "goals": 1, "exercises": 34, "workouts": 659 } }"#,
+    );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
@@ -333,5 +337,70 @@ async fn importing_the_draft_tells_what_it_brought() {
     settled().await;
 
     let said = screen.text_content().unwrap_or_default();
-    assert!(said.contains("215 days, 5 profiles and 1 goal"), "{said}");
+    assert!(said.contains("215 days, 5 profiles, 1 goal"), "{said}");
+    assert!(said.contains("34 exercises and 659 workouts"), "{said}");
+}
+
+const AN_EMPTY_BURN: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0,
+    "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true }"#;
+
+#[wasm_bindgen_test]
+async fn logging_a_workout_lists_it_with_what_it_burnt() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "burn_day": {AN_EMPTY_BURN},
+             "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true,
+                 "workouts": [{{ "id": 1, "burnt_kcal": 252.0, "workout": {{ "day": "2026-10-10", "exercise": "Walking",
+                     "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0 }} }}] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <BurnDay day=day />
+            </Router>
+        }
+    });
+    settled().await;
+    assert_eq!(value_of(&screen, "sitting"), "480");
+
+    typed_into(&screen, "minutes", "60");
+    found::<HtmlFormElement>(&screen, "form.workout")
+        .request_submit()
+        .expect("the workout is logged");
+    settled().await;
+
+    let listed: Element = found(&screen, "table.workouts tbody");
+    let rows = listed.text_content().unwrap_or_default();
+    assert!(rows.contains("Walking") && rows.contains("252 kcal"), "{rows}");
+}
+
+#[wasm_bindgen_test]
+async fn the_catalog_adds_an_exercise_to_its_list() {
+    answering(
+        r#"{ "exercises": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Catalog />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "exercise_name", "Kettlebell swing");
+    typed_into(&screen, "exercise_met", "9.8");
+    found::<HtmlFormElement>(&screen, "form.exercise")
+        .request_submit()
+        .expect("the exercise is added");
+    settled().await;
+
+    let listed: Element = found(&screen, "table.exercises tbody");
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|rows| rows.contains("Kettlebell swing") && rows.contains("9.8"))
+    );
 }
