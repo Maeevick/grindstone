@@ -5,7 +5,8 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::fuel::Fuel;
+use crate::fuel::{Fuel, fuel_over};
+use crate::intake::intake;
 use crate::refusal::Refusal;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -19,14 +20,31 @@ fn day(date: &str) -> Result<NaiveDate, Failure> {
     NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
 }
 
+fn fuel_of_the_day(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    day: NaiveDate,
+) -> Result<Fuel, Failure> {
+    let fuelled = fuel_over(
+        &[day],
+        &gather.gather_records()?,
+        &burn.burn_records()?,
+        &fuel.fuel_records()?,
+    );
+    Ok(fuelled
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| unreachable!("one day asked, one day fuelled")))
+}
+
 pub fn fuel_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     date: &str,
 ) -> Result<Fuel, Failure> {
-    let _ = (gather, burn, fuel, day(date));
-    Err(Failure::Broken("not yet".into()))
+    fuel_of_the_day(gather, burn, fuel, day(date)?)
 }
 
 pub fn log_intake(
@@ -35,8 +53,15 @@ pub fn log_intake(
     fuel: &impl ForStoringFuelRecords,
     form: &IntakeForm,
 ) -> Result<Fuel, Failure> {
-    let _ = (gather, burn, fuel, form);
-    Err(Failure::Broken("not yet".into()))
+    let food = fuel
+        .fuel_records()?
+        .foods
+        .into_iter()
+        .find(|known| known.name == form.food)
+        .ok_or(Failure::Refused(Refusal::NotAFood))?;
+    let eaten = intake(&form.date, &food, form.quantity).map_err(Failure::Refused)?;
+    fuel.save_intake(&eaten)?;
+    fuel_of_the_day(gather, burn, fuel, eaten.day)
 }
 
 pub fn remove_intake(
@@ -46,8 +71,9 @@ pub fn remove_intake(
     date: &str,
     id: i64,
 ) -> Result<Fuel, Failure> {
-    let _ = (gather, burn, fuel, date, id);
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    fuel.remove_intake(id)?;
+    fuel_of_the_day(gather, burn, fuel, day)
 }
 
 #[cfg(test)]

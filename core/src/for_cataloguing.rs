@@ -1,6 +1,6 @@
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
-use crate::food::{Food, Nutrients, Unit};
+use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use serde::{Deserialize, Serialize};
@@ -35,18 +35,19 @@ pub struct FoodForm {
 }
 
 pub fn foods(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Food>, Failure> {
-    let _ = fuel;
-    Ok(vec![])
+    Ok(fuel.fuel_records()?.foods)
 }
 
 pub fn add_food(fuel: &impl ForStoringFuelRecords, form: &FoodForm) -> Result<Vec<Food>, Failure> {
-    let _ = (fuel, form);
-    Ok(vec![])
+    let added =
+        food(&form.name, form.unit, form.portion, form.nutrients).map_err(Failure::Refused)?;
+    fuel.save_food(&added)?;
+    foods(fuel)
 }
 
 pub fn remove_food(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<Food>, Failure> {
-    let _ = (fuel, name);
-    Ok(vec![])
+    fuel.remove_food(name)?;
+    foods(fuel)
 }
 
 #[cfg(test)]

@@ -5,7 +5,7 @@ use crate::age::age_on;
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::food::Nutrients;
-use crate::fuel_records::{FuelRecords, FuelTargets};
+use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
@@ -64,11 +64,6 @@ const FIBRE_BEFORE_EATING_G: f64 = 28.0;
 const CARBS_FLOOR_G: f64 = 130.0;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
-const DEFAULT_TARGETS: FuelTargets = FuelTargets {
-    protein_g_per_kg: 1.6,
-    fat_g_per_kg: 0.9,
-    fibre_g_per_kg: 0.4,
-};
 
 struct Body {
     mass_kg: f64,
@@ -256,7 +251,7 @@ impl Ledgers<'_> {
         let eaten = added_up(&intakes);
         let targets = version_in_force_on(&self.fuel.targets, day)
             .copied()
-            .unwrap_or(DEFAULT_TARGETS);
+            .unwrap_or(DEFAULT_FUEL_TARGETS);
         let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
             let burnt = burn_on(day, self.burn, &self.gather.measurements);
             let band = band_for(

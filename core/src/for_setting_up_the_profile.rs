@@ -5,7 +5,7 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::fuel_records::FuelTargets;
+use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::profile::{Profile, profile};
@@ -118,16 +118,25 @@ pub fn set_fuel_targets(
     fuel: &impl ForStoringFuelRecords,
     form: &FuelTargetsForm,
 ) -> Result<FuelTargets, Failure> {
-    let _ = (fuel, form);
-    Err(Failure::Broken("not yet".into()))
+    let from = day(&form.from)?;
+    let targets = fuel_targets(
+        form.protein_g_per_kg,
+        form.fat_g_per_kg,
+        form.fibre_g_per_kg,
+    )
+    .map_err(Failure::Refused)?;
+    fuel.save_targets(from, &targets)?;
+    Ok(targets)
 }
 
 pub fn fuel_targets_on(
     fuel: &impl ForStoringFuelRecords,
     date: &str,
 ) -> Result<FuelTargets, Failure> {
-    let _ = (fuel, date);
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    Ok(version_in_force_on(&fuel.fuel_records()?.targets, day)
+        .copied()
+        .unwrap_or(DEFAULT_FUEL_TARGETS))
 }
 
 #[cfg(test)]
