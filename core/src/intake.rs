@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::food::{Food, Nutrients, Unit};
+use crate::food::{Food, Nutrients, Unit, nutrients_of};
 use crate::refusal::Refusal;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -14,8 +14,17 @@ pub struct Intake {
 }
 
 pub fn intake(date: &str, food: &Food, quantity: f64) -> Result<Intake, Refusal> {
-    let _ = (date, food, quantity);
-    Err(Refusal::NotADate)
+    let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
+    if !(quantity.is_finite() && quantity > 0.0) {
+        return Err(Refusal::NotAQuantity);
+    }
+    Ok(Intake {
+        day,
+        food: food.name.clone(),
+        unit: food.unit,
+        quantity,
+        nutrients: nutrients_of(food, quantity),
+    })
 }
 
 #[cfg(test)]

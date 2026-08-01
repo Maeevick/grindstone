@@ -26,14 +26,55 @@ pub struct Food {
     pub nutrients: Nutrients,
 }
 
+fn is_nothing_or_more(figure: f64) -> bool {
+    figure.is_finite() && figure >= 0.0
+}
+
 pub fn food(name: &str, unit: Unit, portion: f64, nutrients: Nutrients) -> Result<Food, Refusal> {
-    let _ = (name, unit, portion, nutrients);
-    Err(Refusal::NotAName)
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(Refusal::NotAName);
+    }
+    if !(portion.is_finite() && portion > 0.0) {
+        return Err(Refusal::NotAPortion);
+    }
+    let Nutrients {
+        energy_kcal,
+        protein_g,
+        carbs_g,
+        fat_g,
+        fibre_g,
+    } = nutrients;
+    if ![energy_kcal, protein_g, carbs_g, fat_g, fibre_g]
+        .into_iter()
+        .all(is_nothing_or_more)
+    {
+        return Err(Refusal::NotANutrient);
+    }
+    Ok(Food {
+        name: name.into(),
+        unit,
+        portion,
+        nutrients,
+    })
 }
 
 pub fn nutrients_of(food: &Food, quantity: f64) -> Nutrients {
-    let _ = (food, quantity);
-    Nutrients::default()
+    let share = quantity / food.portion;
+    let Nutrients {
+        energy_kcal,
+        protein_g,
+        carbs_g,
+        fat_g,
+        fibre_g,
+    } = food.nutrients;
+    Nutrients {
+        energy_kcal: energy_kcal * share,
+        protein_g: protein_g * share,
+        carbs_g: carbs_g * share,
+        fat_g: fat_g * share,
+        fibre_g: fibre_g * share,
+    }
 }
 
 #[cfg(test)]
