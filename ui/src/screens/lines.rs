@@ -178,6 +178,16 @@ pub fn failure(failure: &Failure) -> String {
             "Minutes and kilometres of nothing or more, and no more minutes than a day holds."
                 .into()
         }
+        Failure::Refused(Refusal::NotAPortion) => {
+            "A portion above nothing: per 100 g, per 250 mL or per piece.".into()
+        }
+        Failure::Refused(Refusal::NotANutrient) => {
+            "Energy and macros of nothing or more. Negative protein is a Trix experiment.".into()
+        }
+        Failure::Refused(Refusal::NotAQuantity) => "A quantity above nothing, please.".into(),
+        Failure::Refused(Refusal::NotAFood) => {
+            "That food is not in the catalog yet. Add it there first.".into()
+        }
         Failure::Refused(Refusal::NotAnExercise) => {
             "That exercise is not in the catalog yet. Veil checked twice.".into()
         }

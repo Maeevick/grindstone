@@ -16,4 +16,8 @@ pub enum Refusal {
     NotALoad,
     NotADistance,
     NotAnExercise,
+    NotAPortion,
+    NotANutrient,
+    NotAQuantity,
+    NotAFood,
 }
