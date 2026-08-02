@@ -5,7 +5,7 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::fuel::{Fuel, fuel_over};
+use crate::fuel::{Fuel, fuel_on};
 use crate::intake::intake;
 use crate::refusal::Refusal;
 
@@ -26,16 +26,12 @@ fn fuel_of_the_day(
     fuel: &impl ForStoringFuelRecords,
     day: NaiveDate,
 ) -> Result<Fuel, Failure> {
-    let fuelled = fuel_over(
-        &[day],
+    Ok(fuel_on(
+        day,
         &gather.gather_records()?,
         &burn.burn_records()?,
         &fuel.fuel_records()?,
-    );
-    Ok(fuelled
-        .into_iter()
-        .next()
-        .unwrap_or_else(|| unreachable!("one day asked, one day fuelled")))
+    ))
 }
 
 pub fn fuel_day(

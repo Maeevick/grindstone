@@ -275,34 +275,62 @@ impl Ledgers<'_> {
     }
 }
 
+impl<'records> Ledgers<'records> {
+    fn of(
+        gather: &'records GatherRecords,
+        burn: &'records BurnRecords,
+        fuel: &'records FuelRecords,
+    ) -> Self {
+        Ledgers {
+            days: ledger(&gather.measurements, &gather.profiles),
+            gather,
+            burn,
+            fuel,
+        }
+    }
+
+    fn gaps_before(&self, last: NaiveDate) -> Vec<(NaiveDate, f64)> {
+        let mut logged: Vec<NaiveDate> = self
+            .fuel
+            .intakes
+            .iter()
+            .map(|(_, eaten)| eaten.day)
+            .filter(|logged| *logged < last)
+            .collect();
+        logged.sort();
+        logged.dedup();
+        logged.iter().fold(Vec::new(), |mut gaps, logged| {
+            let fuelled = self.fuel_on(*logged, &gaps);
+            if let Some(band) = fuelled.band {
+                gaps.push((*logged, band.cap_kcal - fuelled.eaten.energy_kcal));
+            }
+            gaps
+        })
+    }
+}
+
+pub fn fuel_on(
+    day: NaiveDate,
+    gather: &GatherRecords,
+    burn: &BurnRecords,
+    fuel: &FuelRecords,
+) -> Fuel {
+    let ledgers = Ledgers::of(gather, burn, fuel);
+    ledgers.fuel_on(day, &ledgers.gaps_before(day))
+}
+
 pub fn fuel_over(
     days: &[NaiveDate],
     gather: &GatherRecords,
     burn: &BurnRecords,
     fuel: &FuelRecords,
 ) -> Vec<Fuel> {
-    let ledgers = Ledgers {
-        days: ledger(&gather.measurements, &gather.profiles),
-        gather,
-        burn,
-        fuel,
-    };
-    let last_asked = days.iter().max().copied();
-    let mut logged: Vec<NaiveDate> = fuel
-        .intakes
+    let ledgers = Ledgers::of(gather, burn, fuel);
+    let gaps = days
         .iter()
-        .map(|(_, eaten)| eaten.day)
-        .filter(|logged| last_asked.is_some_and(|last| *logged < last))
-        .collect();
-    logged.sort();
-    logged.dedup();
-    let gaps = logged.iter().fold(Vec::new(), |mut gaps, logged| {
-        let fuelled = ledgers.fuel_on(*logged, &gaps);
-        if let Some(band) = fuelled.band {
-            gaps.push((*logged, band.cap_kcal - fuelled.eaten.energy_kcal));
-        }
-        gaps
-    });
+        .max()
+        .map(|last| ledgers.gaps_before(*last))
+        .unwrap_or_default();
     days.iter()
         .map(|day| {
             let before: Vec<(NaiveDate, f64)> = gaps
