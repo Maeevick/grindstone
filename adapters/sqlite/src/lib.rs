@@ -407,34 +407,161 @@ impl ForStoringBurnRecords for Sqlite {
     }
 }
 
+fn unit_word(unit: Unit) -> &'static str {
+    match unit {
+        Unit::Gram => "g",
+        Unit::Millilitre => "mL",
+        Unit::Piece => "piece",
+    }
+}
+
+fn unit_read(word: &str) -> rusqlite::Result<Unit> {
+    match word {
+        "g" => Ok(Unit::Gram),
+        "mL" => Ok(Unit::Millilitre),
+        "piece" => Ok(Unit::Piece),
+        unknown => Err(rusqlite::Error::InvalidParameterName(format!(
+            "a unit the app does not know: {unknown}"
+        ))),
+    }
+}
+
+fn nutrients_read(row: &rusqlite::Row, first: usize) -> rusqlite::Result<Nutrients> {
+    Ok(Nutrients {
+        energy_kcal: row.get(first)?,
+        protein_g: row.get(first + 1)?,
+        carbs_g: row.get(first + 2)?,
+        fat_g: row.get(first + 3)?,
+        fibre_g: row.get(first + 4)?,
+    })
+}
+
 impl ForStoringFuelRecords for Sqlite {
-    fn save_food(&self, _: &Food) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_food(&self, food: &Food) -> Result<(), Broken> {
+        let figures = food.nutrients;
+        self.run(
+            "insert into foods (name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g)
+             values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             on conflict (name) do update set unit = excluded.unit, portion = excluded.portion,
+                 energy_kcal = excluded.energy_kcal, protein_g = excluded.protein_g,
+                 carbs_g = excluded.carbs_g, fat_g = excluded.fat_g, fibre_g = excluded.fibre_g",
+            params![
+                food.name,
+                unit_word(food.unit),
+                food.portion,
+                figures.energy_kcal,
+                figures.protein_g,
+                figures.carbs_g,
+                figures.fat_g,
+                figures.fibre_g
+            ],
+        )
     }
 
-    fn remove_food(&self, _: &str) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn remove_food(&self, name: &str) -> Result<(), Broken> {
+        self.run("delete from foods where name = ?1", params![name])
     }
 
-    fn save_intake(&self, _: &Intake) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_intake(&self, intake: &Intake) -> Result<(), Broken> {
+        let figures = intake.nutrients;
+        self.run(
+            "insert into intakes (day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g)
+             values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                intake.day,
+                intake.food,
+                unit_word(intake.unit),
+                intake.quantity,
+                figures.energy_kcal,
+                figures.protein_g,
+                figures.carbs_g,
+                figures.fat_g,
+                figures.fibre_g
+            ],
+        )
     }
 
-    fn remove_intake(&self, _: i64) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn remove_intake(&self, id: i64) -> Result<(), Broken> {
+        self.run("delete from intakes where id = ?1", params![id])
     }
 
-    fn save_targets(&self, _: NaiveDate, _: &FuelTargets) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_targets(&self, from: NaiveDate, targets: &FuelTargets) -> Result<(), Broken> {
+        self.run(
+            "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg)
+             values (?1, ?2, ?3, ?4)
+             on conflict (effective_from) do update set protein_g_per_kg = excluded.protein_g_per_kg,
+                 fat_g_per_kg = excluded.fat_g_per_kg, fibre_g_per_kg = excluded.fibre_g_per_kg",
+            params![
+                from,
+                targets.protein_g_per_kg,
+                targets.fat_g_per_kg,
+                targets.fibre_g_per_kg
+            ],
+        )
     }
 
-    fn replace_fuel_records(&self, _: &FuelRecords) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn replace_fuel_records(&self, records: &FuelRecords) -> Result<(), Broken> {
+        let replacing = self.0.unchecked_transaction().map_err(broken)?;
+        replacing
+            .execute_batch("delete from foods; delete from intakes; delete from fuel_targets;")
+            .map_err(broken)?;
+        for food in &records.foods {
+            self.save_food(food)?;
+        }
+        for (_, intake) in &records.intakes {
+            self.save_intake(intake)?;
+        }
+        for (from, targets) in &records.targets {
+            self.save_targets(*from, targets)?;
+        }
+        replacing.commit().map_err(broken)
     }
 
     fn fuel_records(&self) -> Result<FuelRecords, Broken> {
-        let _ = (Nutrients::default(), Unit::Gram);
-        Err(Broken("not yet".into()))
+        Ok(FuelRecords {
+            foods: self.rows(
+                "select name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
+                 from foods order by name",
+                |row| {
+                    Ok(Food {
+                        name: row.get(0)?,
+                        unit: unit_read(&row.get::<_, String>(1)?)?,
+                        portion: row.get(2)?,
+                        nutrients: nutrients_read(row, 3)?,
+                    })
+                },
+            )?,
+            intakes: self.rows(
+                "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
+                 from intakes order by day, id",
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        Intake {
+                            day: row.get(1)?,
+                            food: row.get(2)?,
+                            unit: unit_read(&row.get::<_, String>(3)?)?,
+                            quantity: row.get(4)?,
+                            nutrients: nutrients_read(row, 5)?,
+                        },
+                    ))
+                },
+            )?,
+            targets: self.rows(
+                "select effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg
+                 from fuel_targets order by effective_from",
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        FuelTargets {
+                            protein_g_per_kg: row.get(1)?,
+                            fat_g_per_kg: row.get(2)?,
+                            fibre_g_per_kg: row.get(3)?,
+                        },
+                    ))
+                },
+            )?,
+        })
     }
 }
 
@@ -667,5 +794,48 @@ mod tests {
         honouring_for_storing_fuel_records::replacing_the_fuel_records_leaves_only_the_new_ones(
             &database(),
         );
+    }
+
+    #[test]
+    fn foods_and_intakes_keep_their_unit_whatever_it_is() {
+        let records = database();
+        for (name, unit) in [
+            ("Skyr", Unit::Gram),
+            ("Beer", Unit::Millilitre),
+            ("Egg", Unit::Piece),
+        ] {
+            records
+                .save_food(&Food {
+                    name: name.into(),
+                    unit,
+                    portion: 1.0,
+                    nutrients: Nutrients::default(),
+                })
+                .expect("a food saves");
+        }
+
+        let units: Vec<Unit> = records
+            .fuel_records()
+            .expect("the records read")
+            .foods
+            .iter()
+            .map(|food| food.unit)
+            .collect();
+
+        assert_eq!(units, vec![Unit::Millilitre, Unit::Piece, Unit::Gram]);
+    }
+
+    #[test]
+    fn a_food_whose_unit_the_app_does_not_know_reads_as_broken() {
+        let records = database();
+        records
+            .0
+            .execute(
+                "insert into foods values ('Skyr', 'spoon', 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)",
+                [],
+            )
+            .expect("a food no app wrote");
+
+        assert!(matches!(records.fuel_records(), Err(Broken(reason)) if reason.contains("spoon")));
     }
 }
