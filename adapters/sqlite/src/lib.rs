@@ -4,11 +4,15 @@ use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
+use grind_core::food::{Food, Nutrients, Unit};
 use grind_core::for_storing_burn_records::ForStoringBurnRecords;
+use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
+use grind_core::fuel_records::{FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
+use grind_core::intake::Intake;
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
@@ -36,6 +40,19 @@ const MIGRATIONS: &[&str] = &[
      create table usual_days (
          effective_from text primary key, sitting_min real not null, standing_min real not null,
          moving_km real not null
+     );",
+    "create table foods (
+         name text primary key, unit text not null, portion real not null, energy_kcal real not null,
+         protein_g real not null, carbs_g real not null, fat_g real not null, fibre_g real not null
+     );
+     create table intakes (
+         id integer primary key, day text not null, food text not null, unit text not null,
+         quantity real not null, energy_kcal real not null, protein_g real not null,
+         carbs_g real not null, fat_g real not null, fibre_g real not null
+     );
+     create table fuel_targets (
+         effective_from text primary key, protein_g_per_kg real not null, fat_g_per_kg real not null,
+         fibre_g_per_kg real not null
      );",
 ];
 
@@ -390,10 +407,42 @@ impl ForStoringBurnRecords for Sqlite {
     }
 }
 
+impl ForStoringFuelRecords for Sqlite {
+    fn save_food(&self, _: &Food) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn remove_food(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn save_intake(&self, _: &Intake) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn remove_intake(&self, _: i64) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn save_targets(&self, _: NaiveDate, _: &FuelTargets) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn replace_fuel_records(&self, _: &FuelRecords) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn fuel_records(&self) -> Result<FuelRecords, Broken> {
+        let _ = (Nutrients::default(), Unit::Gram);
+        Err(Broken("not yet".into()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use grind_core::testing::honouring_for_storing_burn_records;
+    use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
 
     fn database() -> Sqlite {
@@ -588,6 +637,34 @@ mod tests {
     #[test]
     fn replacing_the_burn_records_leaves_only_the_new_ones() {
         honouring_for_storing_burn_records::replacing_the_burn_records_leaves_only_the_new_ones(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn fuel_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_fuel_records::fuel_records_come_back_in_the_order_of_their_days(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn a_food_or_targets_saved_again_replace_the_earlier_ones() {
+        honouring_for_storing_fuel_records::a_food_or_targets_saved_again_replace_the_earlier_ones(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn removing_an_intake_or_a_food_leaves_the_others() {
+        honouring_for_storing_fuel_records::removing_an_intake_or_a_food_leaves_the_others(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn replacing_the_fuel_records_leaves_only_the_new_ones() {
+        honouring_for_storing_fuel_records::replacing_the_fuel_records_leaves_only_the_new_ones(
             &database(),
         );
     }
