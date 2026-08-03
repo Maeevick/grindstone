@@ -3,6 +3,7 @@ use grind_core::burn_records::BurnRecords;
 use grind_core::exercise::{Exercise, exercise};
 use grind_core::failure::Failure;
 use grind_core::for_importing::Drafted;
+use grind_core::fuel_records::FuelRecords;
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
@@ -21,6 +22,7 @@ pub enum DraftRefusal {
     NotAMeasurement { date: String, refusal: Refusal },
     NotAnExercise { name: String, refusal: Refusal },
     NotAWorkout { date: String, refusal: Refusal },
+    NotAFood { name: String, refusal: Refusal },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -41,6 +43,49 @@ struct Backup {
     workout_catalogs: WorkoutCatalogs,
     #[serde(default)]
     workout_logs: Vec<WorkoutLog>,
+    #[serde(default)]
+    intake_catalogs: IntakeCatalogs,
+    #[serde(default)]
+    intake_logs: Vec<IntakeLog>,
+}
+
+#[derive(Default, Deserialize)]
+struct IntakeCatalogs {
+    #[serde(default)]
+    foods: Vec<DraftFood>,
+}
+
+#[derive(Deserialize)]
+struct DraftFood {
+    name: String,
+    qty: f64,
+    unit: String,
+    cal: f64,
+    prot: f64,
+    carbs: f64,
+    fat: f64,
+    fiber: f64,
+}
+
+#[derive(Deserialize)]
+struct IntakeLog {
+    date: String,
+    prot_g_kg: f64,
+    fat_g_kg: f64,
+    #[serde(default)]
+    foods: Vec<IntakeLine>,
+}
+
+#[derive(Deserialize)]
+struct IntakeLine {
+    name: String,
+    qty: f64,
+    unit: String,
+    energy: f64,
+    protein: f64,
+    carb: f64,
+    fat: f64,
+    fiber: f64,
 }
 
 #[derive(Deserialize)]
@@ -282,6 +327,11 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
     })
 }
 
+pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
+    let _ = backup;
+    Ok(FuelRecords::default())
+}
+
 pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
     Ok(Drafted {
         gather: gather_from_draft(backup)?,
@@ -519,6 +569,85 @@ mod tests {
                 drafted.burn.workouts.len()
             ),
             (1, 2)
+        );
+    }
+
+    const FUEL_BACKUP: &str = r#"{
+        "settings": { "version": "0.4.0", "started_at": "2026-03-01" },
+        "measurement_bases": { "birthday": "1985-04-12" },
+        "intake_catalogs": { "foods": [
+            { "id": "s", "created_at": 1, "name": "Skyr", "qty": 100.0, "unit": "g", "cal": 54.0, "prot": 9.5, "carbs": 4.0, "fat": 0.0, "fiber": 0.0 },
+            { "id": "b", "created_at": 2, "name": "Beer", "qty": 1000.0, "unit": "ml", "cal": 432.0, "prot": 3.0, "carbs": 30.0, "fat": 0.0, "fiber": 0.0 },
+            { "id": "e", "created_at": 3, "name": "Egg", "qty": 1.0, "unit": "piece", "cal": 70.0, "prot": 6.0, "carbs": 0.5, "fat": 5.0, "fiber": 0.0 },
+            { "id": "c", "created_at": 4, "name": "Coffee", "qty": 1.0, "unit": "piece", "cal": 0.0, "prot": 0.0, "carbs": 0.0, "fat": 0.0, "fiber": 0.0 }
+        ] },
+        "intake_logs": [
+            { "id": "d1", "created_at": 1, "date": "2026-08-02", "prot_g_kg": 2.0, "fat_g_kg": 0.9, "foods": [
+                { "id": "1", "created_at": 1, "name": "Skyr", "qty": 200.0, "unit": "g", "energy": 108.0, "protein": 19.0, "carb": 8.0, "fat": 0.0, "fiber": 0.0 },
+                { "id": "2", "created_at": 2, "name": "Coffee", "qty": 1.0, "unit": "piece", "energy": 0.0, "protein": 0.0, "carb": 0.0, "fat": 0.0, "fiber": 0.0 }
+            ] },
+            { "id": "d2", "created_at": 2, "date": "2026-08-03", "prot_g_kg": 2.0, "fat_g_kg": 0.9, "foods": [
+                { "id": "3", "created_at": 3, "name": "Huile (1 tbsp)", "qty": 15.0, "unit": "ml", "energy": 120.0, "protein": 0.0, "carb": 0.0, "fat": 13.5, "fiber": 0.0 }
+            ] },
+            { "id": "d3", "created_at": 3, "date": "2026-09-01", "prot_g_kg": 2.025, "fat_g_kg": 0.9, "foods": [] }
+        ]
+    }"#;
+
+    #[test]
+    fn the_draft_foods_become_the_food_catalog_with_their_portion_and_unit_but_coffee() {
+        let foods = fuel_from_draft(FUEL_BACKUP).map(|records| {
+            records
+                .foods
+                .into_iter()
+                .map(|food| (food.name, food.unit, food.portion))
+                .collect::<Vec<_>>()
+        });
+
+        assert_eq!(
+            foods,
+            Ok(vec![
+                ("Skyr".into(), grind_core::food::Unit::Gram, 100.0),
+                ("Beer".into(), grind_core::food::Unit::Millilitre, 1000.0),
+                ("Egg".into(), grind_core::food::Unit::Piece, 1.0),
+            ])
+        );
+    }
+
+    #[test]
+    fn each_drafted_line_but_coffee_and_tea_becomes_an_intake_frozen_on_its_stored_figures() {
+        let intakes = fuel_from_draft(FUEL_BACKUP).map(|records| {
+            records
+                .intakes
+                .into_iter()
+                .map(|(_, eaten)| (eaten.day, eaten.food, eaten.quantity, eaten.nutrients.fat_g))
+                .collect::<Vec<_>>()
+        });
+
+        assert_eq!(
+            intakes,
+            Ok(vec![
+                (day("2026-08-02"), "Skyr".into(), 200.0, 0.0),
+                (day("2026-08-03"), "Huile (1 tbsp)".into(), 15.0, 13.5),
+            ])
+        );
+    }
+
+    #[test]
+    fn the_targets_frozen_on_the_drafted_days_open_a_version_wherever_they_change() {
+        let targets = fuel_from_draft(FUEL_BACKUP).map(|records| {
+            records
+                .targets
+                .into_iter()
+                .map(|(from, aims)| (from, aims.protein_g_per_kg, aims.fibre_g_per_kg))
+                .collect::<Vec<_>>()
+        });
+
+        assert_eq!(
+            targets,
+            Ok(vec![
+                (day("2026-08-02"), 2.0, 0.4),
+                (day("2026-09-01"), 2.025, 0.4)
+            ])
         );
     }
 }
