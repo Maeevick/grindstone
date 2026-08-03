@@ -37,6 +37,14 @@ pub fn run() {
             commands::remove_exercise,
             commands::set_usual_day,
             commands::usual_day_on,
+            commands::fuel_day,
+            commands::log_intake,
+            commands::remove_intake,
+            commands::foods,
+            commands::add_food,
+            commands::remove_food,
+            commands::set_fuel_targets,
+            commands::fuel_targets_on,
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");

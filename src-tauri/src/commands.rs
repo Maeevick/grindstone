@@ -4,12 +4,18 @@ use std::sync::{Mutex, PoisonError};
 use grind_core::burn::Burn;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
+use grind_core::food::Food;
 use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
-use grind_core::for_cataloguing;
+use grind_core::for_cataloguing::{self, FoodForm};
+use grind_core::for_fuelling::{self, IntakeForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, GatherCard, Window};
-use grind_core::for_setting_up_the_profile::{self, GoalsForm, ProfileForm, UsualDayForm};
+use grind_core::for_setting_up_the_profile::{
+    self, FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+};
 use grind_core::for_tracking;
+use grind_core::fuel::Fuel;
+use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
@@ -154,6 +160,57 @@ pub fn usual_day_on(records: State<Records>, date: String) -> Result<Option<Voli
     for_setting_up_the_profile::usual_day_on(&*records, &date)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_day(records: State<Records>, date: String) -> Result<Fuel, Failure> {
+    let _ = (records, date);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn log_intake(records: State<Records>, form: IntakeForm) -> Result<Fuel, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_intake(records: State<Records>, date: String, id: i64) -> Result<Fuel, Failure> {
+    let _ = (records, date, id);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn foods(records: State<Records>) -> Result<Vec<Food>, Failure> {
+    let _ = records;
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn add_food(records: State<Records>, form: FoodForm) -> Result<Vec<Food>, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_food(records: State<Records>, name: String) -> Result<Vec<Food>, Failure> {
+    let _ = (records, name);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_fuel_targets(
+    records: State<Records>,
+    form: FuelTargetsForm,
+) -> Result<FuelTargets, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_targets_on(records: State<Records>, date: String) -> Result<FuelTargets, Failure> {
+    let _ = (records, date);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,6 +246,14 @@ mod tests {
                 remove_exercise,
                 set_usual_day,
                 usual_day_on,
+                fuel_day,
+                log_intake,
+                remove_intake,
+                foods,
+                add_food,
+                remove_food,
+                set_fuel_targets,
+                fuel_targets_on,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -491,5 +556,66 @@ mod tests {
 
         assert_eq!(set, Ok(usual.clone()));
         assert_eq!(in_force, Ok(usual));
+    }
+
+    fn with_skyr_in_the_catalog(screen: &WebviewWindow<MockRuntime>) -> Result<Value, Value> {
+        invoke(
+            screen,
+            "add_food",
+            json!({ "form": { "name": "Skyr", "unit": "Gram", "portion": 100.0,
+                "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } } }),
+        )
+    }
+
+    #[test]
+    fn an_intake_logged_from_the_screen_comes_back_in_its_days_fuel() {
+        let (_app, screen) = launched();
+        with_skyr_in_the_catalog(&screen).expect("a food adds");
+
+        let fuel = invoke(
+            &screen,
+            "log_intake",
+            json!({ "form": { "date": "2026-10-10", "food": "Skyr", "quantity": 200.0 } }),
+        )
+        .expect("a fuel");
+        let read_again = invoke(&screen, "fuel_day", json!({ "date": "2026-10-10" }));
+        let id = fuel["intakes"][0][0].clone();
+        let removed = invoke(
+            &screen,
+            "remove_intake",
+            json!({ "date": "2026-10-10", "id": id }),
+        );
+
+        assert_eq!(fuel["eaten"]["energy_kcal"], json!(108.0));
+        assert_eq!(read_again, Ok(fuel));
+        assert_eq!(removed.map(|fuel| fuel["intakes"].clone()), Ok(json!([])));
+    }
+
+    #[test]
+    fn foods_added_and_removed_from_the_screen_answer_the_catalog() {
+        let (_app, screen) = launched();
+
+        let added = with_skyr_in_the_catalog(&screen);
+        let listed = invoke(&screen, "foods", json!({}));
+        let removed = invoke(&screen, "remove_food", json!({ "name": "Skyr" }));
+
+        assert_eq!(listed, added);
+        assert_eq!(removed, Ok(json!([])));
+    }
+
+    #[test]
+    fn fuel_targets_set_from_the_screen_are_the_ones_in_force_from_their_day() {
+        let (_app, screen) = launched();
+        let aims = json!({ "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 });
+
+        let set = invoke(
+            &screen,
+            "set_fuel_targets",
+            json!({ "form": { "from": "2026-03-01", "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 } }),
+        );
+        let in_force = invoke(&screen, "fuel_targets_on", json!({ "date": "2026-10-10" }));
+
+        assert_eq!(set, Ok(aims.clone()));
+        assert_eq!(in_force, Ok(aims));
     }
 }
