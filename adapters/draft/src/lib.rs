@@ -2,11 +2,13 @@ use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
 use grind_core::exercise::{Exercise, exercise};
 use grind_core::failure::Failure;
+use grind_core::food::{Nutrients, Unit, food};
 use grind_core::for_importing::Drafted;
-use grind_core::fuel_records::FuelRecords;
+use grind_core::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
+use grind_core::intake::Intake;
 use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
 use grind_core::refusal::Refusal;
@@ -327,9 +329,88 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
     })
 }
 
+const LEFT_TO_HYDRATE: [&str; 2] = ["Coffee", "Tea"];
+
+fn unit_of(drafted: &str) -> Unit {
+    match drafted {
+        "ml" => Unit::Millilitre,
+        "piece" | "unit" => Unit::Piece,
+        _ => Unit::Gram,
+    }
+}
+
 pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
-    let _ = backup;
-    Ok(FuelRecords::default())
+    let backup = read(backup)?;
+    let foods = backup
+        .intake_catalogs
+        .foods
+        .iter()
+        .filter(|drafted| !LEFT_TO_HYDRATE.contains(&drafted.name.as_str()))
+        .map(|drafted| {
+            food(
+                &drafted.name,
+                unit_of(&drafted.unit),
+                drafted.qty,
+                Nutrients {
+                    energy_kcal: drafted.cal,
+                    protein_g: drafted.prot,
+                    carbs_g: drafted.carbs,
+                    fat_g: drafted.fat,
+                    fibre_g: drafted.fiber,
+                },
+            )
+            .map_err(|refusal| DraftRefusal::NotAFood {
+                name: drafted.name.clone(),
+                refusal,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut intakes = Vec::new();
+    let mut targets = Vec::new();
+    for log in &backup.intake_logs {
+        let day = NaiveDate::parse_from_str(&log.date, "%Y-%m-%d").map_err(|_| {
+            DraftRefusal::NotAFood {
+                name: log.date.clone(),
+                refusal: Refusal::NotADate,
+            }
+        })?;
+        targets.push((
+            day,
+            FuelTargets {
+                protein_g_per_kg: log.prot_g_kg,
+                fat_g_per_kg: log.fat_g_kg,
+                fibre_g_per_kg: DEFAULT_FUEL_TARGETS.fibre_g_per_kg,
+            },
+        ));
+        intakes.extend(
+            log.foods
+                .iter()
+                .filter(|line| !LEFT_TO_HYDRATE.contains(&line.name.as_str()))
+                .map(|line| {
+                    (
+                        0,
+                        Intake {
+                            day,
+                            food: line.name.clone(),
+                            unit: unit_of(&line.unit),
+                            quantity: line.qty,
+                            nutrients: Nutrients {
+                                energy_kcal: line.energy,
+                                protein_g: line.protein,
+                                carbs_g: line.carb,
+                                fat_g: line.fat,
+                                fibre_g: line.fiber,
+                            },
+                        },
+                    )
+                }),
+        );
+    }
+    Ok(FuelRecords {
+        foods,
+        intakes,
+        targets: versions_where_they_change(targets.into_iter()),
+    })
 }
 
 pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {

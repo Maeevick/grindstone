@@ -138,6 +138,12 @@ pub fn import_failure(refused: &ImportFailure) -> String {
                 failure_of_refusal(*refusal)
             )
         }
+        ImportFailure::Draft(DraftRefusal::NotAFood { name, refusal }) => {
+            format!(
+                "The food {name} would not join the catalog: {}",
+                failure_of_refusal(*refusal)
+            )
+        }
         ImportFailure::Failed(failed) => failure(failed),
     }
 }
