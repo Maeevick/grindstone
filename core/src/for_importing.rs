@@ -45,12 +45,14 @@ pub fn import_drafted(
     fuel: &impl ForStoringFuelRecords,
     drafted: &Drafted,
 ) -> Result<Imported, Failure> {
-    let _ = fuel;
     let gathered = import_gather(gather, &drafted.gather)?;
     burn.replace_burn_records(&drafted.burn)?;
+    fuel.replace_fuel_records(&drafted.fuel)?;
     Ok(Imported {
         exercises: drafted.burn.exercises.len(),
         workouts: drafted.burn.workouts.len(),
+        foods: drafted.fuel.foods.len(),
+        intakes: drafted.fuel.intakes.len(),
         ..gathered
     })
 }

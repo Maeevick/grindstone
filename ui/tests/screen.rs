@@ -321,7 +321,7 @@ async fn the_window_pills_redraw_the_card_over_the_days_they_name() {
 #[wasm_bindgen_test]
 async fn importing_the_draft_tells_what_it_brought() {
     answering(
-        r#"{ "import_draft": { "measurements": 215, "profiles": 5, "goals": 1, "exercises": 34, "workouts": 659 } }"#,
+        r#"{ "import_draft": { "measurements": 215, "profiles": 5, "goals": 1, "exercises": 34, "workouts": 659, "foods": 154, "intakes": 1030 } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -338,7 +338,10 @@ async fn importing_the_draft_tells_what_it_brought() {
 
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("215 days, 5 profiles, 1 goal"), "{said}");
-    assert!(said.contains("34 exercises and 659 workouts"), "{said}");
+    assert!(
+        said.contains("34 exercises, 659 workouts, 154 foods and 1030 intakes"),
+        "{said}"
+    );
 }
 
 const AN_EMPTY_BURN: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0,
@@ -372,7 +375,10 @@ async fn logging_a_workout_lists_it_with_what_it_burnt() {
 
     let listed: Element = found(&screen, "table.workouts tbody");
     let rows = listed.text_content().unwrap_or_default();
-    assert!(rows.contains("Walking") && rows.contains("252 kcal"), "{rows}");
+    assert!(
+        rows.contains("Walking") && rows.contains("252 kcal"),
+        "{rows}"
+    );
 }
 
 #[wasm_bindgen_test]
