@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::burn_records::BurnRecords;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,12 +15,15 @@ pub struct Imported {
     pub goals: usize,
     pub exercises: usize,
     pub workouts: usize,
+    pub foods: usize,
+    pub intakes: usize,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Drafted {
     pub gather: GatherRecords,
     pub burn: BurnRecords,
+    pub fuel: FuelRecords,
 }
 
 pub fn import_gather(
@@ -37,8 +42,10 @@ pub fn import_gather(
 pub fn import_drafted(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     drafted: &Drafted,
 ) -> Result<Imported, Failure> {
+    let _ = fuel;
     let gathered = import_gather(gather, &drafted.gather)?;
     burn.replace_burn_records(&drafted.burn)?;
     Ok(Imported {
@@ -167,17 +174,46 @@ mod tests {
         }
     }
 
+    fn drafted_fuel() -> FuelRecords {
+        FuelRecords {
+            foods: vec![crate::food::Food {
+                name: "Skyr".into(),
+                unit: crate::food::Unit::Gram,
+                portion: 100.0,
+                nutrients: crate::food::Nutrients::default(),
+            }],
+            ..FuelRecords::default()
+        }
+    }
+
+    #[test]
+    fn fuel_records_that_cannot_be_replaced_give_no_import() {
+        assert_eq!(
+            import_drafted(
+                &GatherRecordsInMemory::default(),
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::BrokenFuelRecords,
+                &Drafted::default(),
+            ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
     #[test]
     fn importing_the_draft_replaces_gather_and_burn_and_counts_what_it_brought() {
         let gather = GatherRecordsInMemory::default();
         let burn = crate::testing::BurnRecordsInMemory::default();
 
+        let fuel = crate::testing::FuelRecordsInMemory::default();
+
         let imported = import_drafted(
             &gather,
             &burn,
+            &fuel,
             &Drafted {
                 gather: drafted(),
                 burn: drafted_burn(),
+                fuel: drafted_fuel(),
             },
         );
 
@@ -189,7 +225,13 @@ mod tests {
                 goals: 1,
                 exercises: 1,
                 workouts: 1,
+                foods: 1,
+                intakes: 0,
             })
+        );
+        assert_eq!(
+            fuel.fuel_records().map(|fuelled| fuelled.foods),
+            Ok(drafted_fuel().foods)
         );
         assert_eq!(gather.gather_records(), Ok(drafted()));
         assert_eq!(
@@ -204,6 +246,7 @@ mod tests {
             import_drafted(
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BrokenBurnRecords,
+                &crate::testing::FuelRecordsInMemory::default(),
                 &Drafted::default(),
             ),
             Err(Failure::Broken("the disk is full".into()))

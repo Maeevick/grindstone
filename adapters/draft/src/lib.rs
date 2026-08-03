@@ -417,6 +417,7 @@ pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
     Ok(Drafted {
         gather: gather_from_draft(backup)?,
         burn: burn_from_draft(backup)?,
+        fuel: FuelRecords::default(),
     })
 }
 
