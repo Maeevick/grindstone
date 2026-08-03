@@ -731,4 +731,27 @@ mod tests {
             ])
         );
     }
+
+    #[test]
+    fn a_drafted_day_the_calendar_lacks_is_refused_naming_it() {
+        let no_such_intake_day =
+            FUEL_BACKUP.replace(r#""date": "2026-08-03""#, r#""date": "2026-02-30""#);
+        let no_such_workout_day =
+            BURN_BACKUP.replace(r#""date": "2026-08-10""#, r#""date": "2026-02-30""#);
+
+        assert_eq!(
+            fuel_from_draft(&no_such_intake_day),
+            Err(DraftRefusal::NotAFood {
+                name: "2026-02-30".into(),
+                refusal: Refusal::NotADate,
+            })
+        );
+        assert_eq!(
+            burn_from_draft(&no_such_workout_day),
+            Err(DraftRefusal::NotAWorkout {
+                date: "2026-02-30".into(),
+                refusal: Refusal::NotADate,
+            })
+        );
+    }
 }
