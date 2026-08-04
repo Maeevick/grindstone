@@ -1,3 +1,5 @@
+use crate::food::Unit;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Figure {
     Mass(f64),
@@ -6,6 +8,8 @@ pub enum Figure {
     Energy(f64),
     Duration(f64),
     Distance(f64),
+    Grams(f64),
+    Amount(f64, Unit),
 }
 
 fn to_the_tenth(value: f64) -> f64 {
@@ -24,6 +28,7 @@ pub fn shown(figure: Figure) -> String {
         Figure::Energy(kcal) => return format!("{} kcal", kcal.round() + 0.0),
         Figure::Duration(minutes) => return format!("{} min", to_the_tenth(minutes)),
         Figure::Distance(km) => return format!("{} km", to_the_hundredth(km)),
+        Figure::Grams(_) | Figure::Amount(_, _) => return String::new(),
     };
     format!("{:.1}{unit}", to_the_tenth(value))
 }
@@ -62,6 +67,19 @@ mod tests {
     #[test]
     fn a_distance_shows_in_kilometres_to_the_hundredth() {
         assert_eq!(shown(Figure::Distance(4.234)), "4.23 km");
+    }
+
+    #[test]
+    fn grams_of_a_macro_show_whole() {
+        assert_eq!(shown(Figure::Grams(19.4)), "19 g");
+    }
+
+    #[test]
+    fn an_amount_shows_in_its_unit_to_the_tenth_and_pieces_count_as_words() {
+        assert_eq!(shown(Figure::Amount(200.0, Unit::Gram)), "200 g");
+        assert_eq!(shown(Figure::Amount(330.0, Unit::Millilitre)), "330 mL");
+        assert_eq!(shown(Figure::Amount(1.0, Unit::Piece)), "1 piece");
+        assert_eq!(shown(Figure::Amount(2.5, Unit::Piece)), "2.5 pieces");
     }
 
     #[test]
