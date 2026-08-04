@@ -23,6 +23,7 @@ pub mod gender;
 pub mod goals;
 pub mod intake;
 pub mod ledger;
+pub mod meal;
 pub mod measurement;
 pub mod nutrition;
 pub mod profile;
