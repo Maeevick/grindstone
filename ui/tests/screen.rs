@@ -3,6 +3,7 @@
 use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
+use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::settings::Settings;
 use grind_ui::screens::tracker::Tracker;
@@ -409,4 +410,77 @@ async fn the_catalog_adds_an_exercise_to_its_list() {
             .text_content()
             .is_some_and(|rows| rows.contains("Kettlebell swing") && rows.contains("9.8"))
     );
+}
+
+const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
+    "intakes": [[1, { "day": "2026-10-10", "food": "Skyr", "unit": "Gram", "quantity": 200.0,
+        "nutrients": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 } }]],
+    "eaten": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 },
+    "band": { "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2 },
+    "energy": "Low",
+    "macros": {
+        "protein": { "eaten_g": 19.0, "floor_g": 160.0, "ceiling_g": 9.0, "verdict": "Low" },
+        "fat": { "eaten_g": 0.0, "floor_g": 72.0, "ceiling_g": 4.0, "verdict": "Low" },
+        "fibre": { "eaten_g": 0.0, "floor_g": 32.0, "ceiling_g": 2.2, "verdict": "Low" },
+        "carbs": { "eaten_g": 8.0, "floor_g": 212.1, "ceiling_g": 295.0, "verdict": "Low" } } }"#;
+
+#[wasm_bindgen_test]
+async fn logging_an_intake_shows_it_with_the_days_energy_against_its_band() {
+    answering(&format!(
+        r#"{{ "foods": [{{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
+                "nutrients": {{ "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 }} }}],
+             "fuel_day": {{ "day": "2026-10-10", "intakes": [], "band": null, "energy": null, "macros": null,
+                 "eaten": {{ "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 }} }},
+             "log_intake": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelDay day=day />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "quantity", "200");
+    found::<HtmlFormElement>(&screen, "form.intake")
+        .request_submit()
+        .expect("the intake is logged");
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("108 kcal") && said.contains("2199 to 2650 kcal"), "{said}");
+    let listed: Element = found(&screen, "table.intakes tbody");
+    assert!(listed.text_content().is_some_and(|rows| rows.contains("Skyr") && rows.contains("200 g")));
+    assert!(screen.query_selector(".macros .low").ok().flatten().is_some());
+}
+
+#[wasm_bindgen_test]
+async fn the_catalog_adds_a_food_to_its_list() {
+    answering(
+        r#"{ "exercises": [], "foods": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
+            "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } }] }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Catalog />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "food_name", "Skyr");
+    typed_into(&screen, "food_portion", "100");
+    typed_into(&screen, "food_energy", "54");
+    found::<HtmlFormElement>(&screen, "form.food")
+        .request_submit()
+        .expect("the food is added");
+    settled().await;
+
+    let listed: Element = found(&screen, "table.foods tbody");
+    assert!(listed.text_content().is_some_and(|rows| rows.contains("Skyr") && rows.contains("54 kcal")));
 }

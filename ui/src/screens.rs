@@ -1,6 +1,7 @@
 pub mod burn;
 pub mod catalog;
 pub mod fields;
+pub mod fuel;
 pub mod home;
 pub mod lines;
 pub mod profile;
