@@ -162,38 +162,38 @@ pub fn usual_day_on(records: State<Records>, date: String) -> Result<Option<Voli
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn fuel_day(records: State<Records>, date: String) -> Result<Fuel, Failure> {
-    let _ = (records, date);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_fuelling::fuel_day(&*records, &*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_intake(records: State<Records>, form: IntakeForm) -> Result<Fuel, Failure> {
-    let _ = (records, form);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_fuelling::log_intake(&*records, &*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_intake(records: State<Records>, date: String, id: i64) -> Result<Fuel, Failure> {
-    let _ = (records, date, id);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_fuelling::remove_intake(&*records, &*records, &*records, &date, id)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn foods(records: State<Records>) -> Result<Vec<Food>, Failure> {
-    let _ = records;
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::foods(&*records)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn add_food(records: State<Records>, form: FoodForm) -> Result<Vec<Food>, Failure> {
-    let _ = (records, form);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::add_food(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_food(records: State<Records>, name: String) -> Result<Vec<Food>, Failure> {
-    let _ = (records, name);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::remove_food(&*records, &name)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -201,14 +201,14 @@ pub fn set_fuel_targets(
     records: State<Records>,
     form: FuelTargetsForm,
 ) -> Result<FuelTargets, Failure> {
-    let _ = (records, form);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::set_fuel_targets(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn fuel_targets_on(records: State<Records>, date: String) -> Result<FuelTargets, Failure> {
-    let _ = (records, date);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::fuel_targets_on(&*records, &date)
 }
 
 #[cfg(test)]
