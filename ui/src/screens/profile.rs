@@ -1,6 +1,9 @@
-use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm, UsualDayForm};
+use grind_core::for_setting_up_the_profile::{
+    FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+};
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
+use grind_core::sources::FUEL_RECOMMENDATIONS;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
@@ -106,6 +109,74 @@ fn UsualDayCard() -> impl IntoView {
 }
 
 #[component]
+fn FuelTargetsCard() -> impl IntoView {
+    let from = RwSignal::new(today());
+    let protein = RwSignal::new(String::new());
+    let fat = RwSignal::new(String::new());
+    let fibre = RwSignal::new(String::new());
+    let said = RwSignal::new(None::<String>);
+    spawn_local(async move {
+        if let Ok(targets) = tauri::fuel_targets_on(&today()).await {
+            protein.set(targets.protein_g_per_kg.to_string());
+            fat.set(targets.fat_g_per_kg.to_string());
+            fibre.set(targets.fibre_g_per_kg.to_string());
+        }
+    });
+    let save = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let form = FuelTargetsForm {
+            from: from.get_untracked(),
+            protein_g_per_kg: figure_typed(&protein.get_untracked()).unwrap_or(f64::NAN),
+            fat_g_per_kg: figure_typed(&fat.get_untracked()).unwrap_or(f64::NAN),
+            fibre_g_per_kg: figure_typed(&fibre.get_untracked()).unwrap_or(f64::NAN),
+        };
+        spawn_local(async move {
+            said.set(Some(match tauri::set_fuel_targets(&form).await {
+                Ok(_) => lines::fuel_targets_kept(&form.from),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card">
+            <h2>"Fuel targets"</h2>
+            <p class="hint">
+                "Grams per kilo of body mass a day: each is the floor of its band, which also asks for 20 to 33.3% of the day's energy (4% for fibre)."
+            </p>
+            <form class="fuel-targets" on:submit=save>
+                <div class="row">
+                    <DateField label="From" name="targets_from" value=from />
+                    <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
+                    <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
+                    <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
+                </div>
+                <button class="cta" type="submit">
+                    "Keep these targets"
+                </button>
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
+            <ul class="sources">
+                {FUEL_RECOMMENDATIONS
+                    .iter()
+                    .map(|recommendation| {
+                        let source = recommendation.source;
+                        view! {
+                            <li>
+                                <strong>{recommendation.about}</strong>
+                                {format!(": {}. ", recommendation.says)}
+                                <a href=source.link target="_blank" rel="noopener">
+                                    {format!("{} ({}), {}", source.authors, source.year, source.title)}
+                                </a>
+                            </li>
+                        }
+                    })
+                    .collect_view()}
+            </ul>
+        </section>
+    }
+}
+
+#[component]
 pub fn ProfileScreen() -> impl IntoView {
     let from = RwSignal::new(today());
     let birthday = RwSignal::new(String::new());
@@ -191,6 +262,7 @@ pub fn ProfileScreen() -> impl IntoView {
             </form>
         </section>
         <GoalsCard />
+        <FuelTargetsCard />
         <UsualDayCard />
     }
 }

@@ -283,3 +283,30 @@ select {
 	font-size: 0.85rem;
 	margin: 0 0 4px;
 }
+
+.good {
+    color: #5fd99f;
+}
+
+.low,
+.high {
+    color: #f87171;
+}
+
+.macros td,
+.intakes td,
+.workouts td,
+.foods td,
+.exercises td {
+    font-size: 0.9rem;
+}
+
+.sources {
+    font-size: 0.8rem;
+    color: #9aa0a6;
+    padding-left: 1.1rem;
+}
+
+.sources a {
+    color: #e8b04b;
+}

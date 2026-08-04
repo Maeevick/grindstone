@@ -385,7 +385,7 @@ async fn logging_a_workout_lists_it_with_what_it_burnt() {
 #[wasm_bindgen_test]
 async fn the_catalog_adds_an_exercise_to_its_list() {
     answering(
-        r#"{ "exercises": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
+        r#"{ "foods": [], "exercises": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -395,6 +395,8 @@ async fn the_catalog_adds_an_exercise_to_its_list() {
             </Router>
         }
     });
+    settled().await;
+    found::<web_sys::HtmlElement>(&screen, "button.shelf-Exercises").click();
     settled().await;
 
     typed_into(&screen, "exercise_name", "Kettlebell swing");
@@ -451,10 +453,23 @@ async fn logging_an_intake_shows_it_with_the_days_energy_against_its_band() {
     settled().await;
 
     let said = screen.text_content().unwrap_or_default();
-    assert!(said.contains("108 kcal") && said.contains("2199 to 2650 kcal"), "{said}");
+    assert!(
+        said.contains("108 kcal") && said.contains("2199 to 2650 kcal"),
+        "{said}"
+    );
     let listed: Element = found(&screen, "table.intakes tbody");
-    assert!(listed.text_content().is_some_and(|rows| rows.contains("Skyr") && rows.contains("200 g")));
-    assert!(screen.query_selector(".macros .low").ok().flatten().is_some());
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|rows| rows.contains("Skyr") && rows.contains("200 g"))
+    );
+    assert!(
+        screen
+            .query_selector(".macros .low")
+            .ok()
+            .flatten()
+            .is_some()
+    );
 }
 
 #[wasm_bindgen_test]
@@ -482,5 +497,9 @@ async fn the_catalog_adds_a_food_to_its_list() {
     settled().await;
 
     let listed: Element = found(&screen, "table.foods tbody");
-    assert!(listed.text_content().is_some_and(|rows| rows.contains("Skyr") && rows.contains("54 kcal")));
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|rows| rows.contains("Skyr") && rows.contains("54 kcal"))
+    );
 }

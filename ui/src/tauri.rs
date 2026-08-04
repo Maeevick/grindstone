@@ -1,10 +1,17 @@
 use grind_core::burn::Burn;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
+use grind_core::food::Food;
 use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
+use grind_core::for_cataloguing::FoodForm;
+use grind_core::for_fuelling::IntakeForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{GatherCard, Window};
-use grind_core::for_setting_up_the_profile::{GoalsForm, ProfileForm, UsualDayForm};
+use grind_core::for_setting_up_the_profile::{
+    FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+};
+use grind_core::fuel::Fuel;
+use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::profile::Profile;
@@ -164,6 +171,38 @@ pub async fn set_usual_day(form: &UsualDayForm) -> Result<Volitional, Failure> {
 
 pub async fn usual_day_on(date: &str) -> Result<Option<Volitional>, Failure> {
     call("usual_day_on", OnDay { date }, broken).await
+}
+
+pub async fn fuel_day(date: &str) -> Result<Fuel, Failure> {
+    call("fuel_day", OnDay { date }, broken).await
+}
+
+pub async fn log_intake(form: &IntakeForm) -> Result<Fuel, Failure> {
+    call("log_intake", Form { form }, broken).await
+}
+
+pub async fn remove_intake(date: &str, id: i64) -> Result<Fuel, Failure> {
+    call("remove_intake", Removing { date, id }, broken).await
+}
+
+pub async fn foods() -> Result<Vec<Food>, Failure> {
+    call("foods", Nothing {}, broken).await
+}
+
+pub async fn add_food(form: &FoodForm) -> Result<Vec<Food>, Failure> {
+    call("add_food", Form { form }, broken).await
+}
+
+pub async fn remove_food(name: &str) -> Result<Vec<Food>, Failure> {
+    call("remove_food", Naming { name }, broken).await
+}
+
+pub async fn set_fuel_targets(form: &FuelTargetsForm) -> Result<FuelTargets, Failure> {
+    call("set_fuel_targets", Form { form }, broken).await
+}
+
+pub async fn fuel_targets_on(date: &str) -> Result<FuelTargets, Failure> {
+    call("fuel_targets_on", OnDay { date }, broken).await
 }
 
 pub async fn import_draft() -> Result<Imported, ImportFailure> {

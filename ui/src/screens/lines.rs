@@ -3,6 +3,7 @@ use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown};
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
+use grind_core::fuel::{Fuel, Verdict};
 use grind_core::refusal::Refusal;
 use grind_draft::{DraftRefusal, ImportFailure};
 
@@ -203,4 +204,46 @@ pub fn failure(failure: &Failure) -> String {
             format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
         }
     }
+}
+
+pub const NO_BAND: &str = "No band yet: I need a profile and a weigh-in with a waist to price your day. \
+    I do not guess bodies, not even goblin ones.";
+
+pub const NO_INTAKE: &str = "Nothing eaten on this day, or nothing filed yet.";
+
+pub const NO_FOOD: &str =
+    "The catalog has no food yet. Add one with its figures per portion, or import the draft's.";
+
+pub fn energy_line(fuel: &Fuel) -> String {
+    let eaten = shown(Figure::Energy(fuel.eaten.energy_kcal));
+    match fuel.band {
+        Some(band) => format!(
+            "{eaten} eaten, the band runs from {} to {} kcal.",
+            shown(Figure::Energy(band.floor_kcal)).trim_end_matches(" kcal"),
+            shown(Figure::Energy(band.cap_kcal)).trim_end_matches(" kcal")
+        ),
+        None => format!("{eaten} eaten."),
+    }
+}
+
+pub fn verdict_word(verdict: Verdict) -> &'static str {
+    match verdict {
+        Verdict::Low => "too low",
+        Verdict::InBand => "in the band",
+        Verdict::High => "too high",
+    }
+}
+
+pub fn verdict_class(verdict: Verdict) -> &'static str {
+    match verdict {
+        Verdict::Low => "low",
+        Verdict::InBand => "good",
+        Verdict::High => "high",
+    }
+}
+
+pub fn fuel_targets_kept(from: &str) -> String {
+    format!(
+        "Filed: these targets are kept from {from}. Grimble recalculates every band from that day."
+    )
 }
