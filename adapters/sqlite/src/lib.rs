@@ -592,12 +592,19 @@ impl ForStoringFuelRecords for Sqlite {
 }
 
 impl ForStoringSwitchOver for Sqlite {
-    fn save_switch_over(&self, _: NaiveDate) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_switch_over(&self, day: NaiveDate) -> Result<(), Broken> {
+        self.run(
+            "insert into switch_over (only, day) values (1, ?1)
+             on conflict (only) do update set day = excluded.day",
+            params![day],
+        )
     }
 
     fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
-        Err(Broken("not yet".into()))
+        Ok(self
+            .rows("select day from switch_over", |row| row.get(0))?
+            .into_iter()
+            .next())
     }
 }
 
