@@ -4,6 +4,7 @@ pub mod fields;
 pub mod fuel;
 pub mod home;
 pub mod lines;
+pub mod meals;
 pub mod profile;
 pub mod settings;
 pub mod tracker;

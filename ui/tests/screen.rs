@@ -4,6 +4,7 @@ use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
 use grind_ui::screens::fuel::FuelDay;
+use grind_ui::screens::meals::MealCooker;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::settings::Settings;
 use grind_ui::screens::tracker::Tracker;
@@ -502,4 +503,47 @@ async fn the_catalog_adds_a_food_to_its_list() {
             .text_content()
             .is_some_and(|rows| rows.contains("Skyr") && rows.contains("54 kcal"))
     );
+}
+
+const A_COOKED_MEAL: &str = r#"{ "name": "Rice and chicken", "recipe": "Boil, sear, stir.",
+    "ingredients": [{ "food": "Rice", "unit": "Gram", "quantity": 200.0,
+        "nutrients": { "energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0 } }],
+    "raw_g": 200.0, "cooked_g": 500.0,
+    "totals": { "energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0 } }"#;
+
+#[wasm_bindgen_test]
+async fn a_meal_weighed_up_shows_its_totals_and_once_cooked_joins_the_list() {
+    answering(&format!(
+        r#"{{ "foods": [{{ "name": "Rice", "unit": "Gram", "portion": 100.0,
+                "nutrients": {{ "energy_kcal": 350.0, "protein_g": 7.0, "carbs_g": 75.0, "fat_g": 0.5, "fibre_g": 1.0 }} }}],
+             "meals": [], "preview_meal": {A_COOKED_MEAL}, "cook_meal": [{A_COOKED_MEAL}] }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <MealCooker />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "meal_name", "Rice and chicken");
+    typed_into(&screen, "ingredient_quantity", "200");
+    found::<web_sys::HtmlElement>(&screen, "button.add-ingredient").click();
+    settled().await;
+    typed_into(&screen, "cooked", "500");
+    found::<web_sys::HtmlElement>(&screen, "button.weigh-up").click();
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("700 kcal") && said.contains("140 kcal"), "{said}");
+
+    found::<HtmlFormElement>(&screen, "form.meal")
+        .request_submit()
+        .expect("the meal is cooked");
+    settled().await;
+
+    let listed: Element = found(&screen, "table.meals tbody");
+    assert!(listed.text_content().is_some_and(|rows| rows.contains("Rice and chicken")));
 }
