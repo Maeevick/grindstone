@@ -31,12 +31,80 @@ pub struct Streak {
     pub recent: Vec<StreakDay>,
 }
 
+const RECENT_DAYS: usize = 14;
+const FEWEST_TICKS_FOR_A_JOKER: usize = 3;
+
+fn held_of_enabled(ticks: &Ticks) -> (usize, usize) {
+    let enabled: Vec<bool> = [
+        ticks.weighed,
+        ticks.fuelled,
+        ticks.worked_out,
+        ticks.hydrated,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    (enabled.iter().filter(|held| **held).count(), enabled.len())
+}
+
+fn succeeded(ticks: &Ticks) -> bool {
+    let (held, enabled) = held_of_enabled(ticks);
+    enabled > 0 && held == enabled
+}
+
+fn one_short(ticks: &Ticks) -> bool {
+    let (held, enabled) = held_of_enabled(ticks);
+    enabled >= FEWEST_TICKS_FOR_A_JOKER && held + 1 == enabled
+}
+
+fn status_at(ticked: &[(NaiveDate, Ticks)], at: usize, today: NaiveDate) -> Status {
+    let (day, ticks) = ticked[at];
+    let before = at.checked_sub(1).map(|earlier| &ticked[earlier]);
+    let after = ticked.get(at + 1);
+    if day > today || (day == today && !succeeded(&ticks)) {
+        Status::Pending
+    } else if succeeded(&ticks) {
+        Status::Success
+    } else if one_short(&ticks)
+        && before.is_some_and(|(_, earlier)| succeeded(earlier))
+        && after.is_some_and(|(later_day, later)| succeeded(later) || *later_day == today)
+    {
+        Status::Joker
+    } else {
+        Status::Break
+    }
+}
+
 pub fn streak_of(ticked: &[(NaiveDate, Ticks)], today: NaiveDate) -> Streak {
-    let _ = (ticked, today);
+    let up_to_today: Vec<(NaiveDate, Ticks)> = ticked
+        .iter()
+        .filter(|(day, _)| *day <= today)
+        .copied()
+        .collect();
+    let statuses: Vec<StreakDay> = (0..up_to_today.len())
+        .map(|at| StreakDay {
+            day: up_to_today[at].0,
+            ticks: up_to_today[at].1,
+            status: status_at(&up_to_today, at, today),
+        })
+        .collect();
+    let days = statuses
+        .iter()
+        .rev()
+        .skip_while(|streaked| streaked.status == Status::Pending)
+        .take_while(|streaked| matches!(streaked.status, Status::Success | Status::Joker))
+        .count();
+    let mut latest = statuses.iter().rev();
+    let at_risk = latest
+        .next()
+        .is_some_and(|today| today.status == Status::Pending)
+        && latest
+            .next()
+            .is_some_and(|yesterday| yesterday.status == Status::Joker);
     Streak {
-        days: 0,
-        at_risk: false,
-        recent: vec![],
+        days: days as u32,
+        at_risk,
+        recent: statuses[statuses.len().saturating_sub(RECENT_DAYS)..].to_vec(),
     }
 }
 
