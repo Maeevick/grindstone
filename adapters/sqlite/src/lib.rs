@@ -502,18 +502,25 @@ impl ForStoringFuelRecords for Sqlite {
         )
     }
 
-    fn save_meal(&self, _: &Meal) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn save_meal(&self, meal: &Meal) -> Result<(), Broken> {
+        let written = serde_json::to_string(meal).map_err(|error| Broken(error.to_string()))?;
+        self.run(
+            "insert into meals (name, meal) values (?1, ?2)
+             on conflict (name) do update set meal = excluded.meal",
+            params![meal.name, written],
+        )
     }
 
-    fn remove_meal(&self, _: &str) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+    fn remove_meal(&self, name: &str) -> Result<(), Broken> {
+        self.run("delete from meals where name = ?1", params![name])
     }
 
     fn replace_fuel_records(&self, records: &FuelRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
-            .execute_batch("delete from foods; delete from intakes; delete from fuel_targets;")
+            .execute_batch(
+                "delete from foods; delete from intakes; delete from fuel_targets; delete from meals;",
+            )
             .map_err(broken)?;
         for food in &records.foods {
             self.save_food(food)?;
@@ -523,6 +530,9 @@ impl ForStoringFuelRecords for Sqlite {
         }
         for (from, targets) in &records.targets {
             self.save_targets(*from, targets)?;
+        }
+        for meal in &records.meals {
+            self.save_meal(meal)?;
         }
         replacing.commit().map_err(broken)
     }
@@ -571,7 +581,10 @@ impl ForStoringFuelRecords for Sqlite {
                     ))
                 },
             )?,
-            meals: vec![],
+            meals: self.rows("select meal from meals order by name", |row| {
+                serde_json::from_str(&row.get::<_, String>(0)?)
+                    .map_err(|error| rusqlite::Error::InvalidParameterName(error.to_string()))
+            })?,
         })
     }
 }
@@ -855,5 +868,16 @@ mod tests {
         honouring_for_storing_fuel_records::meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves(
             &database(),
         );
+    }
+
+    #[test]
+    fn a_meal_the_app_cannot_read_reads_as_broken() {
+        let records = database();
+        records
+            .0
+            .execute("insert into meals values ('Stew', 'not a meal')", [])
+            .expect("a meal no app wrote");
+
+        assert!(matches!(records.fuel_records(), Err(Broken(_))));
     }
 }
