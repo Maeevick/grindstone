@@ -7,6 +7,7 @@ use leptos::task::spawn_local;
 
 use crate::screens::fields::FigureField;
 use crate::screens::lines;
+use crate::screens::meals::MealCooker;
 use crate::tauri;
 use crate::typed::figure_typed;
 
@@ -247,10 +248,15 @@ fn FoodsCatalog() -> impl IntoView {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Shelf {
     Foods,
+    Meals,
     Exercises,
 }
 
-const SHELVES: [(Shelf, &str); 2] = [(Shelf::Foods, "Foods"), (Shelf::Exercises, "Exercises")];
+const SHELVES: [(Shelf, &str); 3] = [
+    (Shelf::Foods, "Foods"),
+    (Shelf::Meals, "Meals"),
+    (Shelf::Exercises, "Exercises"),
+];
 
 #[component]
 pub fn Catalog() -> impl IntoView {
@@ -277,6 +283,7 @@ pub fn Catalog() -> impl IntoView {
         </section>
         {move || match shelf.get() {
             Shelf::Foods => view! { <FoodsCatalog /> }.into_any(),
+            Shelf::Meals => view! { <MealCooker /> }.into_any(),
             Shelf::Exercises => view! { <ExercisesCatalog /> }.into_any(),
         }}
     }

@@ -3,7 +3,7 @@ use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
 use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
-use grind_core::for_cataloguing::FoodForm;
+use grind_core::for_cataloguing::{FoodForm, MealForm};
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{GatherCard, Window};
@@ -14,6 +14,7 @@ use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
+use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
 use grind_draft::ImportFailure;
@@ -203,6 +204,22 @@ pub async fn set_fuel_targets(form: &FuelTargetsForm) -> Result<FuelTargets, Fai
 
 pub async fn fuel_targets_on(date: &str) -> Result<FuelTargets, Failure> {
     call("fuel_targets_on", OnDay { date }, broken).await
+}
+
+pub async fn meals() -> Result<Vec<Meal>, Failure> {
+    call("meals", Nothing {}, broken).await
+}
+
+pub async fn preview_meal(form: &MealForm) -> Result<Meal, Failure> {
+    call("preview_meal", Form { form }, broken).await
+}
+
+pub async fn cook_meal(form: &MealForm) -> Result<Vec<Meal>, Failure> {
+    call("cook_meal", Form { form }, broken).await
+}
+
+pub async fn remove_meal(name: &str) -> Result<Vec<Meal>, Failure> {
+    call("remove_meal", Naming { name }, broken).await
 }
 
 pub async fn import_draft() -> Result<Imported, ImportFailure> {

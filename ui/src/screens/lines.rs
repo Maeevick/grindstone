@@ -1,9 +1,11 @@
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown};
+use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
+use grind_core::meal::Meal;
 use grind_core::refusal::Refusal;
 use grind_draft::{DraftRefusal, ImportFailure};
 
@@ -246,4 +248,36 @@ pub fn fuel_targets_kept(from: &str) -> String {
     format!(
         "Filed: these targets are kept from {from}. Grimble recalculates every band from that day."
     )
+}
+
+pub const NO_MEAL: &str = "No meal cooked yet. Trix's lab is spotless, which worries everyone.";
+
+pub fn figures_of(nutrients: &Nutrients) -> String {
+    format!(
+        "{} · P {} · C {} · F {} · Fib {}",
+        shown(Figure::Energy(nutrients.energy_kcal)),
+        shown(Figure::Grams(nutrients.protein_g)),
+        shown(Figure::Grams(nutrients.carbs_g)),
+        shown(Figure::Grams(nutrients.fat_g)),
+        shown(Figure::Grams(nutrients.fibre_g)),
+    )
+}
+
+pub fn weighed_up(meal: &Meal, per_100_g: &Nutrients) -> [String; 2] {
+    [
+        format!(
+            "Before cooking, {} raw: {}.",
+            shown(Figure::Amount(meal.raw_g, Unit::Gram)),
+            figures_of(&meal.totals)
+        ),
+        format!(
+            "After cooking, {} in the pot: {} per 100 g. [Trix: \"Fire in the hole!\"]",
+            shown(Figure::Amount(meal.cooked_g, Unit::Gram)),
+            figures_of(per_100_g)
+        ),
+    ]
+}
+
+pub fn cooked(name: &str) -> String {
+    format!("{name} is in the food catalog, per 100 g cooked. Weigh your portions in Fuel.")
 }
