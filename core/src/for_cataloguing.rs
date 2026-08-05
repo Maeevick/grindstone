@@ -3,7 +3,8 @@ use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
-use crate::meal::{Cooking, Meal};
+use crate::meal::{Cooking, Meal, food_of, meal};
+use crate::refusal::Refusal;
 use serde::{Deserialize, Serialize};
 
 pub fn exercises(burn: &impl ForStoringBurnRecords) -> Result<Vec<Exercise>, Failure> {
@@ -66,23 +67,35 @@ pub struct MealForm {
 }
 
 pub fn meals(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Meal>, Failure> {
-    let _ = fuel;
-    Ok(vec![])
+    Ok(fuel.fuel_records()?.meals)
 }
 
 pub fn preview_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Meal, Failure> {
-    let _ = (fuel, form);
-    Err(Failure::Broken("not yet".into()))
+    let catalog = fuel.fuel_records()?.foods;
+    let ingredients = form
+        .ingredients
+        .iter()
+        .map(|ingredient| {
+            catalog
+                .iter()
+                .find(|known| known.name == ingredient.food)
+                .map(|known| (known.clone(), ingredient.quantity))
+                .ok_or(Failure::Refused(Refusal::NotAFood))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    meal(&form.name, &form.recipe, &ingredients, form.cooking).map_err(Failure::Refused)
 }
 
 pub fn cook_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Vec<Meal>, Failure> {
-    let _ = (fuel, form);
-    Ok(vec![])
+    let cooked = preview_meal(fuel, form)?;
+    fuel.save_meal(&cooked)?;
+    fuel.save_food(&food_of(&cooked))?;
+    meals(fuel)
 }
 
 pub fn remove_meal(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<Meal>, Failure> {
-    let _ = (fuel, name);
-    Ok(vec![])
+    fuel.remove_meal(name)?;
+    meals(fuel)
 }
 
 #[cfg(test)]
