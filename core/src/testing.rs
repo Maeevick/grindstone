@@ -11,6 +11,7 @@ use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
 use crate::intake::Intake;
+use crate::meal::Meal;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
@@ -439,6 +440,18 @@ impl ForStoringFuelRecords for FuelRecordsInMemory {
         Ok(())
     }
 
+    fn save_meal(&self, meal: &Meal) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.meals.retain(|kept| kept.name != meal.name);
+        records.meals.push(meal.clone());
+        Ok(())
+    }
+
+    fn remove_meal(&self, name: &str) -> Result<(), Broken> {
+        self.0.borrow_mut().meals.retain(|kept| kept.name != name);
+        Ok(())
+    }
+
     fn replace_fuel_records(&self, records: &FuelRecords) -> Result<(), Broken> {
         let mut replaced = records.clone();
         for (id, (kept_id, _)) in (1..).zip(replaced.intakes.iter_mut()) {
@@ -455,6 +468,9 @@ impl ForStoringFuelRecords for FuelRecordsInMemory {
             .sort_by(|one, other| one.name.cmp(&other.name));
         fuelled.intakes.sort_by_key(|(id, eaten)| (eaten.day, *id));
         fuelled.targets.sort_by_key(|(from, _)| *from);
+        fuelled
+            .meals
+            .sort_by(|one, other| one.name.cmp(&other.name));
         Ok(fuelled)
     }
 }
@@ -479,6 +495,14 @@ impl ForStoringFuelRecords for BrokenFuelRecords {
     }
 
     fn save_targets(&self, _: NaiveDate, _: &FuelTargets) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_meal(&self, _: &Meal) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_meal(&self, _: &str) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -638,6 +662,52 @@ pub mod honouring_for_storing_fuel_records {
         assert_eq!(fuelled.foods, vec![a_food("Skyr", 54.0)]);
     }
 
+    fn cooked(name: &str, cooked_g: f64) -> Meal {
+        Meal {
+            name: name.into(),
+            recipe: "Stir.".into(),
+            ingredients: vec![crate::meal::Ingredient {
+                food: "Rice".into(),
+                unit: Unit::Gram,
+                quantity: 200.0,
+                nutrients: Nutrients {
+                    energy_kcal: 700.0,
+                    ..Nutrients::default()
+                },
+            }],
+            raw_g: 200.0,
+            cooked_g,
+            totals: Nutrients {
+                energy_kcal: 700.0,
+                ..Nutrients::default()
+            },
+        }
+    }
+
+    pub fn meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves(
+        records: &impl ForStoringFuelRecords,
+    ) {
+        records
+            .save_meal(&cooked("Risotto", 500.0))
+            .expect("a meal saves");
+        records
+            .save_meal(&cooked("Dal", 600.0))
+            .expect("a meal saves");
+        records
+            .save_meal(&cooked("Bowl", 400.0))
+            .expect("a meal saves");
+        records
+            .save_meal(&cooked("Risotto", 550.0))
+            .expect("a meal saves");
+
+        records.remove_meal("Bowl").expect("a meal is removed");
+
+        assert_eq!(
+            records.fuel_records().map(|fuelled| fuelled.meals),
+            Ok(vec![cooked("Dal", 600.0), cooked("Risotto", 550.0)])
+        );
+    }
+
     pub fn replacing_the_fuel_records_leaves_only_the_new_ones(
         records: &impl ForStoringFuelRecords,
     ) {
@@ -651,6 +721,7 @@ pub mod honouring_for_storing_fuel_records {
             foods: vec![a_food("Muesli", 365.0)],
             intakes: vec![(0, eaten("2026-08-02", "Muesli", 1.0))],
             targets: vec![(day("2026-03-01"), aiming(2.025))],
+            meals: vec![],
         };
 
         records
@@ -943,6 +1014,13 @@ mod tests {
     #[test]
     fn replacing_the_fuel_records_leaves_only_the_new_ones() {
         honouring_for_storing_fuel_records::replacing_the_fuel_records_leaves_only_the_new_ones(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves() {
+        honouring_for_storing_fuel_records::meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves(
             &FuelRecordsInMemory::default(),
         );
     }

@@ -13,6 +13,7 @@ use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::intake::Intake;
+use grind_core::meal::Meal;
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
@@ -54,6 +55,7 @@ const MIGRATIONS: &[&str] = &[
          effective_from text primary key, protein_g_per_kg real not null, fat_g_per_kg real not null,
          fibre_g_per_kg real not null
      );",
+    "create table meals (name text primary key, meal text not null)",
 ];
 
 pub struct Sqlite(Connection);
@@ -500,6 +502,14 @@ impl ForStoringFuelRecords for Sqlite {
         )
     }
 
+    fn save_meal(&self, _: &Meal) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn remove_meal(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
     fn replace_fuel_records(&self, records: &FuelRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
@@ -561,6 +571,7 @@ impl ForStoringFuelRecords for Sqlite {
                     ))
                 },
             )?,
+            meals: vec![],
         })
     }
 }
@@ -837,5 +848,12 @@ mod tests {
             .expect("a food no app wrote");
 
         assert!(matches!(records.fuel_records(), Err(Broken(reason)) if reason.contains("spoon")));
+    }
+
+    #[test]
+    fn meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves() {
+        honouring_for_storing_fuel_records::meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves(
+            &database(),
+        );
     }
 }

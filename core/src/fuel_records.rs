@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::food::Food;
 use crate::intake::Intake;
+use crate::meal::Meal;
 use crate::refusal::Refusal;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -41,4 +42,5 @@ pub struct FuelRecords {
     pub foods: Vec<Food>,
     pub intakes: Vec<(i64, Intake)>,
     pub targets: Vec<(NaiveDate, FuelTargets)>,
+    pub meals: Vec<Meal>,
 }

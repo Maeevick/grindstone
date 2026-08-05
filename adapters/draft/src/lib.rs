@@ -410,6 +410,7 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
         foods,
         intakes,
         targets: versions_where_they_change(targets.into_iter()),
+        meals: vec![],
     })
 }
 
