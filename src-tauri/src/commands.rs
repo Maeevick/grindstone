@@ -90,12 +90,13 @@ pub fn gather_card(
 pub fn import_draft(
     records: State<Records>,
     backup: State<DraftBackup>,
+    today: String,
 ) -> Result<Imported, ImportFailure> {
     let backup = std::fs::read_to_string(&backup.0)
         .map_err(|_| ImportFailure::NoBackupFound(backup.0.display().to_string()))?;
     let drafted = drafted(&backup).map_err(ImportFailure::Draft)?;
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_importing::import_drafted(&*records, &*records, &*records, &drafted)
+    for_importing::import_drafted(&*records, &*records, &*records, &*records, &drafted, &today)
         .map_err(ImportFailure::Failed)
 }
 
@@ -445,7 +446,7 @@ mod tests {
         .expect("a backup pushed");
         let (_app, screen) = launched_with(backup.clone());
 
-        let answer = invoke(&screen, "import_draft", json!({}));
+        let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
         std::fs::remove_file(&backup).expect("the test backup is removed");
         assert_eq!(
@@ -460,7 +461,7 @@ mod tests {
     fn importing_with_no_backup_pushed_says_where_it_was_expected() {
         let (_app, screen) = launched();
 
-        let answer = invoke(&screen, "import_draft", json!({}));
+        let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
         assert_eq!(
             answer,
@@ -477,7 +478,7 @@ mod tests {
         std::fs::write(&backup, "{ not a backup").expect("a backup pushed");
         let (_app, screen) = launched_with(backup.clone());
 
-        let answer = invoke(&screen, "import_draft", json!({}));
+        let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
         std::fs::remove_file(&backup).expect("the test backup is removed");
         assert!(

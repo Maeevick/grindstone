@@ -5,6 +5,7 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 
@@ -43,8 +44,11 @@ pub fn import_drafted(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
+    switch_over: &impl ForStoringSwitchOver,
     drafted: &Drafted,
+    today: &str,
 ) -> Result<Imported, Failure> {
+    let _ = (switch_over, today);
     let gathered = import_gather(gather, &drafted.gather)?;
     burn.replace_burn_records(&drafted.burn)?;
     fuel.replace_fuel_records(&drafted.fuel)?;
@@ -195,7 +199,9 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BurnRecordsInMemory::default(),
                 &crate::testing::BrokenFuelRecords,
+                &crate::testing::SwitchOverInMemory::default(),
                 &Drafted::default(),
+                "2026-10-10",
             ),
             Err(Failure::Broken("the disk is full".into()))
         );
@@ -212,11 +218,13 @@ mod tests {
             &gather,
             &burn,
             &fuel,
+            &crate::testing::SwitchOverInMemory::default(),
             &Drafted {
                 gather: drafted(),
                 burn: drafted_burn(),
                 fuel: drafted_fuel(),
             },
+            "2026-10-10",
         );
 
         assert_eq!(
@@ -249,8 +257,55 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BrokenBurnRecords,
                 &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::SwitchOverInMemory::default(),
                 &Drafted::default(),
+                "2026-10-10",
             ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn importing_the_draft_makes_its_day_the_switch_over() {
+        let switch_over = crate::testing::SwitchOverInMemory::default();
+
+        import_drafted(
+            &GatherRecordsInMemory::default(),
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &switch_over,
+            &Drafted::default(),
+            "2026-10-10",
+        )
+        .expect("an import");
+
+        assert_eq!(switch_over.switch_over(), Ok(Some(day("2026-10-10"))));
+    }
+
+    #[test]
+    fn an_import_on_a_day_the_calendar_lacks_or_without_a_switch_over_kept_is_refused() {
+        let import = |switch_over: &dyn Fn() -> Result<Imported, Failure>| switch_over();
+
+        assert_eq!(
+            import(&|| import_drafted(
+                &GatherRecordsInMemory::default(),
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::SwitchOverInMemory::default(),
+                &Drafted::default(),
+                "2026-02-30",
+            )),
+            Err(Failure::Refused(crate::refusal::Refusal::NotADate))
+        );
+        assert_eq!(
+            import(&|| import_drafted(
+                &GatherRecordsInMemory::default(),
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::BrokenSwitchOver,
+                &Drafted::default(),
+                "2026-10-10",
+            )),
             Err(Failure::Broken("the disk is full".into()))
         );
     }
