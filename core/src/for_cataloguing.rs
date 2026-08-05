@@ -3,6 +3,7 @@ use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
+use crate::meal::{Cooking, Meal};
 use serde::{Deserialize, Serialize};
 
 pub fn exercises(burn: &impl ForStoringBurnRecords) -> Result<Vec<Exercise>, Failure> {
@@ -48,6 +49,40 @@ pub fn add_food(fuel: &impl ForStoringFuelRecords, form: &FoodForm) -> Result<Ve
 pub fn remove_food(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<Food>, Failure> {
     fuel.remove_food(name)?;
     foods(fuel)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct IngredientForm {
+    pub food: String,
+    pub quantity: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MealForm {
+    pub name: String,
+    pub recipe: String,
+    pub ingredients: Vec<IngredientForm>,
+    pub cooking: Cooking,
+}
+
+pub fn meals(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Meal>, Failure> {
+    let _ = fuel;
+    Ok(vec![])
+}
+
+pub fn preview_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Meal, Failure> {
+    let _ = (fuel, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+pub fn cook_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Vec<Meal>, Failure> {
+    let _ = (fuel, form);
+    Ok(vec![])
+}
+
+pub fn remove_meal(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<Meal>, Failure> {
+    let _ = (fuel, name);
+    Ok(vec![])
 }
 
 #[cfg(test)]
@@ -151,5 +186,81 @@ mod tests {
             add_food(&fuel, &a_food_form(" ", 54.0)),
             Err(Failure::Refused(Refusal::NotAName))
         );
+    }
+
+    fn a_kitchen() -> crate::testing::FuelRecordsInMemory {
+        let fuel = crate::testing::FuelRecordsInMemory::default();
+        for (name, energy_kcal) in [("Rice", 350.0), ("Chicken", 120.0)] {
+            add_food(&fuel, &a_food_form(name, energy_kcal)).expect("a food adds");
+        }
+        fuel
+    }
+
+    fn rice_and_chicken() -> MealForm {
+        MealForm {
+            name: "Rice and chicken".into(),
+            recipe: "Boil, sear, stir.".into(),
+            ingredients: vec![
+                IngredientForm {
+                    food: "Rice".into(),
+                    quantity: 200.0,
+                },
+                IngredientForm {
+                    food: "Chicken".into(),
+                    quantity: 300.0,
+                },
+            ],
+            cooking: Cooking::Weighed { cooked_g: 800.0 },
+        }
+    }
+
+    #[test]
+    fn a_previewed_meal_tells_its_totals_without_cooking_anything() {
+        let fuel = a_kitchen();
+
+        let previewed = preview_meal(&fuel, &rice_and_chicken()).expect("a meal");
+
+        assert!((previewed.totals.energy_kcal - 1060.0).abs() < 1e-9);
+        assert_eq!(meals(&fuel), Ok(vec![]));
+    }
+
+    #[test]
+    fn a_cooked_meal_keeps_its_recipe_and_joins_the_foods_per_100_g_cooked() {
+        let fuel = a_kitchen();
+
+        let cooked = cook_meal(&fuel, &rice_and_chicken()).expect("the meals");
+
+        assert_eq!(
+            cooked
+                .iter()
+                .map(|meal| meal.recipe.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Boil, sear, stir."]
+        );
+        let as_a_food = foods(&fuel)
+            .expect("the foods")
+            .into_iter()
+            .find(|food| food.name == "Rice and chicken")
+            .expect("the meal as a food");
+        assert!((as_a_food.nutrients.energy_kcal - 132.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_meal_of_a_food_missing_from_the_catalog_is_refused_and_a_removed_meal_leaves() {
+        let fuel = a_kitchen();
+        cook_meal(&fuel, &rice_and_chicken()).expect("a meal cooks");
+        let unknown = MealForm {
+            ingredients: vec![IngredientForm {
+                food: "Saffron".into(),
+                quantity: 1.0,
+            }],
+            ..rice_and_chicken()
+        };
+
+        assert_eq!(
+            preview_meal(&fuel, &unknown),
+            Err(Failure::Refused(Refusal::NotAFood))
+        );
+        assert_eq!(remove_meal(&fuel, "Rice and chicken"), Ok(vec![]));
     }
 }
