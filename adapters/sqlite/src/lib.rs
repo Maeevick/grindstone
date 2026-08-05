@@ -8,6 +8,7 @@ use grind_core::food::{Food, Nutrients, Unit};
 use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
+use grind_core::for_storing_switch_over::ForStoringSwitchOver;
 use grind_core::fuel_records::{FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
@@ -56,6 +57,7 @@ const MIGRATIONS: &[&str] = &[
          fibre_g_per_kg real not null
      );",
     "create table meals (name text primary key, meal text not null)",
+    "create table switch_over (only integer primary key check (only = 1), day text not null)",
 ];
 
 pub struct Sqlite(Connection);
@@ -589,12 +591,23 @@ impl ForStoringFuelRecords for Sqlite {
     }
 }
 
+impl ForStoringSwitchOver for Sqlite {
+    fn save_switch_over(&self, _: NaiveDate) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
+
+    fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
+        Err(Broken("not yet".into()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
+    use grind_core::testing::honouring_for_storing_switch_over;
 
     fn database() -> Sqlite {
         Sqlite::in_memory().expect("an in-memory database opens and migrates")
@@ -879,5 +892,12 @@ mod tests {
             .expect("a meal no app wrote");
 
         assert!(matches!(records.fuel_records(), Err(Broken(_))));
+    }
+
+    #[test]
+    fn no_switch_over_until_one_is_saved_and_the_latest_one_stands() {
+        honouring_for_storing_switch_over::no_switch_over_until_one_is_saved_and_the_latest_one_stands(
+            &database(),
+        );
     }
 }

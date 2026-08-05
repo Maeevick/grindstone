@@ -15,6 +15,7 @@ pub mod for_setting_up_the_profile;
 pub mod for_storing_burn_records;
 pub mod for_storing_fuel_records;
 pub mod for_storing_gather_records;
+pub mod for_storing_switch_over;
 pub mod for_tracking;
 pub mod fuel;
 pub mod fuel_records;

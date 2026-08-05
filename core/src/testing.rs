@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use crate::burn_records::BurnRecords;
 use crate::exercise::Exercise;
@@ -7,6 +7,7 @@ use crate::food::{Food, Nutrients, Unit};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
@@ -735,6 +736,52 @@ pub mod honouring_for_storing_fuel_records {
     }
 }
 
+#[derive(Default)]
+pub struct SwitchOverInMemory(Cell<Option<NaiveDate>>);
+
+impl ForStoringSwitchOver for SwitchOverInMemory {
+    fn save_switch_over(&self, day: NaiveDate) -> Result<(), Broken> {
+        self.0.set(Some(day));
+        Ok(())
+    }
+
+    fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
+        Ok(self.0.get())
+    }
+}
+
+pub struct BrokenSwitchOver;
+
+impl ForStoringSwitchOver for BrokenSwitchOver {
+    fn save_switch_over(&self, _: NaiveDate) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+}
+
+pub mod honouring_for_storing_switch_over {
+    use super::*;
+
+    pub fn no_switch_over_until_one_is_saved_and_the_latest_one_stands(
+        records: &impl ForStoringSwitchOver,
+    ) {
+        let day = |date| NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day");
+        assert_eq!(records.switch_over(), Ok(None));
+
+        records
+            .save_switch_over(day("2026-10-10"))
+            .expect("a switch-over saves");
+        records
+            .save_switch_over(day("2026-10-11"))
+            .expect("a switch-over saves");
+
+        assert_eq!(records.switch_over(), Ok(Some(day("2026-10-11"))));
+    }
+}
+
 pub mod honouring_for_storing_gather_records {
     use super::*;
     use crate::gender::Gender;
@@ -1022,6 +1069,13 @@ mod tests {
     fn meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves() {
         honouring_for_storing_fuel_records::meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves(
             &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn no_switch_over_until_one_is_saved_and_the_latest_one_stands() {
+        honouring_for_storing_switch_over::no_switch_over_until_one_is_saved_and_the_latest_one_stands(
+            &SwitchOverInMemory::default(),
         );
     }
 }
