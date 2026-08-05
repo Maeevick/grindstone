@@ -6,7 +6,7 @@ use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
 use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
-use grind_core::for_cataloguing::{self, FoodForm};
+use grind_core::for_cataloguing::{self, FoodForm, MealForm};
 use grind_core::for_fuelling::{self, IntakeForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, GatherCard, Window};
@@ -18,6 +18,7 @@ use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::ledger::Day;
+use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
 use grind_draft::{ImportFailure, drafted};
@@ -211,6 +212,30 @@ pub fn fuel_targets_on(records: State<Records>, date: String) -> Result<FuelTarg
     for_setting_up_the_profile::fuel_targets_on(&*records, &date)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn meals(records: State<Records>) -> Result<Vec<Meal>, Failure> {
+    let _ = records;
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn preview_meal(records: State<Records>, form: MealForm) -> Result<Meal, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn cook_meal(records: State<Records>, form: MealForm) -> Result<Vec<Meal>, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_meal(records: State<Records>, name: String) -> Result<Vec<Meal>, Failure> {
+    let _ = (records, name);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,6 +279,10 @@ mod tests {
                 remove_food,
                 set_fuel_targets,
                 fuel_targets_on,
+                meals,
+                preview_meal,
+                cook_meal,
+                remove_meal,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -617,5 +646,24 @@ mod tests {
 
         assert_eq!(set, Ok(aims.clone()));
         assert_eq!(in_force, Ok(aims));
+    }
+
+    #[test]
+    fn a_meal_previewed_cooked_and_removed_from_the_screen_answers_as_the_screen_reads_it() {
+        let (_app, screen) = launched();
+        with_skyr_in_the_catalog(&screen).expect("a food adds");
+        let form = json!({ "form": { "name": "Skyr bowl", "recipe": "Stir.",
+            "ingredients": [{ "food": "Skyr", "quantity": 200.0 }],
+            "cooking": { "Weighed": { "cooked_g": 200.0 } } } });
+
+        let previewed = invoke(&screen, "preview_meal", form.clone()).expect("a meal");
+        let cooked = invoke(&screen, "cook_meal", form);
+        let listed = invoke(&screen, "meals", json!({}));
+        let removed = invoke(&screen, "remove_meal", json!({ "name": "Skyr bowl" }));
+
+        assert_eq!(previewed["totals"]["energy_kcal"], json!(108.0));
+        assert_eq!(cooked, Ok(json!([previewed])));
+        assert_eq!(listed, cooked);
+        assert_eq!(removed, Ok(json!([])));
     }
 }
