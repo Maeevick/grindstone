@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::food::{Food, Nutrients, Unit};
+use crate::food::{Food, Nutrients, Unit, nutrients_of};
 use crate::refusal::Refusal;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -27,23 +27,84 @@ pub struct Meal {
     pub totals: Nutrients,
 }
 
+fn scaled(nutrients: Nutrients, share: f64) -> Nutrients {
+    Nutrients {
+        energy_kcal: nutrients.energy_kcal * share,
+        protein_g: nutrients.protein_g * share,
+        carbs_g: nutrients.carbs_g * share,
+        fat_g: nutrients.fat_g * share,
+        fibre_g: nutrients.fibre_g * share,
+    }
+}
+
+fn added(sum: Nutrients, more: Nutrients) -> Nutrients {
+    Nutrients {
+        energy_kcal: sum.energy_kcal + more.energy_kcal,
+        protein_g: sum.protein_g + more.protein_g,
+        carbs_g: sum.carbs_g + more.carbs_g,
+        fat_g: sum.fat_g + more.fat_g,
+        fibre_g: sum.fibre_g + more.fibre_g,
+    }
+}
+
 pub fn meal(
     name: &str,
     recipe: &str,
     ingredients: &[(Food, f64)],
     cooking: Cooking,
 ) -> Result<Meal, Refusal> {
-    let _ = (name, recipe, ingredients, cooking);
-    Err(Refusal::NotAName)
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(Refusal::NotAName);
+    }
+    if ingredients.is_empty()
+        || ingredients
+            .iter()
+            .any(|(_, quantity)| !(quantity.is_finite() && *quantity > 0.0))
+    {
+        return Err(Refusal::NotAQuantity);
+    }
+    let ingredients: Vec<Ingredient> = ingredients
+        .iter()
+        .map(|(food, quantity)| Ingredient {
+            food: food.name.clone(),
+            unit: food.unit,
+            quantity: *quantity,
+            nutrients: nutrients_of(food, *quantity),
+        })
+        .collect();
+    let raw_g: f64 = ingredients
+        .iter()
+        .filter(|ingredient| ingredient.unit != Unit::Piece)
+        .map(|ingredient| ingredient.quantity)
+        .sum();
+    let cooked_g = match cooking {
+        Cooking::Weighed { cooked_g } => cooked_g,
+        Cooking::Ratio { cooked_per_raw } => raw_g * cooked_per_raw,
+    };
+    if !(cooked_g.is_finite() && cooked_g > 0.0) {
+        return Err(Refusal::NotAPortion);
+    }
+    Ok(Meal {
+        name: name.into(),
+        recipe: recipe.trim().into(),
+        totals: ingredients
+            .iter()
+            .fold(Nutrients::default(), |sum, ingredient| {
+                added(sum, ingredient.nutrients)
+            }),
+        ingredients,
+        raw_g,
+        cooked_g,
+    })
 }
 
 pub fn food_of(meal: &Meal) -> Food {
-    let _ = meal;
     Food {
-        name: String::new(),
+        name: meal.name.clone(),
         unit: Unit::Gram,
         portion: 100.0,
-        nutrients: Nutrients::default(),
+        nutrients: scaled(meal.totals, 100.0 / meal.cooked_g),
     }
 }
 
