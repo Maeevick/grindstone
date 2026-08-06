@@ -8,6 +8,8 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
+use crate::refusal::Refusal;
+use chrono::NaiveDate;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Imported {
@@ -48,10 +50,12 @@ pub fn import_drafted(
     drafted: &Drafted,
     today: &str,
 ) -> Result<Imported, Failure> {
-    let _ = (switch_over, today);
+    let switched_on = NaiveDate::parse_from_str(today, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     let gathered = import_gather(gather, &drafted.gather)?;
     burn.replace_burn_records(&drafted.burn)?;
     fuel.replace_fuel_records(&drafted.fuel)?;
+    switch_over.save_switch_over(switched_on)?;
     Ok(Imported {
         exercises: drafted.burn.exercises.len(),
         workouts: drafted.burn.workouts.len(),

@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::screens::lines;
+use crate::screens::{lines, today};
 use crate::tauri;
 
 #[component]
@@ -9,7 +9,7 @@ pub fn Settings() -> impl IntoView {
     let said = RwSignal::new(None::<String>);
     let import = move |_| {
         spawn_local(async move {
-            said.set(Some(match tauri::import_draft().await {
+            said.set(Some(match tauri::import_draft(&today()).await {
                 Ok(imported) => lines::imported(&imported),
                 Err(failure) => lines::import_failure(&failure),
             }));

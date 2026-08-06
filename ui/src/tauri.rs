@@ -222,8 +222,13 @@ pub async fn remove_meal(name: &str) -> Result<Vec<Meal>, Failure> {
     call("remove_meal", Naming { name }, broken).await
 }
 
-pub async fn import_draft() -> Result<Imported, ImportFailure> {
-    call("import_draft", Nothing {}, |reason| {
+#[derive(Serialize)]
+struct Today<'a> {
+    today: &'a str,
+}
+
+pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
+    call("import_draft", Today { today }, |reason| {
         ImportFailure::Failed(Failure::Broken(reason))
     })
     .await
