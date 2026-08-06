@@ -20,6 +20,7 @@ use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
+use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
 use grind_draft::{ImportFailure, drafted};
 use grind_sqlite::Sqlite;
@@ -237,6 +238,12 @@ pub fn remove_meal(records: State<Records>, name: String) -> Result<Vec<Meal>, F
     for_cataloguing::remove_meal(&*records, &name)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn streak(records: State<Records>, today: String) -> Result<Streak, Failure> {
+    let _ = (records, today);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,6 +291,7 @@ mod tests {
                 preview_meal,
                 cook_meal,
                 remove_meal,
+                streak,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -666,5 +674,27 @@ mod tests {
         assert_eq!(cooked, Ok(json!([previewed])));
         assert_eq!(listed, cooked);
         assert_eq!(removed, Ok(json!([])));
+    }
+
+    #[test]
+    fn the_streak_crosses_to_the_screen_with_its_days_and_their_ticks() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let answer = invoke(&screen, "streak", json!({ "today": "2026-10-10" }));
+
+        assert_eq!(
+            answer,
+            Ok(
+                json!({ "days": 0, "at_risk": false, "recent": [{ "day": "2026-10-10",
+                "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": null },
+                "status": "Pending" }] })
+            )
+        );
     }
 }
