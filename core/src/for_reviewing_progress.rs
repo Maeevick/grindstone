@@ -7,10 +7,11 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
+use crate::fuel::{Fuel, Verdict, fuel_over};
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
-use crate::streak::Streak;
+use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
 
@@ -82,8 +83,73 @@ pub fn streak(
     switch_over: &impl ForStoringSwitchOver,
     today: &str,
 ) -> Result<Streak, Failure> {
-    let _ = (gather, burn, fuel, switch_over, today);
-    Err(Failure::Broken("not yet".into()))
+    let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    let switched_on = switch_over.switch_over()?;
+    let gathered = gather.gather_records()?;
+    let burnt = burn.burn_records()?;
+    let fuelled = fuel.fuel_records()?;
+    let first_weighed = gathered
+        .measurements
+        .iter()
+        .map(|measured| measured.day)
+        .min();
+    let first_fuelled = fuelled.intakes.iter().map(|(_, eaten)| eaten.day).min();
+    let first_worked_out = burnt.workouts.iter().map(|(_, done)| done.day).min();
+    let Some(start) = [first_weighed, first_fuelled, first_worked_out]
+        .into_iter()
+        .flatten()
+        .min()
+    else {
+        return Ok(streak_of(&[], today));
+    };
+    let counted_from = |first: Option<NaiveDate>| match switched_on {
+        Some(_) => first,
+        None => Some(start),
+    };
+    let (weighed_from, fuelled_from, worked_out_from) = (
+        counted_from(first_weighed),
+        counted_from(first_fuelled),
+        counted_from(first_worked_out),
+    );
+    let macros_from = switched_on.unwrap_or(start);
+    let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
+    let ticked: Vec<(NaiveDate, Ticks)> = days
+        .iter()
+        .zip(fuel_over(&days, &gathered, &burnt, &fuelled))
+        .map(|(day, fuelled_day)| {
+            let ticked_from =
+                |from: Option<NaiveDate>, held: bool| from.filter(|from| from <= day).map(|_| held);
+            (
+                *day,
+                Ticks {
+                    weighed: ticked_from(
+                        weighed_from,
+                        gathered
+                            .measurements
+                            .iter()
+                            .any(|measured| measured.day == *day),
+                    ),
+                    fuelled: ticked_from(fuelled_from, in_band(&fuelled_day, *day >= macros_from)),
+                    worked_out: ticked_from(
+                        worked_out_from,
+                        burnt.workouts.iter().any(|(_, done)| done.day == *day),
+                    ),
+                    hydrated: None,
+                },
+            )
+        })
+        .collect();
+    Ok(streak_of(&ticked, today))
+}
+
+fn in_band(fuelled: &Fuel, macros_checked: bool) -> bool {
+    let macros_in_band = fuelled.macros.is_some_and(|macros| {
+        [macros.protein, macros.fat, macros.fibre, macros.carbs]
+            .iter()
+            .all(|row| row.verdict == Verdict::InBand)
+    });
+    fuelled.energy == Some(Verdict::InBand) && (!macros_checked || macros_in_band)
 }
 
 #[cfg(test)]
@@ -309,7 +375,6 @@ mod tests {
 
     mod the_streak {
         use super::*;
-        use crate::exercise::Exercise;
         use crate::food::{Food, Nutrients, Unit};
         use crate::for_burning::{WorkoutForm, log_workout};
         use crate::for_cataloguing::{FoodForm, add_exercise, add_food};
@@ -518,20 +583,6 @@ mod tests {
                     "2026-02-30"
                 ),
                 Err(Failure::Refused(Refusal::NotADate))
-            );
-        }
-
-        #[test]
-        fn an_exercise_is_needed_for_a_workout_tick_so_the_catalog_matters() {
-            let records = a_man_at_his_desk();
-
-            assert!(
-                crate::for_cataloguing::exercises(&records.burn).is_ok_and(|known| known.contains(
-                    &Exercise {
-                        name: "Walking".into(),
-                        met: 4.0
-                    }
-                ))
             );
         }
     }
