@@ -3,10 +3,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::composition::Composition;
 use crate::failure::Failure;
+use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
+use crate::streak::Streak;
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
 
@@ -69,6 +73,17 @@ pub fn gather_card(
         fat_change_kg: first_and_last.map(|(first, last)| last.fat_mass_kg - first.fat_mass_kg),
         lean_change_kg: first_and_last.map(|(first, last)| last.lean_mass_kg - first.lean_mass_kg),
     })
+}
+
+pub fn streak(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    switch_over: &impl ForStoringSwitchOver,
+    today: &str,
+) -> Result<Streak, Failure> {
+    let _ = (gather, burn, fuel, switch_over, today);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -290,5 +305,234 @@ mod tests {
             gather_card(&BrokenGatherRecords, "2026-10-10", Window::Days30),
             Err(Failure::Broken("the disk is full".into()))
         );
+    }
+
+    mod the_streak {
+        use super::*;
+        use crate::exercise::Exercise;
+        use crate::food::{Food, Nutrients, Unit};
+        use crate::for_burning::{WorkoutForm, log_workout};
+        use crate::for_cataloguing::{FoodForm, add_exercise, add_food};
+        use crate::for_fuelling::{IntakeForm, log_intake};
+        use crate::for_setting_up_the_profile::{
+            FuelTargetsForm, UsualDayForm, set_fuel_targets, set_usual_day,
+        };
+        use crate::streak::Ticks;
+        use crate::testing::{BurnRecordsInMemory, FuelRecordsInMemory, SwitchOverInMemory};
+
+        struct Records {
+            gather: GatherRecordsInMemory,
+            burn: BurnRecordsInMemory,
+            fuel: FuelRecordsInMemory,
+            switch_over: SwitchOverInMemory,
+        }
+
+        fn plate(name: &str, fibre_g: f64) -> FoodForm {
+            let food = Food {
+                name: name.into(),
+                unit: Unit::Piece,
+                portion: 1.0,
+                nutrients: Nutrients {
+                    energy_kcal: 4.0 * 170.0 + 4.0 * 230.0 + 9.0 * 80.0 + 2.0 * fibre_g,
+                    protein_g: 170.0,
+                    carbs_g: 230.0,
+                    fat_g: 80.0,
+                    fibre_g,
+                },
+            };
+            FoodForm {
+                name: food.name,
+                unit: food.unit,
+                portion: food.portion,
+                nutrients: food.nutrients,
+            }
+        }
+
+        fn a_man_at_his_desk() -> Records {
+            let records = Records {
+                gather: GatherRecordsInMemory::default(),
+                burn: BurnRecordsInMemory::default(),
+                fuel: FuelRecordsInMemory::default(),
+                switch_over: SwitchOverInMemory::default(),
+            };
+            set_profile(
+                &records.gather,
+                &ProfileForm {
+                    from: "2026-03-01".into(),
+                    birthday: "1985-04-12".into(),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile set");
+            set_usual_day(
+                &records.burn,
+                &UsualDayForm {
+                    from: "2026-03-01".into(),
+                    sitting_min: 480.0,
+                    standing_min: 120.0,
+                    moving_km: 3.0,
+                },
+            )
+            .expect("a usual day set");
+            set_fuel_targets(
+                &records.fuel,
+                &FuelTargetsForm {
+                    from: "2026-03-01".into(),
+                    protein_g_per_kg: 2.0,
+                    fat_g_per_kg: 0.9,
+                    fibre_g_per_kg: 0.4,
+                },
+            )
+            .expect("targets set");
+            add_exercise(&records.burn, "Walking", 4.0).expect("an exercise adds");
+            add_food(&records.fuel, &plate("Plate", 35.0)).expect("a food adds");
+            add_food(&records.fuel, &plate("Fibreless plate", 5.0)).expect("a food adds");
+            records
+        }
+
+        fn a_full_day(records: &Records, date: &str, plate: &str) {
+            log_measurement(&records.gather, date, 80.0, Some(80.0)).expect("a measurement logs");
+            log_workout(
+                &records.gather,
+                &records.burn,
+                &WorkoutForm {
+                    date: date.into(),
+                    exercise: "Walking".into(),
+                    minutes: 1.0,
+                    reps: None,
+                    sets: 1,
+                    load_kg: 0.0,
+                },
+            )
+            .expect("a workout logs");
+            log_intake(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                &IntakeForm {
+                    date: date.into(),
+                    food: plate.into(),
+                    quantity: 1.0,
+                },
+            )
+            .expect("an intake logs");
+        }
+
+        fn streak_on(records: &Records, today: &str) -> Streak {
+            streak(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                &records.switch_over,
+                today,
+            )
+            .expect("a streak")
+        }
+
+        fn ticks_on(records: &Records, today: &str, date: &str) -> Option<Ticks> {
+            streak_on(records, today)
+                .recent
+                .into_iter()
+                .find(|streaked| streaked.day == day(date))
+                .map(|streaked| streaked.ticks)
+        }
+
+        #[test]
+        fn days_weighed_fuelled_in_band_and_worked_out_make_the_streak() {
+            let records = a_man_at_his_desk();
+            for date in ["2026-10-08", "2026-10-09", "2026-10-10"] {
+                a_full_day(&records, date, "Plate");
+            }
+
+            assert_eq!(streak_on(&records, "2026-10-10").days, 3);
+        }
+
+        #[test]
+        fn before_the_switch_over_a_day_is_fuelled_on_its_energy_alone_and_after_it_on_its_macros_too()
+         {
+            let records = a_man_at_his_desk();
+            a_full_day(&records, "2026-10-08", "Plate");
+            a_full_day(&records, "2026-10-09", "Fibreless plate");
+            a_full_day(&records, "2026-10-10", "Plate");
+
+            let without_switch_over = ticks_on(&records, "2026-10-10", "2026-10-09");
+            records
+                .switch_over
+                .save_switch_over(day("2026-10-10"))
+                .expect("a switch-over saves");
+            let after_the_import = ticks_on(&records, "2026-10-10", "2026-10-09");
+
+            assert_eq!(
+                without_switch_over.and_then(|ticks| ticks.fuelled),
+                Some(false)
+            );
+            assert_eq!(after_the_import.and_then(|ticks| ticks.fuelled), Some(true));
+        }
+
+        #[test]
+        fn once_imported_each_tick_counts_from_its_oldest_record() {
+            let records = a_man_at_his_desk();
+            log_measurement(&records.gather, "2026-10-05", 80.0, Some(80.0))
+                .expect("a measurement logs");
+            a_full_day(&records, "2026-10-10", "Plate");
+            records
+                .switch_over
+                .save_switch_over(day("2026-10-10"))
+                .expect("a switch-over saves");
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-06"),
+                Some(Ticks {
+                    weighed: Some(false),
+                    fuelled: None,
+                    worked_out: None,
+                    hydrated: None,
+                })
+            );
+        }
+
+        #[test]
+        fn no_record_at_all_is_no_streak_yet_and_a_broken_switch_over_gives_none() {
+            let records = a_man_at_his_desk();
+
+            assert_eq!(streak_on(&records, "2026-10-10").days, 0);
+            assert_eq!(
+                streak(
+                    &records.gather,
+                    &records.burn,
+                    &records.fuel,
+                    &crate::testing::BrokenSwitchOver,
+                    "2026-10-10"
+                ),
+                Err(Failure::Broken("the disk is full".into()))
+            );
+            assert_eq!(
+                streak(
+                    &records.gather,
+                    &records.burn,
+                    &records.fuel,
+                    &records.switch_over,
+                    "2026-02-30"
+                ),
+                Err(Failure::Refused(Refusal::NotADate))
+            );
+        }
+
+        #[test]
+        fn an_exercise_is_needed_for_a_workout_tick_so_the_catalog_matters() {
+            let records = a_man_at_his_desk();
+
+            assert!(
+                crate::for_cataloguing::exercises(&records.burn).is_ok_and(|known| known.contains(
+                    &Exercise {
+                        name: "Walking".into(),
+                        met: 4.0
+                    }
+                ))
+            );
+        }
     }
 }
