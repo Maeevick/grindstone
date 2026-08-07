@@ -537,7 +537,10 @@ async fn a_meal_weighed_up_shows_its_totals_and_once_cooked_joins_the_list() {
     settled().await;
 
     let said = screen.text_content().unwrap_or_default();
-    assert!(said.contains("700 kcal") && said.contains("140 kcal"), "{said}");
+    assert!(
+        said.contains("700 kcal") && said.contains("140 kcal"),
+        "{said}"
+    );
 
     found::<HtmlFormElement>(&screen, "form.meal")
         .request_submit()
@@ -545,5 +548,38 @@ async fn a_meal_weighed_up_shows_its_totals_and_once_cooked_joins_the_list() {
     settled().await;
 
     let listed: Element = found(&screen, "table.meals tbody");
-    assert!(listed.text_content().is_some_and(|rows| rows.contains("Rice and chicken")));
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|rows| rows.contains("Rice and chicken"))
+    );
+}
+
+#[wasm_bindgen_test]
+async fn home_shows_the_streak_its_recent_days_and_todays_ticks() {
+    answering(
+        r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
+             "gather_card": { "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
+             "streak": { "days": 2, "at_risk": true, "recent": [
+                 { "day": "2026-10-08", "status": "Success", "ticks": { "weighed": true, "fuelled": true, "worked_out": true, "hydrated": null } },
+                 { "day": "2026-10-09", "status": "Joker", "ticks": { "weighed": true, "fuelled": false, "worked_out": true, "hydrated": null } },
+                 { "day": "2026-10-10", "status": "Pending", "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": true } } ] },
+             "fuel_day": { "day": "2026-10-10", "intakes": [], "band": null, "energy": null, "macros": null,
+                 "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } },
+             "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null, "off_the_clock_is_usual": true } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    settled().await;
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("2 days"), "{said}");
+    let dots = screen
+        .query_selector_all(".streak .dot")
+        .map(|found| found.length())
+        .unwrap_or_default();
+    assert_eq!(dots, 3);
+    assert!(screen.query_selector(".streak .dot.Joker").ok().flatten().is_some());
+    assert!(screen.query_selector(".ticks .held").ok().flatten().is_some());
 }
