@@ -310,3 +310,49 @@ select {
 .sources a {
     color: #e8b04b;
 }
+
+.dots {
+    display: flex;
+    gap: 0.35rem;
+    margin: 0.5rem 0;
+}
+
+.dot {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    background: #3a3f47;
+}
+
+.dot.Success {
+    background: #5fd99f;
+}
+
+.dot.Joker {
+    background: #e8b04b;
+}
+
+.dot.Break {
+    background: #f87171;
+}
+
+.dot.Pending {
+    border: 1px solid #e8b04b;
+    background: transparent;
+}
+
+.ticks {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.ticks .held {
+    color: #5fd99f;
+}
+
+.ticks .open {
+    color: #9aa0a6;
+}

@@ -102,6 +102,95 @@ fn GatherCardView() -> impl IntoView {
 }
 
 #[component]
+fn StreakCard() -> impl IntoView {
+    let streak = LocalResource::new(move || async move { tauri::streak(&today()).await });
+    view! {
+        <section class="card streak">
+            <h2>"Streak"</h2>
+            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
+                {move || {
+                    streak
+                        .get()
+                        .map(|streak| match streak {
+                            Ok(streak) => {
+                                let today_ticks = streak
+                                    .recent
+                                    .last()
+                                    .map(|today| lines::ticks_of(&today.ticks))
+                                    .unwrap_or_default();
+                                view! {
+                                    <p class="figures">{lines::streak_line(&streak)}</p>
+                                    <div class="dots">
+                                        {streak
+                                            .recent
+                                            .iter()
+                                            .map(|streaked| {
+                                                view! {
+                                                    <span
+                                                        class=format!("dot {:?}", streaked.status)
+                                                        title=format!(
+                                                            "{}: {}",
+                                                            streaked.day,
+                                                            lines::status_word(streaked.status),
+                                                        )
+                                                    ></span>
+                                                }
+                                            })
+                                            .collect_view()}
+                                    </div>
+                                    <ul class="ticks">
+                                        {today_ticks
+                                            .into_iter()
+                                            .map(|(name, held)| {
+                                                view! {
+                                                    <li class=if held { "held" } else { "open" }>
+                                                        {if held { "✓ " } else { "○ " }}
+                                                        {name}
+                                                    </li>
+                                                }
+                                            })
+                                            .collect_view()}
+                                    </ul>
+                                }
+                                    .into_any()
+                            }
+                            Err(failure) => {
+                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
+                            }
+                        })
+                }}
+            </Transition>
+        </section>
+    }
+}
+
+#[component]
+fn TodayCard() -> impl IntoView {
+    let fuel = LocalResource::new(move || async move { tauri::fuel_day(&today()).await });
+    let burn = LocalResource::new(move || async move { tauri::burn_day(&today()).await });
+    view! {
+        <section class="card">
+            <h2>"Today"</h2>
+            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
+                {move || {
+                    fuel.get()
+                        .and_then(Result::ok)
+                        .map(|fuel| {
+                            let class = fuel.energy.map(lines::verdict_class).unwrap_or("hint");
+                            view! { <p class=format!("figures {class}")>{lines::energy_line(&fuel)}</p> }
+                        })
+                }}
+                {move || {
+                    burn.get()
+                        .and_then(Result::ok)
+                        .map(|burn| view! { <p class="figures">{lines::burnt(&burn)}</p> })
+                }}
+            </Transition>
+        </section>
+    }
+}
+
+#[component]
 pub fn Home() -> impl IntoView {
     let today = today();
     let profile = LocalResource::new(move || {
@@ -109,18 +198,25 @@ pub fn Home() -> impl IntoView {
         async move { tauri::profile_on(&today).await }
     });
     view! {
-            <Suspense fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
-                {move || {
-                    profile
-                        .get()
-                        .map(|profile| match profile {
-                            Ok(None) => view! { <Welcome /> }.into_any(),
-    Ok(Some(_)) => view! { <GatherCardView /> }.into_any(),
-                            Err(failure) => {
-                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
+        <Suspense fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
+            {move || {
+                profile
+                    .get()
+                    .map(|profile| match profile {
+                        Ok(None) => view! { <Welcome /> }.into_any(),
+                        Ok(Some(_)) => {
+                            view! {
+                                <StreakCard />
+                                <TodayCard />
+                                <GatherCardView />
                             }
-                        })
-                }}
-            </Suspense>
-        }
+                                .into_any()
+                        }
+                        Err(failure) => {
+                            view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
+                        }
+                    })
+            }}
+        </Suspense>
+    }
 }

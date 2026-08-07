@@ -16,6 +16,7 @@ use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
+use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
 use grind_draft::ImportFailure;
 use serde::Serialize;
@@ -225,6 +226,10 @@ pub async fn remove_meal(name: &str) -> Result<Vec<Meal>, Failure> {
 #[derive(Serialize)]
 struct Today<'a> {
     today: &'a str,
+}
+
+pub async fn streak(today: &str) -> Result<Streak, Failure> {
+    call("streak", Today { today }, broken).await
 }
 
 pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {

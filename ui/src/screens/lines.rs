@@ -7,6 +7,7 @@ use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::meal::Meal;
 use grind_core::refusal::Refusal;
+use grind_core::streak::{Status, Streak, Ticks};
 use grind_draft::{DraftRefusal, ImportFailure};
 
 pub const WELCOME: &str = "Greetings, rusty one. I am Grimble, archivist of the Great Library of Cogsburg. \
@@ -280,4 +281,40 @@ pub fn weighed_up(meal: &Meal, per_100_g: &Nutrients) -> [String; 2] {
 
 pub fn cooked(name: &str) -> String {
     format!("{name} is in the food catalog, per 100 g cooked. Weigh your portions in Fuel.")
+}
+
+pub fn streak_line(streak: &Streak) -> String {
+    let days = match streak.days {
+        0 => "No streak yet".to_string(),
+        1 => "1 day".to_string(),
+        many => format!("{many} days"),
+    };
+    if streak.at_risk {
+        format!(
+            "{days}. Yesterday was a joker: today must be complete, or the streak goes back to the archive."
+        )
+    } else {
+        format!("{days}. The streak is there to build habits, not to flatter.")
+    }
+}
+
+pub fn status_word(status: Status) -> &'static str {
+    match status {
+        Status::Success => "every tick",
+        Status::Joker => "a joker",
+        Status::Break => "a break",
+        Status::Pending => "under way",
+    }
+}
+
+pub fn ticks_of(ticks: &Ticks) -> Vec<(&'static str, bool)> {
+    [
+        ("Weigh-in", ticks.weighed),
+        ("Fuel in band", ticks.fuelled),
+        ("Workout", ticks.worked_out),
+        ("Hydrate", ticks.hydrated),
+    ]
+    .into_iter()
+    .filter_map(|(name, held)| held.map(|held| (name, held)))
+    .collect()
 }
