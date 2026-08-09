@@ -7,6 +7,7 @@ use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::meals::MealCooker;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::settings::Settings;
+use grind_ui::screens::stats::Stats;
 use grind_ui::screens::tracker::Tracker;
 use leptos::prelude::*;
 use leptos_router::components::Router;
@@ -580,6 +581,50 @@ async fn home_shows_the_streak_its_recent_days_and_todays_ticks() {
         .map(|found| found.length())
         .unwrap_or_default();
     assert_eq!(dots, 3);
-    assert!(screen.query_selector(".streak .dot.Joker").ok().flatten().is_some());
-    assert!(screen.query_selector(".ticks .held").ok().flatten().is_some());
+    assert!(
+        screen
+            .query_selector(".streak .dot.Joker")
+            .ok()
+            .flatten()
+            .is_some()
+    );
+    assert!(
+        screen
+            .query_selector(".ticks .held")
+            .ok()
+            .flatten()
+            .is_some()
+    );
+}
+
+#[wasm_bindgen_test]
+async fn stats_draw_two_measures_and_tell_how_they_move_together() {
+    answering(
+        r#"{ "explore": { "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
+               "other": [["2026-10-08", 2600.0], ["2026-10-09", 2500.0], ["2026-10-10", 2400.0]],
+               "one_summary": { "first": 80.4, "last": 80.0, "mean": 80.2, "lowest": 80.0, "highest": 80.4 },
+               "other_summary": { "first": 2600.0, "last": 2400.0, "mean": 2500.0, "lowest": 2400.0, "highest": 2600.0 },
+               "pairs": [[80.4, 2600.0], [80.2, 2500.0], [80.0, 2400.0]], "correlation": 1.0 } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Stats />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let lines_drawn = screen
+        .query_selector_all("svg.timeline polyline")
+        .map(|found| found.length())
+        .unwrap_or_default();
+    let pairs_drawn = screen
+        .query_selector_all("svg.scatter circle")
+        .map(|found| found.length())
+        .unwrap_or_default();
+    let said = screen.text_content().unwrap_or_default();
+    assert_eq!((lines_drawn, pairs_drawn), (2, 3));
+    assert!(said.contains("80.4 kg") && said.contains("2400 kcal") && said.contains("1.00"), "{said}");
 }

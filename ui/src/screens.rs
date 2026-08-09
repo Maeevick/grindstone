@@ -7,6 +7,7 @@ pub mod lines;
 pub mod meals;
 pub mod profile;
 pub mod settings;
+pub mod stats;
 pub mod tracker;
 
 pub fn today() -> String {
