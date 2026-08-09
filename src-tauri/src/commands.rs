@@ -9,7 +9,7 @@ use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::{self, FoodForm, MealForm};
 use grind_core::for_fuelling::{self, IntakeForm};
 use grind_core::for_importing::{self, Imported};
-use grind_core::for_reviewing_progress::{self, GatherCard, Window};
+use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
     self, FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
 };
@@ -20,6 +20,7 @@ use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
+use grind_core::stats::Measure;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
 use grind_draft::{ImportFailure, drafted};
@@ -244,6 +245,18 @@ pub fn streak(records: State<Records>, today: String) -> Result<Streak, Failure>
     for_reviewing_progress::streak(&*records, &*records, &*records, &*records, &today)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn explore(
+    records: State<Records>,
+    today: String,
+    window: Window,
+    one: Measure,
+    other: Measure,
+) -> Result<Explored, Failure> {
+    let _ = (records, today, window, one, other);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -292,6 +305,7 @@ mod tests {
                 cook_meal,
                 remove_meal,
                 streak,
+                explore,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -695,6 +709,30 @@ mod tests {
                 "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": null },
                 "status": "Pending" }] })
             )
+        );
+    }
+
+    #[test]
+    fn two_measures_explored_from_the_screen_cross_with_their_series_and_pairs() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let answer = invoke(
+            &screen,
+            "explore",
+            json!({ "today": "2026-10-10", "window": "Days30", "one": "BodyMass", "other": "Eaten" }),
+        );
+
+        assert_eq!(
+            answer,
+            Ok(json!({ "one": [["2026-10-10", 80.0]], "other": [],
+                "one_summary": { "first": 80.0, "last": 80.0, "mean": 80.0, "lowest": 80.0, "highest": 80.0 },
+                "other_summary": null, "pairs": [], "correlation": null }))
         );
     }
 }
