@@ -10,19 +10,44 @@ pub struct Summary {
     pub highest: f64,
 }
 
+const FEWEST_PAIRS_TO_CORRELATE: usize = 3;
+
 pub fn summary(points: &[(NaiveDate, f64)]) -> Option<Summary> {
-    let _ = points;
-    None
+    let (_, first) = *points.first()?;
+    let (_, last) = *points.last()?;
+    let values = points.iter().map(|(_, value)| *value);
+    Some(Summary {
+        first,
+        last,
+        mean: values.clone().sum::<f64>() / points.len() as f64,
+        lowest: values.clone().fold(f64::INFINITY, f64::min),
+        highest: values.fold(f64::NEG_INFINITY, f64::max),
+    })
 }
 
 pub fn paired(one: &[(NaiveDate, f64)], other: &[(NaiveDate, f64)]) -> Vec<(f64, f64)> {
-    let _ = (one, other);
-    vec![]
+    one.iter()
+        .filter_map(|(day, value)| {
+            other
+                .iter()
+                .find(|(other_day, _)| other_day == day)
+                .map(|(_, other_value)| (*value, *other_value))
+        })
+        .collect()
 }
 
 pub fn correlation(pairs: &[(f64, f64)]) -> Option<f64> {
-    let _ = pairs;
-    None
+    if pairs.len() < FEWEST_PAIRS_TO_CORRELATE {
+        return None;
+    }
+    let count = pairs.len() as f64;
+    let mean_x = pairs.iter().map(|(x, _)| x).sum::<f64>() / count;
+    let mean_y = pairs.iter().map(|(_, y)| y).sum::<f64>() / count;
+    let covariance: f64 = pairs.iter().map(|(x, y)| (x - mean_x) * (y - mean_y)).sum();
+    let spread_x: f64 = pairs.iter().map(|(x, _)| (x - mean_x).powi(2)).sum();
+    let spread_y: f64 = pairs.iter().map(|(_, y)| (y - mean_y).powi(2)).sum();
+    let spread = (spread_x * spread_y).sqrt();
+    (spread > 0.0).then(|| covariance / spread)
 }
 
 #[cfg(test)]
