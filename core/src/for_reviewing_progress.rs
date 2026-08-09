@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::burn::burn_on;
 use crate::composition::Composition;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
@@ -8,10 +9,11 @@ use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel::{Fuel, Verdict, fuel_over};
+use crate::ledger::Day;
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
-use crate::stats::{Measure, Summary};
+use crate::stats::{Measure, Summary, correlation, paired, summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
@@ -171,8 +173,89 @@ pub fn explore(
     window: Window,
     measures: (Measure, Measure),
 ) -> Result<Explored, Failure> {
-    let _ = (gather, burn, fuel, today, window, measures);
-    Err(Failure::Broken("not yet".into()))
+    let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    let first_day = first_day_of(window, today);
+    let is_in_window = |day: &NaiveDate| (first_day..=today).contains(day);
+    let gathered = gather.gather_records()?;
+    let burnt = burn.burn_records()?;
+    let fuelled = fuel.fuel_records()?;
+    let days_logged = |logged: Vec<NaiveDate>| -> Vec<NaiveDate> {
+        let mut logged: Vec<NaiveDate> = logged.into_iter().filter(is_in_window).collect();
+        logged.sort();
+        logged.dedup();
+        logged
+    };
+    let body: Vec<Day> = ledger(&gathered.measurements, &gathered.profiles)
+        .into_iter()
+        .filter(|measured| is_in_window(&measured.day))
+        .collect();
+    let fuel_days = fuel_over(
+        &days_logged(fuelled.intakes.iter().map(|(_, eaten)| eaten.day).collect()),
+        &gathered,
+        &burnt,
+        &fuelled,
+    );
+    let burn_days: Vec<(NaiveDate, Option<f64>)> =
+        days_logged(burnt.workouts.iter().map(|(_, done)| done.day).collect())
+            .into_iter()
+            .map(|day| (day, burn_on(day, &burnt, &gathered.measurements).burnt_kcal))
+            .collect();
+    let series_of = |measure: Measure| -> Vec<(NaiveDate, f64)> {
+        let from_body = |read: fn(&Day) -> Option<f64>| {
+            body.iter()
+                .filter_map(|measured| read(measured).map(|value| (measured.day, value)))
+                .collect()
+        };
+        let from_fuel = |read: fn(&Fuel) -> Option<f64>| {
+            fuel_days
+                .iter()
+                .filter_map(|fuelled| read(fuelled).map(|value| (fuelled.day, value)))
+                .collect()
+        };
+        match measure {
+            Measure::BodyMass => from_body(|measured| Some(measured.body_mass_kg)),
+            Measure::Waist => from_body(|measured| measured.waist_cm),
+            Measure::FatRatio => {
+                from_body(|measured| measured.composition.map(|split| split.fat_ratio))
+            }
+            Measure::LeanMass => {
+                from_body(|measured| measured.composition.map(|split| split.lean_mass_kg))
+            }
+            Measure::Eaten => from_fuel(|fuelled| Some(fuelled.eaten.energy_kcal)),
+            Measure::Balance => from_fuel(|fuelled| {
+                fuelled
+                    .band
+                    .map(|band| fuelled.eaten.energy_kcal - band.cap_kcal)
+            }),
+            Measure::Protein => from_fuel(|fuelled| Some(fuelled.eaten.protein_g)),
+            Measure::Carbs => from_fuel(|fuelled| Some(fuelled.eaten.carbs_g)),
+            Measure::Fat => from_fuel(|fuelled| Some(fuelled.eaten.fat_g)),
+            Measure::Fibre => from_fuel(|fuelled| Some(fuelled.eaten.fibre_g)),
+            Measure::Burnt => burn_days
+                .iter()
+                .filter_map(|(day, kcal)| kcal.map(|kcal| (*day, kcal)))
+                .collect(),
+        }
+    };
+    let (one, other) = (series_of(measures.0), series_of(measures.1));
+    let pairs = paired(&one, &other);
+    Ok(Explored {
+        one_summary: summary(&one),
+        other_summary: summary(&other),
+        correlation: correlation(&pairs),
+        pairs,
+        one,
+        other,
+    })
+}
+
+fn first_day_of(window: Window, today: NaiveDate) -> NaiveDate {
+    match window {
+        Window::Days30 => today - Days::new(29),
+        Window::Days90 => today - Days::new(89),
+        Window::Everything => NaiveDate::MIN,
+    }
 }
 
 #[cfg(test)]
