@@ -46,19 +46,52 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
     })
 }
 
+fn placed(value: f64, (lowest, highest): (f64, f64), length: f64) -> f64 {
+    if highest > lowest {
+        (value - lowest) / (highest - lowest) * length
+    } else {
+        length / 2.0
+    }
+}
+
+fn range_of(values: impl Iterator<Item = f64> + Clone) -> (f64, f64) {
+    (
+        values.clone().fold(f64::INFINITY, f64::min),
+        values.fold(f64::NEG_INFINITY, f64::max),
+    )
+}
+
 pub fn timeline_of(
     points: &[(NaiveDate, f64)],
-    span: (NaiveDate, NaiveDate),
+    (first, last): (NaiveDate, NaiveDate),
     width: f64,
     height: f64,
 ) -> String {
-    let _ = (points, span, width, height);
-    String::new()
+    let days = (first, last);
+    let along = |day: NaiveDate| {
+        let (from, to) = days;
+        placed(
+            (day - from).num_days() as f64,
+            (0.0, (to - from).num_days() as f64),
+            width,
+        )
+    };
+    let values = range_of(points.iter().map(|(_, value)| *value));
+    points
+        .iter()
+        .map(|(day, value)| (along(*day), height - placed(*value, values, height)))
+        .map(|(x, y)| format!("{x:.1},{y:.1}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub fn scatter_of(pairs: &[(f64, f64)], width: f64, height: f64) -> Vec<(f64, f64)> {
-    let _ = (pairs, width, height);
-    vec![]
+    let xs = range_of(pairs.iter().map(|(x, _)| *x));
+    let ys = range_of(pairs.iter().map(|(_, y)| *y));
+    pairs
+        .iter()
+        .map(|(x, y)| (placed(*x, xs, width), height - placed(*y, ys, height)))
+        .collect()
 }
 
 #[cfg(test)]
@@ -149,7 +182,12 @@ mod tests {
         let points = [(day("2026-10-01"), 80.0), (day("2026-10-11"), 78.0)];
 
         assert_eq!(
-            timeline_of(&points, (day("2026-10-01"), day("2026-10-11")), 360.0, 180.0),
+            timeline_of(
+                &points,
+                (day("2026-10-01"), day("2026-10-11")),
+                360.0,
+                180.0
+            ),
             "0.0,0.0 360.0,180.0"
         );
     }
@@ -164,7 +202,12 @@ mod tests {
             "0.0,90.0 360.0,90.0"
         );
         assert_eq!(
-            timeline_of(&single, (day("2026-10-05"), day("2026-10-05")), 360.0, 180.0),
+            timeline_of(
+                &single,
+                (day("2026-10-05"), day("2026-10-05")),
+                360.0,
+                180.0
+            ),
             "180.0,90.0"
         );
     }
