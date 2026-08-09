@@ -31,6 +31,7 @@ pub mod profile;
 pub mod progress;
 pub mod refusal;
 pub mod sources;
+pub mod stats;
 pub mod streak;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
