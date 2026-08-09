@@ -46,6 +46,21 @@ pub fn chart_of(card: &GatherCard, width: f64, height: f64) -> Option<Chart> {
     })
 }
 
+pub fn timeline_of(
+    points: &[(NaiveDate, f64)],
+    span: (NaiveDate, NaiveDate),
+    width: f64,
+    height: f64,
+) -> String {
+    let _ = (points, span, width, height);
+    String::new()
+}
+
+pub fn scatter_of(pairs: &[(f64, f64)], width: f64, height: f64) -> Vec<(f64, f64)> {
+    let _ = (pairs, width, height);
+    vec![]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,5 +142,41 @@ mod tests {
         let chart = chart_of(&a_card(&[("2026-10-10", 80.0)]), 360.0, 180.0).expect("a chart");
 
         assert_eq!(chart.masses, vec![(180.0, 90.0)]);
+    }
+
+    #[test]
+    fn a_timeline_spreads_its_days_over_the_span_and_its_values_over_their_own_range() {
+        let points = [(day("2026-10-01"), 80.0), (day("2026-10-11"), 78.0)];
+
+        assert_eq!(
+            timeline_of(&points, (day("2026-10-01"), day("2026-10-11")), 360.0, 180.0),
+            "0.0,0.0 360.0,180.0"
+        );
+    }
+
+    #[test]
+    fn a_flat_timeline_or_a_single_day_runs_through_the_middle() {
+        let flat = [(day("2026-10-01"), 80.0), (day("2026-10-11"), 80.0)];
+        let single = [(day("2026-10-05"), 80.0)];
+
+        assert_eq!(
+            timeline_of(&flat, (day("2026-10-01"), day("2026-10-11")), 360.0, 180.0),
+            "0.0,90.0 360.0,90.0"
+        );
+        assert_eq!(
+            timeline_of(&single, (day("2026-10-05"), day("2026-10-05")), 360.0, 180.0),
+            "180.0,90.0"
+        );
+    }
+
+    #[test]
+    fn a_scatter_spreads_its_pairs_over_both_ranges_and_a_flat_side_sits_in_the_middle() {
+        let pairs = [(1.0, 10.0), (3.0, 30.0), (2.0, 10.0)];
+
+        assert_eq!(
+            scatter_of(&pairs, 360.0, 180.0),
+            vec![(0.0, 180.0), (360.0, 0.0), (180.0, 180.0)]
+        );
+        assert_eq!(scatter_of(&[(1.0, 5.0)], 360.0, 180.0), vec![(180.0, 90.0)]);
     }
 }
