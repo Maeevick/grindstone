@@ -11,6 +11,7 @@ use crate::fuel::{Fuel, Verdict, fuel_over};
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
+use crate::stats::{Measure, Summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
@@ -150,6 +151,28 @@ fn in_band(fuelled: &Fuel, macros_checked: bool) -> bool {
             .all(|row| row.verdict == Verdict::InBand)
     });
     fuelled.energy == Some(Verdict::InBand) && (!macros_checked || macros_in_band)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Explored {
+    pub one: Vec<(NaiveDate, f64)>,
+    pub other: Vec<(NaiveDate, f64)>,
+    pub one_summary: Option<Summary>,
+    pub other_summary: Option<Summary>,
+    pub pairs: Vec<(f64, f64)>,
+    pub correlation: Option<f64>,
+}
+
+pub fn explore(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    today: &str,
+    window: Window,
+    measures: (Measure, Measure),
+) -> Result<Explored, Failure> {
+    let _ = (gather, burn, fuel, today, window, measures);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -583,6 +606,165 @@ mod tests {
                     "2026-02-30"
                 ),
                 Err(Failure::Refused(Refusal::NotADate))
+            );
+        }
+    }
+
+    mod exploring {
+        use super::*;
+        use crate::food::{Nutrients, Unit};
+        use crate::for_burning::{WorkoutForm, log_workout};
+        use crate::for_cataloguing::{FoodForm, add_exercise, add_food};
+        use crate::for_fuelling::{IntakeForm, log_intake};
+        use crate::stats::MEASURES;
+        use crate::testing::{BurnRecordsInMemory, FuelRecordsInMemory};
+
+        fn a_logged_man() -> (
+            GatherRecordsInMemory,
+            BurnRecordsInMemory,
+            FuelRecordsInMemory,
+        ) {
+            let (gather, burn, fuel) = (
+                GatherRecordsInMemory::default(),
+                BurnRecordsInMemory::default(),
+                FuelRecordsInMemory::default(),
+            );
+            set_profile(
+                &gather,
+                &ProfileForm {
+                    from: "2026-03-01".into(),
+                    birthday: "1985-04-12".into(),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile set");
+            add_exercise(&burn, "Walking", 4.0).expect("an exercise adds");
+            add_food(
+                &fuel,
+                &FoodForm {
+                    name: "Plate".into(),
+                    unit: Unit::Piece,
+                    portion: 1.0,
+                    nutrients: Nutrients {
+                        energy_kcal: 2400.0,
+                        protein_g: 170.0,
+                        carbs_g: 230.0,
+                        fat_g: 80.0,
+                        fibre_g: 35.0,
+                    },
+                },
+            )
+            .expect("a food adds");
+            for (date, kg) in [
+                ("2026-10-08", 80.4),
+                ("2026-10-09", 80.2),
+                ("2026-10-10", 80.0),
+            ] {
+                log_measurement(&gather, date, kg, Some(80.0)).expect("a measurement logs");
+            }
+            for date in ["2026-10-09", "2026-10-10"] {
+                log_intake(
+                    &gather,
+                    &burn,
+                    &fuel,
+                    &IntakeForm {
+                        date: date.into(),
+                        food: "Plate".into(),
+                        quantity: 1.0,
+                    },
+                )
+                .expect("an intake logs");
+                log_workout(
+                    &gather,
+                    &burn,
+                    &WorkoutForm {
+                        date: date.into(),
+                        exercise: "Walking".into(),
+                        minutes: 30.0,
+                        reps: None,
+                        sets: 1,
+                        load_kg: 0.0,
+                    },
+                )
+                .expect("a workout logs");
+            }
+            (gather, burn, fuel)
+        }
+
+        #[test]
+        fn exploring_mass_against_energy_eaten_pairs_the_days_both_were_logged() {
+            let (gather, burn, fuel) = a_logged_man();
+
+            let explored = explore(
+                &gather,
+                &burn,
+                &fuel,
+                "2026-10-10",
+                Window::Days30,
+                (Measure::BodyMass, Measure::Eaten),
+            )
+            .expect("an exploration");
+
+            assert_eq!(explored.one.len(), 3);
+            assert_eq!(explored.pairs, vec![(80.2, 2400.0), (80.0, 2400.0)]);
+            assert_eq!(
+                explored.one_summary.map(|summary| summary.first),
+                Some(80.4)
+            );
+            assert_eq!(explored.correlation, None);
+        }
+
+        #[test]
+        fn every_measure_reads_a_series_from_the_logged_days() {
+            let (gather, burn, fuel) = a_logged_man();
+
+            let empty: Vec<Measure> = MEASURES
+                .iter()
+                .filter(|measure| {
+                    explore(
+                        &gather,
+                        &burn,
+                        &fuel,
+                        "2026-10-10",
+                        Window::Everything,
+                        (**measure, **measure),
+                    )
+                    .map_or(true, |explored| explored.one.is_empty())
+                })
+                .copied()
+                .collect();
+
+            assert_eq!(empty, vec![]);
+        }
+
+        #[test]
+        fn a_today_the_calendar_lacks_or_broken_records_explore_nothing() {
+            let (gather, burn, fuel) = a_logged_man();
+
+            assert_eq!(
+                explore(
+                    &gather,
+                    &burn,
+                    &fuel,
+                    "2026-02-30",
+                    Window::Days30,
+                    (Measure::Fat, Measure::Burnt)
+                ),
+                Err(Failure::Refused(Refusal::NotADate))
+            );
+            assert_eq!(
+                explore(
+                    &gather,
+                    &crate::testing::BrokenBurnRecords,
+                    &fuel,
+                    "2026-10-10",
+                    Window::Days30,
+                    (Measure::Fat, Measure::Burnt)
+                ),
+                Err(Failure::Broken("the disk is full".into()))
             );
         }
     }

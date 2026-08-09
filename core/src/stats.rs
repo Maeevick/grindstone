@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::figures::Figure;
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Summary {
     pub first: f64,
@@ -8,6 +10,45 @@ pub struct Summary {
     pub mean: f64,
     pub lowest: f64,
     pub highest: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Measure {
+    BodyMass,
+    Waist,
+    FatRatio,
+    LeanMass,
+    Eaten,
+    Balance,
+    Protein,
+    Carbs,
+    Fat,
+    Fibre,
+    Burnt,
+}
+
+pub const MEASURES: [Measure; 11] = [
+    Measure::BodyMass,
+    Measure::Waist,
+    Measure::FatRatio,
+    Measure::LeanMass,
+    Measure::Eaten,
+    Measure::Balance,
+    Measure::Protein,
+    Measure::Carbs,
+    Measure::Fat,
+    Measure::Fibre,
+    Measure::Burnt,
+];
+
+pub fn figure_of(measure: Measure, value: f64) -> Figure {
+    match measure {
+        Measure::BodyMass | Measure::LeanMass => Figure::Mass(value),
+        Measure::Waist => Figure::Length(value),
+        Measure::FatRatio => Figure::Ratio(value),
+        Measure::Eaten | Measure::Balance | Measure::Burnt => Figure::Energy(value),
+        Measure::Protein | Measure::Carbs | Measure::Fat | Measure::Fibre => Figure::Grams(value),
+    }
 }
 
 const FEWEST_PAIRS_TO_CORRELATE: usize = 3;
@@ -100,5 +141,30 @@ mod tests {
     fn fewer_than_three_pairs_or_a_flat_series_correlate_with_nothing() {
         assert_eq!(correlation(&[(1.0, 2.0), (2.0, 4.0)]), None);
         assert_eq!(correlation(&[(1.0, 2.0), (2.0, 2.0), (3.0, 2.0)]), None);
+    }
+
+    #[test]
+    fn each_measure_shows_in_its_own_figure() {
+        let figures: Vec<Figure> = MEASURES
+            .iter()
+            .map(|measure| figure_of(*measure, 1.0))
+            .collect();
+
+        assert_eq!(
+            figures,
+            vec![
+                Figure::Mass(1.0),
+                Figure::Length(1.0),
+                Figure::Ratio(1.0),
+                Figure::Mass(1.0),
+                Figure::Energy(1.0),
+                Figure::Energy(1.0),
+                Figure::Grams(1.0),
+                Figure::Grams(1.0),
+                Figure::Grams(1.0),
+                Figure::Grams(1.0),
+                Figure::Energy(1.0),
+            ]
+        );
     }
 }
