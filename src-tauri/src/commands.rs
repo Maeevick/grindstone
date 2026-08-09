@@ -253,8 +253,15 @@ pub fn explore(
     one: Measure,
     other: Measure,
 ) -> Result<Explored, Failure> {
-    let _ = (records, today, window, one, other);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_reviewing_progress::explore(
+        &*records,
+        &*records,
+        &*records,
+        &today,
+        window,
+        (one, other),
+    )
 }
 
 #[cfg(test)]
