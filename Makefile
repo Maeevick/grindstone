@@ -6,6 +6,7 @@ SHELL := bash
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 DRAFT_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-draft.json
+TEST_SUPPORT := core/src/testing\.rs
 WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri|screens)|ui/src/screens/[a-z_]+)\.rs
 
 help: ## list the targets
@@ -17,11 +18,11 @@ dev: ## run the app on the Mac, reloading on change
 test: ## every Rust test
 	cargo test --workspace
 
-check: ## formatting, lints, tests and no uncovered line outside the wiring, as before a commit
+check: ## formatting, lints, tests and no uncovered line outside the wiring and the test support, as before a commit
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo clippy -p grind-ui --target wasm32-unknown-unknown --all-targets -- -D warnings
-	cargo llvm-cov --workspace --ignore-filename-regex '$(WIRING)' --fail-uncovered-lines 0 --summary-only
+	cargo llvm-cov --workspace --ignore-filename-regex '$(WIRING)|$(TEST_SUPPORT)' --fail-uncovered-lines 0 --summary-only
 
 test-ui: ## the screen's tests in a headless Chrome, driven by the ChromeDriver of the installed Chrome rather than the newest
 	driver=$$(scripts/chromedriver-for-installed-chrome) && wasm-pack test --headless --chrome --chromedriver "$$driver" ui
