@@ -756,4 +756,48 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn a_bout_gone_from_the_catalog_with_no_weigh_in_to_work_from_burns_at_rest() {
+        let unweighed = BURN_BACKUP
+            .replace(r#""weight": 80.0"#, r#""weight": 80.0, "x": 0"#)
+            .replace(
+                r#""measurement_logs": ["#,
+                r#""measurement_logs": [], "ignored": ["#,
+            );
+
+        let star_plank_met = burn_from_draft(&unweighed).ok().and_then(|records| {
+            records
+                .workouts
+                .into_iter()
+                .find(|(_, done)| done.exercise == "Star Plank")
+                .map(|(_, done)| done.met)
+        });
+
+        assert_eq!(star_plank_met, Some(1.0));
+    }
+
+    #[test]
+    fn an_activity_or_a_food_the_app_would_refuse_is_refused_naming_it() {
+        let restful = BURN_BACKUP.replace(
+            r#""name": "Walking", "met": 4.0"#,
+            r#""name": "Walking", "met": 0.0"#,
+        );
+        let negative = FUEL_BACKUP.replace(r#""cal": 54.0"#, r#""cal": -54.0"#);
+
+        assert_eq!(
+            burn_from_draft(&restful),
+            Err(DraftRefusal::NotAnExercise {
+                name: "Walking".into(),
+                refusal: Refusal::NotAMet,
+            })
+        );
+        assert_eq!(
+            fuel_from_draft(&negative),
+            Err(DraftRefusal::NotAFood {
+                name: "Skyr".into(),
+                refusal: Refusal::NotANutrient,
+            })
+        );
+    }
 }
