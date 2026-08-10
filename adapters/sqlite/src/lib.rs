@@ -271,6 +271,35 @@ impl Sqlite {
     }
 }
 
+const EXERCISES: &str = "select name, met from exercises order by name";
+const WORKOUTS: &str =
+    "select id, day, exercise, met, minutes, reps, sets, load_kg from workouts order by day, id";
+const DAYS_OFF_THE_CLOCK: &str =
+    "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day";
+const USUAL_DAYS: &str = "select effective_from, sitting_min, standing_min, moving_km from usual_days order by effective_from";
+
+fn exercise_read(row: &rusqlite::Row) -> rusqlite::Result<Exercise> {
+    Ok(Exercise {
+        name: row.get(0)?,
+        met: row.get(1)?,
+    })
+}
+
+fn workout_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Workout)> {
+    Ok((
+        row.get(0)?,
+        Workout {
+            day: row.get(1)?,
+            exercise: row.get(2)?,
+            met: row.get(3)?,
+            minutes: row.get(4)?,
+            reps: row.get(5)?,
+            sets: row.get(6)?,
+            load_kg: row.get(7)?,
+        },
+    ))
+}
+
 fn volitional_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Volitional)> {
     Ok((
         row.get(0)?,
@@ -374,39 +403,10 @@ impl ForStoringBurnRecords for Sqlite {
 
     fn burn_records(&self) -> Result<BurnRecords, Broken> {
         Ok(BurnRecords {
-            exercises: self.rows("select name, met from exercises order by name", |row| {
-                Ok(Exercise {
-                    name: row.get(0)?,
-                    met: row.get(1)?,
-                })
-            })?,
-            workouts: self.rows(
-                "select id, day, exercise, met, minutes, reps, sets, load_kg from workouts
-                 order by day, id",
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        Workout {
-                            day: row.get(1)?,
-                            exercise: row.get(2)?,
-                            met: row.get(3)?,
-                            minutes: row.get(4)?,
-                            reps: row.get(5)?,
-                            sets: row.get(6)?,
-                            load_kg: row.get(7)?,
-                        },
-                    ))
-                },
-            )?,
-            days_off_the_clock: self.rows(
-                "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day",
-                volitional_read,
-            )?,
-            usual_days: self.rows(
-                "select effective_from, sitting_min, standing_min, moving_km from usual_days
-                 order by effective_from",
-                volitional_read,
-            )?,
+            exercises: self.rows(EXERCISES, exercise_read)?,
+            workouts: self.rows(WORKOUTS, workout_read)?,
+            days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
+            usual_days: self.rows(USUAL_DAYS, volitional_read)?,
         })
     }
 }
@@ -428,6 +428,52 @@ fn unit_read(word: &str) -> rusqlite::Result<Unit> {
             "a unit the app does not know: {unknown}"
         ))),
     }
+}
+
+const FOODS: &str = "select name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g from foods order by name";
+const INTAKES: &str =
+    "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
+     from intakes order by day, id";
+const FUEL_TARGETS: &str = "select effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg
+     from fuel_targets order by effective_from";
+const MEALS: &str = "select meal from meals order by name";
+
+fn food_read(row: &rusqlite::Row) -> rusqlite::Result<Food> {
+    Ok(Food {
+        name: row.get(0)?,
+        unit: unit_read(&row.get::<_, String>(1)?)?,
+        portion: row.get(2)?,
+        nutrients: nutrients_read(row, 3)?,
+    })
+}
+
+fn intake_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Intake)> {
+    Ok((
+        row.get(0)?,
+        Intake {
+            day: row.get(1)?,
+            food: row.get(2)?,
+            unit: unit_read(&row.get::<_, String>(3)?)?,
+            quantity: row.get(4)?,
+            nutrients: nutrients_read(row, 5)?,
+        },
+    ))
+}
+
+fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, FuelTargets)> {
+    Ok((
+        row.get(0)?,
+        FuelTargets {
+            protein_g_per_kg: row.get(1)?,
+            fat_g_per_kg: row.get(2)?,
+            fibre_g_per_kg: row.get(3)?,
+        },
+    ))
+}
+
+fn meal_read(row: &rusqlite::Row) -> rusqlite::Result<Meal> {
+    serde_json::from_str(&row.get::<_, String>(0)?)
+        .map_err(|error| rusqlite::Error::InvalidParameterName(error.to_string()))
 }
 
 fn nutrients_read(row: &rusqlite::Row, first: usize) -> rusqlite::Result<Nutrients> {
@@ -541,52 +587,10 @@ impl ForStoringFuelRecords for Sqlite {
 
     fn fuel_records(&self) -> Result<FuelRecords, Broken> {
         Ok(FuelRecords {
-            foods: self.rows(
-                "select name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
-                 from foods order by name",
-                |row| {
-                    Ok(Food {
-                        name: row.get(0)?,
-                        unit: unit_read(&row.get::<_, String>(1)?)?,
-                        portion: row.get(2)?,
-                        nutrients: nutrients_read(row, 3)?,
-                    })
-                },
-            )?,
-            intakes: self.rows(
-                "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
-                 from intakes order by day, id",
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        Intake {
-                            day: row.get(1)?,
-                            food: row.get(2)?,
-                            unit: unit_read(&row.get::<_, String>(3)?)?,
-                            quantity: row.get(4)?,
-                            nutrients: nutrients_read(row, 5)?,
-                        },
-                    ))
-                },
-            )?,
-            targets: self.rows(
-                "select effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg
-                 from fuel_targets order by effective_from",
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        FuelTargets {
-                            protein_g_per_kg: row.get(1)?,
-                            fat_g_per_kg: row.get(2)?,
-                            fibre_g_per_kg: row.get(3)?,
-                        },
-                    ))
-                },
-            )?,
-            meals: self.rows("select meal from meals order by name", |row| {
-                serde_json::from_str(&row.get::<_, String>(0)?)
-                    .map_err(|error| rusqlite::Error::InvalidParameterName(error.to_string()))
-            })?,
+            foods: self.rows(FOODS, food_read)?,
+            intakes: self.rows(INTAKES, intake_read)?,
+            targets: self.rows(FUEL_TARGETS, targets_read)?,
+            meals: self.rows(MEALS, meal_read)?,
         })
     }
 }
