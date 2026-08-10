@@ -171,6 +171,9 @@ fn TodayCard() -> impl IntoView {
     view! {
         <section class="card">
             <h2>"Today"</h2>
+            <A href="/stats" attr:class="cta ghost">
+                "Explore in Stats"
+            </A>
             <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
                 {move || {
                     fuel.get()

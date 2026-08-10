@@ -356,3 +356,27 @@ select {
 .ticks .open {
     color: #9aa0a6;
 }
+
+.timeline .one {
+    fill: none;
+    stroke: #e8b04b;
+    stroke-width: 2;
+}
+
+.timeline .other {
+    fill: none;
+    stroke: #7aa2f7;
+    stroke-width: 2;
+}
+
+.figures .one {
+    color: #e8b04b;
+}
+
+.figures .other {
+    color: #7aa2f7;
+}
+
+.scatter circle {
+    fill: #7aa2f7;
+}

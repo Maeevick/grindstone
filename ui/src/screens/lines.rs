@@ -7,6 +7,7 @@ use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::meal::Meal;
 use grind_core::refusal::Refusal;
+use grind_core::stats::{Measure, Summary, figure_of};
 use grind_core::streak::{Status, Streak, Ticks};
 use grind_draft::{DraftRefusal, ImportFailure};
 
@@ -318,3 +319,45 @@ pub fn ticks_of(ticks: &Ticks) -> Vec<(&'static str, bool)> {
     .filter_map(|(name, held)| held.map(|held| (name, held)))
     .collect()
 }
+
+pub fn measure_name(measure: Measure) -> &'static str {
+    match measure {
+        Measure::BodyMass => "Body mass",
+        Measure::Waist => "Waist",
+        Measure::FatRatio => "Fat ratio",
+        Measure::LeanMass => "Lean mass",
+        Measure::Eaten => "Energy eaten",
+        Measure::Balance => "Eaten minus the cap",
+        Measure::Protein => "Protein",
+        Measure::Carbs => "Carbs",
+        Measure::Fat => "Fat",
+        Measure::Fibre => "Fibre",
+        Measure::Burnt => "Burnt in workouts",
+    }
+}
+
+pub fn summed_up(measure: Measure, summary: &Summary) -> String {
+    let shown_as = |value| shown(figure_of(measure, value));
+    format!(
+        "{}: from {} to {}, {} on average, between {} and {}.",
+        measure_name(measure),
+        shown_as(summary.first),
+        shown_as(summary.last),
+        shown_as(summary.mean),
+        shown_as(summary.lowest),
+        shown_as(summary.highest)
+    )
+}
+
+pub fn together(correlation: Option<f64>, shared: usize) -> String {
+    match correlation {
+        Some(r) => format!(
+            "Correlation {r:.2} over {shared} shared days. [Veil, from behind a bush: \"shhhhh! I'm hunting...\" and a correlation is not a cause.]"
+        ),
+        None => format!(
+            "{shared} shared days: Veil needs at least three that move to hunt a correlation."
+        ),
+    }
+}
+
+pub const NOTHING_TO_EXPLORE: &str = "Nothing logged for this measure in the window.";

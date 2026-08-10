@@ -6,7 +6,7 @@ use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::{FoodForm, MealForm};
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::for_importing::Imported;
-use grind_core::for_reviewing_progress::{GatherCard, Window};
+use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
     FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
 };
@@ -16,6 +16,7 @@ use grind_core::goals::Goals;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
+use grind_core::stats::Measure;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
 use grind_draft::ImportFailure;
@@ -230,6 +231,28 @@ struct Today<'a> {
 
 pub async fn streak(today: &str) -> Result<Streak, Failure> {
     call("streak", Today { today }, broken).await
+}
+
+#[derive(Serialize)]
+struct Exploring<'a> {
+    today: &'a str,
+    window: Window,
+    one: Measure,
+    other: Measure,
+}
+
+pub async fn explore(
+    today: &str,
+    window: Window,
+    (one, other): (Measure, Measure),
+) -> Result<Explored, Failure> {
+    let exploring = Exploring {
+        today,
+        window,
+        one,
+        other,
+    };
+    call("explore", exploring, broken).await
 }
 
 pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
