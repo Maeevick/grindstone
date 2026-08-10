@@ -626,5 +626,8 @@ async fn stats_draw_two_measures_and_tell_how_they_move_together() {
         .unwrap_or_default();
     let said = screen.text_content().unwrap_or_default();
     assert_eq!((lines_drawn, pairs_drawn), (2, 3));
-    assert!(said.contains("80.4 kg") && said.contains("2400 kcal") && said.contains("1.00"), "{said}");
+    assert!(
+        said.contains("80.4 kg") && said.contains("2400 kcal") && said.contains("1.00"),
+        "{said}"
+    );
 }
