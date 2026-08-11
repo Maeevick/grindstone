@@ -722,7 +722,7 @@ pub mod honouring_for_storing_fuel_records {
             foods: vec![a_food("Muesli", 365.0)],
             intakes: vec![(0, eaten("2026-08-02", "Muesli", 1.0))],
             targets: vec![(day("2026-03-01"), aiming(2.025))],
-            meals: vec![],
+            meals: vec![cooked("Dal", 600.0)],
         };
 
         records
@@ -733,6 +733,7 @@ pub mod honouring_for_storing_fuel_records {
         assert_eq!(fuelled.foods, replacement.foods);
         assert_eq!(without_ids(&fuelled), without_ids(&replacement));
         assert_eq!(fuelled.targets, replacement.targets);
+        assert_eq!(fuelled.meals, replacement.meals);
     }
 }
 
