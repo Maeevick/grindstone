@@ -622,4 +622,44 @@ mod tests {
             4.0 * 50.0 + 4.0 * 50.0 + 9.0 * 10.0 + 2.0 * 10.0
         ));
     }
+
+    #[test]
+    fn a_womans_floor_never_falls_below_thirty_kcal_per_kg_of_lean_mass_plus_the_burn() {
+        let a_woman = GatherRecords {
+            measurements: vec![Measurement {
+                day: day("2026-10-01"),
+                body_mass_kg: 75.0,
+                waist_cm: Some(95.0),
+            }],
+            profiles: vec![(
+                day("2026-03-01"),
+                Profile {
+                    birthday: day("1990-06-01"),
+                    gender: Gender::Female,
+                    height_cm: 165.0,
+                    neck_cm: 33.0,
+                    hip_cm: Some(110.0),
+                },
+            )],
+            goals: vec![],
+        };
+
+        let fuelled = fuel_on("2026-10-10", &a_woman, &a_desk_job(), &aiming());
+
+        let lean_kg = crate::ledger::ledger(&a_woman.measurements, &a_woman.profiles)
+            .first()
+            .and_then(|measured| measured.composition)
+            .map(|split| split.lean_mass_kg)
+            .expect("a lean mass");
+        assert!(
+            fuelled
+                .band
+                .is_some_and(|band| about(band.minimum_kcal, 30.0 * lean_kg))
+        );
+        assert!(
+            fuelled
+                .band
+                .is_some_and(|band| band.floor_kcal >= band.minimum_kcal)
+        );
+    }
 }
