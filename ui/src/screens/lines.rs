@@ -204,6 +204,10 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotAnExercise) => {
             "That exercise is not in the catalog yet. Veil checked twice.".into()
         }
+        Failure::Refused(Refusal::NotASingleStep) => {
+            "A circuit needs one step at least. Even my experiments have one: the bang. ~ Trix 🧪💥"
+                .into()
+        }
         Failure::Broken(reason) => {
             format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
         }

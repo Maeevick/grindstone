@@ -20,4 +20,5 @@ pub enum Refusal {
     NotANutrient,
     NotAQuantity,
     NotAFood,
+    NotASingleStep,
 }
