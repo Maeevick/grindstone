@@ -42,11 +42,7 @@ pub fn gather_card(
 ) -> Result<GatherCard, Failure> {
     let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
-    let first_day = match window {
-        Window::Days30 => today - Days::new(29),
-        Window::Days90 => today - Days::new(89),
-        Window::Everything => NaiveDate::MIN,
-    };
+    let first_day = first_day_of(window, today);
     let is_in_window = |day: &NaiveDate| (first_day..=today).contains(day);
     let gathered = records.gather_records()?;
     let mut readings: Vec<(NaiveDate, f64)> = gathered
