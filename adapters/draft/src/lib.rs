@@ -326,6 +326,7 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
             .map(|(from, bases)| (from, off_the_clock(bases)))
             .into_iter()
             .collect(),
+        circuits: Vec::new(),
     })
 }
 

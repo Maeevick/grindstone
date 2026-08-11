@@ -1,6 +1,7 @@
 use std::cell::{Cell, RefCell};
 
 use crate::burn_records::BurnRecords;
+use crate::circuit::{Circuit, CircuitStep};
 use crate::exercise::Exercise;
 use crate::failure::Broken;
 use crate::food::{Food, Nutrients, Unit};
@@ -175,6 +176,14 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         burnt.usual_days.sort_by_key(|(from, _)| *from);
         Ok(burnt)
     }
+
+    fn save_circuit(&self, _: &Circuit) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn remove_circuit(&self, _: &str) -> Result<(), Broken> {
+        Ok(())
+    }
 }
 
 pub struct BrokenBurnRecords;
@@ -211,6 +220,14 @@ impl ForStoringBurnRecords for BrokenBurnRecords {
     fn burn_records(&self) -> Result<BurnRecords, Broken> {
         Err(Broken("the disk is full".into()))
     }
+
+    fn save_circuit(&self, _: &Circuit) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_circuit(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
 }
 
 pub mod honouring_for_storing_burn_records {
@@ -236,6 +253,7 @@ pub mod honouring_for_storing_burn_records {
             reps: Some(10),
             sets: 1,
             load_kg: 0.0,
+            circuit: None,
         }
     }
 
@@ -387,11 +405,15 @@ pub mod honouring_for_storing_burn_records {
         records
             .save_workout(&done("2026-10-10", "Walking", 30.0))
             .expect("a workout saves");
+        records
+            .save_circuit(&evening_grind())
+            .expect("a circuit saves");
         let replacement = BurnRecords {
             exercises: vec![named("Biking", 8.0)],
             workouts: vec![(0, done("2026-06-22", "Biking", 45.0))],
             days_off_the_clock: vec![(day("2026-06-22"), sitting(500.0))],
             usual_days: vec![(day("2026-03-01"), sitting(480.0))],
+            circuits: vec![morning_rust()],
         };
 
         records
@@ -403,6 +425,112 @@ pub mod honouring_for_storing_burn_records {
         assert_eq!(without_ids(&burnt), without_ids(&replacement));
         assert_eq!(burnt.days_off_the_clock, replacement.days_off_the_clock);
         assert_eq!(burnt.usual_days, replacement.usual_days);
+        assert_eq!(burnt.circuits, replacement.circuits);
+    }
+
+    fn step(
+        exercise: &str,
+        met: f64,
+        reps: Option<u32>,
+        minutes: f64,
+        load_kg: f64,
+    ) -> CircuitStep {
+        CircuitStep {
+            exercise: exercise.into(),
+            met,
+            reps,
+            minutes,
+            load_kg,
+        }
+    }
+
+    fn morning_rust() -> Circuit {
+        Circuit {
+            name: "Morning rust".into(),
+            steps: vec![
+                step("Push up", 3.8, Some(12), 0.5, 0.0),
+                step("Burpee", 8.0, None, 1.0, 5.0),
+            ],
+        }
+    }
+
+    fn evening_grind() -> Circuit {
+        Circuit {
+            name: "Evening grind".into(),
+            steps: vec![step("Squat", 5.0, Some(15), 1.0, 20.0)],
+        }
+    }
+
+    pub fn crafted_circuits_come_back_by_name_with_their_steps_in_order(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        records
+            .save_circuit(&morning_rust())
+            .expect("a circuit saves");
+        records
+            .save_circuit(&evening_grind())
+            .expect("a circuit saves");
+
+        let burnt = records.burn_records().expect("the records read");
+
+        assert_eq!(burnt.circuits, vec![evening_grind(), morning_rust()]);
+    }
+
+    pub fn removing_a_circuit_leaves_the_others(records: &impl ForStoringBurnRecords) {
+        records
+            .save_circuit(&morning_rust())
+            .expect("a circuit saves");
+        records
+            .save_circuit(&evening_grind())
+            .expect("a circuit saves");
+
+        records
+            .remove_circuit("Morning rust")
+            .expect("a circuit is removed");
+
+        assert_eq!(
+            records.burn_records().map(|burnt| burnt.circuits),
+            Ok(vec![evening_grind()])
+        );
+    }
+
+    pub fn a_circuit_crafted_again_under_its_name_replaces_the_earlier_one(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        let crafted_again = Circuit {
+            steps: vec![step("Squat", 5.0, Some(20), 1.5, 0.0)],
+            ..morning_rust()
+        };
+        records
+            .save_circuit(&morning_rust())
+            .expect("a circuit saves");
+
+        records
+            .save_circuit(&crafted_again)
+            .expect("a circuit saves");
+
+        assert_eq!(
+            records.burn_records().map(|burnt| burnt.circuits),
+            Ok(vec![crafted_again])
+        );
+    }
+
+    pub fn a_workout_done_in_a_circuit_comes_back_with_its_name(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        let in_a_circuit = Workout {
+            circuit: Some("Morning rust".into()),
+            ..done("2026-10-10", "Push up", 0.5)
+        };
+
+        records
+            .save_workout(&in_a_circuit)
+            .expect("a workout saves");
+
+        assert_eq!(
+            records.burn_records().map(|burnt| without_ids(&burnt)),
+            Ok(vec![in_a_circuit])
+        );
     }
 }
 
@@ -1077,6 +1205,34 @@ mod tests {
     fn no_switch_over_until_one_is_saved_and_the_latest_one_stands() {
         honouring_for_storing_switch_over::no_switch_over_until_one_is_saved_and_the_latest_one_stands(
             &SwitchOverInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn crafted_circuits_come_back_by_name_with_their_steps_in_order() {
+        honouring_for_storing_burn_records::crafted_circuits_come_back_by_name_with_their_steps_in_order(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn removing_a_circuit_leaves_the_others() {
+        honouring_for_storing_burn_records::removing_a_circuit_leaves_the_others(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_circuit_crafted_again_under_its_name_replaces_the_earlier_one() {
+        honouring_for_storing_burn_records::a_circuit_crafted_again_under_its_name_replaces_the_earlier_one(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_workout_done_in_a_circuit_comes_back_with_its_name() {
+        honouring_for_storing_burn_records::a_workout_done_in_a_circuit_comes_back_with_its_name(
+            &BurnRecordsInMemory::default(),
         );
     }
 }

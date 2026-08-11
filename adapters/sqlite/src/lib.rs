@@ -2,6 +2,7 @@ use std::path::Path;
 
 use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
+use grind_core::circuit::Circuit;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
 use grind_core::food::{Food, Nutrients, Unit};
@@ -296,6 +297,7 @@ fn workout_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Workout)> {
             reps: row.get(5)?,
             sets: row.get(6)?,
             load_kg: row.get(7)?,
+            circuit: None,
         },
     ))
 }
@@ -407,7 +409,16 @@ impl ForStoringBurnRecords for Sqlite {
             workouts: self.rows(WORKOUTS, workout_read)?,
             days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
             usual_days: self.rows(USUAL_DAYS, volitional_read)?,
+            circuits: Vec::new(),
         })
+    }
+
+    fn save_circuit(&self, _: &Circuit) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn remove_circuit(&self, _: &str) -> Result<(), Broken> {
+        Ok(())
     }
 }
 

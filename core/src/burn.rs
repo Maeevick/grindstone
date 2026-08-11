@@ -86,6 +86,7 @@ mod tests {
             reps: None,
             sets: 1,
             load_kg: 0.0,
+            circuit: None,
         }
     }
 

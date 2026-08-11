@@ -13,6 +13,7 @@ pub struct Workout {
     pub reps: Option<u32>,
     pub sets: u32,
     pub load_kg: f64,
+    pub circuit: Option<String>,
 }
 
 pub fn workout(
@@ -41,6 +42,7 @@ pub fn workout(
         reps: reps.filter(|reps| *reps > 0),
         sets,
         load_kg,
+        circuit: None,
     })
 }
 
@@ -145,6 +147,7 @@ mod tests {
                 reps: Some(12),
                 sets: 3,
                 load_kg: 0.0,
+                circuit: None,
             })
         );
     }
