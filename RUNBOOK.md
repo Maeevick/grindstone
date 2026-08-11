@@ -126,9 +126,10 @@ Expected: `Success`.
 ## 10. Smoke test, on the phone
 
 1. Open **Grindstone**: Grimble's welcome shows until a profile exists.
-2. **Profile:** save a profile, then goals. Each says from which day it is kept.
-3. **Tracker:** log the day's mass and waist. The day shows its fat ratio, fat mass and lean mass.
-4. Close the app from the recent apps, then open it again: Home shows the Gather card and the day is still in Tracker.
+2. **Profile:** save a profile, goals, fuel targets, the hydrate base and the usual day. Each says from which day it is kept.
+3. **Catalog:** add a food, a drink and an exercise.
+4. **Tracker:** log the day's mass and waist, an intake, a drink and a workout, each in its segment.
+5. Close the app from the recent apps, then open it again: Home shows the streak, today's figures and the Gather card, and the day is still in Tracker.
 
 ## 11. The draft's records
 
@@ -138,7 +139,13 @@ The app must have run once, which creates its Documents folder. With the phone p
 make import-draft BACKUP=../grindstone_draft/data/backups/<latest backup>.json
 ```
 
-Then, in the app, Profile, the gear, **Import the draft**. Grimble tells how many days, profiles and goals he filed. The import replaces what Gather holds, so it can run again with a newer backup until the switch.
+Then, in the app, go to Profile, the gear, then **Import the draft**. Grimble tells what he filed:
+- measurements, profiles and goals;
+- exercises and workouts;
+- foods and intakes;
+- drinks and drinkings.
+
+The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records and makes its day the switch-over: from that day on, the streak also asks for Hydrate and the four macros. It can run again with a newer backup until the switch.
 
 ## Update
 
