@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::exercise::Exercise;
 use crate::refusal::Refusal;
+use crate::workout::activity_induced_energy_expenditure_from_compendium;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CircuitStep {
@@ -26,22 +27,64 @@ pub struct StepForm {
     pub load_kg: f64,
 }
 
-pub fn circuit(
-    _name: &str,
-    _steps: &[StepForm],
-    _catalog: &[Exercise],
-) -> Result<Circuit, Refusal> {
-    Err(Refusal::NotAName)
+fn step_frozen_on_its_exercise(
+    asked: &StepForm,
+    catalog: &[Exercise],
+) -> Result<CircuitStep, Refusal> {
+    let exercise = catalog
+        .iter()
+        .find(|known| known.name == asked.exercise)
+        .ok_or(Refusal::NotAnExercise)?;
+    if !(asked.minutes.is_finite() && asked.minutes > 0.0) {
+        return Err(Refusal::NotADuration);
+    }
+    if !asked.load_kg.is_finite() {
+        return Err(Refusal::NotALoad);
+    }
+    Ok(CircuitStep {
+        exercise: exercise.name.clone(),
+        met: exercise.met,
+        reps: asked.reps.filter(|reps| *reps > 0),
+        minutes: asked.minutes,
+        load_kg: asked.load_kg,
+    })
 }
 
-pub fn burnt_per_set(_circuit: &Circuit, _body_mass_kg: f64) -> f64 {
-    0.0
+pub fn circuit(name: &str, steps: &[StepForm], catalog: &[Exercise]) -> Result<Circuit, Refusal> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(Refusal::NotAName);
+    }
+    if steps.is_empty() {
+        return Err(Refusal::NotASingleStep);
+    }
+    Ok(Circuit {
+        name: name.into(),
+        steps: steps
+            .iter()
+            .map(|asked| step_frozen_on_its_exercise(asked, catalog))
+            .collect::<Result<_, _>>()?,
+    })
+}
+
+pub fn burnt_per_set(circuit: &Circuit, body_mass_kg: f64) -> f64 {
+    circuit
+        .steps
+        .iter()
+        .map(|step| {
+            activity_induced_energy_expenditure_from_compendium(
+                body_mass_kg,
+                step.met,
+                step.minutes,
+                step.load_kg,
+            )
+        })
+        .sum()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workout::activity_induced_energy_expenditure_from_compendium;
 
     fn about(actual: f64, expected: f64) -> bool {
         (actual - expected).abs() < 1e-9
