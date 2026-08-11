@@ -2,7 +2,7 @@ use std::path::Path;
 
 use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
-use grind_core::circuit::Circuit;
+use grind_core::circuit::{Circuit, CircuitStep};
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
 use grind_core::food::{Food, Nutrients, Unit};
@@ -59,6 +59,12 @@ const MIGRATIONS: &[&str] = &[
      );",
     "create table meals (name text primary key, meal text not null)",
     "create table switch_over (only integer primary key check (only = 1), day text not null)",
+    "alter table workouts add column circuit text;
+     create table circuit_steps (
+         circuit text not null, position integer not null, exercise text not null, met real not null,
+         reps integer, minutes real not null, load_kg real not null,
+         primary key (circuit, position)
+     );",
 ];
 
 pub struct Sqlite(Connection);
@@ -270,11 +276,43 @@ impl Sqlite {
             .and_then(|mut statement| statement.query_map([], read)?.collect())
             .map_err(broken)
     }
+
+    fn circuit_steps_inserted(&self, circuit: &Circuit) -> Result<(), Broken> {
+        for (position, step) in (1_i64..).zip(&circuit.steps) {
+            self.run(
+                "insert into circuit_steps (circuit, position, exercise, met, reps, minutes, load_kg)
+                 values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    circuit.name,
+                    position,
+                    step.exercise,
+                    step.met,
+                    step.reps,
+                    step.minutes,
+                    step.load_kg
+                ],
+            )?;
+        }
+        Ok(())
+    }
+}
+
+fn step_filed_in_its_circuit(
+    mut circuits: Vec<Circuit>,
+    (name, step): (String, CircuitStep),
+) -> Vec<Circuit> {
+    match circuits.last_mut() {
+        Some(circuit) if circuit.name == name => circuit.steps.push(step),
+        _ => circuits.push(Circuit {
+            name,
+            steps: vec![step],
+        }),
+    }
+    circuits
 }
 
 const EXERCISES: &str = "select name, met from exercises order by name";
-const WORKOUTS: &str =
-    "select id, day, exercise, met, minutes, reps, sets, load_kg from workouts order by day, id";
+const WORKOUTS: &str = "select id, day, exercise, met, minutes, reps, sets, load_kg, circuit from workouts order by day, id";
 const DAYS_OFF_THE_CLOCK: &str =
     "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day";
 const USUAL_DAYS: &str = "select effective_from, sitting_min, standing_min, moving_km from usual_days order by effective_from";
@@ -297,7 +335,24 @@ fn workout_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Workout)> {
             reps: row.get(5)?,
             sets: row.get(6)?,
             load_kg: row.get(7)?,
-            circuit: None,
+            circuit: row.get(8)?,
+        },
+    ))
+}
+
+const CIRCUIT_STEPS: &str =
+    "select circuit, exercise, met, reps, minutes, load_kg from circuit_steps
+     order by circuit, position";
+
+fn circuit_step_read(row: &rusqlite::Row) -> rusqlite::Result<(String, CircuitStep)> {
+    Ok((
+        row.get(0)?,
+        CircuitStep {
+            exercise: row.get(1)?,
+            met: row.get(2)?,
+            reps: row.get(3)?,
+            minutes: row.get(4)?,
+            load_kg: row.get(5)?,
         },
     ))
 }
@@ -328,8 +383,8 @@ impl ForStoringBurnRecords for Sqlite {
 
     fn save_workout(&self, workout: &Workout) -> Result<(), Broken> {
         self.run(
-            "insert into workouts (day, exercise, met, minutes, reps, sets, load_kg)
-             values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "insert into workouts (day, exercise, met, minutes, reps, sets, load_kg, circuit)
+             values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 workout.day,
                 workout.exercise,
@@ -337,7 +392,8 @@ impl ForStoringBurnRecords for Sqlite {
                 workout.minutes,
                 workout.reps,
                 workout.sets,
-                workout.load_kg
+                workout.load_kg,
+                workout.circuit
             ],
         )
     }
@@ -385,7 +441,7 @@ impl ForStoringBurnRecords for Sqlite {
         replacing
             .execute_batch(
                 "delete from exercises; delete from workouts;
-                 delete from days_off_the_clock; delete from usual_days;",
+                 delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;",
             )
             .map_err(broken)?;
         for exercise in &records.exercises {
@@ -400,6 +456,9 @@ impl ForStoringBurnRecords for Sqlite {
         for (from, volitional) in &records.usual_days {
             self.save_usual_day(*from, volitional)?;
         }
+        for circuit in &records.circuits {
+            self.circuit_steps_inserted(circuit)?;
+        }
         replacing.commit().map_err(broken)
     }
 
@@ -409,16 +468,25 @@ impl ForStoringBurnRecords for Sqlite {
             workouts: self.rows(WORKOUTS, workout_read)?,
             days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
             usual_days: self.rows(USUAL_DAYS, volitional_read)?,
-            circuits: Vec::new(),
+            circuits: self
+                .rows(CIRCUIT_STEPS, circuit_step_read)?
+                .into_iter()
+                .fold(Vec::new(), step_filed_in_its_circuit),
         })
     }
 
-    fn save_circuit(&self, _: &Circuit) -> Result<(), Broken> {
-        Ok(())
+    fn save_circuit(&self, circuit: &Circuit) -> Result<(), Broken> {
+        let saving = self.0.unchecked_transaction().map_err(broken)?;
+        self.remove_circuit(&circuit.name)?;
+        self.circuit_steps_inserted(circuit)?;
+        saving.commit().map_err(broken)
     }
 
-    fn remove_circuit(&self, _: &str) -> Result<(), Broken> {
-        Ok(())
+    fn remove_circuit(&self, name: &str) -> Result<(), Broken> {
+        self.run(
+            "delete from circuit_steps where circuit = ?1",
+            params![name],
+        )
     }
 }
 
