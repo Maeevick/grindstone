@@ -922,4 +922,30 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn crafted_circuits_come_back_by_name_with_their_steps_in_order() {
+        honouring_for_storing_burn_records::crafted_circuits_come_back_by_name_with_their_steps_in_order(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn removing_a_circuit_leaves_the_others() {
+        honouring_for_storing_burn_records::removing_a_circuit_leaves_the_others(&database());
+    }
+
+    #[test]
+    fn a_circuit_crafted_again_under_its_name_replaces_the_earlier_one() {
+        honouring_for_storing_burn_records::a_circuit_crafted_again_under_its_name_replaces_the_earlier_one(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn a_workout_done_in_a_circuit_comes_back_with_its_name() {
+        honouring_for_storing_burn_records::a_workout_done_in_a_circuit_comes_back_with_its_name(
+            &database(),
+        );
+    }
 }
