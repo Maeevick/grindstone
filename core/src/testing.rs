@@ -174,14 +174,24 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         burnt.workouts.sort_by_key(|(id, done)| (done.day, *id));
         burnt.days_off_the_clock.sort_by_key(|(day, _)| *day);
         burnt.usual_days.sort_by_key(|(from, _)| *from);
+        burnt
+            .circuits
+            .sort_by(|one, other| one.name.cmp(&other.name));
         Ok(burnt)
     }
 
-    fn save_circuit(&self, _: &Circuit) -> Result<(), Broken> {
+    fn save_circuit(&self, circuit: &Circuit) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.circuits.retain(|kept| kept.name != circuit.name);
+        records.circuits.push(circuit.clone());
         Ok(())
     }
 
-    fn remove_circuit(&self, _: &str) -> Result<(), Broken> {
+    fn remove_circuit(&self, name: &str) -> Result<(), Broken> {
+        self.0
+            .borrow_mut()
+            .circuits
+            .retain(|kept| kept.name != name);
         Ok(())
     }
 }
