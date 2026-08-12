@@ -2,10 +2,13 @@ use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
 use grind_core::burn::Burn;
+use grind_core::circuit::Circuit;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
+use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
+use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm};
 use grind_core::for_fuelling::{self, IntakeForm};
 use grind_core::for_importing::{self, Imported};
@@ -264,6 +267,34 @@ pub fn explore(
     )
 }
 
+fn not_yet<Answer>() -> Result<Answer, Failure> {
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn circuits(records: State<Records>) -> Result<Vec<Circuit>, Failure> {
+    let _ = records;
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn craft_circuit(records: State<Records>, form: CircuitForm) -> Result<Vec<Circuit>, Failure> {
+    let _ = (records, form);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_circuit(records: State<Records>, name: String) -> Result<Vec<Circuit>, Failure> {
+    let _ = (records, name);
+    not_yet()
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn log_circuit(records: State<Records>, form: CircuitSessionForm) -> Result<Burn, Failure> {
+    let _ = (records, form);
+    not_yet()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -313,6 +344,10 @@ mod tests {
                 remove_meal,
                 streak,
                 explore,
+                circuits,
+                craft_circuit,
+                remove_circuit,
+                log_circuit,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -740,6 +775,76 @@ mod tests {
             Ok(json!({ "one": [["2026-10-10", 80.0]], "other": [],
                 "one_summary": { "first": 80.0, "last": 80.0, "mean": 80.0, "lowest": 80.0, "highest": 80.0 },
                 "other_summary": null, "pairs": [], "correlation": null }))
+        );
+    }
+
+    fn with_push_ups_and_burpees_in_the_catalog(screen: &WebviewWindow<MockRuntime>) {
+        for (name, met) in [("Push up", 3.8), ("Burpee", 8.0)] {
+            invoke(screen, "add_exercise", json!({ "name": name, "met": met }))
+                .expect("an exercise adds");
+        }
+    }
+
+    fn crafting_morning_rust(screen: &WebviewWindow<MockRuntime>) -> Result<Value, Value> {
+        invoke(
+            screen,
+            "craft_circuit",
+            json!({ "form": { "name": "Morning rust", "steps": [
+                { "exercise": "Push up", "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
+                { "exercise": "Burpee", "reps": null, "minutes": 1.0, "load_kg": 5.0 }
+            ] } }),
+        )
+    }
+
+    #[test]
+    fn circuits_crafted_and_removed_from_the_screen_answer_the_lab_their_steps_frozen() {
+        let (_app, screen) = launched();
+        with_push_ups_and_burpees_in_the_catalog(&screen);
+
+        let crafted = crafting_morning_rust(&screen);
+        let listed = invoke(&screen, "circuits", json!({}));
+        let removed = invoke(&screen, "remove_circuit", json!({ "name": "Morning rust" }));
+
+        let morning_rust = json!([{ "name": "Morning rust", "steps": [
+            { "exercise": "Push up", "met": 3.8, "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
+            { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 }
+        ] }]);
+        assert_eq!(crafted, Ok(morning_rust.clone()));
+        assert_eq!(listed, Ok(morning_rust));
+        assert_eq!(removed, Ok(json!([])));
+    }
+
+    #[test]
+    fn a_circuit_logged_from_the_screen_answers_the_days_burn_with_a_workout_per_step() {
+        let (_app, screen) = launched();
+        with_push_ups_and_burpees_in_the_catalog(&screen);
+        crafting_morning_rust(&screen).expect("a circuit crafts");
+
+        let burn = invoke(
+            &screen,
+            "log_circuit",
+            json!({ "form": { "date": "2026-10-10", "circuit": "Morning rust", "sets": 3 } }),
+        );
+
+        assert_eq!(
+            burn.map(|burn| {
+                burn["workouts"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|done| {
+                        (
+                            done["workout"]["exercise"].clone(),
+                            done["workout"]["sets"].clone(),
+                            done["workout"]["circuit"].clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            }),
+            Ok(vec![
+                (json!("Push up"), json!(3), json!("Morning rust")),
+                (json!("Burpee"), json!(3), json!("Morning rust")),
+            ])
         );
     }
 }
