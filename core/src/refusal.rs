@@ -21,4 +21,5 @@ pub enum Refusal {
     NotAQuantity,
     NotAFood,
     NotASingleStep,
+    NotACircuit,
 }

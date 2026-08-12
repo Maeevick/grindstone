@@ -208,6 +208,9 @@ pub fn failure(failure: &Failure) -> String {
             "A circuit needs one step at least. Even my experiments have one: the bang. ~ Trix 🧪💥"
                 .into()
         }
+        Failure::Refused(Refusal::NotACircuit) => {
+            "That circuit is not in the lab. Craft it in Catalog first. ~ Trix 🧪💥".into()
+        }
         Failure::Broken(reason) => {
             format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
         }

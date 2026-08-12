@@ -1,3 +1,4 @@
+use crate::circuit::{Circuit, StepForm};
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
@@ -98,9 +99,34 @@ pub fn remove_meal(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<
     meals(fuel)
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CircuitForm {
+    pub name: String,
+    pub steps: Vec<StepForm>,
+}
+
+pub fn circuits(_burn: &impl ForStoringBurnRecords) -> Result<Vec<Circuit>, Failure> {
+    Ok(Vec::new())
+}
+
+pub fn craft_circuit(
+    _burn: &impl ForStoringBurnRecords,
+    _form: &CircuitForm,
+) -> Result<Vec<Circuit>, Failure> {
+    Ok(Vec::new())
+}
+
+pub fn remove_circuit(
+    _burn: &impl ForStoringBurnRecords,
+    _name: &str,
+) -> Result<Vec<Circuit>, Failure> {
+    Ok(Vec::new())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::circuit::CircuitStep;
     use crate::refusal::Refusal;
     use crate::testing::{BrokenBurnRecords, BurnRecordsInMemory};
 
@@ -275,5 +301,139 @@ mod tests {
             Err(Failure::Refused(Refusal::NotAFood))
         );
         assert_eq!(remove_meal(&fuel, "Rice and chicken"), Ok(vec![]));
+    }
+
+    fn with_push_ups_and_burpees() -> BurnRecordsInMemory {
+        let burn = BurnRecordsInMemory::default();
+        add_exercise(&burn, "Push up", 3.8).expect("an exercise adds");
+        add_exercise(&burn, "Burpee", 8.0).expect("an exercise adds");
+        burn
+    }
+
+    fn asked(exercise: &str, reps: Option<u32>, minutes: f64, load_kg: f64) -> StepForm {
+        StepForm {
+            exercise: exercise.into(),
+            reps,
+            minutes,
+            load_kg,
+        }
+    }
+
+    fn frozen(
+        exercise: &str,
+        met: f64,
+        reps: Option<u32>,
+        minutes: f64,
+        load_kg: f64,
+    ) -> CircuitStep {
+        CircuitStep {
+            exercise: exercise.into(),
+            met,
+            reps,
+            minutes,
+            load_kg,
+        }
+    }
+
+    fn morning_rust() -> CircuitForm {
+        CircuitForm {
+            name: "Morning rust".into(),
+            steps: vec![
+                asked("Push up", Some(12), 0.5, 0.0),
+                asked("Burpee", Some(10), 1.0, 5.0),
+            ],
+        }
+    }
+
+    fn evening_grind() -> CircuitForm {
+        CircuitForm {
+            name: "Evening grind".into(),
+            steps: vec![asked("Burpee", None, 2.0, 0.0)],
+        }
+    }
+
+    #[test]
+    fn crafted_circuits_come_back_by_name_their_steps_frozen_on_the_catalog() {
+        let burn = with_push_ups_and_burpees();
+        craft_circuit(&burn, &morning_rust()).expect("a circuit crafts");
+
+        let crafted = craft_circuit(&burn, &evening_grind());
+
+        assert_eq!(
+            crafted,
+            Ok(vec![
+                Circuit {
+                    name: "Evening grind".into(),
+                    steps: vec![frozen("Burpee", 8.0, None, 2.0, 0.0)],
+                },
+                Circuit {
+                    name: "Morning rust".into(),
+                    steps: vec![
+                        frozen("Push up", 3.8, Some(12), 0.5, 0.0),
+                        frozen("Burpee", 8.0, Some(10), 1.0, 5.0),
+                    ],
+                },
+            ])
+        );
+        assert_eq!(circuits(&burn), crafted);
+    }
+
+    #[test]
+    fn a_crafted_circuit_keeps_the_mets_it_was_crafted_with_whatever_the_catalog_becomes() {
+        let burn = with_push_ups_and_burpees();
+        craft_circuit(&burn, &morning_rust()).expect("a circuit crafts");
+
+        add_exercise(&burn, "Push up", 4.0).expect("an exercise adds");
+        remove_exercise(&burn, "Burpee").expect("an exercise is removed");
+
+        assert_eq!(
+            circuits(&burn).map(|crafted| {
+                crafted
+                    .into_iter()
+                    .flat_map(|kept| kept.steps)
+                    .map(|step| step.met)
+                    .collect::<Vec<_>>()
+            }),
+            Ok(vec![3.8, 8.0])
+        );
+    }
+
+    #[test]
+    fn removing_a_circuit_leaves_the_others_in_the_catalog() {
+        let burn = with_push_ups_and_burpees();
+        craft_circuit(&burn, &morning_rust()).expect("a circuit crafts");
+        craft_circuit(&burn, &evening_grind()).expect("a circuit crafts");
+
+        let left = remove_circuit(&burn, "Morning rust");
+
+        assert_eq!(
+            left.map(|crafted| crafted
+                .into_iter()
+                .map(|kept| kept.name)
+                .collect::<Vec<_>>()),
+            Ok(vec!["Evening grind".to_string()])
+        );
+    }
+
+    #[test]
+    fn a_circuit_the_lab_cannot_craft_or_broken_records_change_nothing() {
+        assert_eq!(
+            craft_circuit(
+                &with_push_ups_and_burpees(),
+                &CircuitForm {
+                    steps: vec![],
+                    ..morning_rust()
+                }
+            ),
+            Err(Failure::Refused(Refusal::NotASingleStep))
+        );
+        assert_eq!(
+            craft_circuit(&BrokenBurnRecords, &morning_rust()),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+        assert_eq!(
+            remove_circuit(&BrokenBurnRecords, "Morning rust"),
+            Err(Failure::Broken("the disk is full".into()))
+        );
     }
 }

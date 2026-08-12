@@ -19,6 +19,13 @@ pub struct WorkoutForm {
     pub load_kg: f64,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CircuitSessionForm {
+    pub date: String,
+    pub circuit: String,
+    pub sets: u32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OffTheClockForm {
     pub sitting_min: f64,
@@ -95,13 +102,26 @@ pub fn set_day_off_the_clock(
     burn_of_the_day(gather, burn, day)
 }
 
+pub fn log_circuit(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    form: &CircuitSessionForm,
+) -> Result<Burn, Failure> {
+    burn_of_the_day(gather, burn, day(&form.date)?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::circuit::{StepForm, burnt_per_set};
     use crate::exercise::Exercise;
+    use crate::for_cataloguing::{
+        CircuitForm, add_exercise, circuits, craft_circuit, remove_circuit,
+    };
     use crate::for_tracking::log_measurement;
     use crate::testing::{BrokenBurnRecords, BurnRecordsInMemory, GatherRecordsInMemory};
     use crate::volitional::Volitional;
+    use crate::workout::Workout;
 
     fn a_catalog_with_walking() -> BurnRecordsInMemory {
         let burn = BurnRecordsInMemory::default();
@@ -241,6 +261,147 @@ mod tests {
                 },
             ),
             Err(Failure::Refused(Refusal::NotADistance))
+        );
+    }
+
+    fn a_lab_with_morning_rust() -> BurnRecordsInMemory {
+        let burn = BurnRecordsInMemory::default();
+        add_exercise(&burn, "Push up", 3.8).expect("an exercise adds");
+        add_exercise(&burn, "Burpee", 8.0).expect("an exercise adds");
+        craft_circuit(
+            &burn,
+            &CircuitForm {
+                name: "Morning rust".into(),
+                steps: vec![
+                    StepForm {
+                        exercise: "Push up".into(),
+                        reps: Some(12),
+                        minutes: 0.5,
+                        load_kg: 0.0,
+                    },
+                    StepForm {
+                        exercise: "Burpee".into(),
+                        reps: Some(10),
+                        minutes: 1.0,
+                        load_kg: 5.0,
+                    },
+                ],
+            },
+        )
+        .expect("a circuit crafts");
+        burn
+    }
+
+    fn running(circuit: &str, sets: u32) -> CircuitSessionForm {
+        CircuitSessionForm {
+            date: "2026-10-10".into(),
+            circuit: circuit.into(),
+            sets,
+        }
+    }
+
+    #[test]
+    fn a_circuit_logged_files_one_workout_per_step_each_done_as_many_sets_as_the_circuit() {
+        let the_day = NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day");
+
+        let burnt = log_circuit(
+            &GatherRecordsInMemory::default(),
+            &a_lab_with_morning_rust(),
+            &running("Morning rust", 3),
+        )
+        .expect("a burn");
+
+        assert_eq!(
+            burnt
+                .workouts
+                .into_iter()
+                .map(|done| done.workout)
+                .collect::<Vec<_>>(),
+            vec![
+                Workout {
+                    day: the_day,
+                    exercise: "Push up".into(),
+                    met: 3.8,
+                    minutes: 0.5,
+                    reps: Some(12),
+                    sets: 3,
+                    load_kg: 0.0,
+                    circuit: Some("Morning rust".into()),
+                },
+                Workout {
+                    day: the_day,
+                    exercise: "Burpee".into(),
+                    met: 8.0,
+                    minutes: 1.0,
+                    reps: Some(10),
+                    sets: 3,
+                    load_kg: 5.0,
+                    circuit: Some("Morning rust".into()),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_circuit_logged_burns_its_sets_times_what_a_set_burns_at_the_body_mass_in_force() {
+        let gather = GatherRecordsInMemory::default();
+        log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");
+        let burn = a_lab_with_morning_rust();
+        let morning_rust = circuits(&burn)
+            .ok()
+            .and_then(|crafted| crafted.into_iter().next())
+            .expect("a circuit");
+
+        let burnt = log_circuit(&gather, &burn, &running("Morning rust", 3)).expect("a burn");
+
+        assert!(
+            burnt
+                .burnt_kcal
+                .is_some_and(|kcal| (kcal - 3.0 * burnt_per_set(&morning_rust, 80.0)).abs() < 1e-9)
+        );
+    }
+
+    #[test]
+    fn a_circuit_missing_from_the_catalog_or_run_without_a_set_or_on_no_day_is_refused() {
+        let gather = GatherRecordsInMemory::default();
+        let burn = a_lab_with_morning_rust();
+
+        assert_eq!(
+            log_circuit(&gather, &burn, &running("Evening grind", 1)),
+            Err(Failure::Refused(Refusal::NotACircuit))
+        );
+        assert_eq!(
+            log_circuit(&gather, &burn, &running("Morning rust", 0)),
+            Err(Failure::Refused(Refusal::NotACount))
+        );
+        assert_eq!(
+            log_circuit(
+                &gather,
+                &burn,
+                &CircuitSessionForm {
+                    date: "2026-02-30".into(),
+                    ..running("Morning rust", 1)
+                }
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            log_circuit(&gather, &BrokenBurnRecords, &running("Morning rust", 1)),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn removing_a_circuit_leaves_the_workouts_already_logged_with_it() {
+        let gather = GatherRecordsInMemory::default();
+        let burn = a_lab_with_morning_rust();
+        log_circuit(&gather, &burn, &running("Morning rust", 2)).expect("a circuit logs");
+
+        remove_circuit(&burn, "Morning rust").expect("a circuit is removed");
+
+        assert_eq!(
+            burn_day(&gather, &burn, "2026-10-10").map(|burnt| burnt.workouts.len()),
+            Ok(2)
         );
     }
 }
