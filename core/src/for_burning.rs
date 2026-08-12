@@ -2,12 +2,14 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, burn_on};
+use crate::circuit::Circuit;
+use crate::exercise::Exercise;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
 use crate::volitional::volitional;
-use crate::workout::workout;
+use crate::workout::{Workout, workout};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WorkoutForm {
@@ -102,12 +104,50 @@ pub fn set_day_off_the_clock(
     burn_of_the_day(gather, burn, day)
 }
 
+fn workouts_of_the_session(
+    crafted: &Circuit,
+    form: &CircuitSessionForm,
+) -> Result<Vec<Workout>, Refusal> {
+    crafted
+        .steps
+        .iter()
+        .map(|step| {
+            let exercise = Exercise {
+                name: step.exercise.clone(),
+                met: step.met,
+            };
+            workout(
+                &form.date,
+                &exercise,
+                step.minutes,
+                step.reps,
+                form.sets,
+                step.load_kg,
+            )
+            .map(|done| Workout {
+                circuit: Some(crafted.name.clone()),
+                ..done
+            })
+        })
+        .collect()
+}
+
 pub fn log_circuit(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     form: &CircuitSessionForm,
 ) -> Result<Burn, Failure> {
-    burn_of_the_day(gather, burn, day(&form.date)?)
+    let day = day(&form.date)?;
+    let crafted = burn
+        .burn_records()?
+        .circuits
+        .into_iter()
+        .find(|known| known.name == form.circuit)
+        .ok_or(Failure::Refused(Refusal::NotACircuit))?;
+    for done in workouts_of_the_session(&crafted, form).map_err(Failure::Refused)? {
+        burn.save_workout(&done)?;
+    }
+    burn_of_the_day(gather, burn, day)
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use crate::circuit::{Circuit, StepForm};
+use crate::circuit::{Circuit, StepForm, circuit};
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
@@ -105,22 +105,25 @@ pub struct CircuitForm {
     pub steps: Vec<StepForm>,
 }
 
-pub fn circuits(_burn: &impl ForStoringBurnRecords) -> Result<Vec<Circuit>, Failure> {
-    Ok(Vec::new())
+pub fn circuits(burn: &impl ForStoringBurnRecords) -> Result<Vec<Circuit>, Failure> {
+    Ok(burn.burn_records()?.circuits)
 }
 
 pub fn craft_circuit(
-    _burn: &impl ForStoringBurnRecords,
-    _form: &CircuitForm,
+    burn: &impl ForStoringBurnRecords,
+    form: &CircuitForm,
 ) -> Result<Vec<Circuit>, Failure> {
-    Ok(Vec::new())
+    let catalog = burn.burn_records()?.exercises;
+    burn.save_circuit(&circuit(&form.name, &form.steps, &catalog).map_err(Failure::Refused)?)?;
+    circuits(burn)
 }
 
 pub fn remove_circuit(
-    _burn: &impl ForStoringBurnRecords,
-    _name: &str,
+    burn: &impl ForStoringBurnRecords,
+    name: &str,
 ) -> Result<Vec<Circuit>, Failure> {
-    Ok(Vec::new())
+    burn.remove_circuit(name)?;
+    circuits(burn)
 }
 
 #[cfg(test)]
