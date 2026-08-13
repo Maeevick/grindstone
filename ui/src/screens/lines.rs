@@ -368,3 +368,22 @@ pub fn together(correlation: Option<f64>, shared: usize) -> String {
 }
 
 pub const NOTHING_TO_EXPLORE: &str = "Nothing logged for this measure in the window.";
+
+pub const CIRCUIT_HOW: &str = "Name it, stack its steps one by one, then craft. Once crafted it is \
+    welded shut, like my last cauldron: to change it, remove it and craft another. ~ Trix 🧪💥";
+
+pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Stack a few exercises from the catalog \
+    and craft one. ~ Trix 🧪💥";
+
+pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is in Catalog. ~ Trix 🧪💥";
+
+pub fn circuit_crafted(name: &str) -> String {
+    format!("{name} is crafted, its steps welded in place. ~ Trix 🧪💥")
+}
+
+pub fn circuit_logged(name: &str, sets: u32) -> String {
+    format!(
+        "Fire in the hole! {name}, {}, filed in the ledger. ~ Trix 🧪💥",
+        counted(sets as usize, "set", "sets")
+    )
+}

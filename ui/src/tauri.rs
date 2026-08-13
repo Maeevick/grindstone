@@ -1,8 +1,11 @@
 use grind_core::burn::Burn;
+use grind_core::circuit::Circuit;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
+use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
+use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm};
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::for_importing::Imported;
@@ -260,4 +263,20 @@ pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
         ImportFailure::Failed(Failure::Broken(reason))
     })
     .await
+}
+
+pub async fn circuits() -> Result<Vec<Circuit>, Failure> {
+    call("circuits", Nothing {}, broken).await
+}
+
+pub async fn craft_circuit(form: &CircuitForm) -> Result<Vec<Circuit>, Failure> {
+    call("craft_circuit", Form { form }, broken).await
+}
+
+pub async fn remove_circuit(name: &str) -> Result<Vec<Circuit>, Failure> {
+    call("remove_circuit", Naming { name }, broken).await
+}
+
+pub async fn log_circuit(form: &CircuitSessionForm) -> Result<Burn, Failure> {
+    call("log_circuit", Form { form }, broken).await
 }
