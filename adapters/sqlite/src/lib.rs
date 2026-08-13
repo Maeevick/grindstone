@@ -278,22 +278,23 @@ impl Sqlite {
     }
 
     fn circuit_steps_inserted(&self, circuit: &Circuit) -> Result<(), Broken> {
-        for (position, step) in (1_i64..).zip(&circuit.steps) {
-            self.run(
-                "insert into circuit_steps (circuit, position, exercise, met, reps, minutes, load_kg)
-                 values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![
-                    circuit.name,
-                    position,
-                    step.exercise,
-                    step.met,
-                    step.reps,
-                    step.minutes,
-                    step.load_kg
-                ],
-            )?;
-        }
-        Ok(())
+        (1_i64..)
+            .zip(&circuit.steps)
+            .try_for_each(|(position, step)| {
+                self.run(
+                    "insert into circuit_steps (circuit, position, exercise, met, reps, minutes, load_kg)
+                     values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        circuit.name,
+                        position,
+                        step.exercise,
+                        step.met,
+                        step.reps,
+                        step.minutes,
+                        step.load_kg
+                    ],
+                )
+            })
     }
 }
 
