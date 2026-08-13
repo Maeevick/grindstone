@@ -1,8 +1,10 @@
 #![cfg(target_arch = "wasm32")]
 
+use grind_core::burn::Burn;
 use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
+use grind_ui::screens::circuits::{CircuitCrafter, CircuitLog};
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::meals::MealCooker;
 use grind_ui::screens::profile::ProfileScreen;
@@ -630,4 +632,150 @@ async fn stats_draw_two_measures_and_tell_how_they_move_together() {
         said.contains("80.4 kg") && said.contains("2400 kcal") && said.contains("1.00"),
         "{said}"
     );
+}
+
+const MORNING_RUST: &str = r#"{ "name": "Morning rust", "steps": [
+    { "exercise": "Push up", "met": 3.8, "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
+    { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
+
+fn chosen_in(screen: &Element, name: &str, value: &str) {
+    let field: HtmlSelectElement = found(screen, &format!("select[name={name}]"));
+    field.set_value(value);
+    field
+        .dispatch_event(&Event::new("change").expect("a change event"))
+        .expect("the choice is made");
+}
+
+#[wasm_bindgen_test]
+async fn the_crafter_crafts_a_circuit_from_its_steps_added_one_by_one() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
+             "circuits": [], "craft_circuit": [{MORNING_RUST}] }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <CircuitCrafter />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "circuit_name", "Morning rust");
+    chosen_in(&screen, "step_exercise", "Push up");
+    typed_into(&screen, "step_reps", "12");
+    typed_into(&screen, "step_minutes", "0.5");
+    found::<web_sys::HtmlElement>(&screen, "button.add-step").click();
+    chosen_in(&screen, "step_exercise", "Burpee");
+    typed_into(&screen, "step_minutes", "1");
+    typed_into(&screen, "step_load", "5");
+    found::<web_sys::HtmlElement>(&screen, "button.add-step").click();
+    settled().await;
+    let added: Element = found(&screen, "ol.steps");
+    let steps = added.text_content().unwrap_or_default();
+    assert!(
+        steps.contains("Push up") && steps.contains("Burpee"),
+        "{steps}"
+    );
+    found::<HtmlFormElement>(&screen, "form.circuit")
+        .request_submit()
+        .expect("the circuit is crafted");
+    settled().await;
+
+    let listed: Element = found(&screen, "table.circuits tbody");
+    let rows = listed.text_content().unwrap_or_default();
+    assert!(
+        rows.contains("Morning rust") && rows.contains("Push up") && rows.contains("Burpee"),
+        "{rows}"
+    );
+    assert_eq!(value_of(&screen, "circuit_name"), "");
+}
+
+#[wasm_bindgen_test]
+async fn a_step_added_by_mistake_leaves_the_circuit_before_it_is_crafted() {
+    answering(
+        r#"{ "exercises": [{ "name": "Burpee", "met": 8.0 }, { "name": "Push up", "met": 3.8 }], "circuits": [] }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <CircuitCrafter />
+            </Router>
+        }
+    });
+    settled().await;
+    typed_into(&screen, "step_minutes", "1");
+    found::<web_sys::HtmlElement>(&screen, "button.add-step").click();
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "ol.steps button.remove").click();
+    settled().await;
+
+    let added: Element = found(&screen, "ol.steps");
+    assert_eq!(added.text_content().unwrap_or_default(), "");
+}
+
+#[wasm_bindgen_test]
+async fn removing_a_circuit_takes_it_out_of_the_lab() {
+    answering(&format!(
+        r#"{{ "exercises": [], "circuits": [{MORNING_RUST}], "remove_circuit": [] }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <CircuitCrafter />
+            </Router>
+        }
+    });
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "table.circuits button.remove").click();
+    settled().await;
+
+    let listed: Element = found(&screen, "table.circuits tbody");
+    assert_eq!(listed.text_content().unwrap_or_default(), "");
+}
+
+const A_DAY_OF_MORNING_RUST: &str = r#"{ "day": "2026-10-10", "burnt_kcal": 120.0, "off_the_clock": null,
+    "off_the_clock_is_usual": true, "workouts": [
+    { "id": 1, "burnt_kcal": 40.0, "workout": { "day": "2026-10-10", "exercise": "Push up", "met": 3.8,
+        "minutes": 0.5, "reps": 12, "sets": 3, "load_kg": 0.0, "circuit": "Morning rust" } },
+    { "id": 2, "burnt_kcal": 80.0, "workout": { "day": "2026-10-10", "exercise": "Burpee", "met": 8.0,
+        "minutes": 1.0, "reps": null, "sets": 3, "load_kg": 5.0, "circuit": "Morning rust" } } ] }"#;
+
+#[wasm_bindgen_test]
+async fn logging_a_circuit_hands_over_the_days_burn_with_a_workout_per_step() {
+    answering(&format!(
+        r#"{{ "circuits": [{MORNING_RUST}], "log_circuit": {A_DAY_OF_MORNING_RUST} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        let handed_over = RwSignal::new(None::<Burn>);
+        view! {
+            <Router>
+                <CircuitLog
+                    day=day
+                    on_logged=Callback::new(move |burn: Burn| handed_over.set(Some(burn)))
+                />
+                <p class="handed-over">
+                    {move || handed_over.get().map(|burn| burn.workouts.len().to_string())}
+                </p>
+            </Router>
+        }
+    });
+    settled().await;
+    assert_eq!(value_of(&screen, "circuit_sets"), "1");
+
+    typed_into(&screen, "circuit_sets", "3");
+    found::<HtmlFormElement>(&screen, "form.circuit-log")
+        .request_submit()
+        .expect("the circuit is logged");
+    settled().await;
+
+    let handed_over: Element = found(&screen, "p.handed-over");
+    assert_eq!(handed_over.text_content().unwrap_or_default(), "2");
 }

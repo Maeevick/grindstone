@@ -1,5 +1,6 @@
 pub mod burn;
 pub mod catalog;
+pub mod circuits;
 pub mod fields;
 pub mod fuel;
 pub mod home;
