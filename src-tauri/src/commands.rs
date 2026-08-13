@@ -267,32 +267,28 @@ pub fn explore(
     )
 }
 
-fn not_yet<Answer>() -> Result<Answer, Failure> {
-    Err(Failure::Broken("not yet".into()))
-}
-
 #[tauri::command(rename_all = "snake_case")]
 pub fn circuits(records: State<Records>) -> Result<Vec<Circuit>, Failure> {
-    let _ = records;
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::circuits(&*records)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn craft_circuit(records: State<Records>, form: CircuitForm) -> Result<Vec<Circuit>, Failure> {
-    let _ = (records, form);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::craft_circuit(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_circuit(records: State<Records>, name: String) -> Result<Vec<Circuit>, Failure> {
-    let _ = (records, name);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::remove_circuit(&*records, &name)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_circuit(records: State<Records>, form: CircuitSessionForm) -> Result<Burn, Failure> {
-    let _ = (records, form);
-    not_yet()
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::log_circuit(&*records, &*records, &form)
 }
 
 #[cfg(test)]
