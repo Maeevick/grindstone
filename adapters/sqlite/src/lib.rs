@@ -1017,4 +1017,31 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn a_circuit_that_cannot_be_kept_whole_leaves_the_earlier_one_as_it_was() {
+        let records = database();
+        let step = |exercise: &str, minutes: f64| CircuitStep {
+            exercise: exercise.into(),
+            met: 3.8,
+            reps: Some(12),
+            minutes,
+            load_kg: 0.0,
+        };
+        let kept = Circuit {
+            name: "Morning rust".into(),
+            steps: vec![step("Push up", 0.5)],
+        };
+        records.save_circuit(&kept).expect("a circuit saves");
+        let half_valid = Circuit {
+            steps: vec![step("Squat", 1.0), step("Burpee", f64::NAN)],
+            ..kept.clone()
+        };
+
+        assert!(records.save_circuit(&half_valid).is_err());
+        assert_eq!(
+            records.burn_records().map(|burnt| burnt.circuits),
+            Ok(vec![kept])
+        );
+    }
 }
