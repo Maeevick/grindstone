@@ -5,6 +5,7 @@ use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::FigureField;
 use crate::screens::lines;
 use crate::tauri;
@@ -38,7 +39,14 @@ fn WorkoutRow(
     };
     view! {
         <tr>
-            <td>{done.workout.exercise.clone()}</td>
+            <td>
+                {done.workout.exercise.clone()}
+                {done
+                    .workout
+                    .circuit
+                    .clone()
+                    .map(|circuit| view! { <span class="hint">{format!(" · {circuit}")}</span> })}
+            </td>
             <td>{how_it_went(&done)}</td>
             <td>{done.burnt_kcal.map(|kcal| shown(Figure::Energy(kcal))).unwrap_or_default()}</td>
             <td>
@@ -186,6 +194,10 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     />
                 </tbody>
             </table>
+        </section>
+        <section class="card">
+            <h2>"A circuit"</h2>
+            <CircuitLog day=day on_logged=shown_burn />
         </section>
         <section class="card">
             <h2>"Off the clock"</h2>

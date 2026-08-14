@@ -5,6 +5,7 @@ use grind_core::for_cataloguing::FoodForm;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::screens::circuits::CircuitCrafter;
 use crate::screens::fields::FigureField;
 use crate::screens::lines;
 use crate::screens::meals::MealCooker;
@@ -250,12 +251,14 @@ enum Shelf {
     Foods,
     Meals,
     Exercises,
+    Circuits,
 }
 
-const SHELVES: [(Shelf, &str); 3] = [
+const SHELVES: [(Shelf, &str); 4] = [
     (Shelf::Foods, "Foods"),
     (Shelf::Meals, "Meals"),
     (Shelf::Exercises, "Exercises"),
+    (Shelf::Circuits, "Circuits"),
 ];
 
 #[component]
@@ -285,6 +288,7 @@ pub fn Catalog() -> impl IntoView {
             Shelf::Foods => view! { <FoodsCatalog /> }.into_any(),
             Shelf::Meals => view! { <MealCooker /> }.into_any(),
             Shelf::Exercises => view! { <ExercisesCatalog /> }.into_any(),
+            Shelf::Circuits => view! { <CircuitCrafter /> }.into_any(),
         }}
     }
 }

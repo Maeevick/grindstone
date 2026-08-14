@@ -355,10 +355,10 @@ const AN_EMPTY_BURN: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kca
 #[wasm_bindgen_test]
 async fn logging_a_workout_lists_it_with_what_it_burnt() {
     answering(&format!(
-        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "burn_day": {AN_EMPTY_BURN},
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [], "burn_day": {AN_EMPTY_BURN},
              "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true,
                  "workouts": [{{ "id": 1, "burnt_kcal": 252.0, "workout": {{ "day": "2026-10-10", "exercise": "Walking",
-                     "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0 }} }}] }} }}"#
+                     "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null }} }}] }} }}"#
     ));
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
