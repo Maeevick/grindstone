@@ -264,4 +264,11 @@ mod tests {
             Some(day("2026-10-10"))
         );
     }
+
+    #[test]
+    fn a_day_with_no_tick_enabled_is_no_success() {
+        let ticked = days_ending("2026-10-10", &[ALL, Ticks::default(), ALL]);
+
+        assert_eq!(streak_of(&ticked, day("2026-10-10")).days, 1);
+    }
 }
