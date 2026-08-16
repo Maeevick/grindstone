@@ -289,13 +289,12 @@ impl<'records> Ledgers<'records> {
         }
     }
 
-    fn gaps_before(&self, last: NaiveDate) -> Vec<(NaiveDate, f64)> {
+    fn gaps(&self) -> Vec<(NaiveDate, f64)> {
         let mut logged: Vec<NaiveDate> = self
             .fuel
             .intakes
             .iter()
             .map(|(_, eaten)| eaten.day)
-            .filter(|logged| *logged < last)
             .collect();
         logged.sort();
         logged.dedup();
@@ -316,7 +315,7 @@ pub fn fuel_on(
     fuel: &FuelRecords,
 ) -> Fuel {
     let ledgers = Ledgers::of(gather, burn, fuel);
-    ledgers.fuel_on(day, &ledgers.gaps_before(day))
+    ledgers.fuel_on(day, &ledgers.gaps())
 }
 
 pub fn fuel_over(
@@ -326,20 +325,9 @@ pub fn fuel_over(
     fuel: &FuelRecords,
 ) -> Vec<Fuel> {
     let ledgers = Ledgers::of(gather, burn, fuel);
-    let gaps = days
-        .iter()
-        .max()
-        .map(|last| ledgers.gaps_before(*last))
-        .unwrap_or_default();
+    let gaps = ledgers.gaps();
     days.iter()
-        .map(|day| {
-            let before: Vec<(NaiveDate, f64)> = gaps
-                .iter()
-                .filter(|(logged, _)| logged < day)
-                .copied()
-                .collect();
-            ledgers.fuel_on(*day, &before)
-        })
+        .map(|day| ledgers.fuel_on(*day, &gaps))
         .collect()
 }
 
