@@ -84,9 +84,13 @@ pub fn correlation(pairs: &[(f64, f64)]) -> Option<f64> {
     let count = pairs.len() as f64;
     let mean_x = pairs.iter().map(|(x, _)| x).sum::<f64>() / count;
     let mean_y = pairs.iter().map(|(_, y)| y).sum::<f64>() / count;
-    let covariance: f64 = pairs.iter().map(|(x, y)| (x - mean_x) * (y - mean_y)).sum();
-    let spread_x: f64 = pairs.iter().map(|(x, _)| (x - mean_x).powi(2)).sum();
-    let spread_y: f64 = pairs.iter().map(|(_, y)| (y - mean_y).powi(2)).sum();
+    let deviations: Vec<(f64, f64)> = pairs
+        .iter()
+        .map(|(x, y)| (x - mean_x, y - mean_y))
+        .collect();
+    let covariance: f64 = deviations.iter().map(|(dx, dy)| dx * dy).sum();
+    let spread_x: f64 = deviations.iter().map(|(dx, _)| dx * dx).sum();
+    let spread_y: f64 = deviations.iter().map(|(_, dy)| dy * dy).sum();
     let spread = (spread_x * spread_y).sqrt();
     (spread > 0.0).then(|| covariance / spread)
 }
