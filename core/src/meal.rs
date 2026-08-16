@@ -229,4 +229,40 @@ mod tests {
             Err(Refusal::NotAPortion)
         );
     }
+
+    #[test]
+    fn every_figure_of_a_cooked_meal_is_given_per_100_g_cooked() {
+        let lentils = Food {
+            name: "Lentils".into(),
+            unit: Unit::Gram,
+            portion: 100.0,
+            nutrients: Nutrients {
+                energy_kcal: 350.0,
+                protein_g: 24.0,
+                carbs_g: 50.0,
+                fat_g: 2.0,
+                fibre_g: 10.0,
+            },
+        };
+        let dal = meal(
+            "Dal",
+            "",
+            &[(lentils, 200.0)],
+            Cooking::Weighed { cooked_g: 500.0 },
+        )
+        .expect("a meal");
+
+        let per_100_g = food_of(&dal).nutrients;
+
+        let figures = [
+            per_100_g.energy_kcal,
+            per_100_g.protein_g,
+            per_100_g.carbs_g,
+            per_100_g.fat_g,
+            per_100_g.fibre_g,
+        ];
+        for (figure, expected) in figures.into_iter().zip([140.0, 9.6, 20.0, 0.8, 4.0]) {
+            assert!((figure - expected).abs() < 1e-9, "{figure} {expected}");
+        }
+    }
 }

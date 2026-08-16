@@ -150,4 +150,34 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn every_nutrient_of_the_portion_scales_with_the_quantity_eaten() {
+        let muesli = food(
+            "Muesli",
+            Unit::Gram,
+            100.0,
+            Nutrients {
+                energy_kcal: 365.0,
+                protein_g: 21.0,
+                carbs_g: 43.0,
+                fat_g: 9.4,
+                fibre_g: 12.0,
+            },
+        )
+        .expect("a food");
+
+        let eaten = nutrients_of(&muesli, 50.0);
+
+        assert_eq!(
+            [
+                eaten.energy_kcal,
+                eaten.protein_g,
+                eaten.carbs_g,
+                eaten.fat_g,
+                eaten.fibre_g
+            ],
+            [182.5, 10.5, 21.5, 4.7, 6.0]
+        );
+    }
 }

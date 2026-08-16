@@ -193,6 +193,16 @@ mod tests {
                 portion: 100.0,
                 nutrients: crate::food::Nutrients::default(),
             }],
+            intakes: vec![(
+                0,
+                crate::intake::Intake {
+                    day: day("2026-08-02"),
+                    food: "Skyr".into(),
+                    unit: crate::food::Unit::Gram,
+                    quantity: 200.0,
+                    nutrients: crate::food::Nutrients::default(),
+                },
+            )],
             ..FuelRecords::default()
         }
     }
@@ -241,7 +251,7 @@ mod tests {
                 exercises: 1,
                 workouts: 1,
                 foods: 1,
-                intakes: 0,
+                intakes: 1,
             })
         );
         assert_eq!(

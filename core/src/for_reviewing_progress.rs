@@ -687,6 +687,20 @@ mod tests {
                 Err(Failure::Refused(Refusal::NotADate))
             );
         }
+
+        #[test]
+        fn a_day_without_a_workout_reads_its_workout_tick_open() {
+            let records = a_man_at_his_desk();
+            a_full_day(&records, "2026-10-08", "Plate");
+            log_measurement(&records.gather, "2026-10-09", 80.0, Some(80.0))
+                .expect("a measurement logs");
+            a_full_day(&records, "2026-10-10", "Plate");
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.worked_out),
+                Some(false)
+            );
+        }
     }
 
     mod exploring {
@@ -845,6 +859,29 @@ mod tests {
                 ),
                 Err(Failure::Broken("the disk is full".into()))
             );
+        }
+
+        #[test]
+        fn the_balance_of_a_day_is_what_was_eaten_minus_its_cap() {
+            let (gather, burn, fuel) = a_logged_man();
+
+            let explored = explore(
+                &gather,
+                &burn,
+                &fuel,
+                "2026-10-10",
+                Window::Days30,
+                (Measure::Balance, Measure::Eaten),
+            )
+            .expect("an exploration");
+            let fuelled =
+                crate::for_fuelling::fuel_day(&gather, &burn, &fuel, "2026-10-10").expect("a fuel");
+
+            let balance = explored.one.last().map(|(_, kcal)| *kcal);
+            let expected = fuelled
+                .band
+                .map(|band| fuelled.eaten.energy_kcal - band.cap_kcal);
+            assert_eq!(balance, expected);
         }
     }
 }

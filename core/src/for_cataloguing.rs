@@ -439,4 +439,31 @@ mod tests {
             Err(Failure::Broken("the disk is full".into()))
         );
     }
+
+    #[test]
+    fn removing_a_food_or_a_meal_keeps_the_others() {
+        let fuel = a_kitchen();
+        cook_meal(&fuel, &rice_and_chicken()).expect("a meal cooks");
+        cook_meal(
+            &fuel,
+            &MealForm {
+                name: "Rice bowl".into(),
+                ..rice_and_chicken()
+            },
+        )
+        .expect("a meal cooks");
+
+        let foods_left = remove_food(&fuel, "Chicken").expect("the foods");
+        let meals_left = remove_meal(&fuel, "Rice bowl").expect("the meals");
+
+        assert!(foods_left.iter().any(|food| food.name == "Rice"));
+        assert!(!foods_left.iter().any(|food| food.name == "Chicken"));
+        assert_eq!(
+            meals_left
+                .iter()
+                .map(|meal| meal.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Rice and chicken"]
+        );
+    }
 }
