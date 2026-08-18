@@ -158,7 +158,7 @@ mod tests {
 
         let streak = streak_of(&ticked, day("2026-10-10"));
 
-        assert_eq!(streak.days, 3);
+        assert_eq!((streak.days, streak.at_risk), (3, false));
         assert_eq!(
             streak.recent.last().map(|today| today.status),
             Some(Status::Pending)
