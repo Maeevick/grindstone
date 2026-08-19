@@ -40,7 +40,7 @@ pub fn shown(figure: Figure) -> String {
             };
             return format!("{amount} {unit}");
         }
-        Figure::Volume(ml) => (ml, " mL"),
+        Figure::Volume(ml) => return format!("{} mL", ml.round() + 0.0),
     };
     format!("{:.1}{unit}", to_the_tenth(value))
 }
