@@ -39,4 +39,5 @@ pub mod testing;
 pub mod trend;
 pub mod version;
 pub mod volitional;
+pub mod volume;
 pub mod workout;
