@@ -69,4 +69,9 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn a_day_spent_entirely_sitting_or_standing_holds_exactly_its_minutes() {
+        assert!(volitional(1000.0, 440.0, 0.0).is_ok());
+    }
 }
