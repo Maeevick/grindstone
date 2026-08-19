@@ -3,6 +3,7 @@ pub mod burn;
 pub mod burn_records;
 pub mod circuit;
 pub mod composition;
+pub mod drink;
 pub mod exercise;
 pub mod failure;
 pub mod figures;

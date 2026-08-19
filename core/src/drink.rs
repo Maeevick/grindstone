@@ -1,0 +1,46 @@
+use serde::{Deserialize, Serialize};
+
+use crate::refusal::Refusal;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Drink {
+    pub name: String,
+    pub volume_ml: f64,
+}
+
+pub fn drink(name: &str, volume_ml: f64) -> Result<Drink, Refusal> {
+    let _ = (name, volume_ml);
+    Err(Refusal::NotAName)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_drink_keeps_its_trimmed_name_and_the_volume_of_one_serving() {
+        assert_eq!(
+            drink("  Expresso ", 80.0),
+            Ok(Drink {
+                name: "Expresso".into(),
+                volume_ml: 80.0,
+            })
+        );
+    }
+
+    #[test]
+    fn a_drink_without_a_name_is_refused() {
+        assert_eq!(drink("   ", 80.0), Err(Refusal::NotAName));
+    }
+
+    #[test]
+    fn a_serving_of_nothing_or_no_number_at_all_is_refused() {
+        for volume_ml in [0.0, -80.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                drink("Expresso", volume_ml),
+                Err(Refusal::NotAVolume),
+                "{volume_ml}"
+            );
+        }
+    }
+}
