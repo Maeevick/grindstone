@@ -10,6 +10,7 @@ pub enum Figure {
     Distance(f64),
     Grams(f64),
     Amount(f64, Unit),
+    Volume(f64),
 }
 
 fn to_the_tenth(value: f64) -> f64 {
@@ -39,6 +40,7 @@ pub fn shown(figure: Figure) -> String {
             };
             return format!("{amount} {unit}");
         }
+        Figure::Volume(ml) => (ml, " mL"),
     };
     format!("{:.1}{unit}", to_the_tenth(value))
 }
@@ -95,5 +97,10 @@ mod tests {
     #[test]
     fn a_figure_halfway_between_two_tenths_shows_the_upper_one() {
         assert_eq!(shown(Figure::Mass(72.25)), "72.3 kg");
+    }
+
+    #[test]
+    fn a_volume_shows_in_whole_millilitres_a_half_going_up() {
+        assert_eq!(shown(Figure::Volume(1234.5)), "1235 mL");
     }
 }
