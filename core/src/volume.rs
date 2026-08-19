@@ -1,8 +1,11 @@
 use crate::refusal::Refusal;
 
 pub fn volume(ml: f64) -> Result<f64, Refusal> {
-    let _ = ml;
-    Err(Refusal::NotAVolume)
+    if ml.is_finite() && ml > 0.0 {
+        Ok(ml)
+    } else {
+        Err(Refusal::NotAVolume)
+    }
 }
 
 #[cfg(test)]

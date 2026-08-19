@@ -211,6 +211,9 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotACircuit) => {
             "That circuit is not in the lab. Craft it in Catalog first. ~ Trix 🧪💥".into()
         }
+        Failure::Refused(Refusal::NotAVolume) => {
+            "Some millilitres above nothing, please. An empty cup files as nothing at all.".into()
+        }
         Failure::Broken(reason) => {
             format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
         }
