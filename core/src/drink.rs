@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::refusal::Refusal;
+use crate::volume::volume;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Drink {
@@ -9,8 +10,14 @@ pub struct Drink {
 }
 
 pub fn drink(name: &str, volume_ml: f64) -> Result<Drink, Refusal> {
-    let _ = (name, volume_ml);
-    Err(Refusal::NotAName)
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(Refusal::NotAName);
+    }
+    Ok(Drink {
+        name: name.into(),
+        volume_ml: volume(volume_ml)?,
+    })
 }
 
 #[cfg(test)]
