@@ -23,4 +23,5 @@ pub enum Refusal {
     NotASingleStep,
     NotACircuit,
     NotAVolume,
+    NotAServing,
 }
