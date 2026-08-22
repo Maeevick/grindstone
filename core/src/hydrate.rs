@@ -1,0 +1,180 @@
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
+
+use crate::burn_records::BurnRecords;
+use crate::drinking::Drinking;
+use crate::gather_records::GatherRecords;
+use crate::hydrate_records::HydrateRecords;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Hydrate {
+    pub day: NaiveDate,
+    pub drinkings: Vec<(i64, Drinking)>,
+    pub drunk_ml: f64,
+    pub target_ml: f64,
+    pub reached: bool,
+}
+
+pub fn hydrate_on(
+    day: NaiveDate,
+    records: &HydrateRecords,
+    gather: &GatherRecords,
+    burn: &BurnRecords,
+) -> Hydrate {
+    let _ = (records, gather, burn);
+    Hydrate {
+        day,
+        drinkings: vec![],
+        drunk_ml: 0.0,
+        target_ml: 0.0,
+        reached: false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::measurement::Measurement;
+    use crate::workout::Workout;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn about(actual: f64, expected: f64) -> bool {
+        (actual - expected).abs() < 1e-9
+    }
+
+    fn drunk(date: &str, drink: &str, volume_ml: f64) -> Drinking {
+        Drinking {
+            day: day(date),
+            drink: drink.into(),
+            volume_ml,
+        }
+    }
+
+    fn based_on(base_ml: f64, drinkings: Vec<(i64, Drinking)>) -> HydrateRecords {
+        HydrateRecords {
+            bases: vec![(day("2026-03-01"), base_ml)],
+            drinkings,
+            ..HydrateRecords::default()
+        }
+    }
+
+    fn walked_an_hour(date: &str) -> BurnRecords {
+        BurnRecords {
+            workouts: vec![(
+                1,
+                Workout {
+                    day: day(date),
+                    exercise: "Walking".into(),
+                    met: 4.0,
+                    minutes: 60.0,
+                    reps: None,
+                    sets: 1,
+                    load_kg: 0.0,
+                    circuit: None,
+                },
+            )],
+            ..BurnRecords::default()
+        }
+    }
+
+    fn weighed(date: &str, body_mass_kg: f64) -> GatherRecords {
+        GatherRecords {
+            measurements: vec![Measurement {
+                day: day(date),
+                body_mass_kg,
+                waist_cm: None,
+            }],
+            ..GatherRecords::default()
+        }
+    }
+
+    #[test]
+    fn a_day_drinks_the_sum_of_its_own_drinkings() {
+        let records = based_on(
+            2000.0,
+            vec![
+                (1, drunk("2026-10-10", "Expresso", 80.0)),
+                (2, drunk("2026-10-10", "Tea", 200.0)),
+                (3, drunk("2026-10-11", "Tea", 400.0)),
+            ],
+        );
+
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &records,
+            &GatherRecords::default(),
+            &BurnRecords::default(),
+        );
+
+        assert_eq!(
+            hydrate.drinkings,
+            vec![
+                (1, drunk("2026-10-10", "Expresso", 80.0)),
+                (2, drunk("2026-10-10", "Tea", 200.0)),
+            ]
+        );
+        assert!(about(hydrate.drunk_ml, 280.0));
+    }
+
+    #[test]
+    fn a_day_aims_for_its_base_and_a_millilitre_more_per_kcal_its_workouts_burnt() {
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &based_on(2000.0, vec![]),
+            &weighed("2026-10-01", 80.0),
+            &walked_an_hour("2026-10-10"),
+        );
+
+        assert!(about(hydrate.target_ml, 2000.0 + 252.0));
+    }
+
+    #[test]
+    fn a_burn_of_unknown_size_without_any_weigh_in_adds_nothing_to_the_target() {
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &based_on(2000.0, vec![]),
+            &GatherRecords::default(),
+            &walked_an_hour("2026-10-10"),
+        );
+
+        assert!(about(hydrate.target_ml, 2000.0));
+    }
+
+    #[test]
+    fn with_no_base_set_a_day_aims_for_the_default_base() {
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &GatherRecords::default(),
+            &BurnRecords::default(),
+        );
+
+        assert!(about(hydrate.target_ml, 2000.0));
+    }
+
+    #[test]
+    fn the_target_is_reached_once_the_day_has_drunk_as_much() {
+        let records = based_on(
+            500.0,
+            vec![
+                (1, drunk("2026-10-10", "Tea", 300.0)),
+                (2, drunk("2026-10-10", "Tea", 200.0)),
+                (3, drunk("2026-10-11", "Tea", 300.0)),
+            ],
+        );
+        let on = |date| {
+            hydrate_on(
+                day(date),
+                &records,
+                &GatherRecords::default(),
+                &BurnRecords::default(),
+            )
+        };
+
+        assert!(on("2026-10-10").reached);
+        assert!(!on("2026-10-11").reached);
+    }
+}
