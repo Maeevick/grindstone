@@ -1,8 +1,10 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::gender::Gender;
 use crate::profile::Profile;
 use crate::sources::Source;
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct HydrateBase {
@@ -17,22 +19,39 @@ pub const DEFAULT_BASE_SOURCE: Source = Source {
     link: "https://doi.org/10.2903/j.efsa.2010.1459",
 };
 
+const DRINKS_PERCENT_OF_TOTAL_WATER: f64 = 80.0;
+
+fn adequate_intake_of_total_water_ml(gender: Option<Gender>) -> f64 {
+    match gender {
+        Some(Gender::Female) => 2000.0,
+        Some(Gender::Male) | None => 2500.0,
+    }
+}
+
 pub fn base_on(
     day: NaiveDate,
     bases: &[(NaiveDate, f64)],
     profiles: &[(NaiveDate, Profile)],
 ) -> HydrateBase {
-    let _ = (day, bases, profiles);
-    HydrateBase {
-        base_ml: 0.0,
-        is_default: false,
+    match version_in_force_on(bases, day) {
+        Some(set) => HydrateBase {
+            base_ml: *set,
+            is_default: false,
+        },
+        None => {
+            let gender = version_in_force_on(profiles, day).map(|profile| profile.gender);
+            HydrateBase {
+                base_ml: adequate_intake_of_total_water_ml(gender) * DRINKS_PERCENT_OF_TOTAL_WATER
+                    / 100.0,
+                is_default: true,
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gender::Gender;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
