@@ -2,16 +2,20 @@ use std::cell::{Cell, RefCell};
 
 use crate::burn_records::BurnRecords;
 use crate::circuit::{Circuit, CircuitStep};
+use crate::drink::Drink;
+use crate::drinking::Drinking;
 use crate::exercise::Exercise;
 use crate::failure::Broken;
 use crate::food::{Food, Nutrients, Unit};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
+use crate::hydrate_records::HydrateRecords;
 use crate::intake::Intake;
 use crate::meal::Meal;
 use crate::measurement::Measurement;
@@ -1102,6 +1106,259 @@ pub mod honouring_for_storing_gather_records {
     }
 }
 
+#[derive(Default)]
+pub struct HydrateRecordsInMemory(RefCell<HydrateRecords>);
+
+impl ForStoringHydrateRecords for HydrateRecordsInMemory {
+    fn save_drink(&self, drink: &Drink) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.drinks.retain(|kept| kept.name != drink.name);
+        records.drinks.push(drink.clone());
+        Ok(())
+    }
+
+    fn remove_drink(&self, name: &str) -> Result<(), Broken> {
+        self.0.borrow_mut().drinks.retain(|kept| kept.name != name);
+        Ok(())
+    }
+
+    fn save_drinking(&self, drinking: &Drinking) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        let id = records
+            .drinkings
+            .iter()
+            .map(|(id, _)| *id)
+            .max()
+            .unwrap_or(0)
+            + 1;
+        records.drinkings.push((id, drinking.clone()));
+        Ok(())
+    }
+
+    fn remove_drinking(&self, id: i64) -> Result<(), Broken> {
+        self.0
+            .borrow_mut()
+            .drinkings
+            .retain(|(kept, _)| *kept != id);
+        Ok(())
+    }
+
+    fn save_base(&self, from: NaiveDate, base_ml: f64) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.bases.retain(|(kept_from, _)| *kept_from != from);
+        records.bases.push((from, base_ml));
+        Ok(())
+    }
+
+    fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken> {
+        let mut replaced = records.clone();
+        for (id, (kept_id, _)) in (1..).zip(replaced.drinkings.iter_mut()) {
+            *kept_id = id;
+        }
+        *self.0.borrow_mut() = replaced;
+        Ok(())
+    }
+
+    fn hydrate_records(&self) -> Result<HydrateRecords, Broken> {
+        let mut drunk = self.0.borrow().clone();
+        drunk.drinks.sort_by(|one, other| one.name.cmp(&other.name));
+        drunk
+            .drinkings
+            .sort_by_key(|(id, drinking)| (drinking.day, *id));
+        drunk.bases.sort_by_key(|(from, _)| *from);
+        Ok(drunk)
+    }
+}
+
+pub struct BrokenHydrateRecords;
+
+impl ForStoringHydrateRecords for BrokenHydrateRecords {
+    fn save_drink(&self, _: &Drink) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_drink(&self, _: &str) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_drinking(&self, _: &Drinking) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn remove_drinking(&self, _: i64) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_base(&self, _: NaiveDate, _: f64) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn replace_hydrate_records(&self, _: &HydrateRecords) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn hydrate_records(&self) -> Result<HydrateRecords, Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+}
+
+pub mod honouring_for_storing_hydrate_records {
+    use super::*;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn served(name: &str, volume_ml: f64) -> Drink {
+        Drink {
+            name: name.into(),
+            volume_ml,
+        }
+    }
+
+    fn drunk(date: &str, drink: &str, volume_ml: f64) -> Drinking {
+        Drinking {
+            day: day(date),
+            drink: drink.into(),
+            volume_ml,
+        }
+    }
+
+    fn without_ids(records: &HydrateRecords) -> Vec<Drinking> {
+        records
+            .drinkings
+            .iter()
+            .map(|(_, drinking)| drinking.clone())
+            .collect()
+    }
+
+    pub fn hydrate_records_come_back_in_the_order_of_their_days(
+        records: &impl ForStoringHydrateRecords,
+    ) {
+        records
+            .save_drink(&served("Tea", 200.0))
+            .expect("a drink saves");
+        records
+            .save_drink(&served("Expresso", 80.0))
+            .expect("a drink saves");
+        for drinking in [
+            drunk("2026-10-10", "Tea", 200.0),
+            drunk("2026-10-09", "Expresso", 80.0),
+            drunk("2026-10-10", "Expresso", 160.0),
+        ] {
+            records.save_drinking(&drinking).expect("a drinking saves");
+        }
+        records
+            .save_base(day("2026-09-01"), 2200.0)
+            .expect("a base saves");
+        records
+            .save_base(day("2026-03-01"), 2000.0)
+            .expect("a base saves");
+
+        let drunk_so_far = records.hydrate_records().expect("the records read");
+
+        assert_eq!(
+            drunk_so_far.drinks,
+            vec![served("Expresso", 80.0), served("Tea", 200.0)]
+        );
+        assert_eq!(
+            without_ids(&drunk_so_far),
+            vec![
+                drunk("2026-10-09", "Expresso", 80.0),
+                drunk("2026-10-10", "Tea", 200.0),
+                drunk("2026-10-10", "Expresso", 160.0),
+            ]
+        );
+        assert_eq!(
+            drunk_so_far.bases,
+            vec![(day("2026-03-01"), 2000.0), (day("2026-09-01"), 2200.0)]
+        );
+    }
+
+    pub fn a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+        records: &impl ForStoringHydrateRecords,
+    ) {
+        records
+            .save_drink(&served("Tea", 200.0))
+            .expect("a drink saves");
+        records
+            .save_base(day("2026-03-01"), 2000.0)
+            .expect("a base saves");
+
+        records
+            .save_drink(&served("Tea", 250.0))
+            .expect("a drink saves");
+        records
+            .save_base(day("2026-03-01"), 2400.0)
+            .expect("a base saves");
+
+        let drunk_so_far = records.hydrate_records().expect("the records read");
+        assert_eq!(drunk_so_far.drinks, vec![served("Tea", 250.0)]);
+        assert_eq!(drunk_so_far.bases, vec![(day("2026-03-01"), 2400.0)]);
+    }
+
+    pub fn removing_a_drinking_or_a_drink_leaves_the_others(
+        records: &impl ForStoringHydrateRecords,
+    ) {
+        records
+            .save_drink(&served("Tea", 200.0))
+            .expect("a drink saves");
+        records
+            .save_drink(&served("Expresso", 80.0))
+            .expect("a drink saves");
+        records
+            .save_drinking(&drunk("2026-10-10", "Tea", 200.0))
+            .expect("a drinking saves");
+        records
+            .save_drinking(&drunk("2026-10-10", "Tea", 100.0))
+            .expect("a drinking saves");
+        let first = records
+            .hydrate_records()
+            .ok()
+            .and_then(|drunk_so_far| drunk_so_far.drinkings.first().map(|(id, _)| *id))
+            .expect("a first drinking");
+
+        records
+            .remove_drinking(first)
+            .expect("a drinking is removed");
+        records
+            .remove_drink("Expresso")
+            .expect("a drink is removed");
+
+        let drunk_so_far = records.hydrate_records().expect("the records read");
+        assert_eq!(
+            without_ids(&drunk_so_far),
+            vec![drunk("2026-10-10", "Tea", 100.0)]
+        );
+        assert_eq!(drunk_so_far.drinks, vec![served("Tea", 200.0)]);
+    }
+
+    pub fn replacing_the_hydrate_records_leaves_only_the_new_ones(
+        records: &impl ForStoringHydrateRecords,
+    ) {
+        records
+            .save_drink(&served("Tea", 200.0))
+            .expect("a drink saves");
+        records
+            .save_drinking(&drunk("2026-10-10", "Tea", 200.0))
+            .expect("a drinking saves");
+        let replacement = HydrateRecords {
+            drinks: vec![served("Expresso", 80.0)],
+            drinkings: vec![(0, drunk("2026-06-22", "Expresso", 80.0))],
+            bases: vec![(day("2026-03-01"), 2000.0)],
+        };
+
+        records
+            .replace_hydrate_records(&replacement)
+            .expect("the records are replaced");
+
+        let drunk_so_far = records.hydrate_records().expect("the records read");
+        assert_eq!(drunk_so_far.drinks, replacement.drinks);
+        assert_eq!(without_ids(&drunk_so_far), without_ids(&replacement));
+        assert_eq!(drunk_so_far.bases, replacement.bases);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1243,6 +1500,34 @@ mod tests {
     fn a_workout_done_in_a_circuit_comes_back_with_its_name() {
         honouring_for_storing_burn_records::a_workout_done_in_a_circuit_comes_back_with_its_name(
             &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn hydrate_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_hydrate_records::hydrate_records_come_back_in_the_order_of_their_days(
+            &HydrateRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
+        honouring_for_storing_hydrate_records::a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+            &HydrateRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn removing_a_drinking_or_a_drink_leaves_the_others() {
+        honouring_for_storing_hydrate_records::removing_a_drinking_or_a_drink_leaves_the_others(
+            &HydrateRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn replacing_the_hydrate_records_leaves_only_the_new_ones() {
+        honouring_for_storing_hydrate_records::replacing_the_hydrate_records_leaves_only_the_new_ones(
+            &HydrateRecordsInMemory::default(),
         );
     }
 }
