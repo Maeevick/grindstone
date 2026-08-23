@@ -12,6 +12,7 @@ pub mod food;
 pub mod for_burning;
 pub mod for_cataloguing;
 pub mod for_fuelling;
+pub mod for_hydrating;
 pub mod for_importing;
 pub mod for_reviewing_progress;
 pub mod for_setting_up_the_profile;
