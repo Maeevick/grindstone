@@ -9,11 +9,12 @@ use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
-use crate::hydrate_base::HydrateBase;
+use crate::hydrate_base::{HydrateBase, base_on};
 use crate::profile::{Profile, profile};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
 use crate::volitional::{Volitional, volitional};
+use crate::volume::volume;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProfileForm {
@@ -151,8 +152,10 @@ pub fn set_hydrate_base(
     hydrate: &impl ForStoringHydrateRecords,
     form: &HydrateBaseForm,
 ) -> Result<f64, Failure> {
-    let _ = (hydrate, form);
-    Err(Failure::Broken("not yet".into()))
+    let from = day(&form.from)?;
+    let base_ml = volume(form.base_ml).map_err(Failure::Refused)?;
+    hydrate.save_base(from, base_ml)?;
+    Ok(base_ml)
 }
 
 pub fn hydrate_base_on(
@@ -160,8 +163,12 @@ pub fn hydrate_base_on(
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
 ) -> Result<HydrateBase, Failure> {
-    let _ = (gather, hydrate, date);
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    Ok(base_on(
+        day,
+        &hydrate.hydrate_records()?.bases,
+        &gather.gather_records()?.profiles,
+    ))
 }
 
 #[cfg(test)]

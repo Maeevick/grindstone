@@ -1,5 +1,5 @@
 use crate::circuit::{Circuit, StepForm, circuit};
-use crate::drink::Drink;
+use crate::drink::{Drink, drink};
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
@@ -129,8 +129,7 @@ pub fn remove_circuit(
 }
 
 pub fn drinks(hydrate: &impl ForStoringHydrateRecords) -> Result<Vec<Drink>, Failure> {
-    let _ = hydrate;
-    Err(Failure::Broken("not yet".into()))
+    Ok(hydrate.hydrate_records()?.drinks)
 }
 
 pub fn add_drink(
@@ -138,16 +137,16 @@ pub fn add_drink(
     name: &str,
     volume_ml: f64,
 ) -> Result<Vec<Drink>, Failure> {
-    let _ = (hydrate, name, volume_ml);
-    Err(Failure::Broken("not yet".into()))
+    hydrate.save_drink(&drink(name, volume_ml).map_err(Failure::Refused)?)?;
+    drinks(hydrate)
 }
 
 pub fn remove_drink(
     hydrate: &impl ForStoringHydrateRecords,
     name: &str,
 ) -> Result<Vec<Drink>, Failure> {
-    let _ = (hydrate, name);
-    Err(Failure::Broken("not yet".into()))
+    hydrate.remove_drink(name)?;
+    drinks(hydrate)
 }
 
 #[cfg(test)]
