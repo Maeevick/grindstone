@@ -71,8 +71,8 @@ pub fn import_hydrate(
     hydrate: &impl ForStoringHydrateRecords,
     imported: &HydrateRecords,
 ) -> Result<(usize, usize), Failure> {
-    let _ = (hydrate, imported);
-    Err(Failure::Broken("not yet".into()))
+    hydrate.replace_hydrate_records(imported)?;
+    Ok((imported.drinks.len(), imported.drinkings.len()))
 }
 
 #[cfg(test)]
