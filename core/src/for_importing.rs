@@ -5,9 +5,11 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
+use crate::hydrate_records::HydrateRecords;
 use crate::refusal::Refusal;
 use chrono::NaiveDate;
 
@@ -63,6 +65,14 @@ pub fn import_drafted(
         intakes: drafted.fuel.intakes.len(),
         ..gathered
     })
+}
+
+pub fn import_hydrate(
+    hydrate: &impl ForStoringHydrateRecords,
+    imported: &HydrateRecords,
+) -> Result<(usize, usize), Failure> {
+    let _ = (hydrate, imported);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -321,6 +331,59 @@ mod tests {
                 &Drafted::default(),
                 "2026-10-10",
             )),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    fn drafted_drinks() -> HydrateRecords {
+        let expresso = |date| crate::drinking::Drinking {
+            day: day(date),
+            drink: "Expresso".into(),
+            volume_ml: 80.0,
+        };
+        HydrateRecords {
+            drinks: vec![
+                crate::drink::Drink {
+                    name: "Expresso".into(),
+                    volume_ml: 80.0,
+                },
+                crate::drink::Drink {
+                    name: "Tea".into(),
+                    volume_ml: 200.0,
+                },
+            ],
+            drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],
+            bases: vec![],
+        }
+    }
+
+    #[test]
+    fn importing_hydrate_records_replaces_what_was_drunk() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        hydrate
+            .save_base(day("2026-03-01"), 2400.0)
+            .expect("a base saves");
+
+        import_hydrate(&hydrate, &drafted_drinks()).expect("an import");
+
+        assert_eq!(hydrate.hydrate_records(), Ok(drafted_drinks()));
+    }
+
+    #[test]
+    fn a_hydrate_import_counts_its_drinks_and_its_drinkings() {
+        assert_eq!(
+            import_hydrate(
+                &crate::testing::HydrateRecordsInMemory::default(),
+                &drafted_drinks()
+            ),
+            Ok((2, 2))
+        );
+    }
+
+    #[test]
+    fn hydrate_records_that_cannot_be_replaced_give_no_import() {
+        assert_eq!(
+            import_hydrate(&crate::testing::BrokenHydrateRecords, &drafted_drinks()),
             Err(Failure::Broken("the disk is full".into()))
         );
     }
