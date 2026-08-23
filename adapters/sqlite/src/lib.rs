@@ -3,17 +3,21 @@ use std::path::Path;
 use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
 use grind_core::circuit::{Circuit, CircuitStep};
+use grind_core::drink::Drink;
+use grind_core::drinking::Drinking;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
 use grind_core::food::{Food, Nutrients, Unit};
 use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
+use grind_core::for_storing_hydrate_records::ForStoringHydrateRecords;
 use grind_core::for_storing_switch_over::ForStoringSwitchOver;
 use grind_core::fuel_records::{FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
+use grind_core::hydrate_records::HydrateRecords;
 use grind_core::intake::Intake;
 use grind_core::meal::Meal;
 use grind_core::measurement::Measurement;
@@ -692,12 +696,43 @@ impl ForStoringSwitchOver for Sqlite {
     }
 }
 
+impl ForStoringHydrateRecords for Sqlite {
+    fn save_drink(&self, _: &Drink) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn remove_drink(&self, _: &str) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn save_drinking(&self, _: &Drinking) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn remove_drinking(&self, _: i64) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn save_base(&self, _: NaiveDate, _: f64) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn replace_hydrate_records(&self, _: &HydrateRecords) -> Result<(), Broken> {
+        Ok(())
+    }
+
+    fn hydrate_records(&self) -> Result<HydrateRecords, Broken> {
+        Ok(HydrateRecords::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
+    use grind_core::testing::honouring_for_storing_hydrate_records;
     use grind_core::testing::honouring_for_storing_switch_over;
 
     fn database() -> Sqlite {
@@ -1042,6 +1077,34 @@ mod tests {
         assert_eq!(
             records.burn_records().map(|burnt| burnt.circuits),
             Ok(vec![kept])
+        );
+    }
+
+    #[test]
+    fn hydrate_records_come_back_in_the_order_of_their_days() {
+        honouring_for_storing_hydrate_records::hydrate_records_come_back_in_the_order_of_their_days(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
+        honouring_for_storing_hydrate_records::a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn removing_a_drinking_or_a_drink_leaves_the_others() {
+        honouring_for_storing_hydrate_records::removing_a_drinking_or_a_drink_leaves_the_others(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn replacing_the_hydrate_records_leaves_only_the_new_ones() {
+        honouring_for_storing_hydrate_records::replacing_the_hydrate_records_leaves_only_the_new_ones(
+            &database(),
         );
     }
 }
