@@ -5,9 +5,11 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
+use crate::hydrate_base::HydrateBase;
 use crate::profile::{Profile, profile};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
@@ -137,6 +139,29 @@ pub fn fuel_targets_on(
     Ok(version_in_force_on(&fuel.fuel_records()?.targets, day)
         .copied()
         .unwrap_or(DEFAULT_FUEL_TARGETS))
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HydrateBaseForm {
+    pub from: String,
+    pub base_ml: f64,
+}
+
+pub fn set_hydrate_base(
+    hydrate: &impl ForStoringHydrateRecords,
+    form: &HydrateBaseForm,
+) -> Result<f64, Failure> {
+    let _ = (hydrate, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+pub fn hydrate_base_on(
+    gather: &impl ForStoringGatherRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    date: &str,
+) -> Result<HydrateBase, Failure> {
+    let _ = (gather, hydrate, date);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -325,5 +350,87 @@ mod tests {
         );
 
         assert_eq!(refused, Err(Failure::Refused(Refusal::NotANutrient)));
+    }
+
+    fn a_base_from(from: &str, base_ml: f64) -> HydrateBaseForm {
+        HydrateBaseForm {
+            from: from.into(),
+            base_ml,
+        }
+    }
+
+    #[test]
+    fn a_hydrate_base_set_from_a_date_is_the_one_in_force_from_that_date() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        set_hydrate_base(&hydrate, &a_base_from("2026-03-01", 2400.0)).expect("a base sets");
+
+        assert_eq!(
+            hydrate_base_on(&GatherRecordsInMemory::default(), &hydrate, "2026-10-10"),
+            Ok(HydrateBase {
+                base_ml: 2400.0,
+                is_default: false,
+            })
+        );
+    }
+
+    #[test]
+    fn with_no_hydrate_base_set_the_default_for_the_profile_in_force_says_it_is_one() {
+        let gather = GatherRecordsInMemory::default();
+        set_profile(
+            &gather,
+            &ProfileForm {
+                birthday: "1990-06-01".into(),
+                gender: Gender::Female,
+                hip_cm: Some(98.0),
+                ..a_mans_form("2026-03-01")
+            },
+        )
+        .expect("a profile sets");
+
+        assert_eq!(
+            hydrate_base_on(
+                &gather,
+                &crate::testing::HydrateRecordsInMemory::default(),
+                "2026-10-10"
+            ),
+            Ok(HydrateBase {
+                base_ml: 1600.0,
+                is_default: true,
+            })
+        );
+    }
+
+    #[test]
+    fn a_hydrate_base_of_nothing_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        let gather = GatherRecordsInMemory::default();
+
+        assert_eq!(
+            set_hydrate_base(&hydrate, &a_base_from("2026-03-01", 0.0)),
+            Err(Failure::Refused(Refusal::NotAVolume))
+        );
+        assert_eq!(
+            set_hydrate_base(&hydrate, &a_base_from("2026-02-30", 2400.0)),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            hydrate_base_on(&gather, &hydrate, "2026-02-30"),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            hydrate_base_on(&gather, &hydrate, "2026-10-10").map(|base| base.is_default),
+            Ok(true)
+        );
+        assert_eq!(
+            set_hydrate_base(
+                &crate::testing::BrokenHydrateRecords,
+                &a_base_from("2026-03-01", 2400.0)
+            ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+        assert_eq!(
+            hydrate_base_on(&BrokenGatherRecords, &hydrate, "2026-10-10"),
+            Err(Failure::Broken("the disk is full".into()))
+        );
     }
 }

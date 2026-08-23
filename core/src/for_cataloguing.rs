@@ -1,9 +1,11 @@
 use crate::circuit::{Circuit, StepForm, circuit};
+use crate::drink::Drink;
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
+use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::meal::{Cooking, Meal, food_of, meal};
 use crate::refusal::Refusal;
 use serde::{Deserialize, Serialize};
@@ -124,6 +126,28 @@ pub fn remove_circuit(
 ) -> Result<Vec<Circuit>, Failure> {
     burn.remove_circuit(name)?;
     circuits(burn)
+}
+
+pub fn drinks(hydrate: &impl ForStoringHydrateRecords) -> Result<Vec<Drink>, Failure> {
+    let _ = hydrate;
+    Err(Failure::Broken("not yet".into()))
+}
+
+pub fn add_drink(
+    hydrate: &impl ForStoringHydrateRecords,
+    name: &str,
+    volume_ml: f64,
+) -> Result<Vec<Drink>, Failure> {
+    let _ = (hydrate, name, volume_ml);
+    Err(Failure::Broken("not yet".into()))
+}
+
+pub fn remove_drink(
+    hydrate: &impl ForStoringHydrateRecords,
+    name: &str,
+) -> Result<Vec<Drink>, Failure> {
+    let _ = (hydrate, name);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -464,6 +488,65 @@ mod tests {
                 .map(|meal| meal.name.as_str())
                 .collect::<Vec<_>>(),
             vec!["Rice and chicken"]
+        );
+    }
+
+    fn served(name: &str, volume_ml: f64) -> Drink {
+        Drink {
+            name: name.into(),
+            volume_ml,
+        }
+    }
+
+    #[test]
+    fn added_drinks_come_back_in_the_catalog_by_name() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        add_drink(&hydrate, "Tea", 200.0).expect("a drink adds");
+
+        let catalog = add_drink(&hydrate, "Expresso", 80.0);
+
+        assert_eq!(
+            catalog,
+            Ok(vec![served("Expresso", 80.0), served("Tea", 200.0)])
+        );
+        assert_eq!(drinks(&hydrate), catalog);
+    }
+
+    #[test]
+    fn a_drink_added_again_under_its_name_takes_its_new_serving() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        add_drink(&hydrate, "Tea", 200.0).expect("a drink adds");
+
+        assert_eq!(
+            add_drink(&hydrate, "Tea", 250.0),
+            Ok(vec![served("Tea", 250.0)])
+        );
+    }
+
+    #[test]
+    fn a_removed_drink_leaves_the_catalog() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        add_drink(&hydrate, "Tea", 200.0).expect("a drink adds");
+
+        assert_eq!(remove_drink(&hydrate, "Tea"), Ok(vec![]));
+    }
+
+    #[test]
+    fn a_nameless_drink_a_serving_of_nothing_or_broken_records_change_nothing() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+
+        assert_eq!(
+            add_drink(&hydrate, " ", 200.0),
+            Err(Failure::Refused(Refusal::NotAName))
+        );
+        assert_eq!(
+            add_drink(&hydrate, "Tea", 0.0),
+            Err(Failure::Refused(Refusal::NotAVolume))
+        );
+        assert_eq!(drinks(&hydrate), Ok(vec![]));
+        assert_eq!(
+            remove_drink(&crate::testing::BrokenHydrateRecords, "Tea"),
+            Err(Failure::Broken("the disk is full".into()))
         );
     }
 }
