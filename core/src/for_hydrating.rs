@@ -1,10 +1,13 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::drinking::drinking;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::hydrate::Hydrate;
+use crate::hydrate::{Hydrate, hydrate_on};
+use crate::refusal::Refusal;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DrinkingForm {
@@ -13,14 +16,31 @@ pub struct DrinkingForm {
     pub servings: f64,
 }
 
+fn day(date: &str) -> Result<NaiveDate, Failure> {
+    NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
+}
+
+fn hydrate_of_the_day(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    day: NaiveDate,
+) -> Result<Hydrate, Failure> {
+    Ok(hydrate_on(
+        day,
+        &hydrate.hydrate_records()?,
+        &gather.gather_records()?,
+        &burn.burn_records()?,
+    ))
+}
+
 pub fn hydrate_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
 ) -> Result<Hydrate, Failure> {
-    let _ = (gather, burn, hydrate, date);
-    Err(Failure::Broken("not yet".into()))
+    hydrate_of_the_day(gather, burn, hydrate, day(date)?)
 }
 
 pub fn log_drink(
@@ -29,8 +49,15 @@ pub fn log_drink(
     hydrate: &impl ForStoringHydrateRecords,
     form: &DrinkingForm,
 ) -> Result<Hydrate, Failure> {
-    let _ = (gather, burn, hydrate, form);
-    Err(Failure::Broken("not yet".into()))
+    let drink = hydrate
+        .hydrate_records()?
+        .drinks
+        .into_iter()
+        .find(|known| known.name == form.drink)
+        .ok_or(Failure::Refused(Refusal::NotADrink))?;
+    let drunk = drinking(&form.date, &drink, form.servings).map_err(Failure::Refused)?;
+    hydrate.save_drinking(&drunk)?;
+    hydrate_of_the_day(gather, burn, hydrate, drunk.day)
 }
 
 pub fn remove_drinking(
@@ -40,8 +67,9 @@ pub fn remove_drinking(
     date: &str,
     id: i64,
 ) -> Result<Hydrate, Failure> {
-    let _ = (gather, burn, hydrate, date, id);
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    hydrate.remove_drinking(id)?;
+    hydrate_of_the_day(gather, burn, hydrate, day)
 }
 
 #[cfg(test)]
@@ -168,8 +196,13 @@ mod tests {
         )
         .expect("a workout logs");
 
-        let hydrated = hydrate_day(&gather, &burn, &HydrateRecordsInMemory::default(), "2026-10-10")
-            .expect("a hydrate");
+        let hydrated = hydrate_day(
+            &gather,
+            &burn,
+            &HydrateRecordsInMemory::default(),
+            "2026-10-10",
+        )
+        .expect("a hydrate");
 
         assert!((hydrated.target_ml - (2000.0 + 252.0)).abs() < 1e-9);
     }
@@ -185,7 +218,12 @@ mod tests {
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
-            log_drink(&gather, &burn, &a_catalog_with_tea(), &tea("2026-10-10", 0.0)),
+            log_drink(
+                &gather,
+                &burn,
+                &a_catalog_with_tea(),
+                &tea("2026-10-10", 0.0)
+            ),
             Err(Failure::Refused(Refusal::NotAServing))
         );
         assert_eq!(
@@ -193,11 +231,21 @@ mod tests {
             Err(broken.clone())
         );
         assert_eq!(
-            hydrate_day(&BrokenGatherRecords, &burn, &a_catalog_with_tea(), "2026-10-10"),
+            hydrate_day(
+                &BrokenGatherRecords,
+                &burn,
+                &a_catalog_with_tea(),
+                "2026-10-10"
+            ),
             Err(broken.clone())
         );
         assert_eq!(
-            hydrate_day(&gather, &BrokenBurnRecords, &a_catalog_with_tea(), "2026-10-10"),
+            hydrate_day(
+                &gather,
+                &BrokenBurnRecords,
+                &a_catalog_with_tea(),
+                "2026-10-10"
+            ),
             Err(broken.clone())
         );
         assert_eq!(
