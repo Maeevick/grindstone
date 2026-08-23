@@ -1,9 +1,11 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::drinking::Drinking;
 use crate::gather_records::GatherRecords;
+use crate::hydrate_base::base_on;
 use crate::hydrate_records::HydrateRecords;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -15,19 +17,32 @@ pub struct Hydrate {
     pub reached: bool,
 }
 
+const ML_PER_KCAL_BURNT: f64 = 1.0;
+
 pub fn hydrate_on(
     day: NaiveDate,
     records: &HydrateRecords,
     gather: &GatherRecords,
     burn: &BurnRecords,
 ) -> Hydrate {
-    let _ = (records, gather, burn);
+    let drinkings: Vec<(i64, Drinking)> = records
+        .drinkings
+        .iter()
+        .filter(|(_, drunk)| drunk.day == day)
+        .cloned()
+        .collect();
+    let drunk_ml: f64 = drinkings.iter().map(|(_, drunk)| drunk.volume_ml).sum();
+    let burnt_kcal = burn_on(day, burn, &gather.measurements)
+        .burnt_kcal
+        .unwrap_or(0.0);
+    let target_ml =
+        base_on(day, &records.bases, &gather.profiles).base_ml + burnt_kcal * ML_PER_KCAL_BURNT;
     Hydrate {
         day,
-        drinkings: vec![],
-        drunk_ml: 0.0,
-        target_ml: 0.0,
-        reached: false,
+        drinkings,
+        drunk_ml,
+        target_ml,
+        reached: drunk_ml >= target_ml,
     }
 }
 
