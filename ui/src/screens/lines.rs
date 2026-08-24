@@ -151,6 +151,12 @@ pub fn import_failure(refused: &ImportFailure) -> String {
                 failure_of_refusal(*refusal)
             )
         }
+        ImportFailure::Draft(DraftRefusal::NotADrinking { date, refusal }) => {
+            format!(
+                "A drink of {date} would not be filed: {}",
+                failure_of_refusal(*refusal)
+            )
+        }
         ImportFailure::Failed(failed) => failure(failed),
     }
 }

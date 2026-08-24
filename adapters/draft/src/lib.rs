@@ -1,5 +1,7 @@
 use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
+use grind_core::drink::Drink;
+use grind_core::drinking::drinking;
 use grind_core::exercise::{Exercise, exercise};
 use grind_core::failure::Failure;
 use grind_core::food::{Nutrients, Unit, food};
@@ -417,9 +419,62 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
     })
 }
 
+fn drafted_drinks() -> Vec<Drink> {
+    vec![
+        Drink {
+            name: "Expresso".into(),
+            volume_ml: 80.0,
+        },
+        Drink {
+            name: "Tea".into(),
+            volume_ml: 200.0,
+        },
+    ]
+}
+
+fn drink_drafted_as<'a>(line: &IntakeLine, catalog: &'a [Drink]) -> Option<&'a Drink> {
+    let name = match line.name.as_str() {
+        "Coffee" => "Expresso",
+        "Tea" => "Tea",
+        _ => return None,
+    };
+    catalog.iter().find(|drink| drink.name == name)
+}
+
+fn servings_drafted(line: &IntakeLine, drink: &Drink) -> Option<f64> {
+    match line.unit.as_str() {
+        "piece" => Some(line.qty),
+        "ml" => Some(line.qty / drink.volume_ml),
+        _ => None,
+    }
+}
+
 pub fn hydrate_from_draft(backup: &str) -> Result<HydrateRecords, DraftRefusal> {
-    let _ = backup;
-    Ok(HydrateRecords::default())
+    let backup = read(backup)?;
+    let drinks = drafted_drinks();
+    let drinkings = backup
+        .intake_logs
+        .iter()
+        .flat_map(|log| {
+            log.foods.iter().filter_map(|line| {
+                let drink = drink_drafted_as(line, &drinks)?;
+                let servings = servings_drafted(line, drink)?;
+                Some(
+                    drinking(&log.date, drink, servings)
+                        .map(|drunk| (0, drunk))
+                        .map_err(|refusal| DraftRefusal::NotADrinking {
+                            date: log.date.clone(),
+                            refusal,
+                        }),
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(HydrateRecords {
+        drinks,
+        drinkings,
+        bases: vec![],
+    })
 }
 
 pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
