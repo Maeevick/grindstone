@@ -69,6 +69,11 @@ const MIGRATIONS: &[&str] = &[
          reps integer, minutes real not null, load_kg real not null,
          primary key (circuit, position)
      );",
+    "create table drinks (name text primary key, volume_ml real not null);
+     create table drinkings (
+         id integer primary key, day text not null, drink text not null, volume_ml real not null
+     );
+     create table hydrate_bases (effective_from text primary key, base_ml real not null);",
 ];
 
 pub struct Sqlite(Connection);
@@ -696,33 +701,88 @@ impl ForStoringSwitchOver for Sqlite {
     }
 }
 
+const DRINKS: &str = "select name, volume_ml from drinks order by name";
+const DRINKINGS: &str = "select id, day, drink, volume_ml from drinkings order by day, id";
+const HYDRATE_BASES: &str =
+    "select effective_from, base_ml from hydrate_bases order by effective_from";
+
+fn drink_read(row: &rusqlite::Row) -> rusqlite::Result<Drink> {
+    Ok(Drink {
+        name: row.get(0)?,
+        volume_ml: row.get(1)?,
+    })
+}
+
+fn drinking_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Drinking)> {
+    Ok((
+        row.get(0)?,
+        Drinking {
+            day: row.get(1)?,
+            drink: row.get(2)?,
+            volume_ml: row.get(3)?,
+        },
+    ))
+}
+
+fn base_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, f64)> {
+    Ok((row.get(0)?, row.get(1)?))
+}
+
 impl ForStoringHydrateRecords for Sqlite {
-    fn save_drink(&self, _: &Drink) -> Result<(), Broken> {
-        Ok(())
+    fn save_drink(&self, drink: &Drink) -> Result<(), Broken> {
+        self.run(
+            "insert into drinks (name, volume_ml) values (?1, ?2)
+             on conflict (name) do update set volume_ml = excluded.volume_ml",
+            params![drink.name, drink.volume_ml],
+        )
     }
 
-    fn remove_drink(&self, _: &str) -> Result<(), Broken> {
-        Ok(())
+    fn remove_drink(&self, name: &str) -> Result<(), Broken> {
+        self.run("delete from drinks where name = ?1", params![name])
     }
 
-    fn save_drinking(&self, _: &Drinking) -> Result<(), Broken> {
-        Ok(())
+    fn save_drinking(&self, drinking: &Drinking) -> Result<(), Broken> {
+        self.run(
+            "insert into drinkings (day, drink, volume_ml) values (?1, ?2, ?3)",
+            params![drinking.day, drinking.drink, drinking.volume_ml],
+        )
     }
 
-    fn remove_drinking(&self, _: i64) -> Result<(), Broken> {
-        Ok(())
+    fn remove_drinking(&self, id: i64) -> Result<(), Broken> {
+        self.run("delete from drinkings where id = ?1", params![id])
     }
 
-    fn save_base(&self, _: NaiveDate, _: f64) -> Result<(), Broken> {
-        Ok(())
+    fn save_base(&self, from: NaiveDate, base_ml: f64) -> Result<(), Broken> {
+        self.run(
+            "insert into hydrate_bases (effective_from, base_ml) values (?1, ?2)
+             on conflict (effective_from) do update set base_ml = excluded.base_ml",
+            params![from, base_ml],
+        )
     }
 
-    fn replace_hydrate_records(&self, _: &HydrateRecords) -> Result<(), Broken> {
-        Ok(())
+    fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken> {
+        let replacing = self.0.unchecked_transaction().map_err(broken)?;
+        replacing
+            .execute_batch("delete from drinks; delete from drinkings; delete from hydrate_bases;")
+            .map_err(broken)?;
+        for drink in &records.drinks {
+            self.save_drink(drink)?;
+        }
+        for (_, drinking) in &records.drinkings {
+            self.save_drinking(drinking)?;
+        }
+        for (from, base_ml) in &records.bases {
+            self.save_base(*from, *base_ml)?;
+        }
+        replacing.commit().map_err(broken)
     }
 
     fn hydrate_records(&self) -> Result<HydrateRecords, Broken> {
-        Ok(HydrateRecords::default())
+        Ok(HydrateRecords {
+            drinks: self.rows(DRINKS, drink_read)?,
+            drinkings: self.rows(DRINKINGS, drinking_read)?,
+            bases: self.rows(HYDRATE_BASES, base_read)?,
+        })
     }
 }
 
