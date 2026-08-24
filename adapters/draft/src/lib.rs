@@ -8,6 +8,7 @@ use grind_core::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
+use grind_core::hydrate_records::HydrateRecords;
 use grind_core::intake::Intake;
 use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
@@ -25,6 +26,7 @@ pub enum DraftRefusal {
     NotAnExercise { name: String, refusal: Refusal },
     NotAWorkout { date: String, refusal: Refusal },
     NotAFood { name: String, refusal: Refusal },
+    NotADrinking { date: String, refusal: Refusal },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -415,6 +417,11 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
     })
 }
 
+pub fn hydrate_from_draft(backup: &str) -> Result<HydrateRecords, DraftRefusal> {
+    let _ = backup;
+    Ok(HydrateRecords::default())
+}
+
 pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
     Ok(Drafted {
         gather: gather_from_draft(backup)?,
@@ -798,6 +805,88 @@ mod tests {
             Err(DraftRefusal::NotAFood {
                 name: "Skyr".into(),
                 refusal: Refusal::NotANutrient,
+            })
+        );
+    }
+
+    const HYDRATE_BACKUP: &str = r#"{
+        "settings": { "version": "0.4.0", "started_at": "2026-03-01" },
+        "measurement_bases": { "birthday": "1985-04-12" },
+        "intake_bases": { "fat_g_kg": 0.9, "prot_g_kg": 2.025 },
+        "intake_logs": [
+            { "id": "i1", "created_at": 1, "date": "2026-08-02", "fat_g_kg": 0.9, "prot_g_kg": 2.025, "foods": [
+                { "id": "f1", "created_at": 1, "name": "Coffee", "qty": 2.0, "unit": "piece",
+                  "energy": 0.0, "protein": 0.0, "fat": 0.0, "carb": 0.0, "fiber": 0.0 },
+                { "id": "f2", "created_at": 2, "name": "Oeuf (~55g)", "qty": 6.0, "unit": "piece",
+                  "energy": 450.0, "protein": 37.8, "fat": 31.8, "carb": 0.0, "fiber": 0.0 },
+                { "id": "f3", "created_at": 3, "name": "Coffee", "qty": 15.0, "unit": "ml",
+                  "energy": 0.0, "protein": 0.0, "fat": 0.0, "carb": 0.0, "fiber": 0.0 }
+            ] },
+            { "id": "i2", "created_at": 2, "date": "2026-08-03", "fat_g_kg": 0.9, "prot_g_kg": 2.025, "foods": [
+                { "id": "f4", "created_at": 4, "name": "Tea", "qty": 1.0, "unit": "piece",
+                  "energy": 0.0, "protein": 0.0, "fat": 0.0, "carb": 0.0, "fiber": 0.0 },
+                { "id": "f5", "created_at": 5, "name": "Bubble Tea Mangue", "qty": 250.0, "unit": "ml",
+                  "energy": 150.0, "protein": 0.0, "fat": 0.0, "carb": 37.0, "fiber": 0.0 },
+                { "id": "f6", "created_at": 6, "name": "Tea", "qty": 250.0, "unit": "ml",
+                  "energy": 0.0, "protein": 0.0, "fat": 0.0, "carb": 0.0, "fiber": 0.0 }
+            ] }
+        ]
+    }"#;
+
+    fn drunk_from(records: &HydrateRecords) -> Vec<(NaiveDate, String, f64)> {
+        records
+            .drinkings
+            .iter()
+            .map(|(_, drunk)| (drunk.day, drunk.drink.clone(), drunk.volume_ml))
+            .collect()
+    }
+
+    #[test]
+    fn the_drafted_drinks_are_an_expresso_of_80_ml_and_a_tea_of_200_ml_with_no_base() {
+        let records = hydrate_from_draft(HYDRATE_BACKUP).expect("hydrate records");
+
+        assert_eq!(
+            records.drinks,
+            vec![
+                grind_core::drink::Drink {
+                    name: "Expresso".into(),
+                    volume_ml: 80.0,
+                },
+                grind_core::drink::Drink {
+                    name: "Tea".into(),
+                    volume_ml: 200.0,
+                },
+            ]
+        );
+        assert_eq!(records.bases, vec![]);
+    }
+
+    #[test]
+    fn each_drafted_coffee_or_tea_becomes_a_drinking_by_the_piece_or_by_the_millilitre_and_nothing_else_does()
+     {
+        let records = hydrate_from_draft(HYDRATE_BACKUP).expect("hydrate records");
+
+        assert_eq!(
+            drunk_from(&records),
+            vec![
+                (day("2026-08-02"), "Expresso".into(), 160.0),
+                (day("2026-08-02"), "Expresso".into(), 15.0),
+                (day("2026-08-03"), "Tea".into(), 200.0),
+                (day("2026-08-03"), "Tea".into(), 250.0),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_drafted_drink_on_a_day_the_calendar_lacks_is_refused_naming_its_date() {
+        let impossible =
+            HYDRATE_BACKUP.replace(r#""date": "2026-08-03""#, r#""date": "2026-02-30""#);
+
+        assert_eq!(
+            hydrate_from_draft(&impossible),
+            Err(DraftRefusal::NotADrinking {
+                date: "2026-02-30".into(),
+                refusal: Refusal::NotADate,
             })
         );
     }
