@@ -3,6 +3,7 @@ use std::sync::{Mutex, PoisonError};
 
 use grind_core::burn::Burn;
 use grind_core::circuit::Circuit;
+use grind_core::drink::Drink;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
@@ -11,15 +12,18 @@ use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm};
 use grind_core::for_fuelling::{self, IntakeForm};
+use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+    self, FuelTargetsForm, GoalsForm, HydrateBaseForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_tracking;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
+use grind_core::hydrate::Hydrate;
+use grind_core::hydrate_base::HydrateBase;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
@@ -291,6 +295,58 @@ pub fn log_circuit(records: State<Records>, form: CircuitSessionForm) -> Result<
     for_burning::log_circuit(&*records, &*records, &form)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_day(records: State<Records>, date: String) -> Result<Hydrate, Failure> {
+    let _ = (records, date);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn log_drink(records: State<Records>, form: DrinkingForm) -> Result<Hydrate, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_drinking(records: State<Records>, date: String, id: i64) -> Result<Hydrate, Failure> {
+    let _ = (records, date, id);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn drinks(records: State<Records>) -> Result<Vec<Drink>, Failure> {
+    let _ = records;
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn add_drink(
+    records: State<Records>,
+    name: String,
+    volume_ml: f64,
+) -> Result<Vec<Drink>, Failure> {
+    let _ = (records, name, volume_ml);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_drink(records: State<Records>, name: String) -> Result<Vec<Drink>, Failure> {
+    let _ = (records, name);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_hydrate_base(records: State<Records>, form: HydrateBaseForm) -> Result<f64, Failure> {
+    let _ = (records, form);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_base_on(records: State<Records>, date: String) -> Result<HydrateBase, Failure> {
+    let _ = (records, date);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -344,6 +400,14 @@ mod tests {
                 craft_circuit,
                 remove_circuit,
                 log_circuit,
+                hydrate_day,
+                log_drink,
+                remove_drinking,
+                drinks,
+                add_drink,
+                remove_drink,
+                set_hydrate_base,
+                hydrate_base_on,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -841,6 +905,121 @@ mod tests {
                 (json!("Push up"), json!(3), json!("Morning rust")),
                 (json!("Burpee"), json!(3), json!("Morning rust")),
             ])
+        );
+    }
+
+    fn with_tea_in_the_catalog() -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
+        let (app, screen) = launched();
+        invoke(
+            &screen,
+            "add_drink",
+            json!({ "name": "Tea", "volume_ml": 200.0 }),
+        )
+        .expect("a drink adds");
+        (app, screen)
+    }
+
+    fn tea(servings: f64) -> Value {
+        json!({ "form": { "date": "2026-10-10", "drink": "Tea", "servings": servings } })
+    }
+
+    #[test]
+    fn the_days_hydrate_starts_empty_against_the_default_base() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(&screen, "hydrate_day", json!({ "date": "2026-10-10" }));
+
+        assert_eq!(
+            answer,
+            Ok(json!({
+                "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "reached": false
+            }))
+        );
+    }
+
+    #[test]
+    fn a_drink_logged_from_the_screen_comes_back_in_its_days_hydrate() {
+        let (_app, screen) = with_tea_in_the_catalog();
+
+        let answer = invoke(&screen, "log_drink", tea(1.5));
+
+        assert_eq!(
+            answer,
+            Ok(json!({
+                "day": "2026-10-10",
+                "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "volume_ml": 300.0 }]],
+                "drunk_ml": 300.0, "target_ml": 2000.0, "reached": false
+            }))
+        );
+    }
+
+    #[test]
+    fn removing_a_drinking_answers_the_days_hydrate_left() {
+        let (_app, screen) = with_tea_in_the_catalog();
+        invoke(&screen, "log_drink", tea(1.0)).expect("a drink logs");
+        invoke(&screen, "log_drink", tea(2.0)).expect("a drink logs");
+
+        let answer = invoke(
+            &screen,
+            "remove_drinking",
+            json!({ "date": "2026-10-10", "id": 1 }),
+        );
+
+        assert_eq!(
+            answer.map(|hydrate| hydrate["drunk_ml"].clone()),
+            Ok(json!(400.0))
+        );
+    }
+
+    #[test]
+    fn a_drink_missing_from_the_catalog_comes_back_as_a_refusal_the_screen_understands() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(&screen, "log_drink", tea(1.0));
+
+        assert_eq!(answer, Err(json!({ "Refused": "NotADrink" })));
+    }
+
+    #[test]
+    fn the_drinks_catalog_crosses_to_the_screen_by_name() {
+        let (_app, screen) = with_tea_in_the_catalog();
+        invoke(
+            &screen,
+            "add_drink",
+            json!({ "name": "Expresso", "volume_ml": 80.0 }),
+        )
+        .expect("a drink adds");
+
+        let listed = invoke(&screen, "drinks", json!({}));
+        let left = invoke(&screen, "remove_drink", json!({ "name": "Tea" }));
+
+        assert_eq!(
+            listed,
+            Ok(json!([
+                { "name": "Expresso", "volume_ml": 80.0 },
+                { "name": "Tea", "volume_ml": 200.0 }
+            ]))
+        );
+        assert_eq!(left, Ok(json!([{ "name": "Expresso", "volume_ml": 80.0 }])));
+    }
+
+    #[test]
+    fn a_hydrate_base_set_from_the_screen_replaces_the_default_from_its_day() {
+        let (_app, screen) = launched();
+        let before = invoke(&screen, "hydrate_base_on", json!({ "date": "2026-10-12" }));
+
+        let set = invoke(
+            &screen,
+            "set_hydrate_base",
+            json!({ "form": { "from": "2026-10-10", "base_ml": 2400.0 } }),
+        );
+        let in_force = invoke(&screen, "hydrate_base_on", json!({ "date": "2026-10-12" }));
+
+        assert_eq!(before, Ok(json!({ "base_ml": 2000.0, "is_default": true })));
+        assert_eq!(set, Ok(json!(2400.0)));
+        assert_eq!(
+            in_force,
+            Ok(json!({ "base_ml": 2400.0, "is_default": false }))
         );
     }
 }
