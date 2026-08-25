@@ -945,4 +945,14 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn a_coffee_weighed_in_grams_files_no_drinking() {
+        let weighed =
+            HYDRATE_BACKUP.replace(r#""qty": 15.0, "unit": "ml""#, r#""qty": 7.0, "unit": "g""#);
+
+        let drunk = hydrate_from_draft(&weighed).map(|records| records.drinkings.len());
+
+        assert_eq!(drunk, Ok(3));
+    }
 }
