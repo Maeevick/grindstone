@@ -55,6 +55,14 @@ pub fn run() {
             commands::craft_circuit,
             commands::remove_circuit,
             commands::log_circuit,
+            commands::hydrate_day,
+            commands::log_drink,
+            commands::remove_drinking,
+            commands::drinks,
+            commands::add_drink,
+            commands::remove_drink,
+            commands::set_hydrate_base,
+            commands::hydrate_base_on,
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");

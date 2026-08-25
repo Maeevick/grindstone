@@ -297,26 +297,26 @@ pub fn log_circuit(records: State<Records>, form: CircuitSessionForm) -> Result<
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn hydrate_day(records: State<Records>, date: String) -> Result<Hydrate, Failure> {
-    let _ = (records, date);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_hydrating::hydrate_day(&*records, &*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_drink(records: State<Records>, form: DrinkingForm) -> Result<Hydrate, Failure> {
-    let _ = (records, form);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_hydrating::log_drink(&*records, &*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_drinking(records: State<Records>, date: String, id: i64) -> Result<Hydrate, Failure> {
-    let _ = (records, date, id);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_hydrating::remove_drinking(&*records, &*records, &*records, &date, id)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn drinks(records: State<Records>) -> Result<Vec<Drink>, Failure> {
-    let _ = records;
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::drinks(&*records)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -325,26 +325,26 @@ pub fn add_drink(
     name: String,
     volume_ml: f64,
 ) -> Result<Vec<Drink>, Failure> {
-    let _ = (records, name, volume_ml);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::add_drink(&*records, &name, volume_ml)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_drink(records: State<Records>, name: String) -> Result<Vec<Drink>, Failure> {
-    let _ = (records, name);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::remove_drink(&*records, &name)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn set_hydrate_base(records: State<Records>, form: HydrateBaseForm) -> Result<f64, Failure> {
-    let _ = (records, form);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::set_hydrate_base(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn hydrate_base_on(records: State<Records>, date: String) -> Result<HydrateBase, Failure> {
-    let _ = (records, date);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::hydrate_base_on(&*records, &*records, &date)
 }
 
 #[cfg(test)]
