@@ -1,5 +1,6 @@
 use grind_core::burn::Burn;
 use grind_core::circuit::Circuit;
+use grind_core::drink::Drink;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
@@ -8,14 +9,17 @@ use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm};
 use grind_core::for_fuelling::IntakeForm;
+use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+    FuelTargetsForm, GoalsForm, HydrateBaseForm, ProfileForm, UsualDayForm,
 };
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
+use grind_core::hydrate::Hydrate;
+use grind_core::hydrate_base::HydrateBase;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
@@ -279,4 +283,42 @@ pub async fn remove_circuit(name: &str) -> Result<Vec<Circuit>, Failure> {
 
 pub async fn log_circuit(form: &CircuitSessionForm) -> Result<Burn, Failure> {
     call("log_circuit", Form { form }, broken).await
+}
+
+#[derive(Serialize)]
+struct Serving<'a> {
+    name: &'a str,
+    volume_ml: f64,
+}
+
+pub async fn hydrate_day(date: &str) -> Result<Hydrate, Failure> {
+    call("hydrate_day", OnDay { date }, broken).await
+}
+
+pub async fn log_drink(form: &DrinkingForm) -> Result<Hydrate, Failure> {
+    call("log_drink", Form { form }, broken).await
+}
+
+pub async fn remove_drinking(date: &str, id: i64) -> Result<Hydrate, Failure> {
+    call("remove_drinking", Removing { date, id }, broken).await
+}
+
+pub async fn drinks() -> Result<Vec<Drink>, Failure> {
+    call("drinks", Nothing {}, broken).await
+}
+
+pub async fn add_drink(name: &str, volume_ml: f64) -> Result<Vec<Drink>, Failure> {
+    call("add_drink", Serving { name, volume_ml }, broken).await
+}
+
+pub async fn remove_drink(name: &str) -> Result<Vec<Drink>, Failure> {
+    call("remove_drink", Naming { name }, broken).await
+}
+
+pub async fn set_hydrate_base(form: &HydrateBaseForm) -> Result<f64, Failure> {
+    call("set_hydrate_base", Form { form }, broken).await
+}
+
+pub async fn hydrate_base_on(date: &str) -> Result<HydrateBase, Failure> {
+    call("hydrate_base_on", OnDay { date }, broken).await
 }

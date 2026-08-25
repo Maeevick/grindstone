@@ -5,6 +5,7 @@ use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
+use grind_core::hydrate::Hydrate;
 use grind_core::meal::Meal;
 use grind_core::refusal::Refusal;
 use grind_core::stats::{Measure, Summary, figure_of};
@@ -400,5 +401,31 @@ pub fn circuit_logged(name: &str, sets: u32) -> String {
     format!(
         "Fire in the hole! {name}, {}, filed in the ledger. ~ Trix 🧪💥",
         counted(sets as usize, "set", "sets")
+    )
+}
+
+pub fn drunk_against_target(hydrate: &Hydrate) -> String {
+    format!(
+        "{} of {}",
+        shown(Figure::Volume(hydrate.drunk_ml)),
+        shown(Figure::Volume(hydrate.target_ml))
+    )
+}
+
+pub const TARGET_DRUNK: &str =
+    "Target reached. [Grimble files the cup beside the 213 espressos, purely for science.]";
+
+pub const NO_DRINKING: &str =
+    "Not a drop filed on this day yet. The archive is drier than its oldest scroll.";
+
+pub fn hydrate_base_kept(from: &str) -> String {
+    format!("Filed. [Grimble dips his quill.] This base is kept from {from}.")
+}
+
+pub fn default_hydrate_base(base_ml: f64) -> String {
+    format!(
+        "No base set yet, so EFSA's default holds: {} from drinks, four fifths of the adequate \
+         intake of total water, food bringing the rest. Sourced, as every figure here:",
+        shown(Figure::Volume(base_ml))
     )
 }
