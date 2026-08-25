@@ -810,7 +810,7 @@ mod tests {
             answer,
             Ok(
                 json!({ "days": 0, "at_risk": false, "recent": [{ "day": "2026-10-10",
-                "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": null },
+                "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": false },
                 "status": "Pending" }] })
             )
         );
