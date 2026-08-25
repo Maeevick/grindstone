@@ -6,6 +6,7 @@ use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
 use grind_ui::screens::circuits::{CircuitCrafter, CircuitLog};
 use grind_ui::screens::fuel::FuelDay;
+use grind_ui::screens::hydrate::{DrinksCatalog, HydrateBaseCard, HydrateDay};
 use grind_ui::screens::meals::MealCooker;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::settings::Settings;
@@ -778,4 +779,220 @@ async fn logging_a_circuit_hands_over_the_days_burn_with_a_workout_per_step() {
 
     let handed_over: Element = found(&screen, "p.handed-over");
     assert_eq!(handed_over.text_content().unwrap_or_default(), "2");
+}
+
+const THE_CATALOG: &str =
+    r#"[{ "name": "Expresso", "volume_ml": 80.0 }, { "name": "Tea", "volume_ml": 200.0 }]"#;
+
+const A_DAY_WITH_TWO_DRINKS: &str = r#"{ "day": "2026-10-10",
+    "drinkings": [[1, { "day": "2026-10-10", "drink": "Expresso", "volume_ml": 80.0 }],
+                  [2, { "day": "2026-10-10", "drink": "Tea", "volume_ml": 200.0 }]],
+    "drunk_ml": 280.0, "target_ml": 2252.0, "reached": false }"#;
+
+const A_DRY_DAY: &str = r#"{ "day": "2026-10-11", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "reached": false }"#;
+
+fn the_day_of(screen: &Element, day: RwSignal<String>) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
+        view! {
+            <Router>
+                <HydrateDay day=day />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn the_days_drinks_add_up_against_its_target() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
+    settled().await;
+
+    let day = screen.text_content().unwrap_or_default();
+    assert!(day.contains("280 mL of 2252 mL"), "{day}");
+    let listed: Element = found(&screen, "tbody");
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|drunk| drunk.contains("Expresso") && drunk.contains("200 mL"))
+    );
+}
+
+#[wasm_bindgen_test]
+async fn the_days_hydrate_reloads_when_the_day_changes() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG},
+              "hydrate_day": {{ "__by": "date", "2026-10-10": {A_DAY_WITH_TWO_DRINKS}, "2026-10-11": {A_DRY_DAY} }} }}"#
+    ));
+    let screen = screen();
+    let day = RwSignal::new("2026-10-10".to_string());
+    let _mounted = the_day_of(&screen, day);
+    settled().await;
+
+    day.set("2026-10-11".into());
+    settled().await;
+
+    let shown = screen.text_content().unwrap_or_default();
+    assert!(shown.contains("0 mL of 2000 mL"), "{shown}");
+}
+
+#[wasm_bindgen_test]
+async fn a_logged_drink_joins_the_day_and_the_servings_go_back_to_one() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY},
+              "log_drink": {{ "day": "2026-10-11", "drinkings": [[1, {{ "day": "2026-10-11", "drink": "Tea", "volume_ml": 300.0 }}]],
+                              "drunk_ml": 300.0, "target_ml": 2000.0, "reached": false }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
+    settled().await;
+    assert_eq!(value_of(&screen, "servings"), "1");
+
+    typed_into(&screen, "servings", "1,5");
+    found::<HtmlFormElement>(&screen, "form.drinking")
+        .request_submit()
+        .expect("the drink is logged");
+    settled().await;
+
+    let listed: Element = found(&screen, "tbody");
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|drunk| drunk.contains("Tea") && drunk.contains("300 mL"))
+    );
+    assert_eq!(value_of(&screen, "servings"), "1");
+}
+
+#[wasm_bindgen_test]
+async fn removing_a_drinking_takes_it_off_the_day() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS}, "remove_drinking": {A_DRY_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "button.remove").click();
+    settled().await;
+
+    let listed: Element = found(&screen, "tbody");
+    assert_eq!(listed.text_content().unwrap_or_default(), "");
+}
+
+fn the_catalog_in(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <DrinksCatalog />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn an_added_drink_joins_the_catalog_and_the_form_empties() {
+    answering(r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0 }] }"#);
+    let screen = screen();
+    let _mounted = the_catalog_in(&screen);
+    settled().await;
+
+    typed_into(&screen, "drink_name", "Tea");
+    typed_into(&screen, "serving", "200");
+    found::<HtmlFormElement>(&screen, "form.drink")
+        .request_submit()
+        .expect("the drink is added");
+    settled().await;
+
+    let listed: Element = found(&screen, "tbody");
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|drinks| drinks.contains("Tea") && drinks.contains("200 mL"))
+    );
+    assert_eq!(
+        [
+            value_of(&screen, "drink_name"),
+            value_of(&screen, "serving")
+        ],
+        ["", ""]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn removing_a_drink_takes_it_off_the_catalog() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "remove_drink": [{{ "name": "Tea", "volume_ml": 200.0 }}] }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_catalog_in(&screen);
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "button.remove").click();
+    settled().await;
+
+    let listed: Element = found(&screen, "tbody");
+    assert!(
+        listed
+            .text_content()
+            .is_some_and(|drinks| !drinks.contains("Expresso") && drinks.contains("Tea"))
+    );
+}
+
+fn the_base_card_in(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <HydrateBaseCard />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn with_no_base_set_the_card_fills_in_the_efsa_default_and_links_its_source() {
+    answering(r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#);
+    let screen = screen();
+    let _mounted = the_base_card_in(&screen);
+    settled().await;
+
+    assert_eq!(value_of(&screen, "hydrate_base"), "2000");
+    let source: Element = found(&screen, "a.source");
+    assert_eq!(
+        source.get_attribute("href").as_deref(),
+        Some("https://doi.org/10.2903/j.efsa.2010.1459")
+    );
+    let card = screen.text_content().unwrap_or_default();
+    assert!(
+        card.contains("EFSA Panel on Dietetic Products, Nutrition and Allergies (2010)"),
+        "{card}"
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_saved_base_says_from_which_day_it_is_kept_and_the_default_steps_aside() {
+    answering(
+        r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true }, "set_hydrate_base": 2400.0 }"#,
+    );
+    let screen = screen();
+    let _mounted = the_base_card_in(&screen);
+    settled().await;
+
+    typed_into(&screen, "hydrate_base", "2400");
+    found::<HtmlFormElement>(&screen, "form.hydrate-base")
+        .request_submit()
+        .expect("the base is saved");
+    settled().await;
+
+    let said: Element = found(&screen, "form.hydrate-base .said");
+    assert!(
+        said.text_content()
+            .is_some_and(|line| line.contains("kept from"))
+    );
+    assert!(
+        screen.query_selector("a.source").ok().flatten().is_none(),
+        "a base set is no default"
+    );
 }

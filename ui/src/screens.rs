@@ -4,6 +4,7 @@ pub mod circuits;
 pub mod fields;
 pub mod fuel;
 pub mod home;
+pub mod hydrate;
 pub mod lines;
 pub mod meals;
 pub mod profile;
