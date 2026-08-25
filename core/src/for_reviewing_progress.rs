@@ -10,6 +10,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel::{Fuel, Verdict, fuel_over};
+use crate::hydrate::hydrate_on;
 use crate::ledger::Day;
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
@@ -84,13 +85,13 @@ pub fn streak(
     switch_over: &impl ForStoringSwitchOver,
     today: &str,
 ) -> Result<Streak, Failure> {
-    let _ = hydrate;
     let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     let switched_on = switch_over.switch_over()?;
     let gathered = gather.gather_records()?;
     let burnt = burn.burn_records()?;
     let fuelled = fuel.fuel_records()?;
+    let hydrated = hydrate.hydrate_records()?;
     let first_weighed = gathered
         .measurements
         .iter()
@@ -98,7 +99,8 @@ pub fn streak(
         .min();
     let first_fuelled = fuelled.intakes.iter().map(|(_, eaten)| eaten.day).min();
     let first_worked_out = burnt.workouts.iter().map(|(_, done)| done.day).min();
-    let Some(start) = [first_weighed, first_fuelled, first_worked_out]
+    let first_drunk = hydrated.drinkings.iter().map(|(_, drunk)| drunk.day).min();
+    let Some(start) = [first_weighed, first_fuelled, first_worked_out, first_drunk]
         .into_iter()
         .flatten()
         .min()
@@ -114,7 +116,7 @@ pub fn streak(
         counted_from(first_fuelled),
         counted_from(first_worked_out),
     );
-    let macros_from = switched_on.unwrap_or(start);
+    let checked_from = switched_on.unwrap_or(start);
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
@@ -132,12 +134,15 @@ pub fn streak(
                             .iter()
                             .any(|measured| measured.day == *day),
                     ),
-                    fuelled: ticked_from(fuelled_from, in_band(&fuelled_day, *day >= macros_from)),
+                    fuelled: ticked_from(fuelled_from, in_band(&fuelled_day, *day >= checked_from)),
                     worked_out: ticked_from(
                         worked_out_from,
                         burnt.workouts.iter().any(|(_, done)| done.day == *day),
                     ),
-                    hydrated: None,
+                    hydrated: ticked_from(
+                        Some(checked_from),
+                        hydrate_on(*day, &hydrated, &gathered, &burnt).reached,
+                    ),
                 },
             )
         })
@@ -564,6 +569,8 @@ mod tests {
             add_exercise(&records.burn, "Walking", 4.0).expect("an exercise adds");
             add_food(&records.fuel, &plate("Plate", 35.0)).expect("a food adds");
             add_food(&records.fuel, &plate("Fibreless plate", 5.0)).expect("a food adds");
+            crate::for_cataloguing::add_drink(&records.hydrate, "Water", 2500.0)
+                .expect("a drink adds");
             records
         }
 
@@ -593,6 +600,17 @@ mod tests {
                 },
             )
             .expect("an intake logs");
+            crate::for_hydrating::log_drink(
+                &records.gather,
+                &records.burn,
+                &records.hydrate,
+                &crate::for_hydrating::DrinkingForm {
+                    date: date.into(),
+                    drink: "Water".into(),
+                    servings: 1.0,
+                },
+            )
+            .expect("a drink logs");
         }
 
         fn streak_on(records: &Records, today: &str) -> Streak {
@@ -715,21 +733,8 @@ mod tests {
         #[test]
         fn from_the_switch_over_a_day_must_also_reach_its_hydrate_target() {
             let records = a_man_at_his_desk();
-            crate::for_cataloguing::add_drink(&records.hydrate, "Water", 2500.0)
-                .expect("a drink adds");
             a_full_day(&records, "2026-10-09", "Plate");
             a_full_day(&records, "2026-10-10", "Plate");
-            crate::for_hydrating::log_drink(
-                &records.gather,
-                &records.burn,
-                &records.hydrate,
-                &crate::for_hydrating::DrinkingForm {
-                    date: "2026-10-10".into(),
-                    drink: "Water".into(),
-                    servings: 1.0,
-                },
-            )
-            .expect("a drink logs");
             records
                 .switch_over
                 .save_switch_over(day("2026-10-10"))
