@@ -7,6 +7,7 @@ use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel::{Fuel, Verdict, fuel_over};
 use crate::ledger::Day;
@@ -79,9 +80,11 @@ pub fn streak(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
     switch_over: &impl ForStoringSwitchOver,
     today: &str,
 ) -> Result<Streak, Failure> {
+    let _ = hydrate;
     let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     let switched_on = switch_over.switch_over()?;
@@ -485,12 +488,15 @@ mod tests {
             FuelTargetsForm, UsualDayForm, set_fuel_targets, set_usual_day,
         };
         use crate::streak::Ticks;
-        use crate::testing::{BurnRecordsInMemory, FuelRecordsInMemory, SwitchOverInMemory};
+        use crate::testing::{
+            BurnRecordsInMemory, FuelRecordsInMemory, HydrateRecordsInMemory, SwitchOverInMemory,
+        };
 
         struct Records {
             gather: GatherRecordsInMemory,
             burn: BurnRecordsInMemory,
             fuel: FuelRecordsInMemory,
+            hydrate: HydrateRecordsInMemory,
             switch_over: SwitchOverInMemory,
         }
 
@@ -520,6 +526,7 @@ mod tests {
                 gather: GatherRecordsInMemory::default(),
                 burn: BurnRecordsInMemory::default(),
                 fuel: FuelRecordsInMemory::default(),
+                hydrate: HydrateRecordsInMemory::default(),
                 switch_over: SwitchOverInMemory::default(),
             };
             set_profile(
@@ -593,6 +600,7 @@ mod tests {
                 &records.gather,
                 &records.burn,
                 &records.fuel,
+                &records.hydrate,
                 &records.switch_over,
                 today,
             )
@@ -671,6 +679,7 @@ mod tests {
                     &records.gather,
                     &records.burn,
                     &records.fuel,
+                    &records.hydrate,
                     &crate::testing::BrokenSwitchOver,
                     "2026-10-10"
                 ),
@@ -681,6 +690,7 @@ mod tests {
                     &records.gather,
                     &records.burn,
                     &records.fuel,
+                    &records.hydrate,
                     &records.switch_over,
                     "2026-02-30"
                 ),
@@ -700,6 +710,36 @@ mod tests {
                 ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.worked_out),
                 Some(false)
             );
+        }
+
+        #[test]
+        fn from_the_switch_over_a_day_must_also_reach_its_hydrate_target() {
+            let records = a_man_at_his_desk();
+            crate::for_cataloguing::add_drink(&records.hydrate, "Water", 2500.0)
+                .expect("a drink adds");
+            a_full_day(&records, "2026-10-09", "Plate");
+            a_full_day(&records, "2026-10-10", "Plate");
+            crate::for_hydrating::log_drink(
+                &records.gather,
+                &records.burn,
+                &records.hydrate,
+                &crate::for_hydrating::DrinkingForm {
+                    date: "2026-10-10".into(),
+                    drink: "Water".into(),
+                    servings: 1.0,
+                },
+            )
+            .expect("a drink logs");
+            records
+                .switch_over
+                .save_switch_over(day("2026-10-10"))
+                .expect("a switch-over saves");
+
+            let hydrated_on =
+                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
+
+            assert_eq!(hydrated_on("2026-10-09"), None);
+            assert_eq!(hydrated_on("2026-10-10"), Some(true));
         }
     }
 
