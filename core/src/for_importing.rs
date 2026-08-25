@@ -22,6 +22,8 @@ pub struct Imported {
     pub workouts: usize,
     pub foods: usize,
     pub intakes: usize,
+    pub drinks: usize,
+    pub drinkings: usize,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -29,6 +31,7 @@ pub struct Drafted {
     pub gather: GatherRecords,
     pub burn: BurnRecords,
     pub fuel: FuelRecords,
+    pub hydrate: HydrateRecords,
 }
 
 pub fn import_gather(
@@ -48,10 +51,12 @@ pub fn import_drafted(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
     switch_over: &impl ForStoringSwitchOver,
     drafted: &Drafted,
     today: &str,
 ) -> Result<Imported, Failure> {
+    let _ = hydrate;
     let switched_on = NaiveDate::parse_from_str(today, "%Y-%m-%d")
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     let gathered = import_gather(gather, &drafted.gather)?;
@@ -217,6 +222,37 @@ mod tests {
         }
     }
 
+    fn drafted_hydrate() -> HydrateRecords {
+        let expresso = crate::drink::Drink {
+            name: "Expresso".into(),
+            volume_ml: 80.0,
+        };
+        HydrateRecords {
+            drinkings: vec![(
+                0,
+                crate::drinking::drinking("2026-08-02", &expresso, 1.0).expect("a drinking"),
+            )],
+            drinks: vec![expresso],
+            ..HydrateRecords::default()
+        }
+    }
+
+    #[test]
+    fn a_draft_import_whose_hydrate_records_cannot_be_replaced_gives_no_import() {
+        assert_eq!(
+            import_drafted(
+                &GatherRecordsInMemory::default(),
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::BrokenHydrateRecords,
+                &crate::testing::SwitchOverInMemory::default(),
+                &Drafted::default(),
+                "2026-10-10",
+            ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
     #[test]
     fn fuel_records_that_cannot_be_replaced_give_no_import() {
         assert_eq!(
@@ -224,6 +260,7 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BurnRecordsInMemory::default(),
                 &crate::testing::BrokenFuelRecords,
+                &crate::testing::HydrateRecordsInMemory::default(),
                 &crate::testing::SwitchOverInMemory::default(),
                 &Drafted::default(),
                 "2026-10-10",
@@ -243,11 +280,13 @@ mod tests {
             &gather,
             &burn,
             &fuel,
+            &crate::testing::HydrateRecordsInMemory::default(),
             &crate::testing::SwitchOverInMemory::default(),
             &Drafted {
                 gather: drafted(),
                 burn: drafted_burn(),
                 fuel: drafted_fuel(),
+                hydrate: drafted_hydrate(),
             },
             "2026-10-10",
         );
@@ -262,6 +301,8 @@ mod tests {
                 workouts: 1,
                 foods: 1,
                 intakes: 1,
+                drinks: 1,
+                drinkings: 1,
             })
         );
         assert_eq!(
@@ -282,6 +323,7 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BrokenBurnRecords,
                 &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
                 &crate::testing::SwitchOverInMemory::default(),
                 &Drafted::default(),
                 "2026-10-10",
@@ -298,6 +340,7 @@ mod tests {
             &GatherRecordsInMemory::default(),
             &crate::testing::BurnRecordsInMemory::default(),
             &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
             &switch_over,
             &Drafted::default(),
             "2026-10-10",
@@ -316,6 +359,7 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BurnRecordsInMemory::default(),
                 &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
                 &crate::testing::SwitchOverInMemory::default(),
                 &Drafted::default(),
                 "2026-02-30",
@@ -327,6 +371,7 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &crate::testing::BurnRecordsInMemory::default(),
                 &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
                 &crate::testing::BrokenSwitchOver,
                 &Drafted::default(),
                 "2026-10-10",

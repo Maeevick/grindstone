@@ -105,8 +105,10 @@ pub fn import_draft(
         .map_err(|_| ImportFailure::NoBackupFound(backup.0.display().to_string()))?;
     let drafted = drafted(&backup).map_err(ImportFailure::Draft)?;
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_importing::import_drafted(&*records, &*records, &*records, &*records, &drafted, &today)
-        .map_err(ImportFailure::Failed)
+    for_importing::import_drafted(
+        &*records, &*records, &*records, &*records, &*records, &drafted, &today,
+    )
+    .map_err(ImportFailure::Failed)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -578,7 +580,7 @@ mod tests {
         assert_eq!(
             answer,
             Ok(
-                json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0, "foods": 0, "intakes": 0 })
+                json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0, "foods": 0, "intakes": 0, "drinks": 0, "drinkings": 0 })
             )
         );
     }
