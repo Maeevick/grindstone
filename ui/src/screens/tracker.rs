@@ -6,6 +6,7 @@ use leptos::task::spawn_local;
 use crate::screens::burn::BurnDay;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::fuel::FuelDay;
+use crate::screens::hydrate::HydrateDay;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figure_typed;
@@ -114,12 +115,14 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
 enum Segment {
     Gather,
     Fuel,
+    Hydrate,
     Burn,
 }
 
-const SEGMENTS: [(Segment, &str); 3] = [
+const SEGMENTS: [(Segment, &str); 4] = [
     (Segment::Gather, "Gather"),
     (Segment::Fuel, "Fuel"),
+    (Segment::Hydrate, "Hydrate"),
     (Segment::Burn, "Burn"),
 ];
 
@@ -151,6 +154,7 @@ pub fn Tracker() -> impl IntoView {
         {move || match segment.get() {
             Segment::Gather => view! { <GatherDay day=day /> }.into_any(),
             Segment::Fuel => view! { <FuelDay day=day /> }.into_any(),
+            Segment::Hydrate => view! { <HydrateDay day=day /> }.into_any(),
             Segment::Burn => view! { <BurnDay day=day /> }.into_any(),
         }}
     }

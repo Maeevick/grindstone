@@ -9,6 +9,7 @@ use leptos::task::spawn_local;
 use leptos_router::components::A;
 
 use crate::screens::fields::{DateField, FigureField};
+use crate::screens::hydrate::HydrateBaseCard;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figure_typed;
@@ -263,6 +264,7 @@ pub fn ProfileScreen() -> impl IntoView {
         </section>
         <GoalsCard />
         <FuelTargetsCard />
+        <HydrateBaseCard />
         <UsualDayCard />
     }
 }

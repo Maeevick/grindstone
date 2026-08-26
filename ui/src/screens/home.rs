@@ -168,6 +168,7 @@ fn StreakCard() -> impl IntoView {
 fn TodayCard() -> impl IntoView {
     let fuel = LocalResource::new(move || async move { tauri::fuel_day(&today()).await });
     let burn = LocalResource::new(move || async move { tauri::burn_day(&today()).await });
+    let hydrate = LocalResource::new(move || async move { tauri::hydrate_day(&today()).await });
     view! {
         <section class="card">
             <h2>"Today"</h2>
@@ -181,6 +182,19 @@ fn TodayCard() -> impl IntoView {
                         .map(|fuel| {
                             let class = fuel.energy.map(lines::verdict_class).unwrap_or("hint");
                             view! { <p class=format!("figures {class}")>{lines::energy_line(&fuel)}</p> }
+                        })
+                }}
+                {move || {
+                    hydrate
+                        .get()
+                        .and_then(Result::ok)
+                        .map(|hydrate| {
+                            let class = if hydrate.reached { "good" } else { "hint" };
+                            view! {
+                                <p class=format!("figures {class}")>
+                                    {lines::drunk_against_target(&hydrate)}
+                                </p>
+                            }
                         })
                 }}
                 {move || {
