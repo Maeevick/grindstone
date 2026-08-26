@@ -668,6 +668,14 @@ mod tests {
     }
 
     fn cap_with(deficit: Deficit) -> f64 {
+        let (lean_kg, _) = the_body();
+        cap_eating(
+            deficit,
+            (2.0 * 80.0, (3.0 * lean_kg).max(130.0), 0.9 * 80.0, 28.0),
+        )
+    }
+
+    fn cap_eating(deficit: Deficit, (protein, carb, fat, fib): (f64, f64, f64, f64)) -> f64 {
         let (lean_kg, fat_kg) = the_body();
         daily_energy_budget(
             41,
@@ -679,13 +687,62 @@ mod tests {
             Eaten {
                 energy: 0.0,
                 macros: Macro {
-                    protein: 2.0 * 80.0,
-                    fat: 0.9 * 80.0,
-                    fib: 28.0,
-                    carb: (3.0 * lean_kg).max(130.0),
+                    protein,
+                    fat,
+                    fib,
+                    carb,
                 },
             },
         )
+    }
+
+    fn gap_on(date: &str, fuel: &FuelRecords) -> f64 {
+        let fuelled = fuel_on(date, &a_mans_records(80.0), &a_desk_job(), fuel);
+        cap_of(&fuelled) - fuelled.eaten.energy_kcal
+    }
+
+    #[test]
+    fn two_days_logged_in_the_last_week_wear_the_next_by_their_mean_gap() {
+        let mut fuel = aiming();
+        eating(&mut fuel, "2026-10-08", &a_food(170.0, 230.0, 80.0, 35.0));
+        eating(&mut fuel, "2026-10-09", &a_food(170.0, 230.0, 80.0, 35.0));
+        let mean_gap = (gap_on("2026-10-08", &fuel) + gap_on("2026-10-09", &fuel)) / 2.0;
+
+        let fuelled = fuel_on("2026-10-10", &a_mans_records(80.0), &a_desk_job(), &fuel);
+
+        assert!(about(cap_of(&fuelled), cap_with(deficit_of(mean_gap, 1))));
+    }
+
+    #[test]
+    fn a_week_without_a_logged_day_ends_the_run_of_weeks_in_deficit() {
+        let mut fuel = aiming();
+        eating(&mut fuel, "2026-10-02", &a_food(170.0, 230.0, 80.0, 35.0));
+        eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
+        let gap = gap_on("2026-10-02", &fuel);
+
+        let fuelled = fuel_on("2026-10-10", &a_mans_records(80.0), &a_desk_job(), &fuel);
+
+        assert!(about(
+            cap_of(&fuelled),
+            cap_eating(deficit_of(gap, 0), (170.0, 230.0, 80.0, 35.0))
+        ));
+    }
+
+    #[test]
+    fn no_more_than_four_weeks_count_in_deficit() {
+        let mut fuel = aiming();
+        let days: Vec<String> = (1..=35)
+            .map(|back| (day("2026-10-10") - chrono::Days::new(back)).to_string())
+            .collect();
+        for date in &days {
+            eating(&mut fuel, date, &a_food(170.0, 230.0, 80.0, 35.0));
+        }
+        let last_four_weeks: Vec<f64> = days[..28].iter().map(|date| gap_on(date, &fuel)).collect();
+        let mean_gap = last_four_weeks.iter().sum::<f64>() / 28.0;
+
+        let fuelled = fuel_on("2026-10-10", &a_mans_records(80.0), &a_desk_job(), &fuel);
+
+        assert!(about(cap_of(&fuelled), cap_with(deficit_of(mean_gap, 4))));
     }
 
     fn cap_of(fuelled: &Fuel) -> f64 {
