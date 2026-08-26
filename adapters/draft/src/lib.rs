@@ -482,7 +482,7 @@ pub fn drafted(backup: &str) -> Result<Drafted, DraftRefusal> {
         gather: gather_from_draft(backup)?,
         burn: burn_from_draft(backup)?,
         fuel: fuel_from_draft(backup)?,
-        hydrate: grind_core::hydrate_records::HydrateRecords::default(),
+        hydrate: hydrate_from_draft(backup)?,
     })
 }
 

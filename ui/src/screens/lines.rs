@@ -72,14 +72,16 @@ fn counted(count: usize, one: &str, many: &str) -> String {
 
 pub fn imported(imported: &Imported) -> String {
     format!(
-        "Filed: {}, {}, {}, {}, {}, {} and {}. [Grimble dusts off the old records.]",
+        "Filed: {}, {}, {}, {}, {}, {}, {}, {} and {}. [Grimble dusts off the old records.]",
         counted(imported.measurements, "day", "days"),
         counted(imported.profiles, "profile", "profiles"),
         counted(imported.goals, "goal", "goals"),
         counted(imported.exercises, "exercise", "exercises"),
         counted(imported.workouts, "workout", "workouts"),
         counted(imported.foods, "food", "foods"),
-        counted(imported.intakes, "intake", "intakes")
+        counted(imported.intakes, "intake", "intakes"),
+        counted(imported.drinks, "drink", "drinks"),
+        counted(imported.drinkings, "drinking", "drinkings")
     )
 }
 

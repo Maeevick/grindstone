@@ -327,7 +327,7 @@ async fn the_window_pills_redraw_the_card_over_the_days_they_name() {
 #[wasm_bindgen_test]
 async fn importing_the_draft_tells_what_it_brought() {
     answering(
-        r#"{ "import_draft": { "measurements": 215, "profiles": 5, "goals": 1, "exercises": 34, "workouts": 659, "foods": 154, "intakes": 1030 } }"#,
+        r#"{ "import_draft": { "measurements": 215, "profiles": 5, "goals": 1, "exercises": 34, "workouts": 659, "foods": 154, "intakes": 1030, "drinks": 2, "drinkings": 221 } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
