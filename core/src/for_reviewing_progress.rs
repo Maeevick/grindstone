@@ -141,7 +141,7 @@ pub fn streak(
                     ),
                     hydrated: ticked_from(
                         Some(checked_from),
-                        hydrate_on(*day, &hydrated, &gathered, &burnt).reached,
+                        hydrate_on(*day, &hydrated, &gathered, &burnt).verdict == Verdict::InBand,
                     ),
                 },
             )

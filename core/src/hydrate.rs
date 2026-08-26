@@ -7,6 +7,7 @@ use crate::drinking::Drinking;
 use crate::gather_records::GatherRecords;
 use crate::hydrate_base::base_on;
 use crate::hydrate_records::HydrateRecords;
+use crate::verdict::Verdict;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Hydrate {
@@ -14,7 +15,9 @@ pub struct Hydrate {
     pub drinkings: Vec<(i64, Drinking)>,
     pub drunk_ml: f64,
     pub target_ml: f64,
-    pub reached: bool,
+    pub floor_ml: f64,
+    pub cap_ml: f64,
+    pub verdict: Verdict,
 }
 
 const ML_PER_KCAL_BURNT: f64 = 1.0;
@@ -42,7 +45,9 @@ pub fn hydrate_on(
         drinkings,
         drunk_ml,
         target_ml,
-        reached: drunk_ml >= target_ml,
+        floor_ml: target_ml,
+        cap_ml: target_ml,
+        verdict: Verdict::Low,
     }
 }
 
@@ -171,25 +176,46 @@ mod tests {
     }
 
     #[test]
-    fn the_target_is_reached_once_the_day_has_drunk_as_much() {
+    fn a_day_reads_its_band_from_ten_percent_under_to_ten_percent_over_its_target() {
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &based_on(2000.0, vec![]),
+            &GatherRecords::default(),
+            &BurnRecords::default(),
+        );
+
+        assert!(about(hydrate.floor_ml, 1800.0));
+        assert!(about(hydrate.cap_ml, 2200.0));
+    }
+
+    #[test]
+    fn a_day_drunk_under_its_band_reads_low_inside_it_in_band_and_over_it_high() {
         let records = based_on(
             500.0,
             vec![
-                (1, drunk("2026-10-10", "Tea", 300.0)),
-                (2, drunk("2026-10-10", "Tea", 200.0)),
-                (3, drunk("2026-10-11", "Tea", 300.0)),
+                (1, drunk("2026-10-09", "Tea", 400.0)),
+                (2, drunk("2026-10-10", "Tea", 300.0)),
+                (3, drunk("2026-10-10", "Tea", 200.0)),
+                (4, drunk("2026-10-11", "Tea", 600.0)),
             ],
         );
-        let on = |date| {
+        let verdict_on = |date| {
             hydrate_on(
                 day(date),
                 &records,
                 &GatherRecords::default(),
                 &BurnRecords::default(),
             )
+            .verdict
         };
 
-        assert!(on("2026-10-10").reached);
-        assert!(!on("2026-10-11").reached);
+        assert_eq!(
+            [
+                verdict_on("2026-10-09"),
+                verdict_on("2026-10-10"),
+                verdict_on("2026-10-11")
+            ],
+            [Verdict::Low, Verdict::InBand, Verdict::High]
+        );
     }
 }
