@@ -12,15 +12,10 @@ use crate::intake::Intake;
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Deficit, Intake as Eaten, Macro, daily_energy_budget};
 use crate::profile::Profile;
+pub use crate::verdict::Verdict;
+use crate::verdict::verdict_of;
 use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Verdict {
-    Low,
-    InBand,
-    High,
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Band {
@@ -176,17 +171,6 @@ fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
     Deficit {
         trailing_deficit_kcal: mean(&between(1, DAYS_OF_ADAPTATION)).unwrap_or(0.0),
         weeks_in_deficit: weeks_in_deficit as u32,
-    }
-}
-
-fn verdict_of(eaten: f64, floor: f64, ceiling: f64) -> Verdict {
-    let (eaten, floor, ceiling) = (eaten.round(), floor.round(), ceiling.round());
-    if eaten < floor {
-        Verdict::Low
-    } else if eaten > ceiling {
-        Verdict::High
-    } else {
-        Verdict::InBand
     }
 }
 

@@ -44,6 +44,7 @@ pub mod streak;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod trend;
+pub mod verdict;
 pub mod version;
 pub mod volitional;
 pub mod volume;
