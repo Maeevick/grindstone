@@ -2,4 +2,11 @@ exclude_globs = ["core/src/testing.rs"]
 
 # A Navy reading lands exactly on 0 or 1 only for a denominator of exactly 1.1 or 0.9, which no tape produces:
 # moving the guard's boundaries changes nothing a body can measure.
-exclude_re = ["replace > with >= in fat_ratio_from_navy_formula", "replace < with <= in fat_ratio_from_navy_formula"]
+# A week whose days average a gap of exactly 0 kcal cannot be eaten: counting it in deficit or not changes nothing.
+# One mL per kcal burnt multiplies and divides alike.
+exclude_re = [
+    "replace > with >= in fat_ratio_from_navy_formula",
+    "replace < with <= in fat_ratio_from_navy_formula",
+    "replace > with >= in deficit_before",
+    "replace \\* with / in hydrate_on",
+]
