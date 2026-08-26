@@ -580,7 +580,7 @@ mod tests {
         assert_eq!(
             answer,
             Ok(
-                json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0, "foods": 0, "intakes": 0, "drinks": 0, "drinkings": 0 })
+                json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0, "foods": 0, "intakes": 0, "drinks": 2, "drinkings": 0 })
             )
         );
     }

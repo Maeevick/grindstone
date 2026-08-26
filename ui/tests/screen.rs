@@ -345,7 +345,9 @@ async fn importing_the_draft_tells_what_it_brought() {
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("215 days, 5 profiles, 1 goal"), "{said}");
     assert!(
-        said.contains("34 exercises, 659 workouts, 154 foods and 1030 intakes"),
+        said.contains(
+            "34 exercises, 659 workouts, 154 foods, 1030 intakes, 2 drinks and 221 drinkings"
+        ),
         "{said}"
     );
 }
