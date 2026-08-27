@@ -103,12 +103,12 @@ pub struct Gauge {
 }
 
 pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64) -> Gauge {
-    let _ = (amount, floor, optimal, cap, width);
+    let scale = (0.0, (cap * 1.25).max(amount));
     Gauge {
-        band_from: 0.0,
-        band_to: 0.0,
-        optimal_at: 0.0,
-        amount_at: 0.0,
+        band_from: placed(floor, scale, width),
+        band_to: placed(cap, scale, width),
+        optimal_at: placed(optimal, scale, width),
+        amount_at: placed(amount, scale, width),
     }
 }
 
@@ -242,7 +242,8 @@ mod tests {
     }
 
     #[test]
-    fn a_gauge_runs_from_nothing_to_a_quarter_past_the_cap_and_places_the_band_the_optimal_and_the_amount() {
+    fn a_gauge_runs_from_nothing_to_a_quarter_past_the_cap_and_places_the_band_the_optimal_and_the_amount()
+     {
         assert_eq!(
             gauge_of(1000.0, (1800.0, 2000.0, 2200.0), 275.0),
             Gauge {
