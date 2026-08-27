@@ -91,6 +91,7 @@ mod tests {
             .save_drink(&Drink {
                 name: "Tea".into(),
                 volume_ml: 200.0,
+                kind: crate::drink::DrinkKind::Other,
             })
             .expect("a drink saves");
         hydrate

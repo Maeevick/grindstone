@@ -73,6 +73,8 @@ mod tests {
             day: day(date),
             drink: drink.into(),
             volume_ml,
+            kind: crate::drink::DrinkKind::Other,
+            servings: 1.0,
         }
     }
 

@@ -1,13 +1,15 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::drink::Drink;
+use crate::drink::{Drink, DrinkKind};
 use crate::refusal::Refusal;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Drinking {
     pub day: NaiveDate,
     pub drink: String,
+    pub kind: DrinkKind,
+    pub servings: f64,
     pub volume_ml: f64,
 }
 
@@ -19,6 +21,8 @@ pub fn drinking(date: &str, drink: &Drink, servings: f64) -> Result<Drinking, Re
     Ok(Drinking {
         day,
         drink: drink.name.clone(),
+        kind: DrinkKind::Other,
+        servings: 1.0,
         volume_ml: servings * drink.volume_ml,
     })
 }
@@ -31,6 +35,7 @@ mod tests {
         Drink {
             name: "Tea".into(),
             volume_ml: 200.0,
+            kind: DrinkKind::Other,
         }
     }
 
@@ -42,6 +47,8 @@ mod tests {
                 day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
                 drink: "Tea".into(),
                 volume_ml: 300.0,
+                kind: DrinkKind::Other,
+                servings: 1.0,
             })
         );
     }
@@ -56,5 +63,21 @@ mod tests {
                 "{servings}"
             );
         }
+    }
+
+    #[test]
+    fn a_drinking_freezes_its_drinks_kind_and_how_many_servings_it_was() {
+        let espresso = Drink {
+            name: "Expresso".into(),
+            volume_ml: 80.0,
+            kind: DrinkKind::Coffee,
+        };
+
+        let drunk = drinking("2026-10-10", &espresso, 2.0).expect("a drinking");
+
+        assert_eq!(
+            (drunk.kind, drunk.servings, drunk.volume_ml),
+            (DrinkKind::Coffee, 2.0, 160.0)
+        );
     }
 }

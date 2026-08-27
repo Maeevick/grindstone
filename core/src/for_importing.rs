@@ -228,6 +228,7 @@ mod tests {
         let expresso = crate::drink::Drink {
             name: "Expresso".into(),
             volume_ml: 80.0,
+            kind: crate::drink::DrinkKind::Other,
         };
         HydrateRecords {
             drinkings: vec![(
@@ -387,16 +388,20 @@ mod tests {
             day: day(date),
             drink: "Expresso".into(),
             volume_ml: 80.0,
+            kind: crate::drink::DrinkKind::Other,
+            servings: 1.0,
         };
         HydrateRecords {
             drinks: vec![
                 crate::drink::Drink {
                     name: "Expresso".into(),
                     volume_ml: 80.0,
+                    kind: crate::drink::DrinkKind::Other,
                 },
                 crate::drink::Drink {
                     name: "Tea".into(),
                     volume_ml: 200.0,
+                    kind: crate::drink::DrinkKind::Other,
                 },
             ],
             drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],

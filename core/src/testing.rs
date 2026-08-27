@@ -1213,6 +1213,7 @@ pub mod honouring_for_storing_hydrate_records {
         Drink {
             name: name.into(),
             volume_ml,
+            kind: crate::drink::DrinkKind::Other,
         }
     }
 
@@ -1221,6 +1222,8 @@ pub mod honouring_for_storing_hydrate_records {
             day: day(date),
             drink: drink.into(),
             volume_ml,
+            kind: crate::drink::DrinkKind::Other,
+            servings: 1.0,
         }
     }
 
