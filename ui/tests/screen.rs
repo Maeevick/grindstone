@@ -789,9 +789,9 @@ const THE_CATALOG: &str =
 const A_DAY_WITH_TWO_DRINKS: &str = r#"{ "day": "2026-10-10",
     "drinkings": [[1, { "day": "2026-10-10", "drink": "Expresso", "volume_ml": 80.0 }],
                   [2, { "day": "2026-10-10", "drink": "Tea", "volume_ml": 200.0 }]],
-    "drunk_ml": 280.0, "target_ml": 2252.0, "reached": false }"#;
+    "drunk_ml": 280.0, "target_ml": 2252.0, "floor_ml": 2026.8, "cap_ml": 2477.2, "verdict": "Low" }"#;
 
-const A_DRY_DAY: &str = r#"{ "day": "2026-10-11", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "reached": false }"#;
+const A_DRY_DAY: &str = r#"{ "day": "2026-10-11", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }"#;
 
 fn the_day_of(screen: &Element, day: RwSignal<String>) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
@@ -846,7 +846,7 @@ async fn a_logged_drink_joins_the_day_and_the_servings_go_back_to_one() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY},
               "log_drink": {{ "day": "2026-10-11", "drinkings": [[1, {{ "day": "2026-10-11", "drink": "Tea", "volume_ml": 300.0 }}]],
-                              "drunk_ml": 300.0, "target_ml": 2000.0, "reached": false }} }}"#
+                              "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }} }}"#
     ));
     let screen = screen();
     let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
