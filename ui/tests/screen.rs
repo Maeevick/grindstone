@@ -998,3 +998,23 @@ async fn a_saved_base_says_from_which_day_it_is_kept_and_the_default_steps_aside
         "a base set is no default"
     );
 }
+
+#[wasm_bindgen_test]
+async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
+    settled().await;
+
+    let scale: Element = found(&screen, ".gauge");
+    let labels = scale.text_content().unwrap_or_default();
+    assert!(
+        labels.contains("min 1800 mL") && labels.contains("optimal 2000 mL") && labels.contains("max 2200 mL"),
+        "{labels}"
+    );
+    assert!(scale.query_selector("svg .band").ok().flatten().is_some());
+    assert!(scale.query_selector("svg .amount").ok().flatten().is_some());
+}
