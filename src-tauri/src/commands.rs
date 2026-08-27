@@ -3,7 +3,7 @@ use std::sync::{Mutex, PoisonError};
 
 use grind_core::burn::Burn;
 use grind_core::circuit::Circuit;
-use grind_core::drink::Drink;
+use grind_core::drink::{Drink, DrinkKind};
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
@@ -328,9 +328,10 @@ pub fn add_drink(
     records: State<Records>,
     name: String,
     volume_ml: f64,
+    kind: DrinkKind,
 ) -> Result<Vec<Drink>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_cataloguing::add_drink(&*records, &name, volume_ml)
+    for_cataloguing::add_drink(&*records, &name, volume_ml, kind)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -917,7 +918,7 @@ mod tests {
         invoke(
             &screen,
             "add_drink",
-            json!({ "name": "Tea", "volume_ml": 200.0 }),
+            json!({ "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }),
         )
         .expect("a drink adds");
         (app, screen)
@@ -951,7 +952,7 @@ mod tests {
             answer,
             Ok(json!({
                 "day": "2026-10-10",
-                "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "volume_ml": 300.0 }]],
+                "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "kind": "Tea", "servings": 1.5, "volume_ml": 300.0 }]],
                 "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low"
             }))
         );
@@ -990,7 +991,7 @@ mod tests {
         invoke(
             &screen,
             "add_drink",
-            json!({ "name": "Expresso", "volume_ml": 80.0 }),
+            json!({ "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" }),
         )
         .expect("a drink adds");
 
@@ -1000,11 +1001,14 @@ mod tests {
         assert_eq!(
             listed,
             Ok(json!([
-                { "name": "Expresso", "volume_ml": 80.0 },
-                { "name": "Tea", "volume_ml": 200.0 }
+                { "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" },
+                { "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }
             ]))
         );
-        assert_eq!(left, Ok(json!([{ "name": "Expresso", "volume_ml": 80.0 }])));
+        assert_eq!(
+            left,
+            Ok(json!([{ "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" }]))
+        );
     }
 
     #[test]

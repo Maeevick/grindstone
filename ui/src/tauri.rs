@@ -1,6 +1,6 @@
 use grind_core::burn::Burn;
 use grind_core::circuit::Circuit;
-use grind_core::drink::Drink;
+use grind_core::drink::{Drink, DrinkKind};
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
@@ -289,6 +289,7 @@ pub async fn log_circuit(form: &CircuitSessionForm) -> Result<Burn, Failure> {
 struct Serving<'a> {
     name: &'a str,
     volume_ml: f64,
+    kind: DrinkKind,
 }
 
 pub async fn hydrate_day(date: &str) -> Result<Hydrate, Failure> {
@@ -307,8 +308,17 @@ pub async fn drinks() -> Result<Vec<Drink>, Failure> {
     call("drinks", Nothing {}, broken).await
 }
 
-pub async fn add_drink(name: &str, volume_ml: f64) -> Result<Vec<Drink>, Failure> {
-    call("add_drink", Serving { name, volume_ml }, broken).await
+pub async fn add_drink(name: &str, volume_ml: f64, kind: DrinkKind) -> Result<Vec<Drink>, Failure> {
+    call(
+        "add_drink",
+        Serving {
+            name,
+            volume_ml,
+            kind,
+        },
+        broken,
+    )
+    .await
 }
 
 pub async fn remove_drink(name: &str) -> Result<Vec<Drink>, Failure> {

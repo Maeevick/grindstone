@@ -1,4 +1,4 @@
-use grind_core::drink::Drink;
+use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::figures::{Figure, shown};
 use grind_core::for_hydrating::DrinkingForm;
@@ -188,6 +188,12 @@ fn DrinkRow(
         <tr>
             <td>{drink.name}</td>
             <td>{shown(Figure::Volume(drink.volume_ml))}</td>
+            <td class="hint">
+                {KINDS
+                    .into_iter()
+                    .find(|(named, _)| *named == drink.kind)
+                    .map_or("other", |(_, label)| label)}
+            </td>
             <td>
                 <button class="remove" type="button" on:click=remove aria-label="Remove this drink">
                     "×"
@@ -197,11 +203,26 @@ fn DrinkRow(
     }
 }
 
+const KINDS: [(DrinkKind, &str); 4] = [
+    (DrinkKind::Water, "water"),
+    (DrinkKind::Coffee, "coffee"),
+    (DrinkKind::Tea, "tea"),
+    (DrinkKind::Other, "other"),
+];
+
+fn kind_named(word: &str) -> DrinkKind {
+    KINDS
+        .into_iter()
+        .find(|(named, _)| format!("{named:?}") == word)
+        .map_or(DrinkKind::Other, |(named, _)| named)
+}
+
 #[component]
 pub fn DrinksCatalog() -> impl IntoView {
     let catalog = RwSignal::new(Vec::<Drink>::new());
     let name = RwSignal::new(String::new());
     let serving = RwSignal::new(String::new());
+    let kind = RwSignal::new(DrinkKind::Water);
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::drinks().await {
@@ -214,7 +235,7 @@ pub fn DrinksCatalog() -> impl IntoView {
         let named = name.get_untracked();
         let volume_ml = figure_typed(&serving.get_untracked()).unwrap_or(f64::NAN);
         spawn_local(async move {
-            match tauri::add_drink(&named, volume_ml).await {
+            match tauri::add_drink(&named, volume_ml, kind.get_untracked()).await {
                 Ok(drinks) => {
                     catalog.set(drinks);
                     name.set(String::new());
@@ -240,6 +261,22 @@ pub fn DrinksCatalog() -> impl IntoView {
                         />
                     </label>
                     <FigureField label="Serving (mL)" name="serving" value=serving />
+                    <label class="field">
+                        "Kind"
+                        <select
+                            name="drink_kind"
+                            on:change=move |event| {
+                                kind.set(kind_named(&event_target_value(&event)))
+                            }
+                        >
+                            {KINDS
+                                .into_iter()
+                                .map(|(named, label)| {
+                                    view! { <option value=format!("{named:?}")>{label}</option> }
+                                })
+                                .collect_view()}
+                        </select>
+                    </label>
                 </div>
                 <button class="cta" type="submit">
                     "Add to the catalog"

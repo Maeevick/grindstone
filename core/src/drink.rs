@@ -24,11 +24,10 @@ pub fn drink(name: &str, volume_ml: f64, kind: DrinkKind) -> Result<Drink, Refus
     if name.is_empty() {
         return Err(Refusal::NotAName);
     }
-    let _ = kind;
     Ok(Drink {
         name: name.into(),
         volume_ml: volume(volume_ml)?,
-        kind: DrinkKind::Other,
+        kind,
     })
 }
 

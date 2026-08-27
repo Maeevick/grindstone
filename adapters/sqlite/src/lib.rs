@@ -3,7 +3,7 @@ use std::path::Path;
 use chrono::NaiveDate;
 use grind_core::burn_records::BurnRecords;
 use grind_core::circuit::{Circuit, CircuitStep};
-use grind_core::drink::Drink;
+use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
@@ -74,6 +74,9 @@ const MIGRATIONS: &[&str] = &[
          id integer primary key, day text not null, drink text not null, volume_ml real not null
      );
      create table hydrate_bases (effective_from text primary key, base_ml real not null);",
+    "alter table drinks add column kind text not null default 'Other';
+     alter table drinkings add column kind text not null default 'Other';
+     alter table drinkings add column servings real not null default 1;",
 ];
 
 pub struct Sqlite(Connection);
@@ -701,8 +704,30 @@ impl ForStoringSwitchOver for Sqlite {
     }
 }
 
-const DRINKS: &str = "select name, volume_ml from drinks order by name";
-const DRINKINGS: &str = "select id, day, drink, volume_ml from drinkings order by day, id";
+const DRINKS: &str = "select name, volume_ml, kind from drinks order by name";
+const DRINKINGS: &str =
+    "select id, day, drink, volume_ml, kind, servings from drinkings order by day, id";
+
+fn kind_word(kind: DrinkKind) -> &'static str {
+    match kind {
+        DrinkKind::Water => "Water",
+        DrinkKind::Coffee => "Coffee",
+        DrinkKind::Tea => "Tea",
+        DrinkKind::Other => "Other",
+    }
+}
+
+fn kind_read(word: &str) -> rusqlite::Result<DrinkKind> {
+    match word {
+        "Water" => Ok(DrinkKind::Water),
+        "Coffee" => Ok(DrinkKind::Coffee),
+        "Tea" => Ok(DrinkKind::Tea),
+        "Other" => Ok(DrinkKind::Other),
+        unknown => Err(rusqlite::Error::InvalidParameterName(format!(
+            "a kind of drink the app does not know: {unknown}"
+        ))),
+    }
+}
 const HYDRATE_BASES: &str =
     "select effective_from, base_ml from hydrate_bases order by effective_from";
 
@@ -710,6 +735,7 @@ fn drink_read(row: &rusqlite::Row) -> rusqlite::Result<Drink> {
     Ok(Drink {
         name: row.get(0)?,
         volume_ml: row.get(1)?,
+        kind: kind_read(&row.get::<_, String>(2)?)?,
     })
 }
 
@@ -720,6 +746,8 @@ fn drinking_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Drinking)> {
             day: row.get(1)?,
             drink: row.get(2)?,
             volume_ml: row.get(3)?,
+            kind: kind_read(&row.get::<_, String>(4)?)?,
+            servings: row.get(5)?,
         },
     ))
 }
@@ -731,9 +759,9 @@ fn base_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, f64)> {
 impl ForStoringHydrateRecords for Sqlite {
     fn save_drink(&self, drink: &Drink) -> Result<(), Broken> {
         self.run(
-            "insert into drinks (name, volume_ml) values (?1, ?2)
-             on conflict (name) do update set volume_ml = excluded.volume_ml",
-            params![drink.name, drink.volume_ml],
+            "insert into drinks (name, volume_ml, kind) values (?1, ?2, ?3)
+             on conflict (name) do update set volume_ml = excluded.volume_ml, kind = excluded.kind",
+            params![drink.name, drink.volume_ml, kind_word(drink.kind)],
         )
     }
 
@@ -743,8 +771,14 @@ impl ForStoringHydrateRecords for Sqlite {
 
     fn save_drinking(&self, drinking: &Drinking) -> Result<(), Broken> {
         self.run(
-            "insert into drinkings (day, drink, volume_ml) values (?1, ?2, ?3)",
-            params![drinking.day, drinking.drink, drinking.volume_ml],
+            "insert into drinkings (day, drink, volume_ml, kind, servings) values (?1, ?2, ?3, ?4, ?5)",
+            params![
+                drinking.day,
+                drinking.drink,
+                drinking.volume_ml,
+                kind_word(drinking.kind),
+                drinking.servings
+            ],
         )
     }
 

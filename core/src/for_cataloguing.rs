@@ -491,11 +491,11 @@ mod tests {
         );
     }
 
-    fn served(name: &str, volume_ml: f64) -> Drink {
+    fn served(name: &str, volume_ml: f64, kind: DrinkKind) -> Drink {
         Drink {
             name: name.into(),
             volume_ml,
-            kind: crate::drink::DrinkKind::Other,
+            kind,
         }
     }
 
@@ -504,11 +504,14 @@ mod tests {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
         add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Tea).expect("a drink adds");
 
-        let catalog = add_drink(&hydrate, "Expresso", 80.0, crate::drink::DrinkKind::Tea);
+        let catalog = add_drink(&hydrate, "Expresso", 80.0, DrinkKind::Coffee);
 
         assert_eq!(
             catalog,
-            Ok(vec![served("Expresso", 80.0), served("Tea", 200.0)])
+            Ok(vec![
+                served("Expresso", 80.0, DrinkKind::Coffee),
+                served("Tea", 200.0, DrinkKind::Tea)
+            ])
         );
         assert_eq!(drinks(&hydrate), catalog);
     }
@@ -520,7 +523,7 @@ mod tests {
 
         assert_eq!(
             add_drink(&hydrate, "Tea", 250.0, crate::drink::DrinkKind::Tea),
-            Ok(vec![served("Tea", 250.0)])
+            Ok(vec![served("Tea", 250.0, DrinkKind::Tea)])
         );
     }
 

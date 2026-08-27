@@ -21,8 +21,8 @@ pub fn drinking(date: &str, drink: &Drink, servings: f64) -> Result<Drinking, Re
     Ok(Drinking {
         day,
         drink: drink.name.clone(),
-        kind: DrinkKind::Other,
-        servings: 1.0,
+        kind: drink.kind,
+        servings,
         volume_ml: servings * drink.volume_ml,
     })
 }
@@ -35,7 +35,7 @@ mod tests {
         Drink {
             name: "Tea".into(),
             volume_ml: 200.0,
-            kind: DrinkKind::Other,
+            kind: DrinkKind::Tea,
         }
     }
 
@@ -47,8 +47,8 @@ mod tests {
                 day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
                 drink: "Tea".into(),
                 volume_ml: 300.0,
-                kind: DrinkKind::Other,
-                servings: 1.0,
+                kind: DrinkKind::Tea,
+                servings: 1.5,
             })
         );
     }
