@@ -94,6 +94,24 @@ pub fn scatter_of(pairs: &[(f64, f64)], width: f64, height: f64) -> Vec<(f64, f6
         .collect()
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Gauge {
+    pub band_from: f64,
+    pub band_to: f64,
+    pub optimal_at: f64,
+    pub amount_at: f64,
+}
+
+pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64) -> Gauge {
+    let _ = (amount, floor, optimal, cap, width);
+    Gauge {
+        band_from: 0.0,
+        band_to: 0.0,
+        optimal_at: 0.0,
+        amount_at: 0.0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,5 +239,25 @@ mod tests {
             vec![(0.0, 180.0), (360.0, 0.0), (180.0, 180.0)]
         );
         assert_eq!(scatter_of(&[(1.0, 5.0)], 360.0, 180.0), vec![(180.0, 90.0)]);
+    }
+
+    #[test]
+    fn a_gauge_runs_from_nothing_to_a_quarter_past_the_cap_and_places_the_band_the_optimal_and_the_amount() {
+        assert_eq!(
+            gauge_of(1000.0, (1800.0, 2000.0, 2200.0), 275.0),
+            Gauge {
+                band_from: 180.0,
+                band_to: 220.0,
+                optimal_at: 200.0,
+                amount_at: 100.0,
+            }
+        );
+    }
+
+    #[test]
+    fn an_amount_beyond_the_scale_stretches_it_to_stay_in_sight() {
+        let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), 400.0);
+
+        assert_eq!((gauge.amount_at, gauge.optimal_at), (400.0, 200.0));
     }
 }
