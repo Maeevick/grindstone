@@ -5,6 +5,7 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateBaseForm;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_base::DEFAULT_BASE_SOURCE;
+use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -50,7 +51,7 @@ fn DrinkingsOfTheDay(
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let total = lines::drunk_against_target(&of_the_day);
-    let reached = of_the_day.reached;
+    let reached = of_the_day.verdict == Verdict::InBand;
     let dry = of_the_day.drinkings.is_empty();
     view! {
         <p class="figures" class:good=reached>

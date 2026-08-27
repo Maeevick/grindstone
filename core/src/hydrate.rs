@@ -7,7 +7,7 @@ use crate::drinking::Drinking;
 use crate::gather_records::GatherRecords;
 use crate::hydrate_base::base_on;
 use crate::hydrate_records::HydrateRecords;
-use crate::verdict::Verdict;
+use crate::verdict::{Verdict, verdict_of};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Hydrate {
@@ -21,6 +21,7 @@ pub struct Hydrate {
 }
 
 const ML_PER_KCAL_BURNT: f64 = 1.0;
+const BAND_SHARE_EITHER_SIDE: f64 = 0.10;
 
 pub fn hydrate_on(
     day: NaiveDate,
@@ -40,14 +41,16 @@ pub fn hydrate_on(
         .unwrap_or(0.0);
     let target_ml =
         base_on(day, &records.bases, &gather.profiles).base_ml + burnt_kcal * ML_PER_KCAL_BURNT;
+    let floor_ml = target_ml * (1.0 - BAND_SHARE_EITHER_SIDE);
+    let cap_ml = target_ml * (1.0 + BAND_SHARE_EITHER_SIDE);
     Hydrate {
         day,
         drinkings,
         drunk_ml,
         target_ml,
-        floor_ml: target_ml,
-        cap_ml: target_ml,
-        verdict: Verdict::Low,
+        floor_ml,
+        cap_ml,
+        verdict: verdict_of(drunk_ml, floor_ml, cap_ml),
     }
 }
 

@@ -189,7 +189,7 @@ fn TodayCard() -> impl IntoView {
                         .get()
                         .and_then(Result::ok)
                         .map(|hydrate| {
-                            let class = if hydrate.reached { "good" } else { "hint" };
+                            let class = lines::verdict_class(hydrate.verdict);
                             view! {
                                 <p class=format!("figures {class}")>
                                     {lines::drunk_against_target(&hydrate)}

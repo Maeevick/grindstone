@@ -569,7 +569,7 @@ mod tests {
             add_exercise(&records.burn, "Walking", 4.0).expect("an exercise adds");
             add_food(&records.fuel, &plate("Plate", 35.0)).expect("a food adds");
             add_food(&records.fuel, &plate("Fibreless plate", 5.0)).expect("a food adds");
-            crate::for_cataloguing::add_drink(&records.hydrate, "Water", 2500.0)
+            crate::for_cataloguing::add_drink(&records.hydrate, "Water", 2000.0)
                 .expect("a drink adds");
             records
         }
@@ -731,7 +731,7 @@ mod tests {
         }
 
         #[test]
-        fn from_the_switch_over_a_day_must_also_reach_its_hydrate_target() {
+        fn from_the_switch_over_a_day_must_also_drink_inside_its_hydrate_band() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
             a_full_day(&records, "2026-10-10", "Plate");
