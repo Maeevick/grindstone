@@ -1012,7 +1012,9 @@ async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
     let scale: Element = found(&screen, ".gauge");
     let labels = scale.text_content().unwrap_or_default();
     assert!(
-        labels.contains("min 1800 mL") && labels.contains("optimal 2000 mL") && labels.contains("max 2200 mL"),
+        labels.contains("min 1800 mL")
+            && labels.contains("optimal 2000 mL")
+            && labels.contains("max 2200 mL"),
         "{labels}"
     );
     assert!(scale.query_selector("svg .band").ok().flatten().is_some());
