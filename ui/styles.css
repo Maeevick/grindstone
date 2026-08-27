@@ -380,3 +380,34 @@ select {
 .scatter circle {
     fill: #7aa2f7;
 }
+
+.gauge svg {
+    width: 100%;
+    height: 1.6rem;
+}
+
+.gauge .track {
+    fill: #3a3f47;
+}
+
+.gauge .band {
+    fill: #5fd99f;
+    opacity: 0.6;
+}
+
+.gauge .optimal {
+    stroke: #e8b04b;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+}
+
+.gauge .amount {
+    fill: #7aa2f7;
+}
+
+.gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #9aa0a6;
+}

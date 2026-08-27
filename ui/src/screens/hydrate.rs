@@ -10,6 +10,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::screens::fields::{DateField, FigureField};
+use crate::screens::gauge::Gauge;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figure_typed;
@@ -57,6 +58,13 @@ fn DrinkingsOfTheDay(
         <p class="figures" class:good=reached>
             {total}
         </p>
+        <Gauge
+            amount=of_the_day.drunk_ml
+            floor=of_the_day.floor_ml
+            optimal=of_the_day.target_ml
+            cap=of_the_day.cap_ml
+            shown_as=Figure::Volume
+        />
         {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
         {dry.then(|| view! { <p class="empty">{lines::NO_DRINKING}</p> })}
         <table>
