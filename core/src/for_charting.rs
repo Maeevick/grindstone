@@ -1,12 +1,19 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::burn::{Burn, burn_on};
 use crate::failure::Failure;
-use crate::for_reviewing_progress::Window;
+use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
+use crate::fuel::fuel_over;
+use crate::hydrate::{Hydrate, hydrate_on};
+use crate::ledger::{Day, ledger};
+use crate::refusal::Refusal;
+use crate::version::version_in_force_on;
+use crate::workout::Workout;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct GatherChart {
@@ -30,13 +37,50 @@ pub struct BurnChart {
     pub minutes: Vec<(NaiveDate, f64)>,
 }
 
+fn span_of(today: &str, window: Window) -> Result<(NaiveDate, NaiveDate), Failure> {
+    let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    Ok((first_day_of(window, today), today))
+}
+
+fn days_within(
+    logged: impl Iterator<Item = NaiveDate>,
+    (first, last): (NaiveDate, NaiveDate),
+) -> Vec<NaiveDate> {
+    let mut days: Vec<NaiveDate> = logged.filter(|day| (first..=last).contains(day)).collect();
+    days.sort();
+    days.dedup();
+    days
+}
+
 pub fn gather_chart(
     gather: &impl ForStoringGatherRecords,
     today: &str,
     window: Window,
 ) -> Result<GatherChart, Failure> {
-    let _ = (gather, today, window);
-    Ok(GatherChart::default())
+    let (first, last) = span_of(today, window)?;
+    let gathered = gather.gather_records()?;
+    let days: Vec<Day> = ledger(&gathered.measurements, &gathered.profiles)
+        .into_iter()
+        .filter(|measured| (first..=last).contains(&measured.day))
+        .collect();
+    let goals = version_in_force_on(&gathered.goals, last);
+    Ok(GatherChart {
+        masses: days
+            .iter()
+            .map(|measured| (measured.day, measured.body_mass_kg))
+            .collect(),
+        lean_masses: days
+            .iter()
+            .filter_map(|measured| {
+                measured
+                    .composition
+                    .map(|split| (measured.day, split.lean_mass_kg))
+            })
+            .collect(),
+        goal_kg: goals.map(|goals| goals.body_mass_kg),
+        goal_lean_kg: goals.map(|goals| goals.body_mass_kg * (1.0 - goals.fat_ratio)),
+    })
 }
 
 pub fn fuel_chart(
@@ -46,8 +90,28 @@ pub fn fuel_chart(
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    let _ = (gather, burn, fuel, today, window);
-    Ok(BandChart::default())
+    let span = span_of(today, window)?;
+    let (gathered, burnt, fuelled) = (
+        gather.gather_records()?,
+        burn.burn_records()?,
+        fuel.fuel_records()?,
+    );
+    let days = days_within(fuelled.intakes.iter().map(|(_, eaten)| eaten.day), span);
+    let fuelled_days = fuel_over(&days, &gathered, &burnt, &fuelled);
+    Ok(BandChart {
+        amounts: fuelled_days
+            .iter()
+            .map(|fuelled| (fuelled.day, fuelled.eaten.energy_kcal))
+            .collect(),
+        floors: fuelled_days
+            .iter()
+            .filter_map(|fuelled| fuelled.band.map(|band| (fuelled.day, band.floor_kcal)))
+            .collect(),
+        caps: fuelled_days
+            .iter()
+            .filter_map(|fuelled| fuelled.band.map(|band| (fuelled.day, band.cap_kcal)))
+            .collect(),
+    })
 }
 
 pub fn hydrate_chart(
@@ -57,8 +121,31 @@ pub fn hydrate_chart(
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    let _ = (gather, burn, hydrate, today, window);
-    Ok(BandChart::default())
+    let span = span_of(today, window)?;
+    let (gathered, burnt, hydrated) = (
+        gather.gather_records()?,
+        burn.burn_records()?,
+        hydrate.hydrate_records()?,
+    );
+    let days = days_within(hydrated.drinkings.iter().map(|(_, drunk)| drunk.day), span);
+    let hydrated_days: Vec<Hydrate> = days
+        .iter()
+        .map(|day| hydrate_on(*day, &hydrated, &gathered, &burnt))
+        .collect();
+    Ok(BandChart {
+        amounts: hydrated_days
+            .iter()
+            .map(|of_the_day| (of_the_day.day, of_the_day.drunk_ml))
+            .collect(),
+        floors: hydrated_days
+            .iter()
+            .map(|of_the_day| (of_the_day.day, of_the_day.floor_ml))
+            .collect(),
+        caps: hydrated_days
+            .iter()
+            .map(|of_the_day| (of_the_day.day, of_the_day.cap_ml))
+            .collect(),
+    })
 }
 
 pub fn burn_chart(
@@ -67,8 +154,36 @@ pub fn burn_chart(
     today: &str,
     window: Window,
 ) -> Result<BurnChart, Failure> {
-    let _ = (gather, burn, today, window);
-    Ok(BurnChart::default())
+    let span = span_of(today, window)?;
+    let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
+    let days = days_within(burnt.workouts.iter().map(|(_, done)| done.day), span);
+    let burns: Vec<Burn> = days
+        .iter()
+        .map(|day| burn_on(*day, &burnt, &gathered.measurements))
+        .collect();
+    let summed = |each: fn(&Workout) -> f64| -> Vec<(NaiveDate, f64)> {
+        burns
+            .iter()
+            .map(|of_the_day| {
+                (
+                    of_the_day.day,
+                    of_the_day
+                        .workouts
+                        .iter()
+                        .map(|done| each(&done.workout))
+                        .sum(),
+                )
+            })
+            .collect()
+    };
+    Ok(BurnChart {
+        burnt: burns
+            .iter()
+            .filter_map(|of_the_day| of_the_day.burnt_kcal.map(|kcal| (of_the_day.day, kcal)))
+            .collect(),
+        reps: summed(|done| f64::from(done.sets * done.reps.unwrap_or(0))),
+        minutes: summed(|done| f64::from(done.sets) * done.minutes),
+    })
 }
 
 #[cfg(test)]
@@ -83,7 +198,6 @@ mod tests {
     use crate::for_setting_up_the_profile::{GoalsForm, ProfileForm, set_goals, set_profile};
     use crate::for_tracking::log_measurement;
     use crate::gender::Gender;
-    use crate::refusal::Refusal;
     use crate::testing::{
         BrokenBurnRecords, BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory,
         HydrateRecordsInMemory,
