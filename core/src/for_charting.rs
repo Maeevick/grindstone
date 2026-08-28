@@ -1,0 +1,307 @@
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
+
+use crate::failure::Failure;
+use crate::for_reviewing_progress::Window;
+use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
+use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct GatherChart {
+    pub masses: Vec<(NaiveDate, f64)>,
+    pub lean_masses: Vec<(NaiveDate, f64)>,
+    pub goal_kg: Option<f64>,
+    pub goal_lean_kg: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct BandChart {
+    pub amounts: Vec<(NaiveDate, f64)>,
+    pub floors: Vec<(NaiveDate, f64)>,
+    pub caps: Vec<(NaiveDate, f64)>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct BurnChart {
+    pub burnt: Vec<(NaiveDate, f64)>,
+    pub reps: Vec<(NaiveDate, f64)>,
+    pub minutes: Vec<(NaiveDate, f64)>,
+}
+
+pub fn gather_chart(
+    gather: &impl ForStoringGatherRecords,
+    today: &str,
+    window: Window,
+) -> Result<GatherChart, Failure> {
+    let _ = (gather, today, window);
+    Ok(GatherChart::default())
+}
+
+pub fn fuel_chart(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    today: &str,
+    window: Window,
+) -> Result<BandChart, Failure> {
+    let _ = (gather, burn, fuel, today, window);
+    Ok(BandChart::default())
+}
+
+pub fn hydrate_chart(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    today: &str,
+    window: Window,
+) -> Result<BandChart, Failure> {
+    let _ = (gather, burn, hydrate, today, window);
+    Ok(BandChart::default())
+}
+
+pub fn burn_chart(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    today: &str,
+    window: Window,
+) -> Result<BurnChart, Failure> {
+    let _ = (gather, burn, today, window);
+    Ok(BurnChart::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::drink::DrinkKind;
+    use crate::food::{Nutrients, Unit};
+    use crate::for_burning::{WorkoutForm, log_workout};
+    use crate::for_cataloguing::{FoodForm, add_drink, add_exercise, add_food};
+    use crate::for_fuelling::{IntakeForm, log_intake};
+    use crate::for_hydrating::{DrinkingForm, log_drink};
+    use crate::for_setting_up_the_profile::{GoalsForm, ProfileForm, set_goals, set_profile};
+    use crate::for_tracking::log_measurement;
+    use crate::gender::Gender;
+    use crate::refusal::Refusal;
+    use crate::testing::{
+        BrokenBurnRecords, BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory,
+        HydrateRecordsInMemory,
+    };
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    struct Logged {
+        gather: GatherRecordsInMemory,
+        burn: BurnRecordsInMemory,
+        fuel: FuelRecordsInMemory,
+        hydrate: HydrateRecordsInMemory,
+    }
+
+    fn a_logged_man() -> Logged {
+        let logged = Logged {
+            gather: GatherRecordsInMemory::default(),
+            burn: BurnRecordsInMemory::default(),
+            fuel: FuelRecordsInMemory::default(),
+            hydrate: HydrateRecordsInMemory::default(),
+        };
+        set_profile(
+            &logged.gather,
+            &ProfileForm {
+                from: "2026-03-01".into(),
+                birthday: "1985-04-12".into(),
+                gender: Gender::Male,
+                height_cm: 180.0,
+                neck_cm: 38.5,
+                hip_cm: None,
+            },
+        )
+        .expect("a profile set");
+        set_goals(
+            &logged.gather,
+            &GoalsForm {
+                from: "2026-03-01".into(),
+                body_mass_kg: 70.0,
+                fat_percentage: 10.0,
+            },
+        )
+        .expect("goals set");
+        add_exercise(&logged.burn, "Push up", 3.8).expect("an exercise adds");
+        add_food(
+            &logged.fuel,
+            &FoodForm {
+                name: "Plate".into(),
+                unit: Unit::Piece,
+                portion: 1.0,
+                nutrients: Nutrients {
+                    energy_kcal: 2400.0,
+                    protein_g: 170.0,
+                    carbs_g: 230.0,
+                    fat_g: 80.0,
+                    fibre_g: 35.0,
+                },
+            },
+        )
+        .expect("a food adds");
+        add_drink(&logged.hydrate, "Water", 500.0, DrinkKind::Water).expect("a drink adds");
+        for (date, kg) in [
+            ("2026-08-01", 82.0),
+            ("2026-10-09", 80.2),
+            ("2026-10-10", 80.0),
+        ] {
+            log_measurement(&logged.gather, date, kg, Some(80.0)).expect("a measurement logs");
+        }
+        for date in ["2026-08-01", "2026-10-09", "2026-10-10"] {
+            log_intake(
+                &logged.gather,
+                &logged.burn,
+                &logged.fuel,
+                &IntakeForm {
+                    date: date.into(),
+                    food: "Plate".into(),
+                    quantity: 1.0,
+                },
+            )
+            .expect("an intake logs");
+            log_drink(
+                &logged.gather,
+                &logged.burn,
+                &logged.hydrate,
+                &DrinkingForm {
+                    date: date.into(),
+                    drink: "Water".into(),
+                    servings: 3.0,
+                },
+            )
+            .expect("a drink logs");
+            log_workout(
+                &logged.gather,
+                &logged.burn,
+                &WorkoutForm {
+                    date: date.into(),
+                    exercise: "Push up".into(),
+                    minutes: 0.5,
+                    reps: Some(12),
+                    sets: 3,
+                    load_kg: 0.0,
+                },
+            )
+            .expect("a workout logs");
+        }
+        logged
+    }
+
+    #[test]
+    fn the_gather_chart_draws_the_masses_and_lean_masses_of_the_window_with_both_goals() {
+        let logged = a_logged_man();
+
+        let chart = gather_chart(&logged.gather, "2026-10-10", Window::Days30).expect("a chart");
+
+        assert_eq!(
+            chart.masses,
+            vec![(day("2026-10-09"), 80.2), (day("2026-10-10"), 80.0)]
+        );
+        assert_eq!(chart.lean_masses.len(), 2);
+        assert_eq!(chart.goal_kg, Some(70.0));
+        assert!(
+            chart
+                .goal_lean_kg
+                .is_some_and(|kg| (kg - 63.0).abs() < 1e-9)
+        );
+    }
+
+    #[test]
+    fn the_fuel_chart_draws_each_logged_days_energy_between_its_floor_and_cap() {
+        let logged = a_logged_man();
+
+        let chart = fuel_chart(
+            &logged.gather,
+            &logged.burn,
+            &logged.fuel,
+            "2026-10-10",
+            Window::Days30,
+        )
+        .expect("a chart");
+
+        assert_eq!(
+            chart.amounts,
+            vec![(day("2026-10-09"), 2400.0), (day("2026-10-10"), 2400.0)]
+        );
+        assert_eq!((chart.floors.len(), chart.caps.len()), (2, 2));
+        assert!(
+            chart
+                .floors
+                .iter()
+                .zip(&chart.caps)
+                .all(|((_, floor), (_, cap))| floor < cap)
+        );
+    }
+
+    #[test]
+    fn the_hydrate_chart_draws_each_days_drinks_ten_percent_either_side_of_its_target() {
+        let logged = a_logged_man();
+
+        let chart = hydrate_chart(
+            &logged.gather,
+            &logged.burn,
+            &logged.hydrate,
+            "2026-10-10",
+            Window::Everything,
+        )
+        .expect("a chart");
+
+        assert_eq!(chart.amounts.len(), 3);
+        assert!(
+            chart
+                .amounts
+                .iter()
+                .all(|(_, ml)| (*ml - 1500.0).abs() < 1e-9)
+        );
+        assert!(
+            chart
+                .floors
+                .iter()
+                .zip(&chart.caps)
+                .all(|((_, floor), (_, cap))| (cap / floor - 1.1 / 0.9).abs() < 1e-9)
+        );
+    }
+
+    #[test]
+    fn the_burn_chart_draws_each_days_burn_reps_and_minutes() {
+        let logged = a_logged_man();
+
+        let chart = burn_chart(&logged.gather, &logged.burn, "2026-10-10", Window::Days30)
+            .expect("a chart");
+
+        assert_eq!(
+            chart.reps,
+            vec![(day("2026-10-09"), 36.0), (day("2026-10-10"), 36.0)]
+        );
+        assert_eq!(
+            chart.minutes,
+            vec![(day("2026-10-09"), 1.5), (day("2026-10-10"), 1.5)]
+        );
+        assert_eq!(chart.burnt.len(), 2);
+    }
+
+    #[test]
+    fn a_today_the_calendar_lacks_or_broken_records_chart_nothing() {
+        let logged = a_logged_man();
+
+        assert_eq!(
+            gather_chart(&logged.gather, "2026-02-30", Window::Days30),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            burn_chart(
+                &logged.gather,
+                &BrokenBurnRecords,
+                "2026-10-10",
+                Window::Days30
+            ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+}

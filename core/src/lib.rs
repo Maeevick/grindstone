@@ -11,6 +11,7 @@ pub mod figures;
 pub mod food;
 pub mod for_burning;
 pub mod for_cataloguing;
+pub mod for_charting;
 pub mod for_fuelling;
 pub mod for_hydrating;
 pub mod for_importing;

@@ -254,7 +254,7 @@ pub fn explore(
     })
 }
 
-fn first_day_of(window: Window, today: NaiveDate) -> NaiveDate {
+pub(crate) fn first_day_of(window: Window, today: NaiveDate) -> NaiveDate {
     match window {
         Window::Days30 => today - Days::new(29),
         Window::Days90 => today - Days::new(89),
