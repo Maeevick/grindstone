@@ -311,10 +311,45 @@ select {
     color: #e8b04b;
 }
 
-.dots {
+.calendar {
     display: flex;
-    gap: 0.35rem;
+    flex-direction: column;
+    gap: 0.3rem;
     margin: 0.5rem 0;
+}
+
+.weekdays,
+.week {
+    display: grid;
+    grid-template-columns: repeat(7, 1.1rem);
+    gap: 0.45rem;
+}
+
+.weekdays span {
+    font-size: 0.7rem;
+    color: #9aa0a6;
+    text-align: center;
+}
+
+.blank {
+    width: 0.8rem;
+    height: 0.8rem;
+}
+
+.legend {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    font-size: 0.8rem;
+    color: #9aa0a6;
+}
+
+.legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .dot {

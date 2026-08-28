@@ -582,13 +582,13 @@ async fn home_shows_the_streak_its_recent_days_and_todays_ticks() {
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("2 days"), "{said}");
     let dots = screen
-        .query_selector_all(".streak .dot")
+        .query_selector_all(".streak .week .dot")
         .map(|found| found.length())
         .unwrap_or_default();
     assert_eq!(dots, 3);
     assert!(
         screen
-            .query_selector(".streak .dot.Joker")
+            .query_selector(".streak .week .dot.Joker")
             .ok()
             .flatten()
             .is_some()
@@ -1063,5 +1063,11 @@ async fn a_long_streak_shows_its_latest_weeks_and_loads_the_earlier_ones() {
     settled().await;
 
     assert_eq!(weeks_shown(&screen), 9);
-    assert!(screen.query_selector(".streak .legend").ok().flatten().is_some());
+    assert!(
+        screen
+            .query_selector(".streak .legend")
+            .ok()
+            .flatten()
+            .is_some()
+    );
 }
