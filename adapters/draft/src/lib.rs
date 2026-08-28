@@ -960,4 +960,25 @@ mod tests {
 
         assert_eq!(drunk, Ok(3));
     }
+
+    #[test]
+    fn the_drafts_coffee_and_tea_drinkings_keep_their_kind_and_their_servings() {
+        let drinkings = hydrate_from_draft(HYDRATE_BACKUP).map(|records| {
+            records
+                .drinkings
+                .into_iter()
+                .map(|(_, drunk)| (drunk.kind, drunk.servings))
+                .collect::<Vec<_>>()
+        });
+
+        assert_eq!(
+            drinkings,
+            Ok(vec![
+                (grind_core::drink::DrinkKind::Coffee, 2.0),
+                (grind_core::drink::DrinkKind::Coffee, 15.0 / 80.0),
+                (grind_core::drink::DrinkKind::Tea, 1.0),
+                (grind_core::drink::DrinkKind::Tea, 1.25),
+            ])
+        );
+    }
 }

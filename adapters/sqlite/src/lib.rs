@@ -1201,4 +1201,74 @@ mod tests {
             &database(),
         );
     }
+
+    #[test]
+    fn drinks_and_drinkings_keep_their_kind_whatever_it_is() {
+        let records = database();
+        for (name, kind) in [
+            ("Water", DrinkKind::Water),
+            ("Expresso", DrinkKind::Coffee),
+            ("Tea", DrinkKind::Tea),
+            ("Kombucha", DrinkKind::Other),
+        ] {
+            let drunk = Drink {
+                name: name.into(),
+                volume_ml: 250.0,
+                kind,
+            };
+            records.save_drink(&drunk).expect("a drink saves");
+            records
+                .save_drinking(&Drinking {
+                    day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+                    drink: name.into(),
+                    kind,
+                    servings: 2.0,
+                    volume_ml: 500.0,
+                })
+                .expect("a drinking saves");
+        }
+
+        let kept = records.hydrate_records().expect("the records read");
+
+        assert_eq!(
+            kept.drinks
+                .iter()
+                .map(|drink| drink.kind)
+                .collect::<Vec<_>>(),
+            vec![
+                DrinkKind::Coffee,
+                DrinkKind::Other,
+                DrinkKind::Tea,
+                DrinkKind::Water
+            ]
+        );
+        assert_eq!(
+            kept.drinkings
+                .iter()
+                .map(|(_, drunk)| (drunk.kind, drunk.servings))
+                .collect::<Vec<_>>(),
+            vec![
+                (DrinkKind::Water, 2.0),
+                (DrinkKind::Coffee, 2.0),
+                (DrinkKind::Tea, 2.0),
+                (DrinkKind::Other, 2.0)
+            ]
+        );
+    }
+
+    #[test]
+    fn a_drink_whose_kind_the_app_does_not_know_reads_as_broken() {
+        let records = database();
+        records
+            .0
+            .execute(
+                "insert into drinks (name, volume_ml, kind) values ('Mead', 250.0, 'Potion')",
+                [],
+            )
+            .expect("a drink no app wrote");
+
+        assert!(
+            matches!(records.hydrate_records(), Err(Broken(reason)) if reason.contains("Potion"))
+        );
+    }
 }
