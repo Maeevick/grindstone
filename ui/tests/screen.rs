@@ -1021,3 +1021,47 @@ async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
     assert!(scale.query_selector("svg .band").ok().flatten().is_some());
     assert!(scale.query_selector("svg .amount").ok().flatten().is_some());
 }
+
+fn a_streak_of(days: u32) -> String {
+    let first = chrono::NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day")
+        - chrono::Days::new(u64::from(days) - 1);
+    let history: Vec<String> = (0..days)
+        .map(|offset| {
+            format!(
+                r#"{{ "day": "{}", "status": "Success", "ticks": {{ "weighed": true, "fuelled": true, "worked_out": true, "hydrated": true }} }}"#,
+                first + chrono::Days::new(u64::from(offset))
+            )
+        })
+        .collect();
+    format!(
+        r#"{{ "days": {days}, "at_risk": false, "history": [{}] }}"#,
+        history.join(", ")
+    )
+}
+
+#[wasm_bindgen_test]
+async fn a_long_streak_shows_its_latest_weeks_and_loads_the_earlier_ones() {
+    answering(&format!(
+        r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
+             "gather_card": {{ "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null }},
+             "streak": {} }}"#,
+        a_streak_of(60)
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    settled().await;
+    settled().await;
+    let weeks_shown = |screen: &Element| {
+        screen
+            .query_selector_all(".streak .week")
+            .map(|found| found.length())
+            .unwrap_or_default()
+    };
+    assert_eq!(weeks_shown(&screen), 5);
+
+    found::<web_sys::HtmlElement>(&screen, ".streak button.more").click();
+    settled().await;
+
+    assert_eq!(weeks_shown(&screen), 9);
+    assert!(screen.query_selector(".streak .legend").ok().flatten().is_some());
+}
