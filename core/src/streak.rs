@@ -252,13 +252,13 @@ mod tests {
     }
 
     #[test]
-    fn the_recent_days_are_the_last_fourteen_up_to_today() {
-        let ticked = days_ending("2026-10-10", &[ALL; 20]);
+    fn the_history_keeps_every_day_up_to_today_however_long_the_streak() {
+        let ticked = days_ending("2026-10-10", &[ALL; 40]);
 
         let streak = streak_of(&ticked, day("2026-10-10"));
 
-        assert_eq!(streak.days, 20);
-        assert_eq!(streak.recent.len(), 14);
+        assert_eq!(streak.days, 40);
+        assert_eq!(streak.recent.len(), 40);
         assert_eq!(
             streak.recent.last().map(|today| today.day),
             Some(day("2026-10-10"))
