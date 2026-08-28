@@ -28,10 +28,9 @@ pub struct StreakDay {
 pub struct Streak {
     pub days: u32,
     pub at_risk: bool,
-    pub recent: Vec<StreakDay>,
+    pub history: Vec<StreakDay>,
 }
 
-const RECENT_DAYS: usize = 14;
 const FEWEST_TICKS_FOR_A_JOKER: usize = 3;
 
 fn held_of_enabled(ticks: &Ticks) -> (usize, usize) {
@@ -104,7 +103,7 @@ pub fn streak_of(ticked: &[(NaiveDate, Ticks)], today: NaiveDate) -> Streak {
     Streak {
         days: days as u32,
         at_risk,
-        recent: statuses[statuses.len().saturating_sub(RECENT_DAYS)..].to_vec(),
+        history: statuses,
     }
 }
 
@@ -160,7 +159,7 @@ mod tests {
 
         assert_eq!((streak.days, streak.at_risk), (3, false));
         assert_eq!(
-            streak.recent.last().map(|today| today.status),
+            streak.history.last().map(|today| today.status),
             Some(Status::Pending)
         );
     }
@@ -183,7 +182,7 @@ mod tests {
 
         assert_eq!(streak.days, 4);
         assert_eq!(
-            streak.recent.get(1).map(|joker| joker.status),
+            streak.history.get(1).map(|joker| joker.status),
             Some(Status::Joker)
         );
     }
@@ -258,9 +257,9 @@ mod tests {
         let streak = streak_of(&ticked, day("2026-10-10"));
 
         assert_eq!(streak.days, 40);
-        assert_eq!(streak.recent.len(), 40);
+        assert_eq!(streak.history.len(), 40);
         assert_eq!(
-            streak.recent.last().map(|today| today.day),
+            streak.history.last().map(|today| today.day),
             Some(day("2026-10-10"))
         );
     }

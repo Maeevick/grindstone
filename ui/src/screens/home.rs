@@ -114,7 +114,7 @@ fn StreakCard() -> impl IntoView {
                         .map(|streak| match streak {
                             Ok(streak) => {
                                 let today_ticks = streak
-                                    .recent
+                                    .history
                                     .last()
                                     .map(|today| lines::ticks_of(&today.ticks))
                                     .unwrap_or_default();
@@ -122,7 +122,7 @@ fn StreakCard() -> impl IntoView {
                                     <p class="figures">{lines::streak_line(&streak)}</p>
                                     <div class="dots">
                                         {streak
-                                            .recent
+                                            .history
                                             .iter()
                                             .map(|streaked| {
                                                 view! {

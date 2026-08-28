@@ -632,7 +632,7 @@ mod tests {
 
         fn ticks_on(records: &Records, today: &str, date: &str) -> Option<Ticks> {
             streak_on(records, today)
-                .recent
+                .history
                 .into_iter()
                 .find(|streaked| streaked.day == day(date))
                 .map(|streaked| streaked.ticks)
