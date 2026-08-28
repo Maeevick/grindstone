@@ -1,8 +1,17 @@
 use chrono::{Datelike, NaiveDate};
 
 pub fn weeks_of<Day: Clone>(days: &[(NaiveDate, Day)]) -> Vec<Vec<Option<Day>>> {
-    let _ = days;
-    vec![]
+    let mut weeks: Vec<(chrono::IsoWeek, Vec<Option<Day>>)> = Vec::new();
+    for (date, day) in days {
+        let week = date.iso_week();
+        if weeks.last().is_none_or(|(kept, _)| *kept != week) {
+            weeks.push((week, vec![None; 7]));
+        }
+        if let Some((_, cells)) = weeks.last_mut() {
+            cells[date.weekday().num_days_from_monday() as usize] = Some(day.clone());
+        }
+    }
+    weeks.into_iter().rev().map(|(_, cells)| cells).collect()
 }
 
 #[cfg(test)]
@@ -14,12 +23,20 @@ mod tests {
     }
 
     fn named(dates: &[&str]) -> Vec<(NaiveDate, String)> {
-        dates.iter().map(|date| (day(date), date.to_string())).collect()
+        dates
+            .iter()
+            .map(|date| (day(date), date.to_string()))
+            .collect()
     }
 
     #[test]
     fn days_fall_into_weeks_from_monday_to_sunday_the_latest_week_first() {
-        let weeks = weeks_of(&named(&["2026-10-02", "2026-10-03", "2026-10-05", "2026-10-06"]));
+        let weeks = weeks_of(&named(&[
+            "2026-10-02",
+            "2026-10-03",
+            "2026-10-05",
+            "2026-10-06",
+        ]));
 
         assert_eq!(
             weeks,
