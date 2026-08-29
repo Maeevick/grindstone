@@ -112,6 +112,32 @@ pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64)
     }
 }
 
+pub fn scale_of(values: impl Iterator<Item = f64> + Clone) -> Option<(f64, f64)> {
+    let _ = values;
+    None
+}
+
+pub fn line_of(
+    points: &[(NaiveDate, f64)],
+    (first, last): (NaiveDate, NaiveDate),
+    scale: (f64, f64),
+    width: f64,
+    height: f64,
+) -> String {
+    let _ = (points, first, last, scale, width, height);
+    String::new()
+}
+
+pub fn height_of(value: f64, scale: (f64, f64), height: f64) -> f64 {
+    let _ = (value, scale, height);
+    0.0
+}
+
+pub fn spread(heights: &[f64], gap: f64, height: f64) -> Vec<f64> {
+    let _ = (gap, height);
+    heights.to_vec()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,5 +286,35 @@ mod tests {
         let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), 400.0);
 
         assert_eq!((gauge.amount_at, gauge.optimal_at), (400.0, 200.0));
+    }
+
+    #[test]
+    fn a_scale_spans_every_value_with_a_twentieth_to_spare_either_side() {
+        assert_eq!(
+            scale_of([60.0, 80.0, 70.0].into_iter()),
+            Some((59.0, 81.0))
+        );
+        assert_eq!(scale_of([70.0].into_iter()), Some((69.0, 71.0)));
+        assert_eq!(scale_of(std::iter::empty()), None);
+    }
+
+    #[test]
+    fn a_line_runs_from_the_first_day_to_the_last_on_its_scale() {
+        let points = [(day("2026-10-01"), 81.0), (day("2026-10-11"), 59.0)];
+
+        assert_eq!(
+            line_of(&points, (day("2026-10-01"), day("2026-10-11")), (59.0, 81.0), 360.0, 180.0),
+            "0.0,0.0 360.0,180.0"
+        );
+        assert_eq!(height_of(70.0, (59.0, 81.0), 180.0), 90.0);
+    }
+
+    #[test]
+    fn labels_too_close_are_spread_apart_and_kept_inside_the_height() {
+        assert_eq!(
+            spread(&[100.0, 95.0, 30.0, 178.0], 12.0, 180.0),
+            vec![107.0, 95.0, 30.0, 178.0]
+        );
+        assert_eq!(spread(&[175.0, 178.0], 12.0, 180.0), vec![168.0, 180.0]);
     }
 }
