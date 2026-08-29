@@ -361,8 +361,8 @@ pub fn gather_chart(
     today: String,
     window: Window,
 ) -> Result<GatherChart, Failure> {
-    let _ = (records, today, window);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::gather_chart(&*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -371,8 +371,8 @@ pub fn fuel_chart(
     today: String,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    let _ = (records, today, window);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::fuel_chart(&*records, &*records, &*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -381,8 +381,8 @@ pub fn hydrate_chart(
     today: String,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    let _ = (records, today, window);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::hydrate_chart(&*records, &*records, &*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -391,32 +391,32 @@ pub fn burn_chart(
     today: String,
     window: Window,
 ) -> Result<BurnChart, Failure> {
-    let _ = (records, today, window);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::burn_chart(&*records, &*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn gather_month(records: State<Records>, month: String) -> Result<Month<GatherRow>, Failure> {
-    let _ = (records, month);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::gather_month(&*records, &month)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn fuel_month(records: State<Records>, month: String) -> Result<Month<FuelRow>, Failure> {
-    let _ = (records, month);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::fuel_month(&*records, &month)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn hydrate_month(records: State<Records>, month: String) -> Result<Month<HydrateRow>, Failure> {
-    let _ = (records, month);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::hydrate_month(&*records, &month)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn burn_month(records: State<Records>, month: String) -> Result<Month<BurnRow>, Failure> {
-    let _ = (records, month);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::burn_month(&*records, &*records, &month)
 }
 
 #[cfg(test)]
@@ -480,6 +480,14 @@ mod tests {
                 remove_drink,
                 set_hydrate_base,
                 hydrate_base_on,
+                gather_chart,
+                fuel_chart,
+                hydrate_chart,
+                burn_chart,
+                gather_month,
+                fuel_month,
+                hydrate_month,
+                burn_month,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
