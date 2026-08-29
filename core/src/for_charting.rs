@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, burn_on};
 use crate::failure::Failure;
+use crate::food::Nutrients;
 use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
@@ -186,11 +187,92 @@ pub fn burn_chart(
     })
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Month<Row> {
+    pub month: String,
+    pub rows: Vec<Row>,
+    pub earlier: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GatherRow {
+    pub day: NaiveDate,
+    pub body_mass_kg: f64,
+    pub lean_mass_kg: Option<f64>,
+    pub fat_mass_kg: Option<f64>,
+    pub fat_ratio: Option<f64>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FuelRow {
+    pub day: NaiveDate,
+    pub eaten: Nutrients,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HydrateRow {
+    pub day: NaiveDate,
+    pub drunk_ml: f64,
+    pub water_ratio: f64,
+    pub coffee_cups: f64,
+    pub tea_cups: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BurnRow {
+    pub day: NaiveDate,
+    pub burnt_kcal: Option<f64>,
+    pub minutes: f64,
+    pub reps: f64,
+    pub top_exercise: Option<String>,
+}
+
+fn nothing_yet<Row>(month: &str) -> Result<Month<Row>, Failure> {
+    Ok(Month {
+        month: month.into(),
+        rows: vec![],
+        earlier: None,
+    })
+}
+
+pub fn gather_month(
+    gather: &impl ForStoringGatherRecords,
+    month: &str,
+) -> Result<Month<GatherRow>, Failure> {
+    let _ = gather;
+    nothing_yet(month)
+}
+
+pub fn fuel_month(
+    fuel: &impl ForStoringFuelRecords,
+    month: &str,
+) -> Result<Month<FuelRow>, Failure> {
+    let _ = fuel;
+    nothing_yet(month)
+}
+
+pub fn hydrate_month(
+    hydrate: &impl ForStoringHydrateRecords,
+    month: &str,
+) -> Result<Month<HydrateRow>, Failure> {
+    let _ = hydrate;
+    nothing_yet(month)
+}
+
+pub fn burn_month(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    month: &str,
+) -> Result<Month<BurnRow>, Failure> {
+    let _ = (gather, burn);
+    nothing_yet(month)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::drink::DrinkKind;
-    use crate::food::{Nutrients, Unit};
+    use crate::food::Unit;
     use crate::for_burning::{WorkoutForm, log_workout};
     use crate::for_cataloguing::{FoodForm, add_drink, add_exercise, add_food};
     use crate::for_fuelling::{IntakeForm, log_intake};
@@ -416,6 +498,90 @@ mod tests {
                 Window::Days30
             ),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn a_month_of_gather_lists_its_days_newest_first_with_their_body_split_and_the_month_before() {
+        let logged = a_logged_man();
+
+        let october = gather_month(&logged.gather, "2026-10").expect("a month");
+
+        assert_eq!(
+            october.rows.iter().map(|row| row.day).collect::<Vec<_>>(),
+            vec![day("2026-10-10"), day("2026-10-09")]
+        );
+        let latest = october.rows[0];
+        assert!(
+            latest
+                .lean_mass_kg
+                .zip(latest.fat_mass_kg)
+                .is_some_and(|(lean, fat)| (lean + fat - 80.0).abs() < 1e-9)
+        );
+        assert!(latest.fat_ratio.is_some());
+        assert_eq!(october.earlier, Some("2026-08".into()));
+    }
+
+    #[test]
+    fn a_month_of_fuel_lists_what_each_day_ate() {
+        let logged = a_logged_man();
+
+        let august = fuel_month(&logged.fuel, "2026-08").expect("a month");
+
+        assert_eq!(
+            august
+                .rows
+                .iter()
+                .map(|row| (row.day, row.eaten.protein_g))
+                .collect::<Vec<_>>(),
+            vec![(day("2026-08-01"), 170.0)]
+        );
+        assert_eq!(august.earlier, None);
+    }
+
+    #[test]
+    fn a_month_of_hydrate_tells_each_days_volume_its_share_of_water_and_its_cups() {
+        let logged = a_logged_man();
+        add_drink(&logged.hydrate, "Expresso", 80.0, DrinkKind::Coffee).expect("a drink adds");
+        log_drink(
+            &logged.gather,
+            &logged.burn,
+            &logged.hydrate,
+            &DrinkingForm {
+                date: "2026-10-10".into(),
+                drink: "Expresso".into(),
+                servings: 2.0,
+            },
+        )
+        .expect("a drink logs");
+
+        let october = hydrate_month(&logged.hydrate, "2026-10").expect("a month");
+
+        let today = october.rows[0];
+        assert!((today.drunk_ml - 1660.0).abs() < 1e-9);
+        assert!((today.water_ratio - 1500.0 / 1660.0).abs() < 1e-9);
+        assert_eq!((today.coffee_cups, today.tea_cups), (2.0, 0.0));
+    }
+
+    #[test]
+    fn a_month_of_burn_tells_each_days_burn_minutes_reps_and_its_top_exercise() {
+        let logged = a_logged_man();
+
+        let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
+
+        let today = &october.rows[0];
+        assert_eq!(
+            (today.minutes, today.reps, today.top_exercise.as_deref()),
+            (1.5, 36.0, Some("Push up"))
+        );
+        assert!(today.burnt_kcal.is_some_and(|kcal| kcal > 0.0));
+    }
+
+    #[test]
+    fn a_month_the_calendar_lacks_is_refused() {
+        assert_eq!(
+            gather_month(&GatherRecordsInMemory::default(), "2026-13"),
+            Err(Failure::Refused(Refusal::NotADate))
         );
     }
 }
