@@ -1,7 +1,9 @@
-use chrono::NaiveDate;
+use chrono::{Months, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, burn_on};
+use crate::drink::DrinkKind;
+use crate::drinking::Drinking;
 use crate::failure::Failure;
 use crate::food::Nutrients;
 use crate::for_reviewing_progress::{Window, first_day_of};
@@ -227,36 +229,126 @@ pub struct BurnRow {
     pub top_exercise: Option<String>,
 }
 
-fn nothing_yet<Row>(month: &str) -> Result<Month<Row>, Failure> {
-    Ok(Month {
-        month: month.into(),
-        rows: vec![],
-        earlier: None,
-    })
+fn month_of(month: &str) -> Result<(NaiveDate, NaiveDate), Failure> {
+    let first = NaiveDate::parse_from_str(&format!("{month}-01"), "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    let last = first
+        .checked_add_months(Months::new(1))
+        .and_then(|next| next.pred_opt())
+        .unwrap_or(first);
+    Ok((first, last))
+}
+
+fn month_in(
+    month: &str,
+    logged: impl Iterator<Item = NaiveDate> + Clone,
+) -> Result<(Vec<NaiveDate>, Option<String>), Failure> {
+    let span = month_of(month)?;
+    let mut days = days_within(logged.clone(), span);
+    days.reverse();
+    let earlier = logged
+        .filter(|day| *day < span.0)
+        .max()
+        .map(|day| day.format("%Y-%m").to_string());
+    Ok((days, earlier))
 }
 
 pub fn gather_month(
     gather: &impl ForStoringGatherRecords,
     month: &str,
 ) -> Result<Month<GatherRow>, Failure> {
-    let _ = gather;
-    nothing_yet(month)
+    let gathered = gather.gather_records()?;
+    let ledger_days = ledger(&gathered.measurements, &gathered.profiles);
+    let (days, earlier) = month_in(month, ledger_days.iter().map(|measured| measured.day))?;
+    Ok(Month {
+        month: month.into(),
+        rows: days
+            .iter()
+            .filter_map(|day| ledger_days.iter().find(|measured| measured.day == *day))
+            .map(|measured| GatherRow {
+                day: measured.day,
+                body_mass_kg: measured.body_mass_kg,
+                lean_mass_kg: measured.composition.map(|split| split.lean_mass_kg),
+                fat_mass_kg: measured.composition.map(|split| split.fat_mass_kg),
+                fat_ratio: measured.composition.map(|split| split.fat_ratio),
+            })
+            .collect(),
+        earlier,
+    })
 }
 
 pub fn fuel_month(
     fuel: &impl ForStoringFuelRecords,
     month: &str,
 ) -> Result<Month<FuelRow>, Failure> {
-    let _ = fuel;
-    nothing_yet(month)
+    let fuelled = fuel.fuel_records()?;
+    let (days, earlier) = month_in(month, fuelled.intakes.iter().map(|(_, eaten)| eaten.day))?;
+    Ok(Month {
+        month: month.into(),
+        rows: days
+            .iter()
+            .map(|day| FuelRow {
+                day: *day,
+                eaten: fuelled
+                    .intakes
+                    .iter()
+                    .filter(|(_, eaten)| eaten.day == *day)
+                    .fold(Nutrients::default(), |sum, (_, eaten)| Nutrients {
+                        energy_kcal: sum.energy_kcal + eaten.nutrients.energy_kcal,
+                        protein_g: sum.protein_g + eaten.nutrients.protein_g,
+                        carbs_g: sum.carbs_g + eaten.nutrients.carbs_g,
+                        fat_g: sum.fat_g + eaten.nutrients.fat_g,
+                        fibre_g: sum.fibre_g + eaten.nutrients.fibre_g,
+                    }),
+            })
+            .collect(),
+        earlier,
+    })
 }
 
 pub fn hydrate_month(
     hydrate: &impl ForStoringHydrateRecords,
     month: &str,
 ) -> Result<Month<HydrateRow>, Failure> {
-    let _ = hydrate;
-    nothing_yet(month)
+    let hydrated = hydrate.hydrate_records()?;
+    let (days, earlier) = month_in(month, hydrated.drinkings.iter().map(|(_, drunk)| drunk.day))?;
+    Ok(Month {
+        month: month.into(),
+        rows: days
+            .iter()
+            .map(|day| {
+                let drunk: Vec<&Drinking> = hydrated
+                    .drinkings
+                    .iter()
+                    .filter(|(_, drunk)| drunk.day == *day)
+                    .map(|(_, drunk)| drunk)
+                    .collect();
+                let volume_of = |kind: DrinkKind| -> f64 {
+                    drunk
+                        .iter()
+                        .filter(|drunk| drunk.kind == kind)
+                        .map(|drunk| drunk.volume_ml)
+                        .sum()
+                };
+                let cups_of = |kind: DrinkKind| -> f64 {
+                    drunk
+                        .iter()
+                        .filter(|drunk| drunk.kind == kind)
+                        .map(|drunk| drunk.servings)
+                        .sum()
+                };
+                let drunk_ml: f64 = drunk.iter().map(|drunk| drunk.volume_ml).sum();
+                HydrateRow {
+                    day: *day,
+                    drunk_ml,
+                    water_ratio: volume_of(DrinkKind::Water) / drunk_ml,
+                    coffee_cups: cups_of(DrinkKind::Coffee),
+                    tea_cups: cups_of(DrinkKind::Tea),
+                }
+            })
+            .collect(),
+        earlier,
+    })
 }
 
 pub fn burn_month(
@@ -264,14 +356,52 @@ pub fn burn_month(
     burn: &impl ForStoringBurnRecords,
     month: &str,
 ) -> Result<Month<BurnRow>, Failure> {
-    let _ = (gather, burn);
-    nothing_yet(month)
+    let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
+    let (days, earlier) = month_in(month, burnt.workouts.iter().map(|(_, done)| done.day))?;
+    Ok(Month {
+        month: month.into(),
+        rows: days
+            .iter()
+            .map(|day| {
+                let of_the_day = burn_on(*day, &burnt, &gathered.measurements);
+                let mut by_exercise: Vec<(String, f64)> = Vec::new();
+                for done in &of_the_day.workouts {
+                    let kcal = done.burnt_kcal.unwrap_or(0.0);
+                    match by_exercise
+                        .iter_mut()
+                        .find(|(name, _)| *name == done.workout.exercise)
+                    {
+                        Some((_, sum)) => *sum += kcal,
+                        None => by_exercise.push((done.workout.exercise.clone(), kcal)),
+                    }
+                }
+                BurnRow {
+                    day: *day,
+                    burnt_kcal: of_the_day.burnt_kcal,
+                    minutes: of_the_day
+                        .workouts
+                        .iter()
+                        .map(|done| f64::from(done.workout.sets) * done.workout.minutes)
+                        .sum(),
+                    reps: of_the_day
+                        .workouts
+                        .iter()
+                        .map(|done| f64::from(done.workout.sets * done.workout.reps.unwrap_or(0)))
+                        .sum(),
+                    top_exercise: by_exercise
+                        .into_iter()
+                        .max_by(|(_, one), (_, other)| one.total_cmp(other))
+                        .map(|(name, _)| name),
+                }
+            })
+            .collect(),
+        earlier,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::drink::DrinkKind;
     use crate::food::Unit;
     use crate::for_burning::{WorkoutForm, log_workout};
     use crate::for_cataloguing::{FoodForm, add_drink, add_exercise, add_food};
