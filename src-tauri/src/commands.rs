@@ -11,6 +11,9 @@ use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm};
+use grind_core::for_charting::{
+    self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
+};
 use grind_core::for_fuelling::{self, IntakeForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
@@ -350,6 +353,70 @@ pub fn set_hydrate_base(records: State<Records>, form: HydrateBaseForm) -> Resul
 pub fn hydrate_base_on(records: State<Records>, date: String) -> Result<HydrateBase, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::hydrate_base_on(&*records, &*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn gather_chart(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<GatherChart, Failure> {
+    let _ = (records, today, window);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_chart(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<BandChart, Failure> {
+    let _ = (records, today, window);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_chart(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<BandChart, Failure> {
+    let _ = (records, today, window);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn burn_chart(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<BurnChart, Failure> {
+    let _ = (records, today, window);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn gather_month(records: State<Records>, month: String) -> Result<Month<GatherRow>, Failure> {
+    let _ = (records, month);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_month(records: State<Records>, month: String) -> Result<Month<FuelRow>, Failure> {
+    let _ = (records, month);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_month(records: State<Records>, month: String) -> Result<Month<HydrateRow>, Failure> {
+    let _ = (records, month);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn burn_month(records: State<Records>, month: String) -> Result<Month<BurnRow>, Failure> {
+    let _ = (records, month);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -1028,6 +1095,72 @@ mod tests {
         assert_eq!(
             in_force,
             Ok(json!({ "base_ml": 2400.0, "is_default": false }))
+        );
+    }
+
+    #[test]
+    fn the_four_charts_cross_to_the_screen_over_their_window() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+        let over_30_days = json!({ "today": "2026-10-10", "window": "Days30" });
+
+        let gather = invoke(&screen, "gather_chart", over_30_days.clone());
+        let charts: Vec<Result<Value, Value>> = ["fuel_chart", "hydrate_chart", "burn_chart"]
+            .into_iter()
+            .map(|chart| invoke(&screen, chart, over_30_days.clone()))
+            .collect();
+
+        assert_eq!(
+            gather,
+            Ok(
+                json!({ "masses": [["2026-10-10", 80.0]], "lean_masses": [], "goal_kg": null, "goal_lean_kg": null })
+            )
+        );
+        assert_eq!(
+            charts,
+            vec![
+                Ok(json!({ "amounts": [], "floors": [], "caps": [] })),
+                Ok(json!({ "amounts": [], "floors": [], "caps": [] })),
+                Ok(json!({ "burnt": [], "reps": [], "minutes": [] })),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_month_of_each_history_crosses_to_the_screen_with_the_month_before() {
+        let (_app, screen) = launched();
+        for date in ["2026-09-30", "2026-10-10"] {
+            invoke(
+                &screen,
+                "log_measurement",
+                json!({ "date": date, "body_mass_kg": 80.0 }),
+            )
+            .expect("a measurement logs");
+        }
+        let october = json!({ "month": "2026-10" });
+
+        let gather = invoke(&screen, "gather_month", october.clone());
+        let others: Vec<Result<Value, Value>> = ["fuel_month", "hydrate_month", "burn_month"]
+            .into_iter()
+            .map(|history| invoke(&screen, history, october.clone()))
+            .collect();
+
+        assert_eq!(
+            gather,
+            Ok(
+                json!({ "month": "2026-10", "earlier": "2026-09", "rows": [{ "day": "2026-10-10",
+                "body_mass_kg": 80.0, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }] })
+            )
+        );
+        assert!(
+            others
+                .iter()
+                .all(|month| month.as_ref().is_ok_and(|month| month["rows"] == json!([])))
         );
     }
 }
