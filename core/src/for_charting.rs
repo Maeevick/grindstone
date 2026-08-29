@@ -714,4 +714,29 @@ mod tests {
             Err(Failure::Refused(Refusal::NotADate))
         );
     }
+
+    #[test]
+    fn the_top_exercise_of_a_day_sums_all_its_workouts() {
+        let logged = a_logged_man();
+        add_exercise(&logged.burn, "Walking", 4.0).expect("an exercise adds");
+        for (exercise, minutes) in [("Walking", 3.0), ("Push up", 2.0)] {
+            log_workout(
+                &logged.gather,
+                &logged.burn,
+                &WorkoutForm {
+                    date: "2026-10-10".into(),
+                    exercise: exercise.into(),
+                    minutes,
+                    reps: None,
+                    sets: 1,
+                    load_kg: 0.0,
+                },
+            )
+            .expect("a workout logs");
+        }
+
+        let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
+
+        assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Push up"));
+    }
 }
