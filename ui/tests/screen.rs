@@ -4,6 +4,7 @@ use grind_core::burn::Burn;
 use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
+use grind_ui::screens::charts::Charts;
 use grind_ui::screens::circuits::{CircuitCrafter, CircuitLog};
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::hydrate::{DrinksCatalog, HydrateBaseCard, HydrateDay};
@@ -1070,4 +1071,89 @@ async fn a_long_streak_shows_its_latest_weeks_and_loads_the_earlier_ones() {
             .flatten()
             .is_some()
     );
+}
+
+const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_kg": 70.0, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
+    "gather_chart": { "masses": [["2026-10-09", 80.2], ["2026-10-10", 80.0]], "lean_masses": [["2026-10-09", 70.9], ["2026-10-10", 70.7]],
+                      "goal_kg": 70.0, "goal_lean_kg": 63.0 },
+    "fuel_chart": { "amounts": [["2026-10-09", 2390.0], ["2026-10-10", 1900.0]], "floors": [["2026-10-09", 2199.0], ["2026-10-10", 2180.0]],
+                    "caps": [["2026-10-09", 2650.0], ["2026-10-10", 2630.0]] },
+    "hydrate_chart": { "amounts": [["2026-10-09", 1500.0], ["2026-10-10", 2100.0]], "floors": [["2026-10-09", 1800.0], ["2026-10-10", 1800.0]],
+                       "caps": [["2026-10-09", 2200.0], ["2026-10-10", 2200.0]] },
+    "burn_chart": { "burnt": [["2026-10-09", 120.0], ["2026-10-10", 252.0]], "reps": [["2026-10-09", 36.0], ["2026-10-10", 0.0]],
+                    "minutes": [["2026-10-09", 6.0], ["2026-10-10", 60.0]] },
+    "fuel_month": { "month": "2026-10", "earlier": null, "rows": [] },
+    "hydrate_month": { "month": "2026-10", "earlier": null, "rows": [] },
+    "burn_month": { "month": "2026-10", "earlier": null, "rows": [] }"#;
+
+fn the_charts(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Charts today="2026-10-10".to_string() />
+            </Router>
+        }
+    })
+}
+
+fn lines_drawn(screen: &Element) -> u32 {
+    screen
+        .query_selector_all(".charts svg polyline")
+        .map(|found| found.length())
+        .unwrap_or_default()
+}
+
+#[wasm_bindgen_test]
+async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines_and_legend() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(lines_drawn(&screen), 4);
+    let labels = screen.text_content().unwrap_or_default();
+    assert!(labels.contains("80.0 kg") && labels.contains("70.0 kg") && labels.contains("Lean mass"), "{labels}");
+
+    for (chip, lines, said) in [
+        ("Fuel", 3, "1900 kcal"),
+        ("Hydrate", 3, "2100 mL"),
+        ("Burn", 3, "60 min"),
+    ] {
+        found::<web_sys::HtmlElement>(&screen, &format!("button.chip-{chip}")).click();
+        settled().await;
+
+        assert_eq!(lines_drawn(&screen), lines, "{chip}");
+        let labels = screen.text_content().unwrap_or_default();
+        assert!(labels.contains(said), "{chip}: {labels}");
+    }
+}
+
+#[wasm_bindgen_test]
+async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "__by": "month",
+            "2026-10": {{ "month": "2026-10", "earlier": "2026-09", "rows": [
+                {{ "day": "2026-10-10", "body_mass_kg": 80.0, "lean_mass_kg": 70.7, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }},
+                {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }},
+            "2026-09": {{ "month": "2026-09", "earlier": null, "rows": [
+                {{ "day": "2026-09-30", "body_mass_kg": 80.4, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }} ] }} }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+    let rows_listed = |screen: &Element| {
+        screen
+            .query_selector_all(".history tbody tr")
+            .map(|found| found.length())
+            .unwrap_or_default()
+    };
+    assert_eq!(rows_listed(&screen), 2);
+
+    found::<web_sys::HtmlElement>(&screen, ".history button.more").click();
+    settled().await;
+
+    assert_eq!(rows_listed(&screen), 3);
+    assert!(screen.query_selector(".history button.more").ok().flatten().is_none());
 }
