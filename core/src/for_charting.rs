@@ -11,10 +11,11 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::fuel_over;
+use crate::fuel::{MacroRow, Macros, fuel_over};
 use crate::hydrate::{Hydrate, hydrate_on};
 use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
+use crate::verdict::Verdict;
 use crate::version::version_in_force_on;
 use crate::workout::Workout;
 
@@ -220,8 +221,81 @@ pub fn insights(
     today: &str,
     window: Window,
 ) -> Result<Insights, Failure> {
-    let _ = (gather, burn, fuel, hydrate, today, window);
-    Ok(Insights::default())
+    let (opening, last) = span_of(today, window)?;
+    let (gathered, burnt, fuelled, hydrated) = (
+        gather.gather_records()?,
+        burn.burn_records()?,
+        fuel.fuel_records()?,
+        hydrate.hydrate_records()?,
+    );
+    let measured = gathered.measurements.iter().map(|measured| measured.day);
+    let eaten = fuelled.intakes.iter().map(|(_, eaten)| eaten.day);
+    let drunk = hydrated.drinkings.iter().map(|(_, drunk)| drunk.day);
+    let worked_out = burnt.workouts.iter().map(|(_, done)| done.day);
+    let first_record = measured
+        .clone()
+        .chain(eaten.clone())
+        .chain(drunk.clone())
+        .chain(worked_out.clone())
+        .min()
+        .unwrap_or(last);
+    let span = (opening.max(first_record), last);
+    let fuelled_days = fuel_over(&days_within(eaten, span), &gathered, &burnt, &fuelled);
+    let hydrated_days: Vec<Hydrate> = days_within(drunk, span)
+        .iter()
+        .map(|day| hydrate_on(*day, &hydrated, &gathered, &burnt))
+        .collect();
+    let burns: Vec<f64> = days_within(worked_out, span)
+        .iter()
+        .filter_map(|day| burn_on(*day, &burnt, &gathered.measurements).burnt_kcal)
+        .collect();
+    let tally_of = |verdicts: Vec<Verdict>| Tally {
+        low: verdicts
+            .iter()
+            .filter(|verdict| **verdict == Verdict::Low)
+            .count(),
+        in_band: verdicts
+            .iter()
+            .filter(|verdict| **verdict == Verdict::InBand)
+            .count(),
+        high: verdicts
+            .iter()
+            .filter(|verdict| **verdict == Verdict::High)
+            .count(),
+    };
+    let macro_tally = |row: fn(&Macros) -> MacroRow| {
+        tally_of(
+            fuelled_days
+                .iter()
+                .filter_map(|fuelled| fuelled.macros.as_ref().map(|macros| row(macros).verdict))
+                .collect(),
+        )
+    };
+    Ok(Insights {
+        days: ((span.1 - span.0).num_days() + 1).max(0) as usize,
+        weighed_days: days_within(measured, span).len(),
+        fuelled_days: fuelled_days.len(),
+        energy: tally_of(
+            fuelled_days
+                .iter()
+                .filter_map(|fuelled| fuelled.energy)
+                .collect(),
+        ),
+        protein: macro_tally(|macros| macros.protein),
+        fat: macro_tally(|macros| macros.fat),
+        fibre: macro_tally(|macros| macros.fibre),
+        carbs: macro_tally(|macros| macros.carbs),
+        hydrated_days: hydrated_days.len(),
+        hydrate: tally_of(
+            hydrated_days
+                .iter()
+                .map(|of_the_day| of_the_day.verdict)
+                .collect(),
+        ),
+        active_days: burns.len(),
+        burnt_per_active_day: (!burns.is_empty())
+            .then(|| burns.iter().sum::<f64>() / burns.len() as f64),
+    })
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
