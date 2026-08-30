@@ -113,8 +113,16 @@ pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64)
 }
 
 pub fn scale_of(values: impl Iterator<Item = f64> + Clone) -> Option<(f64, f64)> {
-    let _ = values;
-    None
+    let (lowest, highest) = range_of(values);
+    if !lowest.is_finite() {
+        return None;
+    }
+    let spare = ((highest - lowest) / 20.0).max(1.0);
+    Some((lowest - spare, highest + spare))
+}
+
+pub fn height_of(value: f64, scale: (f64, f64), height: f64) -> f64 {
+    height - placed(value, scale, height)
 }
 
 pub fn line_of(
@@ -124,18 +132,34 @@ pub fn line_of(
     width: f64,
     height: f64,
 ) -> String {
-    let _ = (points, first, last, scale, width, height);
-    String::new()
-}
-
-pub fn height_of(value: f64, scale: (f64, f64), height: f64) -> f64 {
-    let _ = (value, scale, height);
-    0.0
+    let span = (0.0, (last - first).num_days() as f64);
+    points
+        .iter()
+        .map(|(day, value)| {
+            (
+                placed((*day - first).num_days() as f64, span, width),
+                height_of(*value, scale, height),
+            )
+        })
+        .map(|(x, y)| format!("{x:.1},{y:.1}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub fn spread(heights: &[f64], gap: f64, height: f64) -> Vec<f64> {
-    let _ = (gap, height);
-    heights.to_vec()
+    let mut order: Vec<usize> = (0..heights.len()).collect();
+    order.sort_by(|one, other| heights[*one].total_cmp(&heights[*other]));
+    let mut placed_at = heights.to_vec();
+    for pair in order.windows(2) {
+        placed_at[pair[1]] = placed_at[pair[1]].max(placed_at[pair[0]] + gap);
+    }
+    if let Some(lowest) = order.last() {
+        placed_at[*lowest] = placed_at[*lowest].min(height);
+    }
+    for pair in order.windows(2).rev() {
+        placed_at[pair[0]] = placed_at[pair[0]].min(placed_at[pair[1]] - gap);
+    }
+    placed_at
 }
 
 #[cfg(test)]
@@ -290,10 +314,7 @@ mod tests {
 
     #[test]
     fn a_scale_spans_every_value_with_a_twentieth_to_spare_either_side() {
-        assert_eq!(
-            scale_of([60.0, 80.0, 70.0].into_iter()),
-            Some((59.0, 81.0))
-        );
+        assert_eq!(scale_of([60.0, 80.0, 70.0].into_iter()), Some((59.0, 81.0)));
         assert_eq!(scale_of([70.0].into_iter()), Some((69.0, 71.0)));
         assert_eq!(scale_of(std::iter::empty()), None);
     }
@@ -303,7 +324,13 @@ mod tests {
         let points = [(day("2026-10-01"), 81.0), (day("2026-10-11"), 59.0)];
 
         assert_eq!(
-            line_of(&points, (day("2026-10-01"), day("2026-10-11")), (59.0, 81.0), 360.0, 180.0),
+            line_of(
+                &points,
+                (day("2026-10-01"), day("2026-10-11")),
+                (59.0, 81.0),
+                360.0,
+                180.0
+            ),
             "0.0,0.0 360.0,180.0"
         );
         assert_eq!(height_of(70.0, (59.0, 81.0), 180.0), 90.0);
