@@ -431,3 +431,14 @@ pub fn default_hydrate_base(base_ml: f64) -> String {
         shown(Figure::Volume(base_ml))
     )
 }
+
+pub fn month_name(month: &str) -> String {
+    chrono::NaiveDate::parse_from_str(&format!("{month}-01"), "%Y-%m-%d")
+        .map(|first| first.format("%B %Y").to_string())
+        .unwrap_or_else(|_| month.to_string())
+}
+
+pub const NOTHING_TO_CHART: &str =
+    "Nothing filed in this window yet. Grimble keeps the parchment ready.";
+
+pub const NOTHING_THIS_MONTH: &str = "Nothing filed this month yet.";

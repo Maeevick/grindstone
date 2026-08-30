@@ -446,3 +446,91 @@ select {
     font-size: 0.8rem;
     color: #9aa0a6;
 }
+
+.chips .pill {
+    font-weight: bold;
+}
+
+.plot {
+    position: relative;
+    margin: 0.5rem 3.6rem;
+    height: 180px;
+}
+
+.plot svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.plot polyline {
+    fill: none;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+}
+
+.plot .label {
+    position: absolute;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+.plot .label.left {
+    right: calc(100% + 0.3rem);
+}
+
+.plot .label.right {
+    left: calc(100% + 0.3rem);
+}
+
+.mass,
+.intake,
+.burnt {
+    stroke: #e8b04b;
+    color: #e8b04b;
+}
+
+.lean,
+.reps {
+    stroke: #f1f1f1;
+    color: #f1f1f1;
+}
+
+.goal,
+.floor {
+    stroke: #5fd99f;
+    color: #5fd99f;
+}
+
+.cap {
+    stroke: #f87171;
+    color: #f87171;
+}
+
+.drunk,
+.minutes {
+    stroke: #7aa2f7;
+    color: #7aa2f7;
+}
+
+.plot .dashed {
+    stroke-dasharray: 6 4;
+}
+
+.swatch {
+    display: inline-block;
+    width: 1.2rem;
+    height: 0;
+    border-top: 2px solid currentColor;
+}
+
+.swatch.dashed {
+    border-top-style: dashed;
+}
+
+.history-table td,
+.history-table th {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+}

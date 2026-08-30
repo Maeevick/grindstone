@@ -299,22 +299,25 @@ async fn removing_a_day_takes_it_off_the_list() {
 }
 
 #[wasm_bindgen_test]
-async fn the_window_pills_redraw_the_card_over_the_days_they_name() {
-    answering(
-        r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
-             "gather_card": { "__by": "window",
-                 "Days30": { "masses": [["2026-09-20", 80.4], ["2026-10-10", 80.0]], "trend": [], "target_kg": 70.0,
-                             "progress": null, "fat_change_kg": null, "lean_change_kg": null },
-                 "Days90": { "masses": [["2026-08-01", 82.0], ["2026-09-20", 80.4], ["2026-10-10", 80.0]], "trend": [],
-                             "target_kg": 70.0, "progress": null, "fat_change_kg": null, "lean_change_kg": null } } }"#,
-    );
+async fn the_window_pills_redraw_the_chart_over_the_days_they_name() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }},
+             "gather_chart": {{ "__by": "window",
+                 "Days30": {{ "masses": [["2026-09-20", 80.4], ["2026-10-10", 80.0]], "lean_masses": [],
+                              "goal_kg": 70.0, "goal_lean_kg": null }},
+                 "Days90": {{ "masses": [["2026-08-01", 82.0], ["2026-09-20", 80.4], ["2026-10-10", 80.0]],
+                              "lean_masses": [], "goal_kg": 70.0, "goal_lean_kg": null }} }} }}"#
+    ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    let _mounted = the_charts(&screen);
     settled().await;
     let masses_drawn = |screen: &Element| {
         screen
-            .query_selector_all("svg circle")
-            .map(|drawn| drawn.length())
+            .query_selector("svg polyline.mass")
+            .ok()
+            .flatten()
+            .and_then(|line| line.get_attribute("points"))
+            .map(|points| points.split_whitespace().count())
             .unwrap_or_default()
     };
     assert_eq!(masses_drawn(&screen), 2);
@@ -1114,7 +1117,10 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
 
     assert_eq!(lines_drawn(&screen), 4);
     let labels = screen.text_content().unwrap_or_default();
-    assert!(labels.contains("80.0 kg") && labels.contains("70.0 kg") && labels.contains("Lean mass"), "{labels}");
+    assert!(
+        labels.contains("80.0 kg") && labels.contains("70.0 kg") && labels.contains("Lean mass"),
+        "{labels}"
+    );
 
     for (chip, lines, said) in [
         ("Fuel", 3, "1900 kcal"),
@@ -1155,5 +1161,11 @@ async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
     settled().await;
 
     assert_eq!(rows_listed(&screen), 3);
-    assert!(screen.query_selector(".history button.more").ok().flatten().is_none());
+    assert!(
+        screen
+            .query_selector(".history button.more")
+            .ok()
+            .flatten()
+            .is_none()
+    );
 }

@@ -8,6 +8,9 @@ use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm};
+use grind_core::for_charting::{
+    BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
+};
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
@@ -260,6 +263,43 @@ pub async fn explore(
         other,
     };
     call("explore", exploring, broken).await
+}
+
+#[derive(Serialize)]
+struct InMonth<'a> {
+    month: &'a str,
+}
+
+pub async fn gather_chart(today: &str, window: Window) -> Result<GatherChart, Failure> {
+    call("gather_chart", Reviewing { today, window }, broken).await
+}
+
+pub async fn fuel_chart(today: &str, window: Window) -> Result<BandChart, Failure> {
+    call("fuel_chart", Reviewing { today, window }, broken).await
+}
+
+pub async fn hydrate_chart(today: &str, window: Window) -> Result<BandChart, Failure> {
+    call("hydrate_chart", Reviewing { today, window }, broken).await
+}
+
+pub async fn burn_chart(today: &str, window: Window) -> Result<BurnChart, Failure> {
+    call("burn_chart", Reviewing { today, window }, broken).await
+}
+
+pub async fn gather_month(month: &str) -> Result<Month<GatherRow>, Failure> {
+    call("gather_month", InMonth { month }, broken).await
+}
+
+pub async fn fuel_month(month: &str) -> Result<Month<FuelRow>, Failure> {
+    call("fuel_month", InMonth { month }, broken).await
+}
+
+pub async fn hydrate_month(month: &str) -> Result<Month<HydrateRow>, Failure> {
+    call("hydrate_month", InMonth { month }, broken).await
+}
+
+pub async fn burn_month(month: &str) -> Result<Month<BurnRow>, Failure> {
+    call("burn_month", InMonth { month }, broken).await
 }
 
 pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
