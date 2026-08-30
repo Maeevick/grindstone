@@ -31,7 +31,7 @@ pub fn shown(figure: Figure) -> String {
         Figure::Duration(minutes) => return format!("{} min", to_the_tenth(minutes)),
         Figure::Distance(km) => return format!("{} km", to_the_hundredth(km)),
         Figure::Grams(grams) => return format!("{} g", grams.round() + 0.0),
-        Figure::Count(_) => return String::new(),
+        Figure::Count(count) => return format!("{}", to_the_tenth(count) + 0.0),
         Figure::Amount(amount, unit) => {
             let amount = to_the_tenth(amount);
             let unit = match unit {
