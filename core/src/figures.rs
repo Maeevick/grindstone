@@ -11,6 +11,7 @@ pub enum Figure {
     Grams(f64),
     Amount(f64, Unit),
     Volume(f64),
+    Count(f64),
 }
 
 fn to_the_tenth(value: f64) -> f64 {
@@ -30,6 +31,7 @@ pub fn shown(figure: Figure) -> String {
         Figure::Duration(minutes) => return format!("{} min", to_the_tenth(minutes)),
         Figure::Distance(km) => return format!("{} km", to_the_hundredth(km)),
         Figure::Grams(grams) => return format!("{} g", grams.round() + 0.0),
+        Figure::Count(_) => return String::new(),
         Figure::Amount(amount, unit) => {
             let amount = to_the_tenth(amount);
             let unit = match unit {
@@ -92,6 +94,12 @@ mod tests {
         assert_eq!(shown(Figure::Amount(330.0, Unit::Millilitre)), "330 mL");
         assert_eq!(shown(Figure::Amount(1.0, Unit::Piece)), "1 piece");
         assert_eq!(shown(Figure::Amount(2.5, Unit::Piece)), "2.5 pieces");
+    }
+
+    #[test]
+    fn a_count_shows_to_the_tenth_without_a_trailing_zero() {
+        assert_eq!(shown(Figure::Count(36.0)), "36");
+        assert_eq!(shown(Figure::Count(1.1875)), "1.2");
     }
 
     #[test]
