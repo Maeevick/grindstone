@@ -189,6 +189,41 @@ pub fn burn_chart(
     })
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Tally {
+    pub low: usize,
+    pub in_band: usize,
+    pub high: usize,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Insights {
+    pub days: usize,
+    pub weighed_days: usize,
+    pub fuelled_days: usize,
+    pub energy: Tally,
+    pub protein: Tally,
+    pub fat: Tally,
+    pub fibre: Tally,
+    pub carbs: Tally,
+    pub hydrated_days: usize,
+    pub hydrate: Tally,
+    pub active_days: usize,
+    pub burnt_per_active_day: Option<f64>,
+}
+
+pub fn insights(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    today: &str,
+    window: Window,
+) -> Result<Insights, Failure> {
+    let _ = (gather, burn, fuel, hydrate, today, window);
+    Ok(Insights::default())
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Month<Row> {
     pub month: String,
@@ -738,5 +773,61 @@ mod tests {
         let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
 
         assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Push up"));
+    }
+
+    #[test]
+    fn insights_tally_each_habit_under_inside_and_over_its_band_over_the_window() {
+        let logged = a_logged_man();
+
+        let found = insights(
+            &logged.gather,
+            &logged.burn,
+            &logged.fuel,
+            &logged.hydrate,
+            "2026-10-10",
+            Window::Days30,
+        )
+        .expect("insights");
+
+        assert_eq!(found.days, 30);
+        assert_eq!(
+            (
+                found.weighed_days,
+                found.fuelled_days,
+                found.hydrated_days,
+                found.active_days
+            ),
+            (2, 2, 2, 2)
+        );
+        for tally in [
+            found.energy,
+            found.protein,
+            found.fat,
+            found.fibre,
+            found.carbs,
+            found.hydrate,
+        ] {
+            assert_eq!(tally.low + tally.in_band + tally.high, 2, "{tally:?}");
+        }
+        assert_eq!(found.hydrate.low, 2);
+        assert!(found.burnt_per_active_day.is_some_and(|kcal| kcal > 0.0));
+    }
+
+    #[test]
+    fn over_everything_the_window_opens_on_the_first_record() {
+        let logged = a_logged_man();
+
+        let found = insights(
+            &logged.gather,
+            &logged.burn,
+            &logged.fuel,
+            &logged.hydrate,
+            "2026-10-10",
+            Window::Everything,
+        )
+        .expect("insights");
+
+        assert_eq!(found.days, 71);
+        assert_eq!(found.weighed_days, 3);
     }
 }
