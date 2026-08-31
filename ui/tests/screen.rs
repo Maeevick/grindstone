@@ -1169,3 +1169,30 @@ async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
             .is_none()
     );
 }
+
+#[wasm_bindgen_test]
+async fn stats_list_the_habits_to_sharpen_the_weakest_first() {
+    answering(
+        r#"{ "explore": { "one": [], "other": [], "one_summary": null, "other_summary": null, "pairs": [], "correlation": null },
+             "insights": { "days": 30, "weighed_days": 25, "fuelled_days": 20,
+                 "energy": { "low": 4, "in_band": 14, "high": 2 }, "protein": { "low": 2, "in_band": 18, "high": 0 },
+                 "fat": { "low": 1, "in_band": 17, "high": 2 }, "fibre": { "low": 15, "in_band": 5, "high": 0 },
+                 "carbs": { "low": 3, "in_band": 16, "high": 1 }, "hydrated_days": 10,
+                 "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Stats />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let first: Element = found(&screen, "ol.sharpen li");
+    let weakest = first.text_content().unwrap_or_default();
+    assert!(weakest.contains("Fibre") && weakest.contains("5 of 20"), "{weakest}");
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("12 of 30 days") && said.contains("25 of 30 days"), "{said}");
+}
