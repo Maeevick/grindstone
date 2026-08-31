@@ -14,18 +14,22 @@ A personal tracker for body mass, food and training, carried on an Android phone
 Version 0.1, the full scope, on four tabs.
 
 - **Home:** Grimble's welcome until a profile exists. After that:
-  - the streak: four ticks a day (a weigh-in; Fuel, meaning energy and the four macros in their bands; a workout; Hydrate), a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
-  - today's fuel, burn and hydrate;
-  - the Gather card over 30 days, 90 days or everything: masses, 7-day trend, target, weekly rate, the day the target is reached, the change in fat and lean mass;
+  - the streak:
+    - four ticks a day: a weigh-in; Fuel, meaning energy and the four macros in their bands; a workout; Hydrate inside its band;
+    - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
+    - laid out as weeks from Monday to Sunday, five at a time, with the earlier weeks on demand;
+  - today's fuel, hydrate and burn;
+  - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 30 days, 90 days or everything, with its axes' values, the current values and a legend;
+  - each chip's history beneath, month by month;
   - a way into Stats.
 - **Tracker:** one day at a time, today by default, in four segments:
   - **Gather:** mass and waist. The last 14 days show their fat ratio, fat mass and lean mass from the US Navy formula.
   - **Fuel:** intakes from the catalog, weighed. The day's energy is read against its band, the budget plus the burn capped above and floored by what the fat store can spare (Alpert) and by lean mass. Protein, fat, fibre and carbs are read against theirs.
-  - **Hydrate:** calorie-free drinks against the day's target.
+  - **Hydrate:** calorie-free drinks on a scale from min through optimal to max, the band running 10% either side of the target.
   - **Burn:** workouts priced on net METs at the day's body mass, circuits run with their sets, and the day off the clock (sitting, standing, moving).
 - **Catalog:** foods with their figures per portion, meals cooked in Trix's lab (totals before and after cooking, per 100 g cooked), drinks, exercises with their MET, and circuits fixed at creation.
 - **Profile:** birthday, gender, height, neck and hip, goals, fuel targets in g/kg beside the official recommendations and their sources, the hydrate base, and the usual day off the clock. Each is kept from a chosen day. The gear opens Settings, which imports the draft's backup pushed over USB.
-- **Stats:** any two measures over a window, as timelines, summaries and a scatter of the days they share with their correlation.
+- **Stats:** the habits to sharpen, the weakest first, then any two measures over a window, as timelines, summaries and a scatter of the days they share with their correlation.
 
 Next, together: what v0.1 gets wrong, then export and import options, Health Connect steps, challenges, posture analysis.
 
@@ -39,7 +43,7 @@ Next, together: what v0.1 gets wrong, then export and import options, Health Con
 | `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage port |
 | `adapters/draft` | serde_json | reads the draft's backup into the core's records |
 
-The screen calls the app's commands through Tauri. Each command hands over to one of the core's driving ports (`for_tracking`, `for_fuelling`, `for_hydrating`, `for_burning`, `for_cataloguing`, `for_setting_up_the_profile`, `for_reviewing_progress`, `for_importing`), which store through the SQLite adapter in the app's data folder.
+The screen calls the app's commands through Tauri. Each command hands over to one of the core's driving ports (`for_tracking`, `for_fuelling`, `for_hydrating`, `for_burning`, `for_cataloguing`, `for_setting_up_the_profile`, `for_reviewing_progress`, `for_charting`, `for_importing`), which store through the SQLite adapter in the app's data folder.
 
 ## Documents
 
