@@ -59,6 +59,7 @@ pub fn run() {
             commands::fuel_month,
             commands::hydrate_month,
             commands::burn_month,
+            commands::insights,
             commands::circuits,
             commands::craft_circuit,
             commands::remove_circuit,

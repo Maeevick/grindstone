@@ -12,7 +12,8 @@ use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm};
 use grind_core::for_charting::{
-    self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
+    self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights,
+    Month,
 };
 use grind_core::for_fuelling::{self, IntakeForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
@@ -419,6 +420,16 @@ pub fn burn_month(records: State<Records>, month: String) -> Result<Month<BurnRo
     for_charting::burn_month(&*records, &*records, &month)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn insights(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<Insights, Failure> {
+    let _ = (records, today, window);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -488,6 +499,7 @@ mod tests {
                 fuel_month,
                 hydrate_month,
                 burn_month,
+                insights,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -1169,6 +1181,33 @@ mod tests {
             others
                 .iter()
                 .all(|month| month.as_ref().is_ok_and(|month| month["rows"] == json!([])))
+        );
+    }
+
+    #[test]
+    fn insights_cross_to_the_screen_with_each_habits_tally() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let answer = invoke(
+            &screen,
+            "insights",
+            json!({ "today": "2026-10-10", "window": "Days30" }),
+        );
+
+        let nothing = json!({ "low": 0, "in_band": 0, "high": 0 });
+        assert_eq!(
+            answer,
+            Ok(
+                json!({ "days": 1, "weighed_days": 1, "fuelled_days": 0, "energy": nothing,
+                "protein": nothing, "fat": nothing, "fibre": nothing, "carbs": nothing,
+                "hydrated_days": 0, "hydrate": nothing, "active_days": 0, "burnt_per_active_day": null })
+            )
         );
     }
 }
