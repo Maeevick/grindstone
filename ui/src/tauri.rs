@@ -9,7 +9,7 @@ use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm};
 use grind_core::for_charting::{
-    BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
+    BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights, Month,
 };
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::for_hydrating::DrinkingForm;
@@ -300,6 +300,10 @@ pub async fn hydrate_month(month: &str) -> Result<Month<HydrateRow>, Failure> {
 
 pub async fn burn_month(month: &str) -> Result<Month<BurnRow>, Failure> {
     call("burn_month", InMonth { month }, broken).await
+}
+
+pub async fn insights(today: &str, window: Window) -> Result<Insights, Failure> {
+    call("insights", Reviewing { today, window }, broken).await
 }
 
 pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {

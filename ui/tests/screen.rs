@@ -1192,7 +1192,13 @@ async fn stats_list_the_habits_to_sharpen_the_weakest_first() {
 
     let first: Element = found(&screen, "ol.sharpen li");
     let weakest = first.text_content().unwrap_or_default();
-    assert!(weakest.contains("Fibre") && weakest.contains("5 of 20"), "{weakest}");
+    assert!(
+        weakest.contains("Fibre") && weakest.contains("5 of 20"),
+        "{weakest}"
+    );
     let said = screen.text_content().unwrap_or_default();
-    assert!(said.contains("12 of 30 days") && said.contains("25 of 30 days"), "{said}");
+    assert!(
+        said.contains("12 of 30 days") && said.contains("25 of 30 days"),
+        "{said}"
+    );
 }

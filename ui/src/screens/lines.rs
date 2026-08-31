@@ -2,6 +2,7 @@ use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown};
 use grind_core::food::{Nutrients, Unit};
+use grind_core::for_charting::Insights;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
@@ -442,3 +443,58 @@ pub const NOTHING_TO_CHART: &str =
     "Nothing filed in this window yet. Grimble keeps the parchment ready.";
 
 pub const NOTHING_THIS_MONTH: &str = "Nothing filed this month yet.";
+
+fn share_of(part: usize, whole: usize) -> f64 {
+    part as f64 / whole as f64
+}
+
+pub fn habits_to_sharpen(insights: &Insights) -> Vec<String> {
+    let mut banded: Vec<(f64, String)> = [
+        ("Energy", insights.energy, insights.fuelled_days),
+        ("Protein", insights.protein, insights.fuelled_days),
+        ("Fat", insights.fat, insights.fuelled_days),
+        ("Fibre", insights.fibre, insights.fuelled_days),
+        ("Carbs", insights.carbs, insights.fuelled_days),
+        ("Hydrate", insights.hydrate, insights.hydrated_days),
+    ]
+    .into_iter()
+    .filter(|(_, _, logged)| *logged > 0)
+    .map(|(habit, tally, logged)| {
+        let share = share_of(tally.in_band, logged);
+        (
+            share,
+            format!(
+                "{habit}: in its band on {} of {logged} logged days ({}), under it on {}, over it on {}.",
+                tally.in_band,
+                shown(Figure::Ratio(share)),
+                tally.low,
+                tally.high
+            ),
+        )
+    })
+    .collect();
+    banded.sort_by(|(one, _), (other, _)| one.total_cmp(other));
+    let mut lines: Vec<String> = banded.into_iter().map(|(_, line)| line).collect();
+    if insights.days > 0 {
+        lines.push(format!(
+            "Workouts on {} of {} days, {} a week{}.",
+            insights.active_days,
+            insights.days,
+            shown(Figure::Count(
+                share_of(insights.active_days, insights.days) * 7.0
+            )),
+            insights
+                .burnt_per_active_day
+                .map(|kcal| format!(", {} burnt on an active day", shown(Figure::Energy(kcal))))
+                .unwrap_or_default()
+        ));
+        lines.push(format!(
+            "Weighed on {} of {} days.",
+            insights.weighed_days, insights.days
+        ));
+    }
+    lines
+}
+
+pub const SHARPEN: &str =
+    "[Veil, without looking up:] the weakest habits first. A habit, not a verdict.";
