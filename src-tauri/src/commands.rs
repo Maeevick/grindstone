@@ -426,8 +426,8 @@ pub fn insights(
     today: String,
     window: Window,
 ) -> Result<Insights, Failure> {
-    let _ = (records, today, window);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_charting::insights(&*records, &*records, &*records, &*records, &today, window)
 }
 
 #[cfg(test)]
