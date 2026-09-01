@@ -77,6 +77,11 @@ pub fn nutrients_of(food: &Food, quantity: f64) -> Nutrients {
     }
 }
 
+pub fn summed(all: impl IntoIterator<Item = Nutrients>) -> Nutrients {
+    let _ = all;
+    Nutrients::default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,5 +184,35 @@ mod tests {
             ],
             [182.5, 10.5, 21.5, 4.7, 6.0]
         );
+    }
+
+    #[test]
+    fn nutrients_sum_up_figure_by_figure() {
+        let some = Nutrients {
+            energy_kcal: 100.0,
+            protein_g: 10.0,
+            carbs_g: 20.0,
+            fat_g: 3.0,
+            fibre_g: 4.0,
+        };
+        let more = Nutrients {
+            energy_kcal: 50.0,
+            protein_g: 5.0,
+            carbs_g: 1.0,
+            fat_g: 2.0,
+            fibre_g: 0.5,
+        };
+
+        assert_eq!(
+            summed([some, more]),
+            Nutrients {
+                energy_kcal: 150.0,
+                protein_g: 15.0,
+                carbs_g: 21.0,
+                fat_g: 5.0,
+                fibre_g: 4.5,
+            }
+        );
+        assert_eq!(summed([]), Nutrients::default());
     }
 }
