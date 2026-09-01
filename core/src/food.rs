@@ -78,8 +78,14 @@ pub fn nutrients_of(food: &Food, quantity: f64) -> Nutrients {
 }
 
 pub fn summed(all: impl IntoIterator<Item = Nutrients>) -> Nutrients {
-    let _ = all;
-    Nutrients::default()
+    all.into_iter()
+        .fold(Nutrients::default(), |sum, more| Nutrients {
+            energy_kcal: sum.energy_kcal + more.energy_kcal,
+            protein_g: sum.protein_g + more.protein_g,
+            carbs_g: sum.carbs_g + more.carbs_g,
+            fat_g: sum.fat_g + more.fat_g,
+            fibre_g: sum.fibre_g + more.fibre_g,
+        })
 }
 
 #[cfg(test)]
