@@ -5,7 +5,7 @@ use crate::burn::{Burn, burn_on};
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
 use crate::failure::Failure;
-use crate::food::Nutrients;
+use crate::food::{Nutrients, summed};
 use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
@@ -398,17 +398,13 @@ pub fn fuel_month(
             .iter()
             .map(|day| FuelRow {
                 day: *day,
-                eaten: fuelled
-                    .intakes
-                    .iter()
-                    .filter(|(_, eaten)| eaten.day == *day)
-                    .fold(Nutrients::default(), |sum, (_, eaten)| Nutrients {
-                        energy_kcal: sum.energy_kcal + eaten.nutrients.energy_kcal,
-                        protein_g: sum.protein_g + eaten.nutrients.protein_g,
-                        carbs_g: sum.carbs_g + eaten.nutrients.carbs_g,
-                        fat_g: sum.fat_g + eaten.nutrients.fat_g,
-                        fibre_g: sum.fibre_g + eaten.nutrients.fibre_g,
-                    }),
+                eaten: summed(
+                    fuelled
+                        .intakes
+                        .iter()
+                        .filter(|(_, eaten)| eaten.day == *day)
+                        .map(|(_, eaten)| eaten.nutrients),
+                ),
             })
             .collect(),
         earlier,

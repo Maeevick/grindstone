@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::age::age_on;
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
-use crate::food::Nutrients;
+use crate::food::{Nutrients, summed};
 use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
@@ -87,15 +87,7 @@ fn body_on(day: NaiveDate, ledger: &[Day], profiles: &[(NaiveDate, Profile)]) ->
 }
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
-    intakes
-        .iter()
-        .fold(Nutrients::default(), |sum, (_, eaten)| Nutrients {
-            energy_kcal: sum.energy_kcal + eaten.nutrients.energy_kcal,
-            protein_g: sum.protein_g + eaten.nutrients.protein_g,
-            carbs_g: sum.carbs_g + eaten.nutrients.carbs_g,
-            fat_g: sum.fat_g + eaten.nutrients.fat_g,
-            fibre_g: sum.fibre_g + eaten.nutrients.fibre_g,
-        })
+    summed(intakes.iter().map(|(_, eaten)| eaten.nutrients))
 }
 
 fn carbs_floor_g(body: &Body) -> f64 {
