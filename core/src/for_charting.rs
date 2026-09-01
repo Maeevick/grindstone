@@ -764,12 +764,18 @@ mod tests {
         let august = fuel_month(&logged.fuel, "2026-08").expect("a month");
 
         assert_eq!(
-            august
-                .rows
-                .iter()
-                .map(|row| (row.day, row.eaten.protein_g))
-                .collect::<Vec<_>>(),
-            vec![(day("2026-08-01"), 170.0)]
+            august.rows.iter().map(|row| row.day).collect::<Vec<_>>(),
+            vec![day("2026-08-01")]
+        );
+        assert_eq!(
+            august.rows[0].eaten,
+            Nutrients {
+                energy_kcal: 2400.0,
+                protein_g: 170.0,
+                carbs_g: 230.0,
+                fat_g: 80.0,
+                fibre_g: 35.0,
+            }
         );
         assert_eq!(august.earlier, None);
     }
@@ -899,5 +905,63 @@ mod tests {
 
         assert_eq!(found.days, 71);
         assert_eq!(found.weighed_days, 3);
+    }
+
+    #[test]
+    fn insights_read_the_burn_of_an_active_day_as_the_mean_of_its_days() {
+        let logged = a_logged_man();
+        let burnt_on = |date| {
+            crate::for_burning::burn_day(&logged.gather, &logged.burn, date)
+                .ok()
+                .and_then(|burnt| burnt.burnt_kcal)
+                .expect("a burn")
+        };
+        let mean = (burnt_on("2026-10-09") + burnt_on("2026-10-10")) / 2.0;
+
+        let found = insights(
+            &logged.gather,
+            &logged.burn,
+            &logged.fuel,
+            &logged.hydrate,
+            "2026-10-10",
+            Window::Days30,
+        )
+        .expect("insights");
+
+        assert!(
+            found
+                .burnt_per_active_day
+                .is_some_and(|kcal| (kcal - mean).abs() < 1e-9)
+        );
+    }
+
+    #[test]
+    fn the_top_exercise_adds_up_its_own_workouts_whatever_came_between() {
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+        );
+        log_measurement(&gather, "2026-10-05", 80.0, None).expect("a measurement logs");
+        add_exercise(&burn, "Rowing", 4.0).expect("an exercise adds");
+        add_exercise(&burn, "Squat", 4.0).expect("an exercise adds");
+        for (exercise, minutes) in [("Rowing", 2.5), ("Squat", 1.5), ("Squat", 1.5)] {
+            log_workout(
+                &gather,
+                &burn,
+                &WorkoutForm {
+                    date: "2026-10-05".into(),
+                    exercise: exercise.into(),
+                    minutes,
+                    reps: None,
+                    sets: 1,
+                    load_kg: 0.0,
+                },
+            )
+            .expect("a workout logs");
+        }
+
+        let october = burn_month(&gather, &burn, "2026-10").expect("a month");
+
+        assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Squat"));
     }
 }
