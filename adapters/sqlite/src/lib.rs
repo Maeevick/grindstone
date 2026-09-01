@@ -76,7 +76,14 @@ const MIGRATIONS: &[&str] = &[
      create table hydrate_bases (effective_from text primary key, base_ml real not null);",
     "alter table drinks add column kind text not null default 'Other';
      alter table drinkings add column kind text not null default 'Other';
-     alter table drinkings add column servings real not null default 1;",
+     alter table drinkings add column servings real not null default 1;
+     update drinks set kind = 'Coffee' where name = 'Expresso';
+     update drinks set kind = 'Tea' where name = 'Tea';
+     update drinks set kind = 'Water' where lower(name) like '%water%' or lower(name) like 'eau%';
+     update drinkings
+         set kind = (select kind from drinks where drinks.name = drinkings.drink),
+             servings = volume_ml / (select volume_ml from drinks where drinks.name = drinkings.drink)
+         where drink in (select name from drinks);",
 ];
 
 pub struct Sqlite(Connection);
@@ -1272,7 +1279,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn the_drinks_already_on_the_phone_take_their_kind_and_their_drinkings_their_servings() {
         let file = std::env::temp_dir().join(format!(
@@ -1281,7 +1287,9 @@ mod tests {
         ));
         let before = Connection::open(&file).expect("a database before the drinks' kinds");
         for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 1]) {
-            before.execute_batch(migration).expect("an earlier migration");
+            before
+                .execute_batch(migration)
+                .expect("an earlier migration");
             before
                 .pragma_update(None, "user_version", version)
                 .expect("its version");
