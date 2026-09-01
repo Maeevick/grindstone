@@ -1271,4 +1271,59 @@ mod tests {
             matches!(records.hydrate_records(), Err(Broken(reason)) if reason.contains("Potion"))
         );
     }
+
+
+    #[test]
+    fn the_drinks_already_on_the_phone_take_their_kind_and_their_drinkings_their_servings() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-drinks-carried-{}.sqlite",
+            std::process::id()
+        ));
+        let before = Connection::open(&file).expect("a database before the drinks' kinds");
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 1]) {
+            before.execute_batch(migration).expect("an earlier migration");
+            before
+                .pragma_update(None, "user_version", version)
+                .expect("its version");
+        }
+        before
+            .execute_batch(
+                "insert into drinks (name, volume_ml) values ('Expresso', 80.0), ('Tea', 200.0), ('Water', 250.0);
+                 insert into drinkings (day, drink, volume_ml) values
+                     ('2026-10-10', 'Expresso', 160.0), ('2026-10-10', 'Tea', 200.0),
+                     ('2026-10-10', 'Water', 500.0), ('2026-10-10', 'Kombucha', 330.0);",
+            )
+            .expect("the drinks filed before");
+        drop(before);
+
+        let carried = Sqlite::open(&file).and_then(|database| database.hydrate_records());
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        let carried = carried.expect("the records read");
+        assert_eq!(
+            carried
+                .drinks
+                .iter()
+                .map(|drink| (drink.name.as_str(), drink.kind))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Expresso", DrinkKind::Coffee),
+                ("Tea", DrinkKind::Tea),
+                ("Water", DrinkKind::Water)
+            ]
+        );
+        assert_eq!(
+            carried
+                .drinkings
+                .iter()
+                .map(|(_, drunk)| (drunk.drink.as_str(), drunk.kind, drunk.servings))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Expresso", DrinkKind::Coffee, 2.0),
+                ("Tea", DrinkKind::Tea, 1.0),
+                ("Water", DrinkKind::Water, 2.0),
+                ("Kombucha", DrinkKind::Other, 1.0)
+            ]
+        );
+    }
 }
