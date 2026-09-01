@@ -56,7 +56,13 @@ The app keeps its SQLite file at:
 
 To start from empty, quit the app and delete that file.
 
-To import the draft's records, copy one of its backups to `~/Documents/grindstone-draft.json`, then in the app go to Profile, the gear, **Import the draft**. macOS may first ask to let Grindstone read the Documents folder. The import replaces every record the draft had: measurements, profiles, goals, exercises, workouts, foods, intakes and drinks.
+To import the draft's records:
+
+```sh
+make import-draft-mac BACKUP=../grindstone_draft/data/backups/<latest backup>.json
+```
+
+It copies the backup to `~/Documents/grindstone-draft.json`. Then, in the app, go to Profile, the gear, **Import the draft**. macOS may first ask to let Grindstone read the Documents folder. The import replaces every record the draft had: measurements, profiles, goals, exercises, workouts, foods, intakes and drinks.
 
 ## Next
 

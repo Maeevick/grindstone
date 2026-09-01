@@ -136,7 +136,7 @@ Expected: `Success`.
 The app must have run once, which creates its Documents folder. With the phone plugged in:
 
 ```sh
-make import-draft BACKUP=../grindstone_draft/data/backups/<latest backup>.json
+make import-draft-android BACKUP=../grindstone_draft/data/backups/<latest backup>.json
 ```
 
 Then, in the app, go to Profile, the gear, then **Import the draft**. Grimble tells what he filed:
