@@ -944,7 +944,7 @@ mod tests {
         log_measurement(&gather, "2026-10-05", 80.0, None).expect("a measurement logs");
         add_exercise(&burn, "Rowing", 4.0).expect("an exercise adds");
         add_exercise(&burn, "Squat", 4.0).expect("an exercise adds");
-        for (exercise, minutes) in [("Rowing", 2.5), ("Squat", 1.5), ("Squat", 1.5)] {
+        for (exercise, minutes) in [("Rowing", 0.45), ("Squat", 0.25), ("Squat", 0.25)] {
             log_workout(
                 &gather,
                 &burn,
