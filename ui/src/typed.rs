@@ -4,8 +4,11 @@ pub fn figure_typed(text: &str) -> Option<f64> {
 }
 
 pub fn figures_typed<const FIELDS: usize>(texts: [&str; FIELDS]) -> Option<[Option<f64>; FIELDS]> {
-    let _ = texts;
-    None
+    let read = texts.map(figure_typed);
+    read.iter()
+        .flatten()
+        .all(|figure| figure.is_finite())
+        .then_some(read)
 }
 
 pub fn count_typed(text: &str) -> Option<u32> {
