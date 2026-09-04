@@ -63,8 +63,8 @@ pub fn gather_figures(card: &GatherCard) -> Vec<String> {
     [rate, changes, target].into_iter().flatten().collect()
 }
 
-pub const IMPORT_HOW: &str = "Push the draft's latest backup from the Mac with make import-draft, \
-    the phone plugged in, then import it here. It replaces every record the draft had, and from its day the streak \
+pub const IMPORT_HOW: &str = "Bring the draft's latest backup from the Mac with make import-draft-android, \
+    the phone plugged in, or make import-draft-mac for the Mac app, then import it here. It replaces every record the draft had, and from its day the streak \
     asks for Hydrate and the four macros too. Run it again with a newer backup until you switch for good.";
 
 fn counted(count: usize, one: &str, many: &str) -> String {
@@ -121,7 +121,7 @@ pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only. [Grimble unde
 pub fn import_failure(refused: &ImportFailure) -> String {
     match refused {
         ImportFailure::NoBackupFound(where_expected) => format!(
-            "No backup in the tunnels. Push one with make import-draft first; I looked in {where_expected}."
+            "No backup in the tunnels. Bring one with make import-draft-android or make import-draft-mac first; I looked in {where_expected}."
         ),
         ImportFailure::Draft(DraftRefusal::Unreadable(where_it_stopped)) => {
             format!(
