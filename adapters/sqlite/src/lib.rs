@@ -711,7 +711,7 @@ impl ForStoringSwitchOver for Sqlite {
     }
 
     fn forget_switch_over(&self) -> Result<(), Broken> {
-        Err(Broken("not yet".into()))
+        self.run("delete from switch_over", [])
     }
 }
 
