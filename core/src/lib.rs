@@ -17,6 +17,7 @@ pub mod for_hydrating;
 pub mod for_importing;
 pub mod for_reviewing_progress;
 pub mod for_setting_up_the_profile;
+pub mod for_starting_over;
 pub mod for_storing_burn_records;
 pub mod for_storing_fuel_records;
 pub mod for_storing_gather_records;
