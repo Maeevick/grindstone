@@ -1225,3 +1225,28 @@ async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("That is no number I can read"), "{said}");
 }
+
+#[wasm_bindgen_test]
+async fn the_danger_zone_erases_everything_once_erase_is_typed() {
+    answering(r#"{ "erase_everything": null }"#);
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Settings />
+            </Router>
+        }
+    });
+    settled().await;
+    let erase: web_sys::HtmlButtonElement = found(&screen, "button.erase");
+    assert!(erase.disabled());
+
+    typed_into(&screen, "confirm_erase", "ERASE");
+    settled().await;
+    assert!(!erase.disabled());
+    erase.click();
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("Everything is erased"), "{said}");
+}
