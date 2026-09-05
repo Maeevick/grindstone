@@ -22,6 +22,7 @@ use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
     self, FuelTargetsForm, GoalsForm, HydrateBaseForm, ProfileForm, UsualDayForm,
 };
+use grind_core::for_starting_over;
 use grind_core::for_tracking;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
@@ -430,6 +431,12 @@ pub fn insights(
     for_charting::insights(&*records, &*records, &*records, &*records, &today, window)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
+    let _ = records;
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -500,6 +507,7 @@ mod tests {
                 hydrate_month,
                 burn_month,
                 insights,
+                erase_everything,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -1209,5 +1217,22 @@ mod tests {
                 "hydrated_days": 0, "hydrate": nothing, "active_days": 0, "burnt_per_active_day": null })
             )
         );
+    }
+
+    #[test]
+    fn erasing_everything_from_the_screen_leaves_a_first_launch() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let erased = invoke(&screen, "erase_everything", json!({}));
+        let days_left = invoke(&screen, "recent_days", json!({}));
+
+        assert_eq!(erased, Ok(json!(null)));
+        assert_eq!(days_left, Ok(json!([])));
     }
 }
