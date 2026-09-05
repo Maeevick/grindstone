@@ -433,8 +433,8 @@ pub fn insights(
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
-    let _ = records;
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_starting_over::erase_everything(&*records, &*records, &*records, &*records, &*records)
 }
 
 #[cfg(test)]
