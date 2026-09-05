@@ -709,6 +709,10 @@ impl ForStoringSwitchOver for Sqlite {
             .into_iter()
             .next())
     }
+
+    fn forget_switch_over(&self) -> Result<(), Broken> {
+        Err(Broken("not yet".into()))
+    }
 }
 
 const DRINKS: &str = "select name, volume_ml, kind from drinks order by name";
@@ -1333,5 +1337,10 @@ mod tests {
                 ("Kombucha", DrinkKind::Other, 1.0)
             ]
         );
+    }
+
+    #[test]
+    fn a_forgotten_switch_over_leaves_none() {
+        honouring_for_storing_switch_over::a_forgotten_switch_over_leaves_none(&database());
     }
 }

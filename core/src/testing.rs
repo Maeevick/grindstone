@@ -891,6 +891,11 @@ impl ForStoringSwitchOver for SwitchOverInMemory {
     fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
         Ok(self.0.get())
     }
+
+    fn forget_switch_over(&self) -> Result<(), Broken> {
+        self.0.set(None);
+        Ok(())
+    }
 }
 
 pub struct BrokenSwitchOver;
@@ -903,10 +908,25 @@ impl ForStoringSwitchOver for BrokenSwitchOver {
     fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
         Err(Broken("the disk is full".into()))
     }
+
+    fn forget_switch_over(&self) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
 }
 
 pub mod honouring_for_storing_switch_over {
     use super::*;
+
+    pub fn a_forgotten_switch_over_leaves_none(records: &impl ForStoringSwitchOver) {
+        let day = NaiveDate::parse_from_str("2026-10-10", "%Y-%m-%d").expect("a real day");
+        records.save_switch_over(day).expect("a switch-over saves");
+
+        records
+            .forget_switch_over()
+            .expect("the switch-over is forgotten");
+
+        assert_eq!(records.switch_over(), Ok(None));
+    }
 
     pub fn no_switch_over_until_one_is_saved_and_the_latest_one_stands(
         records: &impl ForStoringSwitchOver,
@@ -1531,6 +1551,13 @@ mod tests {
     fn replacing_the_hydrate_records_leaves_only_the_new_ones() {
         honouring_for_storing_hydrate_records::replacing_the_hydrate_records_leaves_only_the_new_ones(
             &HydrateRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_forgotten_switch_over_leaves_none() {
+        honouring_for_storing_switch_over::a_forgotten_switch_over_leaves_none(
+            &SwitchOverInMemory::default(),
         );
     }
 }
