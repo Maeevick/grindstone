@@ -9,7 +9,7 @@ use crate::screens::fuel::FuelDay;
 use crate::screens::hydrate::HydrateDay;
 use crate::screens::{lines, today};
 use crate::tauri;
-use crate::typed::figure_typed;
+use crate::typed::figures_typed;
 
 fn shown_or_blank(figure: Option<Figure>) -> String {
     figure.map(shown).unwrap_or_default()
@@ -58,8 +58,13 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let date = day.get_untracked();
-        let body_mass_kg = figure_typed(&mass.get_untracked()).unwrap_or(f64::NAN);
-        let waist_cm = figure_typed(&waist.get_untracked());
+        let Some([body_mass_kg, waist_cm]) =
+            figures_typed([&mass.get_untracked(), &waist.get_untracked()])
+        else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let body_mass_kg = body_mass_kg.unwrap_or(0.0);
         spawn_local(async move {
             match tauri::log_measurement(&date, body_mass_kg, waist_cm).await {
                 Ok(recent) => {

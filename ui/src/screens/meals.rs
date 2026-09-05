@@ -8,7 +8,7 @@ use leptos::task::spawn_local;
 use crate::screens::fields::FigureField;
 use crate::screens::lines;
 use crate::tauri;
-use crate::typed::figure_typed;
+use crate::typed::figures_typed;
 
 #[component]
 pub fn MealCooker() -> impl IntoView {
@@ -38,17 +38,22 @@ pub fn MealCooker() -> impl IntoView {
         }
     });
     let add_ingredient = move |_| {
+        let Some([quantity_typed]) = figures_typed([&quantity.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         ingredients.update(|added| {
             added.push(IngredientForm {
                 food: food.get_untracked(),
-                quantity: figure_typed(&quantity.get_untracked()).unwrap_or(f64::NAN),
+                quantity: quantity_typed.unwrap_or(0.0),
             })
         });
         quantity.set(String::new());
     };
     let form = move || {
-        let figure = figure_typed(&cooked_figure.get_untracked()).unwrap_or(f64::NAN);
-        MealForm {
+        let [figure] = figures_typed([&cooked_figure.get_untracked()])?;
+        let figure = figure.unwrap_or(0.0);
+        Some(MealForm {
             name: name.get_untracked(),
             recipe: recipe.get_untracked(),
             ingredients: ingredients.get_untracked(),
@@ -59,10 +64,13 @@ pub fn MealCooker() -> impl IntoView {
             } else {
                 Cooking::Weighed { cooked_g: figure }
             },
-        }
+        })
     };
     let weigh_up = move |_| {
-        let asked = form();
+        let Some(asked) = form() else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         spawn_local(async move {
             match tauri::preview_meal(&asked).await {
                 Ok(meal) => {
@@ -75,7 +83,10 @@ pub fn MealCooker() -> impl IntoView {
     };
     let cook = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let asked = form();
+        let Some(asked) = form() else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         spawn_local(async move {
             match tauri::cook_meal(&asked).await {
                 Ok(kept) => {

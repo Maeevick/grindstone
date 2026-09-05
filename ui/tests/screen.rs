@@ -1202,3 +1202,26 @@ async fn stats_list_the_habits_to_sharpen_the_weakest_first() {
         "{said}"
     );
 }
+
+#[wasm_bindgen_test]
+async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_app() {
+    answering(r#"{ "recent_days": [] }"#);
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Tracker />
+            </Router>
+        }
+    });
+    settled().await;
+
+    typed_into(&screen, "mass", "eighty");
+    found::<HtmlFormElement>(&screen, "form.measurement")
+        .request_submit()
+        .expect("the form submits");
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("That is no number I can read"), "{said}");
+}

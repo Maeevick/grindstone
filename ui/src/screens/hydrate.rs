@@ -13,7 +13,7 @@ use crate::screens::fields::{DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::{lines, today};
 use crate::tauri;
-use crate::typed::figure_typed;
+use crate::typed::figures_typed;
 
 #[component]
 fn DrinkingRow(
@@ -113,10 +113,14 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     });
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([servings_typed]) = figures_typed([&servings.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = DrinkingForm {
             date: day.get_untracked(),
             drink: chosen.get_untracked(),
-            servings: figure_typed(&servings.get_untracked()).unwrap_or(f64::NAN),
+            servings: servings_typed.unwrap_or(0.0),
         };
         spawn_local(async move {
             match tauri::log_drink(&form).await {
@@ -233,7 +237,11 @@ pub fn DrinksCatalog() -> impl IntoView {
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let named = name.get_untracked();
-        let volume_ml = figure_typed(&serving.get_untracked()).unwrap_or(f64::NAN);
+        let Some([volume_ml]) = figures_typed([&serving.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let volume_ml = volume_ml.unwrap_or(0.0);
         spawn_local(async move {
             match tauri::add_drink(&named, volume_ml, kind.get_untracked()).await {
                 Ok(drinks) => {
@@ -312,9 +320,13 @@ pub fn HydrateBaseCard() -> impl IntoView {
     });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([base_ml]) = figures_typed([&base.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = HydrateBaseForm {
             from: from.get_untracked(),
-            base_ml: figure_typed(&base.get_untracked()).unwrap_or(f64::NAN),
+            base_ml: base_ml.unwrap_or(0.0),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_hydrate_base(&form).await {

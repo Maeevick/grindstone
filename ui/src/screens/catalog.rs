@@ -11,7 +11,7 @@ use crate::screens::hydrate::DrinksCatalog;
 use crate::screens::lines;
 use crate::screens::meals::MealCooker;
 use crate::tauri;
-use crate::typed::figure_typed;
+use crate::typed::figures_typed;
 
 #[component]
 fn ExercisesCatalog() -> impl IntoView {
@@ -28,7 +28,11 @@ fn ExercisesCatalog() -> impl IntoView {
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let named = name.get_untracked();
-        let met_typed = figure_typed(&met.get_untracked()).unwrap_or(f64::NAN);
+        let Some([met_typed]) = figures_typed([&met.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let met_typed = met_typed.unwrap_or(0.0);
         spawn_local(async move {
             match tauri::add_exercise(&named, met_typed).await {
                 Ok(known) => {
@@ -128,19 +132,39 @@ fn FoodsCatalog() -> impl IntoView {
             Err(failure) => said.set(Some(lines::failure(&failure))),
         }
     });
-    let figure = |typed: RwSignal<String>| figure_typed(&typed.get_untracked()).unwrap_or(0.0);
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some(
+            [
+                portion_typed,
+                energy_kcal,
+                protein_g,
+                carbs_g,
+                fat_g,
+                fibre_g,
+            ],
+        ) = figures_typed([
+            &portion.get_untracked(),
+            &energy.get_untracked(),
+            &protein.get_untracked(),
+            &carbs.get_untracked(),
+            &fat.get_untracked(),
+            &fibre.get_untracked(),
+        ])
+        else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = FoodForm {
             name: name.get_untracked(),
             unit: unit_named(&unit.get_untracked()),
-            portion: figure_typed(&portion.get_untracked()).unwrap_or(f64::NAN),
+            portion: portion_typed.unwrap_or(0.0),
             nutrients: Nutrients {
-                energy_kcal: figure(energy),
-                protein_g: figure(protein),
-                carbs_g: figure(carbs),
-                fat_g: figure(fat),
-                fibre_g: figure(fibre),
+                energy_kcal: energy_kcal.unwrap_or(0.0),
+                protein_g: protein_g.unwrap_or(0.0),
+                carbs_g: carbs_g.unwrap_or(0.0),
+                fat_g: fat_g.unwrap_or(0.0),
+                fibre_g: fibre_g.unwrap_or(0.0),
             },
         };
         spawn_local(async move {

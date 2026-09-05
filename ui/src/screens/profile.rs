@@ -12,7 +12,7 @@ use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateBaseCard;
 use crate::screens::{lines, today};
 use crate::tauri;
-use crate::typed::figure_typed;
+use crate::typed::figures_typed;
 
 #[component]
 fn GoalsCard() -> impl IntoView {
@@ -28,10 +28,16 @@ fn GoalsCard() -> impl IntoView {
     });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([body_mass_kg, fat_percentage]) =
+            figures_typed([&target_mass.get_untracked(), &target_fat.get_untracked()])
+        else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = GoalsForm {
             from: from.get_untracked(),
-            body_mass_kg: figure_typed(&target_mass.get_untracked()).unwrap_or(f64::NAN),
-            fat_percentage: figure_typed(&target_fat.get_untracked()).unwrap_or(f64::NAN),
+            body_mass_kg: body_mass_kg.unwrap_or(0.0),
+            fat_percentage: fat_percentage.unwrap_or(0.0),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_goals(&form).await {
@@ -74,11 +80,19 @@ fn UsualDayCard() -> impl IntoView {
     });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([sitting_min, standing_min, moving_km]) = figures_typed([
+            &sitting.get_untracked(),
+            &standing.get_untracked(),
+            &moving.get_untracked(),
+        ]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = UsualDayForm {
             from: from.get_untracked(),
-            sitting_min: figure_typed(&sitting.get_untracked()).unwrap_or(0.0),
-            standing_min: figure_typed(&standing.get_untracked()).unwrap_or(0.0),
-            moving_km: figure_typed(&moving.get_untracked()).unwrap_or(0.0),
+            sitting_min: sitting_min.unwrap_or(0.0),
+            standing_min: standing_min.unwrap_or(0.0),
+            moving_km: moving_km.unwrap_or(0.0),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_usual_day(&form).await {
@@ -125,11 +139,19 @@ fn FuelTargetsCard() -> impl IntoView {
     });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg]) = figures_typed([
+            &protein.get_untracked(),
+            &fat.get_untracked(),
+            &fibre.get_untracked(),
+        ]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = FuelTargetsForm {
             from: from.get_untracked(),
-            protein_g_per_kg: figure_typed(&protein.get_untracked()).unwrap_or(f64::NAN),
-            fat_g_per_kg: figure_typed(&fat.get_untracked()).unwrap_or(f64::NAN),
-            fibre_g_per_kg: figure_typed(&fibre.get_untracked()).unwrap_or(f64::NAN),
+            protein_g_per_kg: protein_g_per_kg.unwrap_or(0.0),
+            fat_g_per_kg: fat_g_per_kg.unwrap_or(0.0),
+            fibre_g_per_kg: fibre_g_per_kg.unwrap_or(0.0),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_fuel_targets(&form).await {
@@ -205,13 +227,21 @@ pub fn ProfileScreen() -> impl IntoView {
     };
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([height_cm, neck_cm, hip_cm]) = figures_typed([
+            &height.get_untracked(),
+            &neck.get_untracked(),
+            &hip.get_untracked(),
+        ]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = ProfileForm {
             from: from.get_untracked(),
             birthday: birthday.get_untracked(),
             gender: gender.get_untracked(),
-            height_cm: figure_typed(&height.get_untracked()).unwrap_or(f64::NAN),
-            neck_cm: figure_typed(&neck.get_untracked()).unwrap_or(f64::NAN),
-            hip_cm: figure_typed(&hip.get_untracked()),
+            height_cm: height_cm.unwrap_or(0.0),
+            neck_cm: neck_cm.unwrap_or(0.0),
+            hip_cm,
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_profile(&form).await {

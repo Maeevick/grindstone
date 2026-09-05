@@ -10,7 +10,7 @@ use leptos::task::spawn_local;
 use crate::screens::fields::FigureField;
 use crate::screens::lines;
 use crate::tauri;
-use crate::typed::{count_typed, figure_typed};
+use crate::typed::{count_typed, figures_typed};
 
 fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {
     let goal = reps
@@ -108,11 +108,17 @@ pub fn CircuitCrafter() -> impl IntoView {
         }
     });
     let add_step = move |_| {
+        let Some([minutes_typed, load_typed]) =
+            figures_typed([&minutes.get_untracked(), &load.get_untracked()])
+        else {
+            said.set(Some(Err(lines::UNREADABLE.into())));
+            return;
+        };
         let step = StepForm {
             exercise: exercise.get_untracked(),
             reps: count_typed(&reps.get_untracked()),
-            minutes: figure_typed(&minutes.get_untracked()).unwrap_or(f64::NAN),
-            load_kg: figure_typed(&load.get_untracked()).unwrap_or(0.0),
+            minutes: minutes_typed.unwrap_or(0.0),
+            load_kg: load_typed.unwrap_or(0.0),
         };
         steps.update(|added| added.push(step));
         reps.set(String::new());

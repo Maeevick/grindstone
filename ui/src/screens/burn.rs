@@ -9,7 +9,7 @@ use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::FigureField;
 use crate::screens::lines;
 use crate::tauri;
-use crate::typed::{count_typed, figure_typed};
+use crate::typed::{count_typed, figures_typed};
 
 fn how_it_went(done: &BurntWorkout) -> String {
     let workout = &done.workout;
@@ -101,13 +101,19 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     });
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([minutes_typed, load_typed]) =
+            figures_typed([&minutes.get_untracked(), &load.get_untracked()])
+        else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = WorkoutForm {
             date: day.get_untracked(),
             exercise: exercise.get_untracked(),
-            minutes: figure_typed(&minutes.get_untracked()).unwrap_or(f64::NAN),
+            minutes: minutes_typed.unwrap_or(0.0),
             reps: count_typed(&reps.get_untracked()),
             sets: count_typed(&sets.get_untracked()).unwrap_or(1),
-            load_kg: figure_typed(&load.get_untracked()).unwrap_or(0.0),
+            load_kg: load_typed.unwrap_or(0.0),
         };
         spawn_local(async move {
             match tauri::log_workout(&form).await {
@@ -124,10 +130,18 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let keep_off_the_clock = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let date = day.get_untracked();
+        let Some([sitting_min, standing_min, moving_km]) = figures_typed([
+            &sitting.get_untracked(),
+            &standing.get_untracked(),
+            &moving.get_untracked(),
+        ]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = OffTheClockForm {
-            sitting_min: figure_typed(&sitting.get_untracked()).unwrap_or(0.0),
-            standing_min: figure_typed(&standing.get_untracked()).unwrap_or(0.0),
-            moving_km: figure_typed(&moving.get_untracked()).unwrap_or(0.0),
+            sitting_min: sitting_min.unwrap_or(0.0),
+            standing_min: standing_min.unwrap_or(0.0),
+            moving_km: moving_km.unwrap_or(0.0),
         };
         spawn_local(async move {
             match tauri::set_day_off_the_clock(&date, &form).await {

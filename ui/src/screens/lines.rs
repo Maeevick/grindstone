@@ -498,3 +498,5 @@ pub fn habits_to_sharpen(insights: &Insights) -> Vec<String> {
 
 pub const SHARPEN: &str =
     "[Veil, without looking up:] the weakest habits first. A habit, not a verdict.";
+
+pub const UNREADABLE: &str = "That is no number I can read. Digits, with a point or a comma, please. [Grimble squints at the ink.]";

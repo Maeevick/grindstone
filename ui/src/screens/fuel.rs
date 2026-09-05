@@ -8,7 +8,7 @@ use leptos::task::spawn_local;
 
 use crate::screens::lines;
 use crate::tauri;
-use crate::typed::figure_typed;
+use crate::typed::figures_typed;
 
 #[component]
 fn MacroLine(name: &'static str, row: MacroRow) -> impl IntoView {
@@ -98,10 +98,14 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     };
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some([quantity_typed]) = figures_typed([&quantity.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
         let form = IntakeForm {
             date: day.get_untracked(),
             food: food.get_untracked(),
-            quantity: figure_typed(&quantity.get_untracked()).unwrap_or(f64::NAN),
+            quantity: quantity_typed.unwrap_or(0.0),
         };
         spawn_local(async move {
             match tauri::log_intake(&form).await {
