@@ -1,9 +1,13 @@
+use crate::burn_records::BurnRecords;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::for_storing_switch_over::ForStoringSwitchOver;
+use crate::fuel_records::FuelRecords;
+use crate::gather_records::GatherRecords;
+use crate::hydrate_records::HydrateRecords;
 
 pub fn erase_everything(
     gather: &impl ForStoringGatherRecords,
@@ -12,20 +16,20 @@ pub fn erase_everything(
     hydrate: &impl ForStoringHydrateRecords,
     switch_over: &impl ForStoringSwitchOver,
 ) -> Result<(), Failure> {
-    let _ = (gather, burn, fuel, hydrate, switch_over);
+    gather.replace_gather_records(&GatherRecords::default())?;
+    burn.replace_burn_records(&BurnRecords::default())?;
+    fuel.replace_fuel_records(&FuelRecords::default())?;
+    hydrate.replace_hydrate_records(&HydrateRecords::default())?;
+    switch_over.forget_switch_over()?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::burn_records::BurnRecords;
     use crate::drink::DrinkKind;
     use crate::for_cataloguing::{add_drink, add_exercise};
     use crate::for_tracking::log_measurement;
-    use crate::fuel_records::FuelRecords;
-    use crate::gather_records::GatherRecords;
-    use crate::hydrate_records::HydrateRecords;
     use crate::testing::{
         BrokenFuelRecords, BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory,
         HydrateRecordsInMemory, SwitchOverInMemory,
