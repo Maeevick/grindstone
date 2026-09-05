@@ -103,7 +103,7 @@ fn UsualDayCard() -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"The usual day off the clock"</h2>
+            <h2>"The forgotten bucket of sweat"</h2>
             <p class="hint">
                 "Outside workouts: the minutes you usually sit and stand, the kilometres you usually move. It prices the day's NEAT."
             </p>
@@ -162,7 +162,7 @@ fn FuelTargetsCard() -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"Fuel targets"</h2>
+            <h2>"How to feed the goblins"</h2>
             <p class="hint">
                 "Grams per kilo of body mass a day: each is the floor of its band, which also asks for 20 to 33.3% of the day's energy (4% for fibre)."
             </p>
@@ -259,7 +259,7 @@ pub fn ProfileScreen() -> impl IntoView {
             </A>
         </header>
         <section class="card">
-            <h2>"The body behind the numbers"</h2>
+            <h2>"The rusty you behind the numbers"</h2>
             <form class="profile" on:submit=save>
                 <div class="row">
                     <DateField label="From" name="from" value=from />

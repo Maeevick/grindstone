@@ -340,7 +340,7 @@ pub fn HydrateBaseCard() -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"What a day drinks"</h2>
+            <h2>"Hydrate the material"</h2>
             <form class="hydrate-base" on:submit=save>
                 <div class="row">
                     <DateField label="From" name="hydrate_base_from" value=from />
