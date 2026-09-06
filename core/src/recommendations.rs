@@ -4,7 +4,10 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::age::age_on;
 use crate::fuel_records::FuelTargets;
+use crate::gender::Gender;
+use crate::hydrate_base::default_base_ml;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
 
@@ -61,26 +64,73 @@ pub fn recommended(
     body_mass_kg: Option<f64>,
     rhythm: Rhythm,
 ) -> Recommendations {
-    let _ = (profile, day, body_mass_kg, rhythm);
+    let height_m = profile.height_cm / 100.0;
+    let squared = height_m * height_m;
+    let goal_mass_kg = MIDDLE_OF_NORMAL_BMI * squared;
+    let healthy_fat_ratio = healthy_fat_ratio(profile.gender, age_on(profile.birthday, day));
+    let (protein_g_per_kg, steps, (sitting_min, standing_min)) = by_rhythm(rhythm);
     Recommendations {
-        healthy_mass_kg: (0.0, 0.0),
-        goal_mass_kg: 0.0,
-        healthy_fat_ratio: (0.0, 0.0),
-        goal_fat_ratio: 0.0,
+        healthy_mass_kg: (LOWEST_NORMAL_BMI * squared, HIGHEST_NORMAL_BMI * squared),
+        goal_mass_kg,
+        healthy_fat_ratio,
+        goal_fat_ratio: to_the_thousandth((healthy_fat_ratio.0 + healthy_fat_ratio.1) / 2.0),
         fuel: FuelTargets {
-            protein_g_per_kg: 0.0,
-            fat_g_per_kg: 0.0,
-            fibre_g_per_kg: 0.0,
+            protein_g_per_kg,
+            fat_g_per_kg: FAT_FLOOR_G_PER_KG,
+            fibre_g_per_kg: to_the_hundredth(FIBRE_G_A_DAY / body_mass_kg.unwrap_or(goal_mass_kg)),
         },
-        hydrate_base_ml: 0.0,
-        usual_day: Volitional::default(),
+        hydrate_base_ml: default_base_ml(Some(profile.gender)),
+        usual_day: Volitional {
+            sitting_min,
+            standing_min,
+            moving_km: to_the_tenth(steps * METRES_A_STEP / 1000.0),
+        },
     }
+}
+
+const LOWEST_NORMAL_BMI: f64 = 18.5;
+const HIGHEST_NORMAL_BMI: f64 = 24.9;
+const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
+const FAT_FLOOR_G_PER_KG: f64 = 0.8;
+const FIBRE_G_A_DAY: f64 = 25.0;
+const METRES_A_STEP: f64 = 0.75;
+
+fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
+    match (gender, age) {
+        (Gender::Male, ..=39) => (0.08, 0.20),
+        (Gender::Male, 40..=59) => (0.11, 0.22),
+        (Gender::Male, _) => (0.13, 0.25),
+        (Gender::Female, ..=39) => (0.21, 0.33),
+        (Gender::Female, 40..=59) => (0.23, 0.34),
+        (Gender::Female, _) => (0.24, 0.36),
+    }
+}
+
+fn by_rhythm(rhythm: Rhythm) -> (f64, f64, (f64, f64)) {
+    match rhythm {
+        Rhythm::Sedentary => (0.83, 4000.0, (600.0, 60.0)),
+        Rhythm::LightlyActive => (1.1, 6250.0, (480.0, 120.0)),
+        Rhythm::ModeratelyActive => (1.4, 8750.0, (360.0, 240.0)),
+        Rhythm::VeryActive => (1.7, 11250.0, (240.0, 360.0)),
+        Rhythm::ExtremelyActive => (2.0, 14000.0, (120.0, 480.0)),
+    }
+}
+
+fn to_the_tenth(value: f64) -> f64 {
+    (value * 10.0).round() / 10.0
+}
+
+fn to_the_hundredth(value: f64) -> f64 {
+    (value * 100.0).round() / 100.0
+}
+
+fn to_the_thousandth(value: f64) -> f64 {
+    (value * 1000.0).round() / 1000.0
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gender::Gender;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
