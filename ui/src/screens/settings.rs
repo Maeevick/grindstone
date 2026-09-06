@@ -27,5 +27,49 @@ pub fn Settings() -> impl IntoView {
             </button>
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
         </section>
+        <DangerZone />
+    }
+}
+
+const ERASE: &str = "ERASE";
+
+#[component]
+fn DangerZone() -> impl IntoView {
+    let confirmed = RwSignal::new(String::new());
+    let said = RwSignal::new(None::<String>);
+    let erase = move |_| {
+        spawn_local(async move {
+            said.set(Some(match tauri::erase_everything().await {
+                Ok(()) => {
+                    confirmed.set(String::new());
+                    lines::ERASED.into()
+                }
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card danger">
+            <h2>"Danger zone"</h2>
+            <p class="hint">{lines::ERASE_WARNING}</p>
+            <label class="field">
+                {format!("Type {ERASE} to confirm")}
+                <input
+                    name="confirm_erase"
+                    autocomplete="off"
+                    prop:value=move || confirmed.get()
+                    on:input=move |event| confirmed.set(event_target_value(&event))
+                />
+            </label>
+            <button
+                class="cta erase"
+                type="button"
+                disabled=move || confirmed.get().trim() != ERASE
+                on:click=erase
+            >
+                "Erase everything"
+            </button>
+            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+        </section>
     }
 }

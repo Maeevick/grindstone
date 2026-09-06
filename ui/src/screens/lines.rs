@@ -500,3 +500,9 @@ pub const SHARPEN: &str =
     "[Veil, without looking up:] the weakest habits first. A habit, not a verdict.";
 
 pub const UNREADABLE: &str = "That is no number I can read. Digits, with a point or a comma, please. [Grimble squints at the ink.]";
+
+pub const ERASE_WARNING: &str = "Erasing removes every record on this device: measurements, profile, goals, \
+    foods, meals, intakes, drinks, workouts, circuits and settings. There is no undo. The app starts again \
+    as on its first launch, and the draft can be imported again.";
+
+pub const ERASED: &str = "Everything is erased. [Grimble closes an empty ledger and opens a fresh one.] Home starts over with the welcome.";

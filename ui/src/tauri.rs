@@ -306,6 +306,10 @@ pub async fn insights(today: &str, window: Window) -> Result<Insights, Failure> 
     call("insights", Reviewing { today, window }, broken).await
 }
 
+pub async fn erase_everything() -> Result<(), Failure> {
+    call("erase_everything", Nothing {}, broken).await
+}
+
 pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
     call("import_draft", Today { today }, |reason| {
         ImportFailure::Failed(Failure::Broken(reason))
