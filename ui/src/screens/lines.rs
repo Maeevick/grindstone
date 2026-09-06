@@ -186,6 +186,9 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotARatio) => {
             "A fat target between 0 and 100%, the goblin way or any other.".into()
         }
+        Failure::Refused(Refusal::NotAProfile) => {
+            "Recommendations need the rusty you first: birthday, gender and height.".into()
+        }
         Failure::Refused(Refusal::NotAName) => {
             "Even Trix names her explosions. A name, please.".into()
         }

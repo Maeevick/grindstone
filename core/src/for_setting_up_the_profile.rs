@@ -11,6 +11,7 @@ use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate_base::{HydrateBase, base_on};
 use crate::profile::{Profile, profile};
+use crate::recommendations::{Recommendations, Rhythm};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
 use crate::volitional::{Volitional, volitional};
@@ -169,6 +170,15 @@ pub fn hydrate_base_on(
         &hydrate.hydrate_records()?.bases,
         &gather.gather_records()?.profiles,
     ))
+}
+
+pub fn recommended_on(
+    gather: &impl ForStoringGatherRecords,
+    date: &str,
+    rhythm: Rhythm,
+) -> Result<Recommendations, Failure> {
+    let _ = (gather, date, rhythm);
+    Err(Failure::Broken("not yet".into()))
 }
 
 #[cfg(test)]
@@ -437,6 +447,36 @@ mod tests {
         );
         assert_eq!(
             hydrate_base_on(&BrokenGatherRecords, &hydrate, "2026-10-10"),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn recommendations_read_the_profile_and_the_body_mass_in_force_on_their_day() {
+        let gather = GatherRecordsInMemory::default();
+        set_profile(&gather, &a_mans_form("2026-03-01")).expect("a profile set");
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, None)
+            .expect("a measurement logs");
+
+        let advised =
+            recommended_on(&gather, "2026-10-11", Rhythm::VeryActive).expect("recommendations");
+
+        assert_eq!(advised.fuel.protein_g_per_kg, 1.7);
+        assert_eq!(advised.fuel.fibre_g_per_kg, 0.31);
+    }
+
+    #[test]
+    fn without_a_profile_there_is_nothing_to_recommend() {
+        assert_eq!(
+            recommended_on(
+                &GatherRecordsInMemory::default(),
+                "2026-10-11",
+                Rhythm::Sedentary
+            ),
+            Err(Failure::Refused(Refusal::NotAProfile))
+        );
+        assert_eq!(
+            recommended_on(&BrokenGatherRecords, "2026-10-11", Rhythm::Sedentary),
             Err(Failure::Broken("the disk is full".into()))
         );
     }

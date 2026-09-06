@@ -25,4 +25,5 @@ pub enum Refusal {
     NotAVolume,
     NotAServing,
     NotADrink,
+    NotAProfile,
 }
