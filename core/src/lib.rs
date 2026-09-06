@@ -39,6 +39,7 @@ pub mod measurement;
 pub mod nutrition;
 pub mod profile;
 pub mod progress;
+pub mod recommendations;
 pub mod refusal;
 pub mod sources;
 pub mod stats;
