@@ -11,7 +11,7 @@ use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate_base::{HydrateBase, base_on};
 use crate::profile::{Profile, profile};
-use crate::recommendations::{Recommendations, Rhythm};
+use crate::recommendations::{Recommendations, Rhythm, recommended};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
 use crate::volitional::{Volitional, volitional};
@@ -177,8 +177,21 @@ pub fn recommended_on(
     date: &str,
     rhythm: Rhythm,
 ) -> Result<Recommendations, Failure> {
-    let _ = (gather, date, rhythm);
-    Err(Failure::Broken("not yet".into()))
+    let day = day(date)?;
+    let gathered = gather.gather_records()?;
+    let profile = version_in_force_on(&gathered.profiles, day)
+        .ok_or(Failure::Refused(Refusal::NotAProfile))?;
+    let masses: Vec<(NaiveDate, f64)> = gathered
+        .measurements
+        .iter()
+        .map(|measured| (measured.day, measured.body_mass_kg))
+        .collect();
+    Ok(recommended(
+        profile,
+        day,
+        version_in_force_on(&masses, day).copied(),
+        rhythm,
+    ))
 }
 
 #[cfg(test)]
