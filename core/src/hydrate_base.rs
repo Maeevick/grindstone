@@ -28,6 +28,10 @@ fn adequate_intake_of_total_water_ml(gender: Option<Gender>) -> f64 {
     }
 }
 
+pub fn default_base_ml(gender: Option<Gender>) -> f64 {
+    adequate_intake_of_total_water_ml(gender) * DRINKS_PERCENT_OF_TOTAL_WATER / 100.0
+}
+
 pub fn base_on(
     day: NaiveDate,
     bases: &[(NaiveDate, f64)],
@@ -41,8 +45,7 @@ pub fn base_on(
         None => {
             let gender = version_in_force_on(profiles, day).map(|profile| profile.gender);
             HydrateBase {
-                base_ml: adequate_intake_of_total_water_ml(gender) * DRINKS_PERCENT_OF_TOTAL_WATER
-                    / 100.0,
+                base_ml: default_base_ml(gender),
                 is_default: true,
             }
         }
