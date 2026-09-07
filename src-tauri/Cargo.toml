@@ -12,6 +12,7 @@ tauri-build = { version = "2.6", features = [] }
 
 [dependencies]
 tauri = { version = "2.11", features = [] }
+tauri-plugin-opener = "2"
 serde.workspace = true
 grind-core.workspace = true
 grind-sqlite.workspace = true

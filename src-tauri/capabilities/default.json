@@ -3,5 +3,5 @@
 	"identifier": "default",
 	"description": "What the one window may call",
 	"windows": ["main"],
-	"permissions": ["core:default"]
+	"permissions": ["core:default", "opener:default"]
 }
