@@ -33,8 +33,11 @@ pub struct Reference {
 }
 
 pub fn references_about(topic: Topic) -> Vec<Reference> {
-    let _ = topic;
-    vec![]
+    REFERENCES
+        .iter()
+        .filter(|reference| reference.topic == topic)
+        .copied()
+        .collect()
 }
 
 pub const REFERENCES: [Reference; 22] = [
