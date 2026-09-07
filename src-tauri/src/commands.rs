@@ -444,8 +444,8 @@ pub fn recommended_on(
     date: String,
     rhythm: Rhythm,
 ) -> Result<Recommendations, Failure> {
-    let _ = (records, date, rhythm);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::recommended_on(&*records, &date, rhythm)
 }
 
 #[cfg(test)]
