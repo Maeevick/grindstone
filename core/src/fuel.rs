@@ -115,6 +115,13 @@ fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eate
     }
 }
 
+/// The day's band: the budget plus the burn caps it; the floor is what the fat store can spare
+/// below the cap, never under a minimum per kilo of lean mass plus the burn.
+///
+/// - What the fat store can spare, about 48.5 kcal per kilo of fat a day: Alpert S. S. (2005),
+///   *A limit on the energy transfer rate from the human fat store in hypophagia*, J Theor Biol 233(1):1-13.
+/// - The minimum per kilo of lean mass: Loucks A. B., Kiens B., Wright H. H. (2011),
+///   *Energy availability in athletes*, J Sports Sci 29(sup1):S7-S15.
 fn band_for(
     body: &Body,
     burnt_kcal: f64,
@@ -175,6 +182,13 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: f64) -> MacroRow {
     }
 }
 
+/// Each macro's floor and ceiling for the day.
+///
+/// - Protein and fat floors from the targets per kilo, each at least 20% of the energy eaten and at most 33.3%,
+///   within EFSA's 20 to 35% for fat (2010) and the ISSN's 1.4 to 2.0 g/kg for protein: Jäger R. et al. (2017),
+///   J Int Soc Sports Nutr 14:20.
+/// - Fibre between 2.4% and 4% of the energy eaten, after the Institute of Medicine's 14 g per 1000 kcal (2005).
+/// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g (2005).
 fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
     let energy = eaten.energy_kcal;
     let protein = row(

@@ -56,6 +56,10 @@ pub fn burnt_by(workout: &Workout, body_mass_kg: f64) -> f64 {
         )
 }
 
+/// What a workout burns above rest: its MET less one, at the body mass plus the load, for its minutes.
+///
+/// METs from Herrmann S. D. et al. (2024), *2024 Adult Compendium of Physical Activities: a third update
+/// of the energy costs of human activities*, J Sport Health Sci 13(1):6-12.
 pub fn activity_induced_energy_expenditure_from_compendium(
     bodymass: f64,
     met: f64,

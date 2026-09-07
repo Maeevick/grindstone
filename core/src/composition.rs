@@ -18,6 +18,11 @@ pub struct Composition {
     pub lean_mass_kg: f64,
 }
 
+/// A body's fat ratio, fat mass and lean mass, read from its tapes and height with the US Navy formula.
+///
+/// Hodgdon J. A., Beckett M. B. (1984), *Prediction of percent body fat for U.S. Navy men
+/// from body circumferences and height*, Naval Health Research Center, report 84-11;
+/// and *… for U.S. Navy women …*, report 84-29.
 pub fn body_composition(body_mass_kg: f64, height_cm: f64, tapes: Tapes) -> Option<Composition> {
     if !(body_mass_kg.is_finite() && body_mass_kg > 0.0) {
         return None;
