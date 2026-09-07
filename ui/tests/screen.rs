@@ -11,6 +11,7 @@ use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::hydrate::{DrinksCatalog, HydrateBaseCard, HydrateDay};
 use grind_ui::screens::meals::MealCooker;
 use grind_ui::screens::profile::ProfileScreen;
+use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
 use grind_ui::screens::stats::Stats;
 use grind_ui::screens::tracker::Tracker;
@@ -1298,4 +1299,66 @@ async fn a_rhythm_chosen_fills_each_card_with_its_recommendation_on_demand() {
         "{said}"
     );
     assert!(said.contains("not medical advice"), "{said}");
+}
+
+#[wasm_bindgen_test]
+async fn the_scientific_references_cite_each_source_under_its_topic_with_its_public_page() {
+    answering(r#"{ "plugin:opener|open_url": null }"#);
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ReferencesScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let topics = screen
+        .query_selector_all("section.topic")
+        .map(|found| found.length())
+        .unwrap_or_default();
+    let pages = screen
+        .query_selector_all("ol.bibliography a.page")
+        .map(|found| found.length())
+        .unwrap_or_default();
+    let ranges: Element = found(&screen, "section#healthy-ranges");
+    let cited = ranges.text_content().unwrap_or_default();
+    assert_eq!((topics, pages), (6, 20));
+    assert!(
+        cited.contains("Gallagher D.") && cited.contains("American Journal of Clinical Nutrition 72(3):694-701"),
+        "{cited}"
+    );
+}
+
+#[wasm_bindgen_test]
+async fn each_profile_card_points_to_its_scientific_references() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let pointed: Vec<String> = ["healthy-ranges", "macronutrients", "water", "activity"]
+        .into_iter()
+        .filter(|topic| {
+            screen
+                .query_selector(&format!("a.references[href='/references#{topic}']"))
+                .ok()
+                .flatten()
+                .is_some()
+        })
+        .map(String::from)
+        .collect();
+    assert_eq!(pointed.len(), 4, "{pointed:?}");
+    assert!(screen.query_selector("ul.sources").ok().flatten().is_none());
 }

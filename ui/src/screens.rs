@@ -10,6 +10,7 @@ pub mod hydrate;
 pub mod lines;
 pub mod meals;
 pub mod profile;
+pub mod references;
 pub mod settings;
 pub mod stats;
 pub mod tracker;
