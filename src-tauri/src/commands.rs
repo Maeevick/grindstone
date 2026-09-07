@@ -32,6 +32,7 @@ use grind_core::hydrate_base::HydrateBase;
 use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
+use grind_core::recommendations::{Recommendations, Rhythm};
 use grind_core::stats::Measure;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
@@ -437,6 +438,16 @@ pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
     for_starting_over::erase_everything(&*records, &*records, &*records, &*records, &*records)
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub fn recommended_on(
+    records: State<Records>,
+    date: String,
+    rhythm: Rhythm,
+) -> Result<Recommendations, Failure> {
+    let _ = (records, date, rhythm);
+    Err(Failure::Broken("not yet".into()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,6 +519,7 @@ mod tests {
                 burn_month,
                 insights,
                 erase_everything,
+                recommended_on,
             ])
             .build(mock_context(noop_assets()))
             .expect("the app builds on the mock runtime");
@@ -1234,5 +1246,31 @@ mod tests {
 
         assert_eq!(erased, Ok(json!(null)));
         assert_eq!(days_left, Ok(json!([])));
+    }
+
+    #[test]
+    fn recommendations_cross_to_the_screen_for_the_rhythm_asked() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "set_profile",
+            json!({ "form": { "from": "2026-03-01", "birthday": "1985-04-12", "gender": "Male",
+                "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null } }),
+        )
+        .expect("a profile set");
+
+        let advised = invoke(
+            &screen,
+            "recommended_on",
+            json!({ "date": "2026-10-11", "rhythm": "Sedentary" }),
+        )
+        .expect("recommendations");
+
+        assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(0.83));
+        assert_eq!(advised["hydrate_base_ml"], json!(2000.0));
+        assert_eq!(
+            advised["usual_day"],
+            json!({ "sitting_min": 600.0, "standing_min": 60.0, "moving_km": 3.0 })
+        );
     }
 }

@@ -61,6 +61,7 @@ pub fn run() {
             commands::burn_month,
             commands::insights,
             commands::erase_everything,
+            commands::recommended_on,
             commands::circuits,
             commands::craft_circuit,
             commands::remove_circuit,
