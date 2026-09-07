@@ -6,6 +6,7 @@ use crate::screens::catalog::Catalog;
 use crate::screens::home::Home;
 use crate::screens::lines;
 use crate::screens::profile::ProfileScreen;
+use crate::screens::references::ReferencesScreen;
 use crate::screens::settings::Settings;
 use crate::screens::stats::Stats;
 use crate::screens::tracker::Tracker;
@@ -26,6 +27,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/profile") view=ProfileScreen />
                     <Route path=path!("/settings") view=Settings />
                     <Route path=path!("/stats") view=Stats />
+                    <Route path=path!("/references") view=ReferencesScreen />
                 </Routes>
             </main>
             <nav class="tabs">

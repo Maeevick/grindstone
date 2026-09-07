@@ -961,23 +961,20 @@ fn the_base_card_in(screen: &Element) -> impl Drop {
 }
 
 #[wasm_bindgen_test]
-async fn with_no_base_set_the_card_fills_in_the_efsa_default_and_links_its_source() {
+async fn with_no_base_set_the_card_fills_in_the_efsa_default_and_points_to_its_references() {
     answering(r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#);
     let screen = screen();
     let _mounted = the_base_card_in(&screen);
     settled().await;
 
     assert_eq!(value_of(&screen, "hydrate_base"), "2000");
-    let source: Element = found(&screen, "a.source");
+    let references: Element = found(&screen, "a.references");
     assert_eq!(
-        source.get_attribute("href").as_deref(),
-        Some("https://doi.org/10.2903/j.efsa.2010.1459")
+        references.get_attribute("href").as_deref(),
+        Some("/references#water")
     );
     let card = screen.text_content().unwrap_or_default();
-    assert!(
-        card.contains("EFSA Panel on Dietetic Products, Nutrition and Allergies (2010)"),
-        "{card}"
-    );
+    assert!(card.contains("EFSA's default holds: 2000 mL"), "{card}");
 }
 
 #[wasm_bindgen_test]
@@ -1326,7 +1323,8 @@ async fn the_scientific_references_cite_each_source_under_its_topic_with_its_pub
     let cited = ranges.text_content().unwrap_or_default();
     assert_eq!((topics, pages), (6, 20));
     assert!(
-        cited.contains("Gallagher D.") && cited.contains("American Journal of Clinical Nutrition 72(3):694-701"),
+        cited.contains("Gallagher D.")
+            && cited.contains("American Journal of Clinical Nutrition 72(3):694-701"),
         "{cited}"
     );
 }

@@ -321,6 +321,15 @@ pub async fn recommended_on(date: &str, rhythm: Rhythm) -> Result<Recommendation
     call("recommended_on", Recommending { date, rhythm }, broken).await
 }
 
+#[derive(Serialize)]
+struct Opening<'a> {
+    url: &'a str,
+}
+
+pub async fn open_page(url: &str) -> Result<(), Failure> {
+    call("plugin:opener|open_url", Opening { url }, broken).await
+}
+
 pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
     call("import_draft", Today { today }, |reason| {
         ImportFailure::Failed(Failure::Broken(reason))

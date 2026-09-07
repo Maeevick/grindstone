@@ -1,3 +1,4 @@
+use grind_core::bibliography::Topic;
 use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
     FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
@@ -5,13 +6,13 @@ use grind_core::for_setting_up_the_profile::{
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
 use grind_core::recommendations::{RHYTHMS, Recommendations, Rhythm};
-use grind_core::sources::FUEL_RECOMMENDATIONS;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
 
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateBaseCard;
+use crate::screens::references::ReferencesLink;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -65,6 +66,7 @@ fn RhythmCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
             </div>
             <p class="hint">{move || lines::rhythm_described(rhythm.get())}</p>
             <p class="hint">{lines::RECOMMENDATIONS_DISCLAIMER}</p>
+            <ReferencesLink topic=Topic::Activity />
         </section>
     }
 }
@@ -118,6 +120,7 @@ fn GoalsCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
                 </div>
                 {move || healthy.get().map(|line| view! { <p class="hint">{line}</p> })}
                 <Recommend rhythm=rhythm fill=fill said=said />
+                <ReferencesLink topic=Topic::HealthyRanges />
                 <button class="cta" type="submit">
                     "Keep these goals"
                 </button>
@@ -183,6 +186,7 @@ fn UsualDayCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
                     <FigureField label="Moving (km)" name="usual_moving" value=moving />
                 </div>
                 <Recommend rhythm=rhythm fill=fill said=said />
+                <ReferencesLink topic=Topic::Activity />
                 <button class="cta" type="submit">
                     "Keep this usual day"
                 </button>
@@ -253,23 +257,7 @@ fn FuelTargetsCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
                 </button>
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
-            <ul class="sources">
-                {FUEL_RECOMMENDATIONS
-                    .iter()
-                    .map(|recommendation| {
-                        let source = recommendation.source;
-                        view! {
-                            <li>
-                                <strong>{recommendation.about}</strong>
-                                {format!(": {}. ", recommendation.says)}
-                                <a href=source.link target="_blank" rel="noopener">
-                                    {format!("{} ({}), {}", source.authors, source.year, source.title)}
-                                </a>
-                            </li>
-                        }
-                    })
-                    .collect_view()}
-            </ul>
+            <ReferencesLink topic=Topic::Macronutrients />
         </section>
     }
 }

@@ -1,10 +1,10 @@
+use grind_core::bibliography::Topic;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateBaseForm;
 use grind_core::hydrate::Hydrate;
-use grind_core::hydrate_base::DEFAULT_BASE_SOURCE;
 use grind_core::recommendations::{Recommendations, Rhythm};
 use grind_core::verdict::Verdict;
 use leptos::prelude::*;
@@ -13,6 +13,7 @@ use leptos::task::spawn_local;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::profile::Recommend;
+use crate::screens::references::ReferencesLink;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -352,30 +353,14 @@ pub fn HydrateBaseCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
                     <FigureField label="Base (mL)" name="hydrate_base" value=base />
                 </div>
                 <Recommend rhythm=rhythm fill=fill said=said />
+                <ReferencesLink topic=Topic::Water />
                 {move || {
                     default_ml
                         .get()
                         .map(|ml| {
-                            let source = DEFAULT_BASE_SOURCE;
                             view! {
                                 <p class="hint">{lines::default_hydrate_base(ml)}</p>
-                                <ul class="sources">
-                                    <li>
-                                        <a
-                                            class="source"
-                                            href=source.link
-                                            target="_blank"
-                                            rel="noopener"
-                                        >
-                                            {format!(
-                                                "{} ({}), {}",
-                                                source.authors,
-                                                source.year,
-                                                source.title,
-                                            )}
-                                        </a>
-                                    </li>
-                                </ul>
+
                             }
                         })
                 }}

@@ -1,3 +1,4 @@
+use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown};
@@ -432,7 +433,7 @@ pub fn hydrate_base_kept(from: &str) -> String {
 pub fn default_hydrate_base(base_ml: f64) -> String {
     format!(
         "No base set yet, so EFSA's default holds: {} from drinks, four fifths of the adequate \
-         intake of total water, food bringing the rest. Sourced, as every figure here:",
+         intake of total water, food bringing the rest.",
         shown(Figure::Volume(base_ml))
     )
 }
@@ -559,4 +560,19 @@ pub fn healthy_ranges(advised: &Recommendations) -> String {
         shown(Figure::Ratio(leanest)),
         shown(Figure::Ratio(fattest))
     )
+}
+
+pub const REFERENCES_INTRO: &str = "The studies and guidelines behind Grindstone's figures, as a bibliography. \
+    Each public page shows the abstract; reading a study in full may cost money, the reference itself never should. \
+    [Veil, from the shelves: \"shhhhh! I'm reading...\"]";
+
+pub fn topic_name(topic: Topic) -> &'static str {
+    match topic {
+        Topic::BodyComposition => "Body composition",
+        Topic::HealthyRanges => "Healthy ranges",
+        Topic::Energy => "Energy",
+        Topic::Activity => "Activity",
+        Topic::Macronutrients => "Macronutrients",
+        Topic::Water => "Water",
+    }
 }
