@@ -1250,3 +1250,48 @@ async fn the_danger_zone_erases_everything_once_erase_is_typed() {
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("Everything is erased"), "{said}");
 }
+
+const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg": 70.308,
+    "healthy_fat_ratio": [0.11, 0.22], "goal_fat_ratio": 0.165,
+    "fuel": { "protein_g_per_kg": 1.7, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.35 },
+    "hydrate_base_ml": 2000.0, "usual_day": { "sitting_min": 240.0, "standing_min": 360.0, "moving_km": 8.4 } }"#;
+
+#[wasm_bindgen_test]
+async fn a_rhythm_chosen_fills_each_card_with_its_recommendation_on_demand() {
+    answering(&format!(
+        r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
+             "goals_on": null, "fuel_targets_on": {{ "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
+             "usual_day_on": null, "hydrate_base_on": {{ "base_ml": 2000.0, "is_default": true }},
+             "recommended_on": {{ "__by": "rhythm", "VeryActive": {RECOMMENDED} }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "button.rhythm-VeryActive").click();
+    settled().await;
+    for card in [".goals", ".fuel-targets", ".hydrate-base", ".usual-day"] {
+        found::<web_sys::HtmlElement>(&screen, &format!("{card} button.recommend")).click();
+    }
+    settled().await;
+
+    assert_eq!(
+        [
+            value_of(&screen, "target_mass"),
+            value_of(&screen, "target_fat"),
+            value_of(&screen, "target_protein"),
+            value_of(&screen, "usual_sitting"),
+            value_of(&screen, "usual_moving"),
+        ],
+        ["70.31", "16.5", "1.7", "240", "8.4"]
+    );
+    let said = screen.text_content().unwrap_or_default();
+    assert!(said.contains("59.9 kg to 80.7 kg") && said.contains("11.0% to 22.0%"), "{said}");
+    assert!(said.contains("not medical advice"), "{said}");
+}
