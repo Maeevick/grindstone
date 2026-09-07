@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::gender::Gender;
 use crate::profile::Profile;
-use crate::sources::Source;
 use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -11,13 +10,6 @@ pub struct HydrateBase {
     pub base_ml: f64,
     pub is_default: bool,
 }
-
-pub const DEFAULT_BASE_SOURCE: Source = Source {
-    authors: "EFSA Panel on Dietetic Products, Nutrition and Allergies",
-    year: 2010,
-    title: "Scientific Opinion on Dietary Reference Values for water",
-    link: "https://doi.org/10.2903/j.efsa.2010.1459",
-};
 
 const DRINKS_PERCENT_OF_TOTAL_WATER: f64 = 80.0;
 
