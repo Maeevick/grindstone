@@ -180,6 +180,8 @@ mod tests {
         assert_eq!(fat_of("2001-06-01", Gender::Female), ((0.21, 0.33), 0.27));
         assert_eq!(fat_of("1960-01-01", Gender::Male), ((0.13, 0.25), 0.19));
         assert_eq!(fat_of("2010-01-01", Gender::Male), ((0.08, 0.20), 0.14));
+        assert_eq!(fat_of("1980-01-01", Gender::Female), ((0.23, 0.34), 0.285));
+        assert_eq!(fat_of("1950-01-01", Gender::Female), ((0.24, 0.36), 0.3));
     }
 
     #[test]
