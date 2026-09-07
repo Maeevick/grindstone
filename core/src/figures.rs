@@ -23,8 +23,7 @@ fn to_the_hundredth(value: f64) -> f64 {
 }
 
 pub fn typed_back(value: f64) -> String {
-    let _ = value;
-    String::new()
+    format!("{}", to_the_hundredth(value) + 0.0)
 }
 
 pub fn shown(figure: Figure) -> String {
