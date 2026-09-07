@@ -1,0 +1,271 @@
+//! The scientific references behind the app's rules, as an academic bibliography: who wrote
+//! what, where, and a public page for it (a PubMed record, a DOI landing page, a WHO or DTIC page).
+//! Reading a study in full may cost money; the reference itself never should.
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Topic {
+    BodyComposition,
+    HealthyRanges,
+    Energy,
+    Activity,
+    Macronutrients,
+    Water,
+}
+
+pub const TOPICS: [Topic; 6] = [
+    Topic::BodyComposition,
+    Topic::HealthyRanges,
+    Topic::Energy,
+    Topic::Activity,
+    Topic::Macronutrients,
+    Topic::Water,
+];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Reference {
+    pub topic: Topic,
+    pub authors: &'static str,
+    pub year: u16,
+    pub title: &'static str,
+    pub published_in: &'static str,
+    pub page: Option<&'static str>,
+    pub used_for: &'static str,
+}
+
+pub fn references_about(topic: Topic) -> Vec<Reference> {
+    let _ = topic;
+    vec![]
+}
+
+pub const REFERENCES: [Reference; 22] = [
+    Reference {
+        topic: Topic::BodyComposition,
+        authors: "Hodgdon J. A., Beckett M. B.",
+        year: 1984,
+        title: "Prediction of percent body fat for U.S. Navy men from body circumferences and height",
+        published_in: "Naval Health Research Center, San Diego, report 84-11",
+        page: Some("https://apps.dtic.mil/sti/pdfs/ADA143890.pdf"),
+        used_for: "A man's fat ratio, read from his waist, neck and height",
+    },
+    Reference {
+        topic: Topic::BodyComposition,
+        authors: "Hodgdon J. A., Beckett M. B.",
+        year: 1984,
+        title: "Prediction of percent body fat for U.S. Navy women from body circumferences and height",
+        published_in: "Naval Health Research Center, San Diego, report 84-29",
+        page: Some("https://apps.dtic.mil/sti/html/tr/ADA146456/index.html"),
+        used_for: "A woman's fat ratio, read from her waist, hip, neck and height",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "World Health Organization",
+        year: 2000,
+        title: "Obesity: preventing and managing the global epidemic. Report of a WHO consultation",
+        published_in: "WHO Technical Report Series 894",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/11234459/"),
+        used_for: "The healthy body mass index, 18.5 to 24.9, behind the recommended mass",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "Gallagher D., Heymsfield S. B., Heo M., Jebb S. A., Murgatroyd P. R., Sakamoto Y.",
+        year: 2000,
+        title: "Healthy percentage body fat ranges: an approach for developing guidelines based on body mass index",
+        published_in: "American Journal of Clinical Nutrition 72(3):694-701",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/10966886/"),
+        used_for: "The healthy body fat by age and gender (table 4), behind the recommended fat",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "McArdle W. D., Katch F. I., Katch V. L.",
+        year: 2015,
+        title: "Exercise physiology: nutrition, energy, and human performance (8th edition)",
+        published_in: "Wolters Kluwer Health",
+        page: None,
+        used_for: "The basal rate from lean mass (Katch-McArdle)",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "Elia M.",
+        year: 1992,
+        title: "Organ and tissue contribution to metabolic rate",
+        published_in: "In Kinney J. M., Tucker H. N. (eds), Energy metabolism: tissue determinants and cellular corollaries, Raven Press, 61-79",
+        page: None,
+        used_for: "What the organs cost, per kilo of lean and fat mass",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "Calcagno M., Kahleova H., Alwarith J., Burgess N. N., Flores R. A., Busta M. L., Barnard N. D.",
+        year: 2019,
+        title: "The thermic effect of food: a review",
+        published_in: "Journal of the American College of Nutrition 38(6):547-551",
+        page: Some("https://doi.org/10.1080/07315724.2018.1552544"),
+        used_for: "Digestion priced on the grams of protein, carbohydrate, fat and fibre eaten",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "Levine J. A.",
+        year: 2002,
+        title: "Non-exercise activity thermogenesis (NEAT)",
+        published_in: "Best Practice & Research Clinical Endocrinology & Metabolism 16(4):679-702",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/12468415/"),
+        used_for: "The day off the clock: sitting, standing, moving and fidgeting",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "Alpert S. S.",
+        year: 2005,
+        title: "A limit on the energy transfer rate from the human fat store in hypophagia",
+        published_in: "Journal of Theoretical Biology 233(1):1-13",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/15615615/"),
+        used_for: "The band's floor: what the fat store can spare in a day, about 48.5 kcal per kilo",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "Loucks A. B., Kiens B., Wright H. H.",
+        year: 2011,
+        title: "Energy availability in athletes",
+        published_in: "Journal of Sports Sciences 29(sup1):S7-S15",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/21793767/"),
+        used_for: "The band's minimum per kilo of lean mass, plus the burn",
+    },
+    Reference {
+        topic: Topic::Activity,
+        authors: "Herrmann S. D., Willis E. A., Ainsworth B. E., et al.",
+        year: 2024,
+        title: "2024 Adult Compendium of Physical Activities: a third update of the energy costs of human activities",
+        published_in: "Journal of Sport and Health Science 13(1):6-12",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/38242596/"),
+        used_for: "The MET of each exercise, burnt above rest",
+    },
+    Reference {
+        topic: Topic::Activity,
+        authors: "Tudor-Locke C., Bassett D. R.",
+        year: 2004,
+        title: "How many steps/day are enough? Preliminary pedometer indices for public health",
+        published_in: "Sports Medicine 34(1):1-8",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/14715035/"),
+        used_for: "The steps of each rhythm, behind the recommended usual day",
+    },
+    Reference {
+        topic: Topic::Activity,
+        authors: "Bull F. C., Al-Ansari S. S., Biddle S., et al.",
+        year: 2020,
+        title: "World Health Organization 2020 guidelines on physical activity and sedentary behaviour",
+        published_in: "British Journal of Sports Medicine 54(24):1451-1462",
+        page: Some("https://doi.org/10.1136/bjsports-2020-102955"),
+        used_for: "Less sitting, more moving: the direction the rhythms take",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "Jäger R., Kerksick C. M., Campbell B. I., et al.",
+        year: 2017,
+        title: "International Society of Sports Nutrition position stand: protein and exercise",
+        published_in: "Journal of the International Society of Sports Nutrition 14:20",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/28642676/"),
+        used_for: "Protein of 1.4 to 2.0 g per kilo for those who train",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "World Health Organization, Food and Agriculture Organization, United Nations University",
+        year: 2007,
+        title: "Protein and amino acid requirements in human nutrition",
+        published_in: "WHO Technical Report Series 935",
+        page: Some("https://iris.who.int/handle/10665/43411"),
+        used_for: "Protein of 0.83 g per kilo, the safe level for a sedentary adult",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "EFSA Panel on Dietetic Products, Nutrition and Allergies",
+        year: 2012,
+        title: "Scientific Opinion on Dietary Reference Values for protein",
+        published_in: "EFSA Journal 10(2):2557",
+        page: Some("https://doi.org/10.2903/j.efsa.2012.2557"),
+        used_for: "The same 0.83 g per kilo, as Europe's population reference intake",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "EFSA Panel on Dietetic Products, Nutrition and Allergies",
+        year: 2010,
+        title: "Scientific Opinion on Dietary Reference Values for fats, including saturated fatty acids, polyunsaturated fatty acids, monounsaturated fatty acids, trans fatty acids, and cholesterol",
+        published_in: "EFSA Journal 8(3):1461",
+        page: Some("https://doi.org/10.2903/j.efsa.2010.1461"),
+        used_for: "Fat of 20 to 35% of the day's energy",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "World Health Organization",
+        year: 2023,
+        title: "Total fat intake for the prevention of unhealthy weight gain in adults and children: WHO guideline",
+        published_in: "World Health Organization, Geneva",
+        page: Some("https://www.who.int/publications/i/item/9789240073654"),
+        used_for: "Fat of 30% of the day's energy at most",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "EFSA Panel on Dietetic Products, Nutrition and Allergies",
+        year: 2010,
+        title: "Scientific Opinion on Dietary Reference Values for carbohydrates and dietary fibre",
+        published_in: "EFSA Journal 8(3):1462",
+        page: Some("https://doi.org/10.2903/j.efsa.2010.1462"),
+        used_for: "Fibre of 25 g a day for adults",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "World Health Organization",
+        year: 2023,
+        title: "Carbohydrate intake for adults and children: WHO guideline",
+        published_in: "World Health Organization, Geneva",
+        page: Some("https://www.who.int/publications/i/item/9789240073593"),
+        used_for: "Fibre of at least 25 g a day, behind the recommended fibre",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "Institute of Medicine",
+        year: 2005,
+        title: "Dietary Reference Intakes for energy, carbohydrate, fiber, fat, fatty acids, cholesterol, protein, and amino acids",
+        published_in: "The National Academies Press, Washington",
+        page: Some("https://doi.org/10.17226/10490"),
+        used_for: "At least 130 g of carbohydrates, and fibre of 14 g per 1000 kcal",
+    },
+    Reference {
+        topic: Topic::Water,
+        authors: "EFSA Panel on Dietetic Products, Nutrition and Allergies",
+        year: 2010,
+        title: "Scientific Opinion on Dietary Reference Values for water",
+        published_in: "EFSA Journal 8(3):1459",
+        page: Some("https://doi.org/10.2903/j.efsa.2010.1459"),
+        used_for: "Water of 2.5 L a day for men and 2.0 L for women, four fifths of it from drinks",
+    },
+];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn each_topic_gathers_its_own_references_and_every_reference_falls_under_one() {
+        let water = references_about(Topic::Water);
+        let gathered: usize = TOPICS
+            .iter()
+            .map(|topic| references_about(*topic).len())
+            .sum();
+
+        assert_eq!(water.len(), 1);
+        assert!(
+            water
+                .iter()
+                .all(|reference| reference.topic == Topic::Water)
+        );
+        assert_eq!(gathered, REFERENCES.len());
+    }
+
+    #[test]
+    fn every_public_page_is_a_secure_link() {
+        assert!(
+            REFERENCES
+                .iter()
+                .filter_map(|reference| reference.page)
+                .all(|page| page.starts_with("https://"))
+        );
+    }
+}
