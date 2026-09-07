@@ -1,6 +1,7 @@
 #![cfg(target_arch = "wasm32")]
 
 use grind_core::burn::Burn;
+use grind_core::recommendations::Rhythm;
 use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
@@ -952,7 +953,7 @@ fn the_base_card_in(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
-                <HydrateBaseCard />
+                <HydrateBaseCard rhythm=RwSignal::new(Rhythm::ModeratelyActive) />
             </Router>
         }
     })
@@ -1292,6 +1293,9 @@ async fn a_rhythm_chosen_fills_each_card_with_its_recommendation_on_demand() {
         ["70.31", "16.5", "1.7", "240", "8.4"]
     );
     let said = screen.text_content().unwrap_or_default();
-    assert!(said.contains("59.9 kg to 80.7 kg") && said.contains("11.0% to 22.0%"), "{said}");
+    assert!(
+        said.contains("59.9 kg to 80.7 kg") && said.contains("11.0% to 22.0%"),
+        "{said}"
+    );
     assert!(said.contains("not medical advice"), "{said}");
 }

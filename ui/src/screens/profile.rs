@@ -1,8 +1,10 @@
+use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
     FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
 };
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
+use grind_core::recommendations::{RHYTHMS, Recommendations, Rhythm};
 use grind_core::sources::FUEL_RECOMMENDATIONS;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -15,11 +17,70 @@ use crate::tauri;
 use crate::typed::figures_typed;
 
 #[component]
-fn GoalsCard() -> impl IntoView {
+pub fn Recommend(
+    rhythm: RwSignal<Rhythm>,
+    fill: Callback<Recommendations>,
+    said: RwSignal<Option<String>>,
+) -> impl IntoView {
+    let ask = move |_| {
+        let chosen = rhythm.get_untracked();
+        spawn_local(async move {
+            match tauri::recommended_on(&today(), chosen).await {
+                Ok(advised) => {
+                    fill.run(advised);
+                    said.set(Some(lines::RECOMMENDATION_FILLED.into()));
+                }
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
+    view! {
+        <button class="cta ghost recommend" type="button" on:click=ask>
+            "Use the recommendation"
+        </button>
+    }
+}
+
+#[component]
+fn RhythmCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
+    view! {
+        <section class="card">
+            <h2>"The rhythm of the week"</h2>
+            <div class="pills">
+                {RHYTHMS
+                    .into_iter()
+                    .map(|named| {
+                        view! {
+                            <button
+                                type="button"
+                                class=format!("pill rhythm-{named:?}")
+                                class:chosen=move || rhythm.get() == named
+                                on:click=move |_| rhythm.set(named)
+                            >
+                                {lines::rhythm_name(named)}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+            <p class="hint">{move || lines::rhythm_described(rhythm.get())}</p>
+            <p class="hint">{lines::RECOMMENDATIONS_DISCLAIMER}</p>
+        </section>
+    }
+}
+
+#[component]
+fn GoalsCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
     let from = RwSignal::new(today());
     let target_mass = RwSignal::new(String::new());
     let target_fat = RwSignal::new(String::new());
+    let healthy = RwSignal::new(None::<String>);
     let said = RwSignal::new(None::<String>);
+    let fill = Callback::new(move |advised: Recommendations| {
+        target_mass.set(typed_back(advised.goal_mass_kg));
+        target_fat.set(typed_back(advised.goal_fat_ratio * 100.0));
+        healthy.set(Some(lines::healthy_ranges(&advised)));
+    });
     spawn_local(async move {
         if let Ok(Some(goals)) = tauri::goals_on(&today()).await {
             target_mass.set(goals.body_mass_kg.to_string());
@@ -55,6 +116,8 @@ fn GoalsCard() -> impl IntoView {
                     <FigureField label="Target mass (kg)" name="target_mass" value=target_mass />
                     <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
                 </div>
+                {move || healthy.get().map(|line| view! { <p class="hint">{line}</p> })}
+                <Recommend rhythm=rhythm fill=fill said=said />
                 <button class="cta" type="submit">
                     "Keep these goals"
                 </button>
@@ -65,12 +128,17 @@ fn GoalsCard() -> impl IntoView {
 }
 
 #[component]
-fn UsualDayCard() -> impl IntoView {
+fn UsualDayCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
     let from = RwSignal::new(today());
     let sitting = RwSignal::new(String::new());
     let standing = RwSignal::new(String::new());
     let moving = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let fill = Callback::new(move |advised: Recommendations| {
+        sitting.set(typed_back(advised.usual_day.sitting_min));
+        standing.set(typed_back(advised.usual_day.standing_min));
+        moving.set(typed_back(advised.usual_day.moving_km));
+    });
     spawn_local(async move {
         if let Ok(Some(usual)) = tauri::usual_day_on(&today()).await {
             sitting.set(usual.sitting_min.to_string());
@@ -114,6 +182,7 @@ fn UsualDayCard() -> impl IntoView {
                     <FigureField label="Standing (min)" name="usual_standing" value=standing />
                     <FigureField label="Moving (km)" name="usual_moving" value=moving />
                 </div>
+                <Recommend rhythm=rhythm fill=fill said=said />
                 <button class="cta" type="submit">
                     "Keep this usual day"
                 </button>
@@ -124,12 +193,17 @@ fn UsualDayCard() -> impl IntoView {
 }
 
 #[component]
-fn FuelTargetsCard() -> impl IntoView {
+fn FuelTargetsCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
     let from = RwSignal::new(today());
     let protein = RwSignal::new(String::new());
     let fat = RwSignal::new(String::new());
     let fibre = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let fill = Callback::new(move |advised: Recommendations| {
+        protein.set(typed_back(advised.fuel.protein_g_per_kg));
+        fat.set(typed_back(advised.fuel.fat_g_per_kg));
+        fibre.set(typed_back(advised.fuel.fibre_g_per_kg));
+    });
     spawn_local(async move {
         if let Ok(targets) = tauri::fuel_targets_on(&today()).await {
             protein.set(targets.protein_g_per_kg.to_string());
@@ -173,6 +247,7 @@ fn FuelTargetsCard() -> impl IntoView {
                     <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
                     <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
                 </div>
+                <Recommend rhythm=rhythm fill=fill said=said />
                 <button class="cta" type="submit">
                     "Keep these targets"
                 </button>
@@ -201,6 +276,7 @@ fn FuelTargetsCard() -> impl IntoView {
 
 #[component]
 pub fn ProfileScreen() -> impl IntoView {
+    let rhythm = RwSignal::new(Rhythm::ModeratelyActive);
     let from = RwSignal::new(today());
     let birthday = RwSignal::new(String::new());
     let gender = RwSignal::new(Gender::Male);
@@ -292,9 +368,10 @@ pub fn ProfileScreen() -> impl IntoView {
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
-        <GoalsCard />
-        <FuelTargetsCard />
-        <HydrateBaseCard />
-        <UsualDayCard />
+        <RhythmCard rhythm=rhythm />
+        <GoalsCard rhythm=rhythm />
+        <FuelTargetsCard rhythm=rhythm />
+        <HydrateBaseCard rhythm=rhythm />
+        <UsualDayCard rhythm=rhythm />
     }
 }

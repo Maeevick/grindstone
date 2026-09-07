@@ -1,16 +1,18 @@
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
-use grind_core::figures::{Figure, shown};
+use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateBaseForm;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_base::DEFAULT_BASE_SOURCE;
+use grind_core::recommendations::{Recommendations, Rhythm};
 use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::gauge::Gauge;
+use crate::screens::profile::Recommend;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -307,11 +309,14 @@ pub fn DrinksCatalog() -> impl IntoView {
 }
 
 #[component]
-pub fn HydrateBaseCard() -> impl IntoView {
+pub fn HydrateBaseCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
     let from = RwSignal::new(today());
     let base = RwSignal::new(String::new());
     let default_ml = RwSignal::new(None::<f64>);
     let said = RwSignal::new(None::<String>);
+    let fill = Callback::new(move |advised: Recommendations| {
+        base.set(typed_back(advised.hydrate_base_ml));
+    });
     spawn_local(async move {
         if let Ok(in_force) = tauri::hydrate_base_on(&today()).await {
             base.set(in_force.base_ml.to_string());
@@ -346,6 +351,7 @@ pub fn HydrateBaseCard() -> impl IntoView {
                     <DateField label="From" name="hydrate_base_from" value=from />
                     <FigureField label="Base (mL)" name="hydrate_base" value=base />
                 </div>
+                <Recommend rhythm=rhythm fill=fill said=said />
                 {move || {
                     default_ml
                         .get()

@@ -8,6 +8,7 @@ use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::hydrate::Hydrate;
 use grind_core::meal::Meal;
+use grind_core::recommendations::{Recommendations, Rhythm};
 use grind_core::refusal::Refusal;
 use grind_core::stats::{Measure, Summary, figure_of};
 use grind_core::streak::{Status, Streak, Ticks};
@@ -509,3 +510,53 @@ pub const ERASE_WARNING: &str = "Erasing removes every record on this device: me
     as on its first launch, and the draft can be imported again.";
 
 pub const ERASED: &str = "Everything is erased. [Grimble closes an empty ledger and opens a fresh one.] Home starts over with the welcome.";
+
+pub fn rhythm_name(rhythm: Rhythm) -> &'static str {
+    match rhythm {
+        Rhythm::Sedentary => "Sedentary",
+        Rhythm::LightlyActive => "Lightly active",
+        Rhythm::ModeratelyActive => "Moderately active",
+        Rhythm::VeryActive => "Very active",
+        Rhythm::ExtremelyActive => "Extremely active",
+    }
+}
+
+pub fn rhythm_described(rhythm: Rhythm) -> &'static str {
+    match rhythm {
+        Rhythm::Sedentary => {
+            "Desk or car most of the day, little walking, no regular training. Fewer than 5,000 steps a day."
+        }
+        Rhythm::LightlyActive => {
+            "Desk work with errands or a short walk, light training one to three days a week. 5,000 to 7,500 steps a day."
+        }
+        Rhythm::ModeratelyActive => {
+            "On your feet part of the day (teaching, a shop floor) or a daily brisk walk, training three to five days a week. 7,500 to 10,000 steps a day."
+        }
+        Rhythm::VeryActive => {
+            "A job on your feet (care, service, a warehouse) or long walks, hard training six or seven days a week. 10,000 to 12,500 steps a day."
+        }
+        Rhythm::ExtremelyActive => {
+            "Physical work (building, farming, delivering on foot) or training twice a day. More than 12,500 steps a day."
+        }
+    }
+}
+
+pub const RECOMMENDATIONS_DISCLAIMER: &str = "Recommendations for health, made for an average body: not medical advice, \
+    and not a prescription. Grindstone takes no responsibility for them. Check them, adjust them, and keep adjusting \
+    as your logs show what your body does: logging, monitoring, adjusting, enjoying. No activity multiplier inflates \
+    the energy band: it only counts the workouts you log.";
+
+pub const RECOMMENDATION_FILLED: &str =
+    "Filled from the recommendation for your rhythm. Check it, adjust it, then keep it.";
+
+pub fn healthy_ranges(advised: &Recommendations) -> String {
+    let (lightest, heaviest) = advised.healthy_mass_kg;
+    let (leanest, fattest) = advised.healthy_fat_ratio;
+    format!(
+        "Healthy at your height and age: {} to {} (a body mass index of 18.5 to 24.9), {} to {} body fat.",
+        shown(Figure::Mass(lightest)),
+        shown(Figure::Mass(heaviest)),
+        shown(Figure::Ratio(leanest)),
+        shown(Figure::Ratio(fattest))
+    )
+}
