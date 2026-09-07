@@ -22,6 +22,11 @@ fn to_the_hundredth(value: f64) -> f64 {
     (value * 100.0).round() / 100.0
 }
 
+pub fn typed_back(value: f64) -> String {
+    let _ = value;
+    String::new()
+}
+
 pub fn shown(figure: Figure) -> String {
     let (value, unit) = match figure {
         Figure::Mass(kg) => (kg, " kg"),
@@ -100,6 +105,14 @@ mod tests {
     fn a_count_shows_to_the_tenth_without_a_trailing_zero() {
         assert_eq!(shown(Figure::Count(36.0)), "36");
         assert_eq!(shown(Figure::Count(1.1875)), "1.2");
+    }
+
+    #[test]
+    fn a_figure_typed_back_into_a_field_reads_to_the_hundredth_without_trailing_zeros() {
+        assert_eq!(typed_back(70.308), "70.31");
+        assert_eq!(typed_back(0.83), "0.83");
+        assert_eq!(typed_back(2000.0), "2000");
+        assert_eq!(typed_back(6.6), "6.6");
     }
 
     #[test]
