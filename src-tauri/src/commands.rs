@@ -1031,8 +1031,8 @@ mod tests {
         (app, screen)
     }
 
-    fn tea(servings: f64) -> Value {
-        json!({ "form": { "date": "2026-10-10", "drink": "Tea", "servings": servings } })
+    fn tea(volume_ml: f64) -> Value {
+        json!({ "form": { "date": "2026-10-10", "drink": "Tea", "volume_ml": volume_ml } })
     }
 
     #[test]
@@ -1053,7 +1053,7 @@ mod tests {
     fn a_drink_logged_from_the_screen_comes_back_in_its_days_hydrate() {
         let (_app, screen) = with_tea_in_the_catalog();
 
-        let answer = invoke(&screen, "log_drink", tea(1.5));
+        let answer = invoke(&screen, "log_drink", tea(300.0));
 
         assert_eq!(
             answer,
@@ -1068,8 +1068,8 @@ mod tests {
     #[test]
     fn removing_a_drinking_answers_the_days_hydrate_left() {
         let (_app, screen) = with_tea_in_the_catalog();
-        invoke(&screen, "log_drink", tea(1.0)).expect("a drink logs");
-        invoke(&screen, "log_drink", tea(2.0)).expect("a drink logs");
+        invoke(&screen, "log_drink", tea(200.0)).expect("a drink logs");
+        invoke(&screen, "log_drink", tea(400.0)).expect("a drink logs");
 
         let answer = invoke(
             &screen,
@@ -1087,7 +1087,7 @@ mod tests {
     fn a_drink_missing_from_the_catalog_comes_back_as_a_refusal_the_screen_understands() {
         let (_app, screen) = launched();
 
-        let answer = invoke(&screen, "log_drink", tea(1.0));
+        let answer = invoke(&screen, "log_drink", tea(200.0));
 
         assert_eq!(answer, Err(json!({ "Refused": "NotADrink" })));
     }

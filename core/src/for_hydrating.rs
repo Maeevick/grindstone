@@ -55,7 +55,12 @@ pub fn log_drink(
         .into_iter()
         .find(|known| known.name == form.drink)
         .ok_or(Failure::Refused(Refusal::NotADrink))?;
-    let drunk = drinking(&form.date, &drink, form.volume_ml.unwrap_or(0.0)).map_err(Failure::Refused)?;
+    let drunk = drinking(
+        &form.date,
+        &drink,
+        form.volume_ml.unwrap_or(drink.volume_ml),
+    )
+    .map_err(Failure::Refused)?;
     hydrate.save_drinking(&drunk)?;
     hydrate_of_the_day(gather, burn, hydrate, drunk.day)
 }

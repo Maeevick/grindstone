@@ -229,9 +229,6 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotAVolume) => {
             "Some millilitres above nothing, please. An empty cup files as nothing at all.".into()
         }
-        Failure::Refused(Refusal::NotAServing) => {
-            "Servings above nothing, please: half a cup counts, no cup does not.".into()
-        }
         Failure::Refused(Refusal::NotADrink) => {
             "That drink is not in the catalog yet. Grimble searched every shelf, twice.".into()
         }

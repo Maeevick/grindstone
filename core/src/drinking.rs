@@ -14,17 +14,16 @@ pub struct Drinking {
 }
 
 pub fn drinking(date: &str, drink: &Drink, volume_ml: f64) -> Result<Drinking, Refusal> {
-    let servings = volume_ml;
     let day = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Refusal::NotADate)?;
-    if !(servings.is_finite() && servings > 0.0) {
-        return Err(Refusal::NotAServing);
+    if !(volume_ml.is_finite() && volume_ml > 0.0) {
+        return Err(Refusal::NotAVolume);
     }
     Ok(Drinking {
         day,
         drink: drink.name.clone(),
         kind: drink.kind,
-        servings,
-        volume_ml: servings * drink.volume_ml,
+        servings: volume_ml / drink.volume_ml,
+        volume_ml,
     })
 }
 
@@ -56,7 +55,10 @@ mod tests {
 
     #[test]
     fn a_drinking_that_could_not_have_happened_is_refused() {
-        assert_eq!(drinking("2026-02-30", &tea(), 200.0), Err(Refusal::NotADate));
+        assert_eq!(
+            drinking("2026-02-30", &tea(), 200.0),
+            Err(Refusal::NotADate)
+        );
         for volume_ml in [0.0, -1.0, f64::NAN, f64::INFINITY] {
             assert_eq!(
                 drinking("2026-10-10", &tea(), volume_ml),
