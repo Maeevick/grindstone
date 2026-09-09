@@ -13,7 +13,7 @@ use crate::refusal::Refusal;
 pub struct IntakeForm {
     pub date: String,
     pub food: String,
-    pub quantity: f64,
+    pub quantity: Option<f64>,
 }
 
 fn day(date: &str) -> Result<NaiveDate, Failure> {
@@ -55,7 +55,7 @@ pub fn log_intake(
         .into_iter()
         .find(|known| known.name == form.food)
         .ok_or(Failure::Refused(Refusal::NotAFood))?;
-    let eaten = intake(&form.date, &food, form.quantity).map_err(Failure::Refused)?;
+    let eaten = intake(&form.date, &food, form.quantity.unwrap_or(0.0)).map_err(Failure::Refused)?;
     fuel.save_intake(&eaten)?;
     fuel_of_the_day(gather, burn, fuel, eaten.day)
 }
@@ -102,7 +102,7 @@ mod tests {
         IntakeForm {
             date: date.into(),
             food: "Skyr".into(),
-            quantity: grams,
+            quantity: Some(grams),
         }
     }
 
@@ -180,6 +180,32 @@ mod tests {
         assert_eq!(
             remove_intake(&gather, &burn, &BrokenFuelRecords, "2026-10-10", 1),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn an_intake_without_a_quantity_is_one_portion_of_its_food() {
+        let fuel = a_catalog_with_skyr();
+        let unweighed = IntakeForm {
+            quantity: None,
+            ..skyr("2026-10-10", 0.0)
+        };
+
+        let fuelled = log_intake(
+            &GatherRecordsInMemory::default(),
+            &BurnRecordsInMemory::default(),
+            &fuel,
+            &unweighed,
+        )
+        .expect("a fuel");
+
+        assert_eq!(
+            fuelled
+                .intakes
+                .iter()
+                .map(|(_, eaten)| eaten.quantity)
+                .collect::<Vec<_>>(),
+            vec![100.0]
         );
     }
 }

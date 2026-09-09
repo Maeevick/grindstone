@@ -601,7 +601,7 @@ mod tests {
                 &IntakeForm {
                     date: date.into(),
                     food: plate.into(),
-                    quantity: 1.0,
+                    quantity: Some(1.0),
                 },
             )
             .expect("an intake logs");
@@ -816,7 +816,7 @@ mod tests {
                     &IntakeForm {
                         date: date.into(),
                         food: "Plate".into(),
-                        quantity: 1.0,
+                        quantity: Some(1.0),
                     },
                 )
                 .expect("an intake logs");

@@ -105,7 +105,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
         let form = IntakeForm {
             date: day.get_untracked(),
             food: food.get_untracked(),
-            quantity: quantity_typed.unwrap_or(0.0),
+            quantity: quantity_typed,
         };
         spawn_local(async move {
             match tauri::log_intake(&form).await {
