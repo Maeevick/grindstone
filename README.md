@@ -28,7 +28,11 @@ Version 0.1, the full scope, on four tabs.
   - **Hydrate:** calorie-free drinks on a scale from min through optimal to max, the band running 10% either side of the target.
   - **Burn:** workouts priced on net METs at the day's body mass, circuits run with their sets, and the day off the clock (sitting, standing, moving).
 - **Catalog:** foods with their figures per portion, meals cooked in Trix's lab (totals before and after cooking, per 100 g cooked), drinks, exercises with their MET, and circuits fixed at creation.
-- **Profile:** birthday, gender, height, neck and hip, goals, fuel targets in g/kg beside the official recommendations and their sources, the hydrate base, and the usual day off the clock. Each is kept from a chosen day. The gear opens Settings, which imports the draft's backup pushed over USB.
+- **Profile:**
+  - the rusty you behind the numbers (birthday, gender, height, neck and hip), goals, fuel targets in g/kg, the hydrate base and the usual day off the clock, each kept from a chosen day;
+  - the rhythm of the week, from sedentary to extremely active, to fill every card but the first from health recommendations (WHO, Gallagher, the ISSN, EFSA, Tudor-Locke), to check and adjust;
+  - from each card, a link to the scientific references, cited in full with their public pages;
+  - the gear opens Settings: the draft's import, and a danger zone that erases everything.
 - **Stats:** the habits to sharpen, the weakest first, then any two measures over a window, as timelines, summaries and a scatter of the days they share with their correlation.
 
 Next, together: what v0.1 gets wrong, then export and import options, Health Connect steps, challenges, posture analysis.
