@@ -443,10 +443,10 @@ fn drink_drafted_as<'a>(line: &IntakeLine, catalog: &'a [Drink]) -> Option<&'a D
     catalog.iter().find(|drink| drink.name == name)
 }
 
-fn servings_drafted(line: &IntakeLine, drink: &Drink) -> Option<f64> {
+fn volume_drafted(line: &IntakeLine, drink: &Drink) -> Option<f64> {
     match line.unit.as_str() {
-        "piece" => Some(line.qty),
-        "ml" => Some(line.qty / drink.volume_ml),
+        "piece" => Some(line.qty * drink.volume_ml),
+        "ml" => Some(line.qty),
         _ => None,
     }
 }
@@ -460,9 +460,9 @@ pub fn hydrate_from_draft(backup: &str) -> Result<HydrateRecords, DraftRefusal> 
         .flat_map(|log| {
             log.foods.iter().filter_map(|line| {
                 let drink = drink_drafted_as(line, &drinks)?;
-                let servings = servings_drafted(line, drink)?;
+                let volume_ml = volume_drafted(line, drink)?;
                 Some(
-                    drinking(&log.date, drink, servings)
+                    drinking(&log.date, drink, volume_ml)
                         .map(|drunk| (0, drunk))
                         .map_err(|refusal| DraftRefusal::NotADrinking {
                             date: log.date.clone(),

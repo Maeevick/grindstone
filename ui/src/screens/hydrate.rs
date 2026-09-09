@@ -89,7 +89,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     let hydrate = RwSignal::new(None::<Hydrate>);
     let catalog = RwSignal::new(Vec::<Drink>::new());
     let chosen = RwSignal::new(String::new());
-    let servings = RwSignal::new(String::from("1"));
+    let volume = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::drinks().await {
@@ -116,20 +116,20 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     });
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some([servings_typed]) = figures_typed([&servings.get_untracked()]) else {
+        let Some([volume_typed]) = figures_typed([&volume.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
         let form = DrinkingForm {
             date: day.get_untracked(),
             drink: chosen.get_untracked(),
-            servings: servings_typed.unwrap_or(0.0),
+            volume_ml: volume_typed,
         };
         spawn_local(async move {
             match tauri::log_drink(&form).await {
                 Ok(logged) => {
                     hydrate.set(Some(logged));
-                    servings.set(String::from("1"));
+                    volume.set(String::new());
                     said.set(None);
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
@@ -157,7 +157,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
                             />
                         </select>
                     </label>
-                    <FigureField label="Servings" name="servings" value=servings />
+                    <FigureField label="Volume (mL)" name="volume" value=volume />
                 </div>
                 <button class="cta" type="submit">
                     "Hydrate"

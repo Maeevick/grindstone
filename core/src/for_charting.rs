@@ -603,7 +603,7 @@ mod tests {
                 &DrinkingForm {
                     date: date.into(),
                     drink: "Water".into(),
-                    servings: 3.0,
+                    volume_ml: Some(1500.0),
                 },
             )
             .expect("a drink logs");
@@ -791,7 +791,7 @@ mod tests {
             &DrinkingForm {
                 date: "2026-10-10".into(),
                 drink: "Expresso".into(),
-                servings: 2.0,
+                volume_ml: Some(160.0),
             },
         )
         .expect("a drink logs");

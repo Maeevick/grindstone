@@ -13,7 +13,7 @@ use crate::refusal::Refusal;
 pub struct DrinkingForm {
     pub date: String,
     pub drink: String,
-    pub servings: f64,
+    pub volume_ml: Option<f64>,
 }
 
 fn day(date: &str) -> Result<NaiveDate, Failure> {
@@ -55,7 +55,7 @@ pub fn log_drink(
         .into_iter()
         .find(|known| known.name == form.drink)
         .ok_or(Failure::Refused(Refusal::NotADrink))?;
-    let drunk = drinking(&form.date, &drink, form.servings).map_err(Failure::Refused)?;
+    let drunk = drinking(&form.date, &drink, form.volume_ml.unwrap_or(0.0)).map_err(Failure::Refused)?;
     hydrate.save_drinking(&drunk)?;
     hydrate_of_the_day(gather, burn, hydrate, drunk.day)
 }
@@ -97,11 +97,11 @@ mod tests {
         hydrate
     }
 
-    fn tea(date: &str, servings: f64) -> DrinkingForm {
+    fn tea(date: &str, volume_ml: f64) -> DrinkingForm {
         DrinkingForm {
             date: date.into(),
             drink: "Tea".into(),
-            servings,
+            volume_ml: Some(volume_ml),
         }
     }
 
@@ -114,14 +114,14 @@ mod tests {
     }
 
     #[test]
-    fn a_logged_drink_comes_back_in_its_days_hydrate_at_its_servings_volume() {
+    fn a_logged_drink_comes_back_in_its_days_hydrate_at_its_volume() {
         let hydrate = a_catalog_with_tea();
 
         let hydrated = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
             &hydrate,
-            &tea("2026-10-10", 1.5),
+            &tea("2026-10-10", 300.0),
         )
         .expect("a hydrate");
 
@@ -135,7 +135,7 @@ mod tests {
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
             &HydrateRecordsInMemory::default(),
-            &tea("2026-10-10", 1.0),
+            &tea("2026-10-10", 200.0),
         );
 
         assert_eq!(refused, Err(Failure::Refused(Refusal::NotADrink)));
@@ -146,9 +146,9 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let hydrate = a_catalog_with_tea();
-        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 1.0)).expect("a drink logs");
+        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 200.0)).expect("a drink logs");
         let logged =
-            log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 0.5)).expect("a hydrate");
+            log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 100.0)).expect("a hydrate");
         let first = logged
             .drinkings
             .first()
@@ -166,7 +166,7 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let hydrate = a_catalog_with_tea();
-        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 2.0)).expect("a drink logs");
+        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 400.0)).expect("a drink logs");
 
         let hydrated = hydrate_day(&gather, &burn, &hydrate, "2026-10-10").expect("a hydrate");
 
@@ -209,7 +209,7 @@ mod tests {
     }
 
     #[test]
-    fn a_day_the_calendar_lacks_a_drinking_of_no_serving_or_broken_records_give_no_hydrate() {
+    fn a_day_the_calendar_lacks_a_drinking_of_no_volume_or_broken_records_give_no_hydrate() {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let broken = Failure::Broken("the disk is full".into());
@@ -225,7 +225,7 @@ mod tests {
                 &a_catalog_with_tea(),
                 &tea("2026-10-10", 0.0)
             ),
-            Err(Failure::Refused(Refusal::NotAServing))
+            Err(Failure::Refused(Refusal::NotAVolume))
         );
         assert_eq!(
             hydrate_day(&gather, &burn, &BrokenHydrateRecords, "2026-10-10"),
@@ -253,5 +253,23 @@ mod tests {
             remove_drinking(&gather, &burn, &BrokenHydrateRecords, "2026-10-10", 1),
             Err(broken)
         );
+    }
+
+    #[test]
+    fn a_drink_logged_without_a_volume_is_one_serving_of_it() {
+        let unmeasured = DrinkingForm {
+            volume_ml: None,
+            ..tea("2026-10-10", 0.0)
+        };
+
+        let hydrated = log_drink(
+            &GatherRecordsInMemory::default(),
+            &BurnRecordsInMemory::default(),
+            &a_catalog_with_tea(),
+            &unmeasured,
+        )
+        .expect("a hydrate");
+
+        assert_eq!(volumes(&hydrated), vec![200.0]);
     }
 }
