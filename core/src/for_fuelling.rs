@@ -55,7 +55,8 @@ pub fn log_intake(
         .into_iter()
         .find(|known| known.name == form.food)
         .ok_or(Failure::Refused(Refusal::NotAFood))?;
-    let eaten = intake(&form.date, &food, form.quantity.unwrap_or(0.0)).map_err(Failure::Refused)?;
+    let eaten = intake(&form.date, &food, form.quantity.unwrap_or(food.portion))
+        .map_err(Failure::Refused)?;
     fuel.save_intake(&eaten)?;
     fuel_of_the_day(gather, burn, fuel, eaten.day)
 }
