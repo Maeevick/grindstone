@@ -270,7 +270,7 @@ pub fn CircuitLog(day: RwSignal<String>, on_logged: Callback<Burn>) -> impl Into
         let form = CircuitSessionForm {
             date: day.get_untracked(),
             circuit: chosen.get_untracked(),
-            sets: count_typed(&sets.get_untracked()).unwrap_or(1),
+            sets: count_typed(&sets.get_untracked()),
         };
         spawn_local(async move {
             match tauri::log_circuit(&form).await {

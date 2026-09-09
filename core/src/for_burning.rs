@@ -15,18 +15,23 @@ use crate::workout::{Workout, workout};
 pub struct WorkoutForm {
     pub date: String,
     pub exercise: String,
-    pub minutes: f64,
+    pub minutes: Option<f64>,
     pub reps: Option<u32>,
-    pub sets: u32,
-    pub load_kg: f64,
+    pub sets: Option<u32>,
+    pub load_kg: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CircuitSessionForm {
     pub date: String,
     pub circuit: String,
-    pub sets: u32,
+    pub sets: Option<u32>,
 }
+
+pub const DEFAULT_MINUTES: f64 = 1.0;
+pub const DEFAULT_REPS: u32 = 1;
+pub const DEFAULT_SETS: u32 = 1;
+pub const DEFAULT_LOAD_KG: f64 = 0.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OffTheClockForm {
@@ -70,10 +75,10 @@ pub fn log_workout(
     let done = workout(
         &form.date,
         &exercise,
-        form.minutes,
+        form.minutes.unwrap_or(0.0),
         form.reps,
-        form.sets,
-        form.load_kg,
+        form.sets.unwrap_or(0),
+        form.load_kg.unwrap_or(0.0),
     )
     .map_err(Failure::Refused)?;
     burn.save_workout(&done)?;
@@ -121,7 +126,7 @@ fn workouts_of_the_session(
                 &exercise,
                 step.minutes,
                 step.reps,
-                form.sets,
+                form.sets.unwrap_or(0),
                 step.load_kg,
             )
             .map(|done| Workout {
@@ -177,10 +182,10 @@ mod tests {
         WorkoutForm {
             date: date.into(),
             exercise: "Walking".into(),
-            minutes,
+            minutes: Some(minutes),
             reps: None,
-            sets: 1,
-            load_kg: 0.0,
+            sets: Some(1),
+            load_kg: Some(0.0),
         }
     }
 
@@ -336,7 +341,7 @@ mod tests {
         CircuitSessionForm {
             date: "2026-10-10".into(),
             circuit: circuit.into(),
-            sets,
+            sets: Some(sets),
         }
     }
 
@@ -442,6 +447,64 @@ mod tests {
         assert_eq!(
             burn_day(&gather, &burn, "2026-10-10").map(|burnt| burnt.workouts.len()),
             Ok(2)
+        );
+    }
+
+    #[test]
+    fn a_workout_logged_with_nothing_but_its_exercise_is_one_set_of_one_rep_for_a_minute_without_load()
+     {
+        let burnt = log_workout(
+            &GatherRecordsInMemory::default(),
+            &a_catalog_with_walking(),
+            &WorkoutForm {
+                date: "2026-10-10".into(),
+                exercise: "Walking".into(),
+                minutes: None,
+                reps: None,
+                sets: None,
+                load_kg: None,
+            },
+        )
+        .expect("a burn");
+
+        assert_eq!(
+            burnt
+                .workouts
+                .iter()
+                .map(|done| (
+                    done.workout.minutes,
+                    done.workout.reps,
+                    done.workout.sets,
+                    done.workout.load_kg
+                ))
+                .collect::<Vec<_>>(),
+            vec![(DEFAULT_MINUTES, Some(DEFAULT_REPS), DEFAULT_SETS, DEFAULT_LOAD_KG)]
+        );
+        assert_eq!(
+            (DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS, DEFAULT_LOAD_KG),
+            (1.0, 1, 1, 0.0)
+        );
+    }
+
+    #[test]
+    fn a_circuit_logged_without_sets_runs_once() {
+        let burnt = log_circuit(
+            &GatherRecordsInMemory::default(),
+            &a_lab_with_morning_rust(),
+            &CircuitSessionForm {
+                sets: None,
+                ..running("Morning rust", 0)
+            },
+        )
+        .expect("a burn");
+
+        assert_eq!(
+            burnt
+                .workouts
+                .iter()
+                .map(|done| done.workout.sets)
+                .collect::<Vec<_>>(),
+            vec![1, 1]
         );
     }
 }

@@ -110,10 +110,10 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         let form = WorkoutForm {
             date: day.get_untracked(),
             exercise: exercise.get_untracked(),
-            minutes: minutes_typed.unwrap_or(0.0),
+            minutes: minutes_typed,
             reps: count_typed(&reps.get_untracked()),
-            sets: count_typed(&sets.get_untracked()).unwrap_or(1),
-            load_kg: load_typed.unwrap_or(0.0),
+            sets: count_typed(&sets.get_untracked()),
+            load_kg: load_typed,
         };
         spawn_local(async move {
             match tauri::log_workout(&form).await {

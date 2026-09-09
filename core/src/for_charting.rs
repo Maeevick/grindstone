@@ -613,10 +613,10 @@ mod tests {
                 &WorkoutForm {
                     date: date.into(),
                     exercise: "Push up".into(),
-                    minutes: 0.5,
+                    minutes: Some(0.5),
                     reps: Some(12),
-                    sets: 3,
-                    load_kg: 0.0,
+                    sets: Some(3),
+                    load_kg: Some(0.0),
                 },
             )
             .expect("a workout logs");
@@ -837,10 +837,10 @@ mod tests {
                 &WorkoutForm {
                     date: "2026-10-10".into(),
                     exercise: exercise.into(),
-                    minutes,
+                    minutes: Some(minutes),
                     reps: None,
-                    sets: 1,
-                    load_kg: 0.0,
+                    sets: Some(1),
+                    load_kg: Some(0.0),
                 },
             )
             .expect("a workout logs");
@@ -951,10 +951,10 @@ mod tests {
                 &WorkoutForm {
                     date: "2026-10-05".into(),
                     exercise: exercise.into(),
-                    minutes,
+                    minutes: Some(minutes),
                     reps: None,
-                    sets: 1,
-                    load_kg: 0.0,
+                    sets: Some(1),
+                    load_kg: Some(0.0),
                 },
             )
             .expect("a workout logs");

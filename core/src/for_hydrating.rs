@@ -194,10 +194,10 @@ mod tests {
             &WorkoutForm {
                 date: "2026-10-10".into(),
                 exercise: "Walking".into(),
-                minutes: 60.0,
+                minutes: Some(60.0),
                 reps: None,
-                sets: 1,
-                load_kg: 0.0,
+                sets: Some(1),
+                load_kg: Some(0.0),
             },
         )
         .expect("a workout logs");
