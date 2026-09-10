@@ -2,7 +2,7 @@ use grind_core::burn::Burn;
 use grind_core::circuit::{Circuit, CircuitStep, StepForm};
 use grind_core::exercise::Exercise;
 use grind_core::figures::{Figure, shown};
-use grind_core::for_burning::CircuitSessionForm;
+use grind_core::for_burning::{CircuitSessionForm, DEFAULT_SETS};
 use grind_core::for_cataloguing::CircuitForm;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -277,7 +277,10 @@ pub fn CircuitLog(day: RwSignal<String>, on_logged: Callback<Burn>) -> impl Into
                 Ok(burn) => {
                     on_logged.run(burn);
                     sets.set("1".to_string());
-                    said.set(Some(Ok(lines::circuit_logged(&form.circuit, form.sets))));
+                    said.set(Some(Ok(lines::circuit_logged(
+                        &form.circuit,
+                        form.sets.unwrap_or(DEFAULT_SETS),
+                    ))));
                 }
                 Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
             }

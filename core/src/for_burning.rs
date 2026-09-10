@@ -75,10 +75,10 @@ pub fn log_workout(
     let done = workout(
         &form.date,
         &exercise,
-        form.minutes.unwrap_or(0.0),
-        form.reps,
-        form.sets.unwrap_or(0),
-        form.load_kg.unwrap_or(0.0),
+        form.minutes.unwrap_or(DEFAULT_MINUTES),
+        form.reps.or(Some(DEFAULT_REPS)),
+        form.sets.unwrap_or(DEFAULT_SETS),
+        form.load_kg.unwrap_or(DEFAULT_LOAD_KG),
     )
     .map_err(Failure::Refused)?;
     burn.save_workout(&done)?;
@@ -126,7 +126,7 @@ fn workouts_of_the_session(
                 &exercise,
                 step.minutes,
                 step.reps,
-                form.sets.unwrap_or(0),
+                form.sets.unwrap_or(DEFAULT_SETS),
                 step.load_kg,
             )
             .map(|done| Workout {
@@ -478,7 +478,12 @@ mod tests {
                     done.workout.load_kg
                 ))
                 .collect::<Vec<_>>(),
-            vec![(DEFAULT_MINUTES, Some(DEFAULT_REPS), DEFAULT_SETS, DEFAULT_LOAD_KG)]
+            vec![(
+                DEFAULT_MINUTES,
+                Some(DEFAULT_REPS),
+                DEFAULT_SETS,
+                DEFAULT_LOAD_KG
+            )]
         );
         assert_eq!(
             (DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS, DEFAULT_LOAD_KG),
