@@ -84,6 +84,7 @@ const MIGRATIONS: &[&str] = &[
          set kind = (select kind from drinks where drinks.name = drinkings.drink),
              servings = volume_ml / (select volume_ml from drinks where drinks.name = drinkings.drink)
          where drink in (select name from drinks);",
+    "select 1;",
 ];
 
 pub struct Sqlite(Connection);
@@ -1290,7 +1291,7 @@ mod tests {
             std::process::id()
         ));
         let before = Connection::open(&file).expect("a database before the drinks' kinds");
-        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 1]) {
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 2]) {
             before
                 .execute_batch(migration)
                 .expect("an earlier migration");
@@ -1342,5 +1343,61 @@ mod tests {
     #[test]
     fn a_forgotten_switch_over_leaves_none() {
         honouring_for_storing_switch_over::a_forgotten_switch_over_leaves_none(&database());
+    }
+
+    #[test]
+    fn the_coffees_and_teas_already_on_the_phone_become_other_drinks() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-two-kinds-{}.sqlite",
+            std::process::id()
+        ));
+        let before = Connection::open(&file).expect("a database before the two kinds");
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 1]) {
+            before
+                .execute_batch(migration)
+                .expect("an earlier migration");
+            before
+                .pragma_update(None, "user_version", version)
+                .expect("its version");
+        }
+        before
+            .execute_batch(
+                "insert into drinks (name, volume_ml, kind) values
+                     ('Expresso', 80.0, 'Coffee'), ('Tea', 200.0, 'Tea'), ('Water', 250.0, 'Water');
+                 insert into drinkings (day, drink, volume_ml, kind, servings) values
+                     ('2026-10-10', 'Expresso', 160.0, 'Coffee', 2.0), ('2026-10-10', 'Tea', 200.0, 'Tea', 1.0),
+                     ('2026-10-10', 'Water', 500.0, 'Water', 2.0);",
+            )
+            .expect("the drinks filed before");
+        drop(before);
+
+        let carried = Sqlite::open(&file).and_then(|database| database.hydrate_records());
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        let carried = carried.expect("the records read");
+        assert_eq!(
+            carried
+                .drinks
+                .iter()
+                .map(|drink| (drink.name.as_str(), drink.kind))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Expresso", DrinkKind::Other),
+                ("Tea", DrinkKind::Other),
+                ("Water", DrinkKind::Water)
+            ]
+        );
+        assert_eq!(
+            carried
+                .drinkings
+                .iter()
+                .map(|(_, drunk)| (drunk.drink.as_str(), drunk.kind))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Expresso", DrinkKind::Other),
+                ("Tea", DrinkKind::Other),
+                ("Water", DrinkKind::Water)
+            ]
+        );
     }
 }
