@@ -44,6 +44,7 @@ pub mod recommendations;
 pub mod refusal;
 pub mod stats;
 pub mod streak;
+pub mod tendency;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod trend;
