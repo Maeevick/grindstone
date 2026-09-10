@@ -35,7 +35,7 @@ mod tests {
         Drink {
             name: "Tea".into(),
             volume_ml: 200.0,
-            kind: DrinkKind::Tea,
+            kind: DrinkKind::Other,
         }
     }
 
@@ -47,7 +47,7 @@ mod tests {
                 day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
                 drink: "Tea".into(),
                 volume_ml: 300.0,
-                kind: DrinkKind::Tea,
+                kind: DrinkKind::Other,
                 servings: 1.5,
             })
         );
@@ -70,17 +70,17 @@ mod tests {
 
     #[test]
     fn a_drinking_freezes_its_drinks_kind() {
-        let espresso = Drink {
-            name: "Expresso".into(),
-            volume_ml: 80.0,
-            kind: DrinkKind::Coffee,
+        let water = Drink {
+            name: "Water".into(),
+            volume_ml: 250.0,
+            kind: DrinkKind::Water,
         };
 
-        let drunk = drinking("2026-10-10", &espresso, 160.0).expect("a drinking");
+        let drunk = drinking("2026-10-10", &water, 500.0).expect("a drinking");
 
         assert_eq!(
             (drunk.kind, drunk.servings, drunk.volume_ml),
-            (DrinkKind::Coffee, 2.0, 160.0)
+            (DrinkKind::Water, 2.0, 500.0)
         );
     }
 }

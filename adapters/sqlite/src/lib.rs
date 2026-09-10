@@ -724,8 +724,6 @@ const DRINKINGS: &str =
 fn kind_word(kind: DrinkKind) -> &'static str {
     match kind {
         DrinkKind::Water => "Water",
-        DrinkKind::Coffee => "Coffee",
-        DrinkKind::Tea => "Tea",
         DrinkKind::Other => "Other",
     }
 }
@@ -733,8 +731,6 @@ fn kind_word(kind: DrinkKind) -> &'static str {
 fn kind_read(word: &str) -> rusqlite::Result<DrinkKind> {
     match word {
         "Water" => Ok(DrinkKind::Water),
-        "Coffee" => Ok(DrinkKind::Coffee),
-        "Tea" => Ok(DrinkKind::Tea),
         "Other" => Ok(DrinkKind::Other),
         unknown => Err(rusqlite::Error::InvalidParameterName(format!(
             "a kind of drink the app does not know: {unknown}"
@@ -1220,8 +1216,8 @@ mod tests {
         let records = database();
         for (name, kind) in [
             ("Water", DrinkKind::Water),
-            ("Expresso", DrinkKind::Coffee),
-            ("Tea", DrinkKind::Tea),
+            ("Expresso", DrinkKind::Other),
+            ("Tea", DrinkKind::Other),
             ("Kombucha", DrinkKind::Other),
         ] {
             let drunk = Drink {
@@ -1249,9 +1245,9 @@ mod tests {
                 .map(|drink| drink.kind)
                 .collect::<Vec<_>>(),
             vec![
-                DrinkKind::Coffee,
                 DrinkKind::Other,
-                DrinkKind::Tea,
+                DrinkKind::Other,
+                DrinkKind::Other,
                 DrinkKind::Water
             ]
         );
@@ -1262,8 +1258,8 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![
                 (DrinkKind::Water, 2.0),
-                (DrinkKind::Coffee, 2.0),
-                (DrinkKind::Tea, 2.0),
+                (DrinkKind::Other, 2.0),
+                (DrinkKind::Other, 2.0),
                 (DrinkKind::Other, 2.0)
             ]
         );

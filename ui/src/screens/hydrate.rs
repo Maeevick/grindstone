@@ -210,12 +210,7 @@ fn DrinkRow(
     }
 }
 
-const KINDS: [(DrinkKind, &str); 4] = [
-    (DrinkKind::Water, "water"),
-    (DrinkKind::Coffee, "coffee"),
-    (DrinkKind::Tea, "tea"),
-    (DrinkKind::Other, "other"),
-];
+const KINDS: [(DrinkKind, &str); 2] = [(DrinkKind::Water, "water"), (DrinkKind::Other, "other")];
 
 fn kind_named(word: &str) -> DrinkKind {
     KINDS

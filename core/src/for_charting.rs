@@ -325,8 +325,6 @@ pub struct HydrateRow {
     pub day: NaiveDate,
     pub drunk_ml: f64,
     pub water_ratio: f64,
-    pub coffee_cups: f64,
-    pub tea_cups: f64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -435,20 +433,11 @@ pub fn hydrate_month(
                         .map(|drunk| drunk.volume_ml)
                         .sum()
                 };
-                let cups_of = |kind: DrinkKind| -> f64 {
-                    drunk
-                        .iter()
-                        .filter(|drunk| drunk.kind == kind)
-                        .map(|drunk| drunk.servings)
-                        .sum()
-                };
                 let drunk_ml: f64 = drunk.iter().map(|drunk| drunk.volume_ml).sum();
                 HydrateRow {
                     day: *day,
                     drunk_ml,
                     water_ratio: volume_of(DrinkKind::Water) / drunk_ml,
-                    coffee_cups: cups_of(DrinkKind::Coffee),
-                    tea_cups: cups_of(DrinkKind::Tea),
                 }
             })
             .collect(),
@@ -781,9 +770,9 @@ mod tests {
     }
 
     #[test]
-    fn a_month_of_hydrate_tells_each_days_volume_its_share_of_water_and_its_cups() {
+    fn a_month_of_hydrate_tells_each_days_volume_and_its_share_of_water() {
         let logged = a_logged_man();
-        add_drink(&logged.hydrate, "Expresso", 80.0, DrinkKind::Coffee).expect("a drink adds");
+        add_drink(&logged.hydrate, "Expresso", 80.0, DrinkKind::Other).expect("a drink adds");
         log_drink(
             &logged.gather,
             &logged.burn,
@@ -801,7 +790,6 @@ mod tests {
         let today = october.rows[0];
         assert!((today.drunk_ml - 1660.0).abs() < 1e-9);
         assert!((today.water_ratio - 1500.0 / 1660.0).abs() < 1e-9);
-        assert_eq!((today.coffee_cups, today.tea_cups), (2.0, 0.0));
     }
 
     #[test]

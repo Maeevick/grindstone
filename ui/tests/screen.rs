@@ -789,11 +789,11 @@ async fn logging_a_circuit_hands_over_the_days_burn_with_a_workout_per_step() {
     assert_eq!(handed_over.text_content().unwrap_or_default(), "2");
 }
 
-const THE_CATALOG: &str = r#"[{ "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" }, { "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }]"#;
+const THE_CATALOG: &str = r#"[{ "name": "Expresso", "volume_ml": 80.0, "kind": "Other" }, { "name": "Tea", "volume_ml": 200.0, "kind": "Other" }]"#;
 
 const A_DAY_WITH_TWO_DRINKS: &str = r#"{ "day": "2026-10-10",
-    "drinkings": [[1, { "day": "2026-10-10", "drink": "Expresso", "kind": "Coffee", "servings": 1.0, "volume_ml": 80.0 }],
-                  [2, { "day": "2026-10-10", "drink": "Tea", "kind": "Tea", "servings": 1.0, "volume_ml": 200.0 }]],
+    "drinkings": [[1, { "day": "2026-10-10", "drink": "Expresso", "kind": "Other", "servings": 1.0, "volume_ml": 80.0 }],
+                  [2, { "day": "2026-10-10", "drink": "Tea", "kind": "Other", "servings": 1.0, "volume_ml": 200.0 }]],
     "drunk_ml": 280.0, "target_ml": 2252.0, "floor_ml": 2026.8, "cap_ml": 2477.2, "verdict": "Low" }"#;
 
 const A_DRY_DAY: &str = r#"{ "day": "2026-10-11", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }"#;
@@ -850,7 +850,7 @@ async fn the_days_hydrate_reloads_when_the_day_changes() {
 async fn a_logged_drink_joins_the_day_and_the_servings_go_back_to_one() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY},
-              "log_drink": {{ "day": "2026-10-11", "drinkings": [[1, {{ "day": "2026-10-11", "drink": "Tea", "kind": "Tea", "servings": 1.5, "volume_ml": 300.0 }}]],
+              "log_drink": {{ "day": "2026-10-11", "drinkings": [[1, {{ "day": "2026-10-11", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }}]],
                               "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }} }}"#
     ));
     let screen = screen();
@@ -902,7 +902,7 @@ fn the_catalog_in(screen: &Element) -> impl Drop {
 #[wasm_bindgen_test]
 async fn an_added_drink_joins_the_catalog_and_the_form_empties() {
     answering(
-        r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }] }"#,
+        r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }] }"#,
     );
     let screen = screen();
     let _mounted = the_catalog_in(&screen);
@@ -933,7 +933,7 @@ async fn an_added_drink_joins_the_catalog_and_the_form_empties() {
 #[wasm_bindgen_test]
 async fn removing_a_drink_takes_it_off_the_catalog() {
     answering(&format!(
-        r#"{{ "drinks": {THE_CATALOG}, "remove_drink": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }}] }}"#
+        r#"{{ "drinks": {THE_CATALOG}, "remove_drink": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }}] }}"#
     ));
     let screen = screen();
     let _mounted = the_catalog_in(&screen);

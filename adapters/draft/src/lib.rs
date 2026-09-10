@@ -424,12 +424,12 @@ fn drafted_drinks() -> Vec<Drink> {
         Drink {
             name: "Expresso".into(),
             volume_ml: 80.0,
-            kind: grind_core::drink::DrinkKind::Coffee,
+            kind: grind_core::drink::DrinkKind::Other,
         },
         Drink {
             name: "Tea".into(),
             volume_ml: 200.0,
-            kind: grind_core::drink::DrinkKind::Tea,
+            kind: grind_core::drink::DrinkKind::Other,
         },
     ]
 }
@@ -909,12 +909,12 @@ mod tests {
                 grind_core::drink::Drink {
                     name: "Expresso".into(),
                     volume_ml: 80.0,
-                    kind: grind_core::drink::DrinkKind::Coffee,
+                    kind: grind_core::drink::DrinkKind::Other,
                 },
                 grind_core::drink::Drink {
                     name: "Tea".into(),
                     volume_ml: 200.0,
-                    kind: grind_core::drink::DrinkKind::Tea,
+                    kind: grind_core::drink::DrinkKind::Other,
                 },
             ]
         );
@@ -962,7 +962,7 @@ mod tests {
     }
 
     #[test]
-    fn the_drafts_coffee_and_tea_drinkings_keep_their_kind_and_their_servings() {
+    fn the_drafts_coffee_and_tea_drinkings_are_other_drinks_keeping_their_servings() {
         let drinkings = hydrate_from_draft(HYDRATE_BACKUP).map(|records| {
             records
                 .drinkings
@@ -974,10 +974,10 @@ mod tests {
         assert_eq!(
             drinkings,
             Ok(vec![
-                (grind_core::drink::DrinkKind::Coffee, 2.0),
-                (grind_core::drink::DrinkKind::Coffee, 15.0 / 80.0),
-                (grind_core::drink::DrinkKind::Tea, 1.0),
-                (grind_core::drink::DrinkKind::Tea, 1.25),
+                (grind_core::drink::DrinkKind::Other, 2.0),
+                (grind_core::drink::DrinkKind::Other, 15.0 / 80.0),
+                (grind_core::drink::DrinkKind::Other, 1.0),
+                (grind_core::drink::DrinkKind::Other, 1.25),
             ])
         );
     }

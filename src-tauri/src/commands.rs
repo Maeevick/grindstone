@@ -1025,7 +1025,7 @@ mod tests {
         invoke(
             &screen,
             "add_drink",
-            json!({ "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }),
+            json!({ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }),
         )
         .expect("a drink adds");
         (app, screen)
@@ -1059,7 +1059,7 @@ mod tests {
             answer,
             Ok(json!({
                 "day": "2026-10-10",
-                "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "kind": "Tea", "servings": 1.5, "volume_ml": 300.0 }]],
+                "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }]],
                 "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low"
             }))
         );
@@ -1098,7 +1098,7 @@ mod tests {
         invoke(
             &screen,
             "add_drink",
-            json!({ "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" }),
+            json!({ "name": "Expresso", "volume_ml": 80.0, "kind": "Other" }),
         )
         .expect("a drink adds");
 
@@ -1108,13 +1108,13 @@ mod tests {
         assert_eq!(
             listed,
             Ok(json!([
-                { "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" },
-                { "name": "Tea", "volume_ml": 200.0, "kind": "Tea" }
+                { "name": "Expresso", "volume_ml": 80.0, "kind": "Other" },
+                { "name": "Tea", "volume_ml": 200.0, "kind": "Other" }
             ]))
         );
         assert_eq!(
             left,
-            Ok(json!([{ "name": "Expresso", "volume_ml": 80.0, "kind": "Coffee" }]))
+            Ok(json!([{ "name": "Expresso", "volume_ml": 80.0, "kind": "Other" }]))
         );
     }
 

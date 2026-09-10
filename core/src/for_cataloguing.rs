@@ -502,15 +502,15 @@ mod tests {
     #[test]
     fn added_drinks_come_back_in_the_catalog_by_name() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Tea).expect("a drink adds");
+        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other).expect("a drink adds");
 
-        let catalog = add_drink(&hydrate, "Expresso", 80.0, DrinkKind::Coffee);
+        let catalog = add_drink(&hydrate, "Expresso", 80.0, DrinkKind::Other);
 
         assert_eq!(
             catalog,
             Ok(vec![
-                served("Expresso", 80.0, DrinkKind::Coffee),
-                served("Tea", 200.0, DrinkKind::Tea)
+                served("Expresso", 80.0, DrinkKind::Other),
+                served("Tea", 200.0, DrinkKind::Other)
             ])
         );
         assert_eq!(drinks(&hydrate), catalog);
@@ -519,18 +519,18 @@ mod tests {
     #[test]
     fn a_drink_added_again_under_its_name_takes_its_new_serving() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Tea).expect("a drink adds");
+        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other).expect("a drink adds");
 
         assert_eq!(
-            add_drink(&hydrate, "Tea", 250.0, crate::drink::DrinkKind::Tea),
-            Ok(vec![served("Tea", 250.0, DrinkKind::Tea)])
+            add_drink(&hydrate, "Tea", 250.0, crate::drink::DrinkKind::Other),
+            Ok(vec![served("Tea", 250.0, DrinkKind::Other)])
         );
     }
 
     #[test]
     fn a_removed_drink_leaves_the_catalog() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Tea).expect("a drink adds");
+        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other).expect("a drink adds");
 
         assert_eq!(remove_drink(&hydrate, "Tea"), Ok(vec![]));
     }
@@ -540,11 +540,11 @@ mod tests {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
 
         assert_eq!(
-            add_drink(&hydrate, " ", 200.0, crate::drink::DrinkKind::Tea),
+            add_drink(&hydrate, " ", 200.0, crate::drink::DrinkKind::Other),
             Err(Failure::Refused(Refusal::NotAName))
         );
         assert_eq!(
-            add_drink(&hydrate, "Tea", 0.0, crate::drink::DrinkKind::Tea),
+            add_drink(&hydrate, "Tea", 0.0, crate::drink::DrinkKind::Other),
             Err(Failure::Refused(Refusal::NotAVolume))
         );
         assert_eq!(drinks(&hydrate), Ok(vec![]));

@@ -6,8 +6,6 @@ use crate::volume::volume;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DrinkKind {
     Water,
-    Coffee,
-    Tea,
     #[default]
     Other,
 }
@@ -38,11 +36,11 @@ mod tests {
     #[test]
     fn a_drink_keeps_its_trimmed_name_its_kind_and_the_volume_of_one_serving() {
         assert_eq!(
-            drink("  Expresso ", 80.0, DrinkKind::Coffee),
+            drink("  Expresso ", 80.0, DrinkKind::Other),
             Ok(Drink {
                 name: "Expresso".into(),
                 volume_ml: 80.0,
-                kind: DrinkKind::Coffee,
+                kind: DrinkKind::Other,
             })
         );
     }
@@ -56,7 +54,7 @@ mod tests {
     fn a_serving_of_nothing_or_no_number_at_all_is_refused() {
         for volume_ml in [0.0, -80.0, f64::NAN, f64::INFINITY] {
             assert_eq!(
-                drink("Expresso", volume_ml, DrinkKind::Coffee),
+                drink("Expresso", volume_ml, DrinkKind::Other),
                 Err(Refusal::NotAVolume),
                 "{volume_ml}"
             );

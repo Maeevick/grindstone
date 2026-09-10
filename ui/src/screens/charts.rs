@@ -410,8 +410,6 @@ fn hydrate_row(row: HydrateRow) -> impl IntoView {
             <td>{row.day.to_string()}</td>
             <td>{shown(Figure::Volume(row.drunk_ml))}</td>
             <td>{shown(Figure::Ratio(row.water_ratio))}</td>
-            <td>{shown(Figure::Count(row.coffee_cups))}</td>
-            <td>{shown(Figure::Count(row.tea_cups))}</td>
         </tr>
     }
 }
@@ -488,7 +486,7 @@ history!(
     HydrateRow,
     tauri::hydrate_month,
     hydrate_row,
-    ["Day", "Drunk", "Water", "Coffees", "Teas"]
+    ["Day", "Drunk", "Water"]
 );
 history!(
     BurnHistory,
