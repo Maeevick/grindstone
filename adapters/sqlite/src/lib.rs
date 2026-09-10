@@ -84,7 +84,8 @@ const MIGRATIONS: &[&str] = &[
          set kind = (select kind from drinks where drinks.name = drinkings.drink),
              servings = volume_ml / (select volume_ml from drinks where drinks.name = drinkings.drink)
          where drink in (select name from drinks);",
-    "select 1;",
+    "update drinks set kind = 'Other' where kind in ('Coffee', 'Tea');
+     update drinkings set kind = 'Other' where kind in ('Coffee', 'Tea');",
 ];
 
 pub struct Sqlite(Connection);
@@ -1320,8 +1321,8 @@ mod tests {
                 .map(|drink| (drink.name.as_str(), drink.kind))
                 .collect::<Vec<_>>(),
             vec![
-                ("Expresso", DrinkKind::Coffee),
-                ("Tea", DrinkKind::Tea),
+                ("Expresso", DrinkKind::Other),
+                ("Tea", DrinkKind::Other),
                 ("Water", DrinkKind::Water)
             ]
         );
@@ -1332,8 +1333,8 @@ mod tests {
                 .map(|(_, drunk)| (drunk.drink.as_str(), drunk.kind, drunk.servings))
                 .collect::<Vec<_>>(),
             vec![
-                ("Expresso", DrinkKind::Coffee, 2.0),
-                ("Tea", DrinkKind::Tea, 1.0),
+                ("Expresso", DrinkKind::Other, 2.0),
+                ("Tea", DrinkKind::Other, 1.0),
                 ("Water", DrinkKind::Water, 2.0),
                 ("Kombucha", DrinkKind::Other, 1.0)
             ]
