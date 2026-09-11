@@ -18,12 +18,12 @@ use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
     FuelTargetsForm, GoalsForm, HydrateBaseForm, ProfileForm, UsualDayForm,
 };
+use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_base::HydrateBase;
-use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::{Recommendations, Rhythm};
@@ -87,15 +87,15 @@ struct Reviewing<'a> {
     window: Window,
 }
 
-pub async fn recent_days() -> Result<Vec<Day>, Failure> {
-    call("recent_days", Nothing {}, broken).await
+pub async fn gather_week(date: &str) -> Result<GatherWeek, Failure> {
+    call("gather_week", OnDay { date }, broken).await
 }
 
 pub async fn log_measurement(
     date: &str,
     body_mass_kg: f64,
     waist_cm: Option<f64>,
-) -> Result<Vec<Day>, Failure> {
+) -> Result<GatherWeek, Failure> {
     let measuring = Measuring {
         date,
         body_mass_kg,
@@ -104,7 +104,7 @@ pub async fn log_measurement(
     call("log_measurement", measuring, broken).await
 }
 
-pub async fn remove_measurement(date: &str) -> Result<Vec<Day>, Failure> {
+pub async fn remove_measurement(date: &str) -> Result<GatherWeek, Failure> {
     call("remove_measurement", OnDay { date }, broken).await
 }
 

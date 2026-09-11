@@ -24,12 +24,12 @@ use grind_core::for_setting_up_the_profile::{
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
+use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_base::HydrateBase;
-use grind_core::ledger::Day;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::{Recommendations, Rhythm};
@@ -50,19 +50,19 @@ pub fn log_measurement(
     date: String,
     body_mass_kg: f64,
     waist_cm: Option<f64>,
-) -> Result<Vec<Day>, Failure> {
+) -> Result<GatherWeek, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_tracking::log_measurement(&*records, &date, body_mass_kg, waist_cm)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn recent_days(records: State<Records>) -> Result<Vec<Day>, Failure> {
+pub fn gather_week(records: State<Records>, date: String) -> Result<GatherWeek, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_tracking::recent_days(&*records)
+    for_tracking::gather_week(&*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn remove_measurement(records: State<Records>, date: String) -> Result<Vec<Day>, Failure> {
+pub fn remove_measurement(records: State<Records>, date: String) -> Result<GatherWeek, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_tracking::remove_measurement(&*records, &date)
 }
@@ -466,7 +466,7 @@ mod tests {
             .manage(DraftBackup(backup))
             .invoke_handler(tauri::generate_handler![
                 log_measurement,
-                recent_days,
+                gather_week,
                 remove_measurement,
                 set_profile,
                 profile_on,
@@ -567,7 +567,7 @@ mod tests {
     }
 
     #[test]
-    fn logging_a_measurement_answers_the_recent_days_as_the_screen_reads_them() {
+    fn logging_a_measurement_answers_its_week_as_the_screen_reads_it() {
         let (_app, screen) = launched();
 
         let answer = invoke(
@@ -576,19 +576,27 @@ mod tests {
             json!({ "date": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0 }),
         );
 
+        let measured = json!({ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "composition": null, "age": null });
         assert_eq!(
             answer,
-            Ok(
-                json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "composition": null, "age": null }])
-            )
+            Ok(json!({
+                "day": measured, "days": [measured],
+                "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }
+            }))
         );
     }
 
     #[test]
-    fn the_recent_days_start_empty_on_a_first_launch() {
+    fn the_gather_week_starts_empty_on_a_first_launch() {
         let (_app, screen) = launched();
 
-        assert_eq!(invoke(&screen, "recent_days", json!({})), Ok(json!([])));
+        assert_eq!(
+            invoke(&screen, "gather_week", json!({ "date": "2026-10-10" })),
+            Ok(json!({
+                "day": null, "days": [],
+                "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }
+            }))
+        );
     }
 
     #[test]
@@ -610,7 +618,7 @@ mod tests {
         );
 
         assert_eq!(
-            answer.map(|days| days.as_array().map(Vec::len)),
+            answer.map(|week| week["days"].as_array().map(Vec::len)),
             Ok(Some(1))
         );
     }
@@ -1242,10 +1250,10 @@ mod tests {
         .expect("a measurement logs");
 
         let erased = invoke(&screen, "erase_everything", json!({}));
-        let days_left = invoke(&screen, "recent_days", json!({}));
+        let week_left = invoke(&screen, "gather_week", json!({ "date": "2026-10-10" }));
 
         assert_eq!(erased, Ok(json!(null)));
-        assert_eq!(days_left, Ok(json!([])));
+        assert_eq!(week_left.map(|week| week["days"].clone()), Ok(json!([])));
     }
 
     #[test]

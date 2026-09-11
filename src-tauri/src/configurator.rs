@@ -21,7 +21,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::log_measurement,
-            commands::recent_days,
+            commands::gather_week,
             commands::remove_measurement,
             commands::set_profile,
             commands::profile_on,

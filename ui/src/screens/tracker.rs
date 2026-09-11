@@ -22,7 +22,7 @@ fn DayRow(day: Day, days: RwSignal<Vec<Day>>, said: RwSignal<Option<String>>) ->
         let date = date.clone();
         spawn_local(async move {
             match tauri::remove_measurement(&date).await {
-                Ok(recent) => days.set(recent),
+                Ok(week) => days.set(week.days),
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -50,8 +50,8 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
     let days = RwSignal::new(Vec::<Day>::new());
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
-        match tauri::recent_days().await {
-            Ok(recent) => days.set(recent),
+        match tauri::gather_week(&day.get_untracked()).await {
+            Ok(week) => days.set(week.days),
             Err(failure) => said.set(Some(lines::failure(&failure))),
         }
     });
@@ -67,8 +67,8 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
         let body_mass_kg = body_mass_kg.unwrap_or(0.0);
         spawn_local(async move {
             match tauri::log_measurement(&date, body_mass_kg, waist_cm).await {
-                Ok(recent) => {
-                    days.set(recent);
+                Ok(week) => {
+                    days.set(week.days);
                     mass.set(String::new());
                     waist.set(String::new());
                     said.set(None);
