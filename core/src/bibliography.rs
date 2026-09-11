@@ -271,4 +271,29 @@ mod tests {
                 .all(|page| page.starts_with("https://"))
         );
     }
+
+    #[test]
+    fn the_sources_of_the_recommended_protein_and_usual_day_are_cited() {
+        let cited = |topic: Topic| -> Vec<(&str, u16)> {
+            references_about(topic)
+                .iter()
+                .map(|reference| (reference.authors, reference.year))
+                .collect()
+        };
+
+        assert!(
+            cited(Topic::Macronutrients)
+                .contains(&("Morton R. W., Murphy K. T., McKellar S. R., et al.", 2018))
+        );
+        for source in [
+            (
+                "Ekelund U., Steene-Johannessen J., Brown W. J., et al.",
+                2016,
+            ),
+            ("Buckley J. P., Hedge A., Yates T., et al.", 2015),
+            ("Paluch A. E., Bajpai S., Bassett D. R., et al.", 2022),
+        ] {
+            assert!(cited(Topic::Activity).contains(&source), "{source:?}");
+        }
+    }
 }
