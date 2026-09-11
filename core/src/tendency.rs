@@ -25,8 +25,80 @@ pub struct Tendency {
     pub lean_mass: Option<Change>,
 }
 
-pub fn tendency_of(_days: &[Day], _goals: Option<&Goals>) -> Tendency {
-    Tendency::default()
+fn ends(days: &[Day], measure: fn(&Day) -> Option<f64>) -> Option<(f64, f64)> {
+    let mut measured: Vec<_> = days
+        .iter()
+        .filter_map(|day| measure(day).map(|value| (day.day, value)))
+        .collect();
+    measured.sort_by_key(|(day, _)| *day);
+    match measured.as_slice() {
+        [(_, first), .., (_, last)] => Some((*first, *last)),
+        _ => None,
+    }
+}
+
+fn closing_on(target: f64, (first, last): (f64, f64)) -> Heading {
+    if (last - target).abs() < (first - target).abs() {
+        Heading::Toward
+    } else {
+        Heading::Away
+    }
+}
+
+fn change((first, last): (f64, f64), shown_per_unit: f64, heading: Heading) -> Change {
+    let by = last - first;
+    Change {
+        by,
+        heading: if (by * shown_per_unit * 10.0).round() == 0.0 {
+            Heading::Steady
+        } else {
+            heading
+        },
+    }
+}
+
+/// How each measure moved from its first day to its last, and whether that heads for the goals.
+/// A change that shows as nothing at the tenth is steady. The waist has no goal of its own: it
+/// heads the way the fat ratio must go to reach its goal.
+pub fn tendency_of(days: &[Day], goals: Option<&Goals>) -> Tendency {
+    let mass = ends(days, |day| Some(day.body_mass_kg));
+    let waist = ends(days, |day| day.waist_cm);
+    let fat = ends(days, |day| day.composition.map(|split| split.fat_ratio));
+    let lean = ends(days, |day| day.composition.map(|split| split.lean_mass_kg));
+    let aimed = |target: Option<f64>, ends: (f64, f64)| {
+        target.map_or(Heading::Unaimed, |target| closing_on(target, ends))
+    };
+    let waist_heading = |(first, last): (f64, f64)| match (goals, fat) {
+        (Some(goals), Some((fat_first, _)))
+            if (goals.fat_ratio - fat_first) * (last - first) > 0.0 =>
+        {
+            Heading::Toward
+        }
+        (Some(_), Some(_)) => Heading::Away,
+        _ => Heading::Unaimed,
+    };
+    Tendency {
+        body_mass: mass.map(|ends| {
+            change(
+                ends,
+                1.0,
+                aimed(goals.map(|goals| goals.body_mass_kg), ends),
+            )
+        }),
+        waist: waist.map(|ends| change(ends, 1.0, waist_heading(ends))),
+        fat_ratio: fat
+            .map(|ends| change(ends, 100.0, aimed(goals.map(|goals| goals.fat_ratio), ends))),
+        lean_mass: lean.map(|ends| {
+            change(
+                ends,
+                1.0,
+                aimed(
+                    goals.map(|goals| goals.body_mass_kg * (1.0 - goals.fat_ratio)),
+                    ends,
+                ),
+            )
+        }),
+    }
 }
 
 #[cfg(test)]
