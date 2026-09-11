@@ -7,9 +7,10 @@ use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
 use crate::refusal::Refusal;
-use crate::tendency::Tendency;
+use crate::tendency::{Tendency, tendency_of};
+use crate::version::version_in_force_on;
 
-const RECENT_DAYS: usize = 14;
+const DAYS_BEFORE_IN_A_WEEK: u64 = 6;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GatherWeek {
@@ -22,16 +23,17 @@ fn day_of(date: &str) -> Result<NaiveDate, Failure> {
     NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
 }
 
-fn week_ending_on(gathered: &GatherRecords, _day: NaiveDate) -> GatherWeek {
-    let _ = Days::new(6);
+fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
+    let first = day - Days::new(DAYS_BEFORE_IN_A_WEEK);
+    let days: Vec<Day> = ledger(&gathered.measurements, &gathered.profiles)
+        .into_iter()
+        .filter(|measured| (first..=day).contains(&measured.day))
+        .rev()
+        .collect();
     GatherWeek {
-        day: None,
-        days: ledger(&gathered.measurements, &gathered.profiles)
-            .into_iter()
-            .rev()
-            .take(RECENT_DAYS)
-            .collect(),
-        tendency: Tendency::default(),
+        day: days.first().filter(|measured| measured.day == day).copied(),
+        tendency: tendency_of(&days, version_in_force_on(&gathered.goals, day)),
+        days,
     }
 }
 
