@@ -11,26 +11,6 @@ use crate::hydrate_base::default_base_ml;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
 
-/// How a usual week runs, at work, in training and in hobbies. It sets the protein and
-/// the usual day off the clock, never an activity multiplier on energy: the band reads
-/// the burn from the workouts actually logged.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Rhythm {
-    Sedentary,
-    LightlyActive,
-    ModeratelyActive,
-    VeryActive,
-    ExtremelyActive,
-}
-
-pub const RHYTHMS: [Rhythm; 5] = [
-    Rhythm::Sedentary,
-    Rhythm::LightlyActive,
-    Rhythm::ModeratelyActive,
-    Rhythm::VeryActive,
-    Rhythm::ExtremelyActive,
-];
-
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Recommendations {
     pub healthy_mass_kg: (f64, f64),
@@ -42,7 +22,7 @@ pub struct Recommendations {
     pub usual_day: Volitional,
 }
 
-/// The recommendations for a profile on a day, at a rhythm.
+/// The recommendations for a profile on a day.
 ///
 /// - Healthy mass: the World Health Organization's normal body mass index, 18.5 to 24.9,
 ///   at the profile's height; the goal sits at its middle, 21.7.
@@ -62,13 +42,12 @@ pub fn recommended(
     profile: &Profile,
     day: NaiveDate,
     body_mass_kg: Option<f64>,
-    rhythm: Rhythm,
 ) -> Recommendations {
     let height_m = profile.height_cm / 100.0;
     let squared = height_m * height_m;
     let goal_mass_kg = MIDDLE_OF_NORMAL_BMI * squared;
     let healthy_fat_ratio = healthy_fat_ratio(profile.gender, age_on(profile.birthday, day));
-    let (protein_g_per_kg, steps, (sitting_min, standing_min)) = by_rhythm(rhythm);
+    let (protein_g_per_kg, steps, (sitting_min, standing_min)) = (1.4, 8750.0, (360.0, 240.0));
     Recommendations {
         healthy_mass_kg: (LOWEST_NORMAL_BMI * squared, HIGHEST_NORMAL_BMI * squared),
         goal_mass_kg,
@@ -103,16 +82,6 @@ fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
         (Gender::Female, ..=39) => (0.21, 0.33),
         (Gender::Female, 40..=59) => (0.23, 0.34),
         (Gender::Female, _) => (0.24, 0.36),
-    }
-}
-
-fn by_rhythm(rhythm: Rhythm) -> (f64, f64, (f64, f64)) {
-    match rhythm {
-        Rhythm::Sedentary => (0.83, 4000.0, (600.0, 60.0)),
-        Rhythm::LightlyActive => (1.1, 6250.0, (480.0, 120.0)),
-        Rhythm::ModeratelyActive => (1.4, 8750.0, (360.0, 240.0)),
-        Rhythm::VeryActive => (1.7, 11250.0, (240.0, 360.0)),
-        Rhythm::ExtremelyActive => (2.0, 14000.0, (120.0, 480.0)),
     }
 }
 
@@ -156,7 +125,6 @@ mod tests {
             &born("1985-04-12", Gender::Male, 180.0),
             day("2026-10-11"),
             Some(71.7),
-            Rhythm::ModeratelyActive,
         );
 
         assert!(about(advised.healthy_mass_kg.0, 18.5 * 1.8 * 1.8));
@@ -167,12 +135,7 @@ mod tests {
     #[test]
     fn a_healthy_fat_follows_gallagher_for_the_age_and_gender_its_goal_at_the_middle() {
         let fat_of = |birthday, gender| {
-            let advised = recommended(
-                &born(birthday, gender, 170.0),
-                day("2026-10-11"),
-                None,
-                Rhythm::Sedentary,
-            );
+            let advised = recommended(&born(birthday, gender, 170.0), day("2026-10-11"), None);
             (advised.healthy_fat_ratio, advised.goal_fat_ratio)
         };
 
@@ -185,22 +148,14 @@ mod tests {
     }
 
     #[test]
-    fn protein_rises_with_the_rhythm_from_the_who_safe_level_to_the_issn_upper_bound() {
-        let proteins: Vec<f64> = RHYTHMS
-            .iter()
-            .map(|rhythm| {
-                recommended(
-                    &born("1985-04-12", Gender::Male, 180.0),
-                    day("2026-10-11"),
-                    Some(80.0),
-                    *rhythm,
-                )
-                .fuel
-                .protein_g_per_kg
-            })
-            .collect();
+    fn protein_sits_where_the_gains_in_lean_mass_level_off_for_those_who_train() {
+        let advised = recommended(
+            &born("1985-04-12", Gender::Male, 180.0),
+            day("2026-10-11"),
+            Some(80.0),
+        );
 
-        assert_eq!(proteins, vec![0.83, 1.1, 1.4, 1.7, 2.0]);
+        assert_eq!(advised.fuel.protein_g_per_kg, 1.6);
     }
 
     #[test]
@@ -209,13 +164,11 @@ mod tests {
             &born("1985-04-12", Gender::Male, 180.0),
             day("2026-10-11"),
             Some(80.0),
-            Rhythm::Sedentary,
         );
         let unweighed = recommended(
             &born("1985-04-12", Gender::Male, 180.0),
             day("2026-10-11"),
             None,
-            Rhythm::Sedentary,
         );
 
         assert_eq!(advised.fuel.fat_g_per_kg, 0.8);
@@ -226,13 +179,7 @@ mod tests {
     #[test]
     fn drinks_follow_efsa_for_the_gender() {
         let drinks_of = |gender| {
-            recommended(
-                &born("1985-04-12", gender, 170.0),
-                day("2026-10-11"),
-                None,
-                Rhythm::Sedentary,
-            )
-            .hydrate_base_ml
+            recommended(&born("1985-04-12", gender, 170.0), day("2026-10-11"), None).hydrate_base_ml
         };
 
         assert_eq!(
@@ -242,49 +189,32 @@ mod tests {
     }
 
     #[test]
-    fn the_usual_day_sits_less_and_moves_more_as_the_rhythm_rises() {
-        let days: Vec<Volitional> = RHYTHMS
-            .iter()
-            .map(|rhythm| {
-                recommended(
-                    &born("1985-04-12", Gender::Male, 180.0),
-                    day("2026-10-11"),
-                    None,
-                    *rhythm,
-                )
-                .usual_day
-            })
-            .collect();
+    fn the_usual_day_sits_eight_hours_at_most_stands_two_and_walks_the_steps_that_pay_off_at_its_age()
+     {
+        let usual_day_of = |birthday| {
+            recommended(
+                &born(birthday, Gender::Male, 180.0),
+                day("2026-10-11"),
+                None,
+            )
+            .usual_day
+        };
 
         assert_eq!(
-            days,
-            vec![
-                Volitional {
-                    sitting_min: 600.0,
-                    standing_min: 60.0,
-                    moving_km: 3.0
-                },
-                Volitional {
-                    sitting_min: 480.0,
-                    standing_min: 120.0,
-                    moving_km: 4.7
-                },
-                Volitional {
-                    sitting_min: 360.0,
-                    standing_min: 240.0,
-                    moving_km: 6.6
-                },
-                Volitional {
-                    sitting_min: 240.0,
-                    standing_min: 360.0,
-                    moving_km: 8.4
-                },
-                Volitional {
-                    sitting_min: 120.0,
-                    standing_min: 480.0,
-                    moving_km: 10.5
-                },
-            ]
+            usual_day_of("1985-04-12"),
+            Volitional {
+                sitting_min: 480.0,
+                standing_min: 120.0,
+                moving_km: 6.0
+            }
+        );
+        assert_eq!(
+            usual_day_of("1960-01-01"),
+            Volitional {
+                sitting_min: 480.0,
+                standing_min: 120.0,
+                moving_km: 4.5
+            }
         );
     }
 }

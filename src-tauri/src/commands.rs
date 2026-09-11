@@ -32,7 +32,7 @@ use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_base::HydrateBase;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
-use grind_core::recommendations::{Recommendations, Rhythm};
+use grind_core::recommendations::Recommendations;
 use grind_core::stats::Measure;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
@@ -439,13 +439,9 @@ pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn recommended_on(
-    records: State<Records>,
-    date: String,
-    rhythm: Rhythm,
-) -> Result<Recommendations, Failure> {
+pub fn recommended_on(records: State<Records>, date: String) -> Result<Recommendations, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::recommended_on(&*records, &date, rhythm)
+    for_setting_up_the_profile::recommended_on(&*records, &date)
 }
 
 #[cfg(test)]
@@ -1257,7 +1253,7 @@ mod tests {
     }
 
     #[test]
-    fn recommendations_cross_to_the_screen_for_the_rhythm_asked() {
+    fn recommendations_cross_to_the_screen_for_the_profile_in_force() {
         let (_app, screen) = launched();
         invoke(
             &screen,
@@ -1267,18 +1263,14 @@ mod tests {
         )
         .expect("a profile set");
 
-        let advised = invoke(
-            &screen,
-            "recommended_on",
-            json!({ "date": "2026-10-11", "rhythm": "Sedentary" }),
-        )
-        .expect("recommendations");
+        let advised = invoke(&screen, "recommended_on", json!({ "date": "2026-10-11" }))
+            .expect("recommendations");
 
-        assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(0.83));
+        assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(1.6));
         assert_eq!(advised["hydrate_base_ml"], json!(2000.0));
         assert_eq!(
             advised["usual_day"],
-            json!({ "sitting_min": 600.0, "standing_min": 60.0, "moving_km": 3.0 })
+            json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 })
         );
     }
 }

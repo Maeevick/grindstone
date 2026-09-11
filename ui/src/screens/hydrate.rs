@@ -5,7 +5,7 @@ use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateBaseForm;
 use grind_core::hydrate::Hydrate;
-use grind_core::recommendations::{Recommendations, Rhythm};
+use grind_core::recommendations::Recommendations;
 use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -305,7 +305,7 @@ pub fn DrinksCatalog() -> impl IntoView {
 }
 
 #[component]
-pub fn HydrateBaseCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
+pub fn HydrateBaseCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let base = RwSignal::new(String::new());
     let default_ml = RwSignal::new(None::<f64>);
@@ -347,7 +347,7 @@ pub fn HydrateBaseCard(rhythm: RwSignal<Rhythm>) -> impl IntoView {
                     <DateField label="From" name="hydrate_base_from" value=from />
                     <FigureField label="Base (mL)" name="hydrate_base" value=base />
                 </div>
-                <Recommend rhythm=rhythm fill=fill said=said />
+                <Recommend fill=fill said=said />
                 <ReferencesLink topic=Topic::Water />
                 {move || {
                     default_ml

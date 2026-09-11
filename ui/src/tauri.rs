@@ -26,7 +26,7 @@ use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_base::HydrateBase;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
-use grind_core::recommendations::{Recommendations, Rhythm};
+use grind_core::recommendations::Recommendations;
 use grind_core::stats::Measure;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
@@ -311,14 +311,8 @@ pub async fn erase_everything() -> Result<(), Failure> {
     call("erase_everything", Nothing {}, broken).await
 }
 
-#[derive(Serialize)]
-struct Recommending<'a> {
-    date: &'a str,
-    rhythm: Rhythm,
-}
-
-pub async fn recommended_on(date: &str, rhythm: Rhythm) -> Result<Recommendations, Failure> {
-    call("recommended_on", Recommending { date, rhythm }, broken).await
+pub async fn recommended_on(date: &str) -> Result<Recommendations, Failure> {
+    call("recommended_on", OnDay { date }, broken).await
 }
 
 #[derive(Serialize)]
