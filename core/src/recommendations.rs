@@ -29,15 +29,18 @@ pub struct Recommendations {
 ///   WHO (2000), *Obesity: preventing and managing the global epidemic*, Technical Report Series 894.
 /// - Healthy fat: the percentage body fat predicted at a BMI of 18.5 and 25 for the age and gender,
 ///   Gallagher D. et al. (2000), *Am J Clin Nutr* 72(3):694–701, table 4; the goal sits at its middle.
-/// - Protein: 0.83 g/kg for a sedentary rhythm, the safe level of WHO/FAO/UNU (2007), Technical
-///   Report Series 935, rising to the 1.4 to 2.0 g/kg of Jäger R. et al. (2017),
-///   *J Int Soc Sports Nutr* 14:20, for active ones.
+/// - Protein: 1.6 g/kg, where the gains in lean mass from training level off: Morton R. W. et al.
+///   (2018), *Br J Sports Med* 52(6):376–384, 1.62 g/kg (95% CI 1.03 to 2.20); within the
+///   1.4 to 2.0 g/kg of Jäger R. et al. (2017), *J Int Soc Sports Nutr* 14:20.
 /// - Fat: 0.8 g/kg as a practical floor; the day's band also asks 20 to 33.3% of the energy eaten,
 ///   within EFSA's 20 to 35% (2010) and near WHO's 30% at most (2023).
 /// - Fibre: 25 g a day, WHO (2023), *Carbohydrate intake for adults and children*, spread per kilo.
 /// - Water from drinks: EFSA's adequate intake of total water (2010), four fifths of it from drinks.
-/// - The usual day: steps after Tudor-Locke C. and Bassett D. R. (2004), *Sports Med* 34(1):1–8,
-///   at about 0.75 m a step; the sitting and standing minutes are estimates to adjust.
+/// - The usual day: sitting 8 hours at most, past which the least active die sooner, Ekelund U.
+///   et al. (2016), *Lancet* 388(10051):1302–1310; standing 2 hours, the first step of
+///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps a day past
+///   which the risk of dying stops falling, 8000 under 60 and 6000 from 60, Paluch A. E. et al.
+///   (2022), *Lancet Public Health* 7(3):e219–e228, at about 0.75 m a step.
 pub fn recommended(
     profile: &Profile,
     day: NaiveDate,
@@ -46,23 +49,23 @@ pub fn recommended(
     let height_m = profile.height_cm / 100.0;
     let squared = height_m * height_m;
     let goal_mass_kg = MIDDLE_OF_NORMAL_BMI * squared;
-    let healthy_fat_ratio = healthy_fat_ratio(profile.gender, age_on(profile.birthday, day));
-    let (protein_g_per_kg, steps, (sitting_min, standing_min)) = (1.4, 8750.0, (360.0, 240.0));
+    let age = age_on(profile.birthday, day);
+    let healthy_fat_ratio = healthy_fat_ratio(profile.gender, age);
     Recommendations {
         healthy_mass_kg: (LOWEST_NORMAL_BMI * squared, HIGHEST_NORMAL_BMI * squared),
         goal_mass_kg,
         healthy_fat_ratio,
         goal_fat_ratio: to_the_thousandth((healthy_fat_ratio.0 + healthy_fat_ratio.1) / 2.0),
         fuel: FuelTargets {
-            protein_g_per_kg,
+            protein_g_per_kg: PROTEIN_G_PER_KG,
             fat_g_per_kg: FAT_FLOOR_G_PER_KG,
             fibre_g_per_kg: to_the_hundredth(FIBRE_G_A_DAY / body_mass_kg.unwrap_or(goal_mass_kg)),
         },
         hydrate_base_ml: default_base_ml(Some(profile.gender)),
         usual_day: Volitional {
-            sitting_min,
-            standing_min,
-            moving_km: to_the_tenth(steps * METRES_A_STEP / 1000.0),
+            sitting_min: SITTING_MIN,
+            standing_min: STANDING_MIN,
+            moving_km: to_the_tenth(steps_a_day(age) * METRES_A_STEP / 1000.0),
         },
     }
 }
@@ -70,9 +73,16 @@ pub fn recommended(
 const LOWEST_NORMAL_BMI: f64 = 18.5;
 const HIGHEST_NORMAL_BMI: f64 = 24.9;
 const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
+const PROTEIN_G_PER_KG: f64 = 1.6;
 const FAT_FLOOR_G_PER_KG: f64 = 0.8;
 const FIBRE_G_A_DAY: f64 = 25.0;
+const SITTING_MIN: f64 = 480.0;
+const STANDING_MIN: f64 = 120.0;
 const METRES_A_STEP: f64 = 0.75;
+
+fn steps_a_day(age: u32) -> f64 {
+    if age < 60 { 8000.0 } else { 6000.0 }
+}
 
 fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
     match (gender, age) {
