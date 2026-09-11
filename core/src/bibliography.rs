@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 22] = [
+pub const REFERENCES: [Reference; 26] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -142,6 +142,33 @@ pub const REFERENCES: [Reference; 22] = [
     },
     Reference {
         topic: Topic::Activity,
+        authors: "Paluch A. E., Bajpai S., Bassett D. R., et al.",
+        year: 2022,
+        title: "Daily steps and all-cause mortality: a meta-analysis of 15 international cohorts",
+        published_in: "The Lancet Public Health 7(3):e219-e228",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/35247352/"),
+        used_for: "The usual day's steps: 8000 a day under 60 and 6000 from 60, past which the risk of dying stops falling",
+    },
+    Reference {
+        topic: Topic::Activity,
+        authors: "Buckley J. P., Hedge A., Yates T., et al.",
+        year: 2015,
+        title: "The sedentary office: an expert statement on the growing case for change towards better health and productivity",
+        published_in: "British Journal of Sports Medicine 49(21):1357-1362",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/26034192/"),
+        used_for: "The usual day's 2 hours standing, the first step towards 4",
+    },
+    Reference {
+        topic: Topic::Activity,
+        authors: "Ekelund U., Steene-Johannessen J., Brown W. J., et al.",
+        year: 2016,
+        title: "Does physical activity attenuate, or even eliminate, the detrimental association of sitting time with mortality? A harmonised meta-analysis of data from more than 1 million men and women",
+        published_in: "The Lancet 388(10051):1302-1310",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/27475271/"),
+        used_for: "The usual day's 8 hours sitting at most, past which the least active die sooner",
+    },
+    Reference {
+        topic: Topic::Activity,
         authors: "Tudor-Locke C., Bassett D. R.",
         year: 2004,
         title: "How many steps/day are enough? Preliminary pedometer indices for public health",
@@ -166,6 +193,15 @@ pub const REFERENCES: [Reference; 22] = [
         published_in: "Journal of the International Society of Sports Nutrition 14:20",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/28642676/"),
         used_for: "Protein of 1.4 to 2.0 g per kilo for those who train",
+    },
+    Reference {
+        topic: Topic::Macronutrients,
+        authors: "Morton R. W., Murphy K. T., McKellar S. R., et al.",
+        year: 2018,
+        title: "A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults",
+        published_in: "British Journal of Sports Medicine 52(6):376-384",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/28698222/"),
+        used_for: "Protein of 1.6 g per kilo, where the gains in lean mass from training level off",
     },
     Reference {
         topic: Topic::Macronutrients,
