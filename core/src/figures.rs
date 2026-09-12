@@ -26,37 +26,48 @@ pub fn typed_back(value: f64) -> String {
     format!("{}", to_the_hundredth(value) + 0.0)
 }
 
-pub fn bare(figure: Figure) -> String {
-    shown(figure)
-}
-
-pub fn signed(figure: Figure) -> String {
-    shown(figure)
+fn parts(figure: Figure) -> (String, &'static str) {
+    match figure {
+        Figure::Mass(kg) => (format!("{:.1}", to_the_tenth(kg) + 0.0), " kg"),
+        Figure::Length(cm) => (format!("{:.1}", to_the_tenth(cm) + 0.0), " cm"),
+        Figure::Ratio(ratio) => (format!("{:.1}", to_the_tenth(ratio * 100.0) + 0.0), "%"),
+        Figure::Energy(kcal) => (format!("{}", kcal.round() + 0.0), " kcal"),
+        Figure::Duration(minutes) => (format!("{}", to_the_tenth(minutes) + 0.0), " min"),
+        Figure::Distance(km) => (format!("{}", to_the_hundredth(km) + 0.0), " km"),
+        Figure::Grams(grams) => (format!("{}", grams.round() + 0.0), " g"),
+        Figure::Count(count) => (format!("{}", to_the_tenth(count) + 0.0), ""),
+        Figure::Amount(amount, unit) => {
+            let amount = to_the_tenth(amount) + 0.0;
+            let unit = match unit {
+                Unit::Gram => " g",
+                Unit::Millilitre => " mL",
+                Unit::Piece if amount == 1.0 => " piece",
+                Unit::Piece => " pieces",
+            };
+            (format!("{amount}"), unit)
+        }
+        Figure::Volume(ml) => (format!("{}", ml.round() + 0.0), " mL"),
+    }
 }
 
 pub fn shown(figure: Figure) -> String {
-    let (value, unit) = match figure {
-        Figure::Mass(kg) => (kg, " kg"),
-        Figure::Length(cm) => (cm, " cm"),
-        Figure::Ratio(ratio) => (ratio * 100.0, "%"),
-        Figure::Energy(kcal) => return format!("{} kcal", kcal.round() + 0.0),
-        Figure::Duration(minutes) => return format!("{} min", to_the_tenth(minutes)),
-        Figure::Distance(km) => return format!("{} km", to_the_hundredth(km)),
-        Figure::Grams(grams) => return format!("{} g", grams.round() + 0.0),
-        Figure::Count(count) => return format!("{}", to_the_tenth(count) + 0.0),
-        Figure::Amount(amount, unit) => {
-            let amount = to_the_tenth(amount);
-            let unit = match unit {
-                Unit::Gram => "g",
-                Unit::Millilitre => "mL",
-                Unit::Piece if amount == 1.0 => "piece",
-                Unit::Piece => "pieces",
-            };
-            return format!("{amount} {unit}");
-        }
-        Figure::Volume(ml) => return format!("{} mL", ml.round() + 0.0),
-    };
-    format!("{:.1}{unit}", to_the_tenth(value))
+    let (number, unit) = parts(figure);
+    format!("{number}{unit}")
+}
+
+/// The number alone, for a table whose header holds the unit.
+pub fn bare(figure: Figure) -> String {
+    parts(figure).0
+}
+
+/// A change, showing which way it went; one that rounds to nothing shows no sign.
+pub fn signed(figure: Figure) -> String {
+    let number = bare(figure);
+    if number.starts_with('-') || number.trim_start_matches(['0', '.']).is_empty() {
+        number
+    } else {
+        format!("+{number}")
+    }
 }
 
 #[cfg(test)]
