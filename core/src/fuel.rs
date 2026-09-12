@@ -32,6 +32,25 @@ pub struct MacroRow {
     pub verdict: Verdict,
 }
 
+impl MacroRow {
+    pub fn gap_g(&self) -> f64 {
+        0.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EnergyShares {
+    pub protein: f64,
+    pub fat: f64,
+    pub fibre: f64,
+    pub carbs: f64,
+    pub total: f64,
+}
+
+pub fn energy_shares(_eaten: &Nutrients) -> Option<EnergyShares> {
+    None
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Macros {
     pub protein: MacroRow,
@@ -892,5 +911,43 @@ mod tests {
         {
             assert!(about(row.floor_g, floor), "{row:?} {floor}");
         }
+    }
+
+    #[test]
+    fn a_macros_gap_is_what_was_eaten_beyond_its_floor_the_goal() {
+        let short = MacroRow {
+            eaten_g: 120.0,
+            floor_g: 130.0,
+            ceiling_g: 180.0,
+            verdict: Verdict::Low,
+        };
+
+        assert!(about(short.gap_g(), -10.0));
+    }
+
+    #[test]
+    fn each_macro_takes_its_share_of_the_energy_eaten_and_together_they_account_for_it() {
+        let eaten = Nutrients {
+            energy_kcal: 2000.0,
+            protein_g: 150.0,
+            fat_g: 70.0,
+            fibre_g: 30.0,
+            carbs_g: 177.5,
+        };
+
+        let shares = energy_shares(&eaten).expect("shares of what was eaten");
+
+        assert!(about(shares.protein, 0.3));
+        assert!(about(shares.fat, 0.315));
+        assert!(about(shares.fibre, 0.03));
+        assert!(about(shares.carbs, 0.355));
+        assert!(about(shares.total, 1.0));
+        assert_eq!(
+            energy_shares(&Nutrients {
+                energy_kcal: 0.0,
+                ..eaten
+            }),
+            None
+        );
     }
 }
