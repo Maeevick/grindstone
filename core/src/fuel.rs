@@ -164,7 +164,7 @@ fn band_for(
     off_the_clock: Volitional,
     deficit: Deficit,
     digested: Eaten,
-) -> Band {
+) -> (Band, Budget) {
     let minimum_kcal_per_kg_of_lean_mass = match body.gender {
         Gender::Male => 25.0,
         Gender::Female => 30.0,
@@ -178,14 +178,14 @@ fn band_for(
         off_the_clock,
         deficit,
         digested,
-    )
-    .kcal();
-    let cap_kcal = (budget + burnt_kcal).max(minimum_kcal);
-    Band {
+    );
+    let cap_kcal = (budget.kcal() + burnt_kcal).max(minimum_kcal);
+    let band = Band {
         minimum_kcal,
         floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
         cap_kcal,
-    }
+    };
+    (band, budget)
 }
 
 fn mean(gaps: &[f64]) -> Option<f64> {
@@ -281,24 +281,24 @@ impl Ledgers<'_> {
             .unwrap_or(DEFAULT_FUEL_TARGETS);
         let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
             let burnt = burn_on(day, self.burn, &self.gather.measurements);
-            let band = band_for(
+            let (band, budget) = band_for(
                 &body,
                 burnt.burnt_kcal.unwrap_or(0.0),
                 burnt.off_the_clock.unwrap_or_default(),
                 deficit_before(day, gaps),
                 digested((!intakes.is_empty()).then_some(eaten), &body, targets),
             );
-            (band, macros_for(eaten, &body, targets, band))
+            (band, macros_for(eaten, &body, targets, band), budget)
         });
         Fuel {
             day,
             intakes,
             eaten,
-            band: banded.map(|(band, _)| band),
+            band: banded.map(|(band, _, _)| band),
             energy: banded
-                .map(|(band, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
-            macros: banded.map(|(_, macros)| macros),
-            budget: None,
+                .map(|(band, _, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
+            macros: banded.map(|(_, macros, _)| macros),
+            budget: banded.map(|(_, _, budget)| budget),
         }
     }
 }

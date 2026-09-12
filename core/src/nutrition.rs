@@ -67,15 +67,13 @@ pub fn daily_energy_budget(
         fib,
         carb,
     } = intake.macros;
+    let neat = neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit);
     Budget {
-        resting_kcal: bmr_by_katch_and_mcardle(age, ffm)
-            + organ_overhead_by_elia(age, ffm, fm)
-            + tef_by_calcagno_et_al(age, protein, fat, fib, carb)
-            + neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit),
-        organs_kcal: 0.0,
-        digestion_kcal: 0.0,
-        spontaneous_kcal: 0.0,
-        volitional_kcal: 0.0,
+        resting_kcal: bmr_by_katch_and_mcardle(age, ffm),
+        organs_kcal: organ_overhead_by_elia(age, ffm, fm),
+        digestion_kcal: tef_by_calcagno_et_al(age, protein, fat, fib, carb),
+        spontaneous_kcal: neat.spontaneous,
+        volitional_kcal: neat.volitional,
     }
 }
 
@@ -93,6 +91,11 @@ fn tef_by_calcagno_et_al(age: u32, protein: f64, fat: f64, fib: f64, carb: f64) 
         * (1.0 - 0.002 * f64::from(age.saturating_sub(50))).max(0.0)
 }
 
+struct Neat {
+    spontaneous: f64,
+    volitional: f64,
+}
+
 fn neat_by_mayo_clinic(
     age: u32,
     ffm: f64,
@@ -100,7 +103,7 @@ fn neat_by_mayo_clinic(
     gender: Gender,
     volitional: Volitional,
     deficit: Deficit,
-) -> f64 {
+) -> Neat {
     let (ffm, fm) = (ffm.max(0.0), fm.max(0.0));
     let (male_standing_premium, female_walking_premium) = match gender {
         Gender::Male => (0.015, 0.0),
@@ -119,7 +122,10 @@ fn neat_by_mayo_clinic(
     let walking = (ffm + fm)
         * volitional.moving_km
         * (0.485 + female_walking_premium + 0.0035 * f64::from(age.saturating_sub(60)));
-    spontaneous + sitting + standing + walking
+    Neat {
+        spontaneous,
+        volitional: sitting + standing + walking,
+    }
 }
 
 #[cfg(test)]
@@ -262,8 +268,19 @@ mod tests {
         moving_km: 0.0,
     };
 
+    fn whole(neat: Neat) -> f64 {
+        neat.spontaneous + neat.volitional
+    }
+
     fn a_mans_neat(age: u32, volitional: Volitional, deficit: Deficit) -> f64 {
-        neat_by_mayo_clinic(age, 65.0, 10.0, Gender::Male, volitional, deficit)
+        whole(neat_by_mayo_clinic(
+            age,
+            65.0,
+            10.0,
+            Gender::Male,
+            volitional,
+            deficit,
+        ))
     }
 
     #[test]
@@ -273,14 +290,14 @@ mod tests {
 
     #[test]
     fn standing_costs_a_man_more_than_a_woman_of_the_same_build() {
-        let woman = neat_by_mayo_clinic(
+        let woman = whole(neat_by_mayo_clinic(
             41,
             65.0,
             10.0,
             Gender::Female,
             NOTHING_BUT_STANDING,
             NO_DEFICIT,
-        );
+        ));
 
         assert!(about(
             a_mans_neat(41, NOTHING_BUT_STANDING, NO_DEFICIT) - woman,
@@ -290,14 +307,14 @@ mod tests {
 
     #[test]
     fn walking_costs_a_woman_more_than_a_man_of_the_same_mass() {
-        let woman = neat_by_mayo_clinic(
+        let woman = whole(neat_by_mayo_clinic(
             41,
             65.0,
             10.0,
             Gender::Female,
             NOTHING_BUT_WALKING,
             NO_DEFICIT,
-        );
+        ));
 
         assert!(about(
             woman - a_mans_neat(41, NOTHING_BUT_WALKING, NO_DEFICIT),
@@ -364,7 +381,14 @@ mod tests {
 
     #[test]
     fn a_composition_below_nothing_leaves_only_the_postural_intercepts() {
-        let burned = neat_by_mayo_clinic(41, -65.0, -10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT);
+        let burned = whole(neat_by_mayo_clinic(
+            41,
+            -65.0,
+            -10.0,
+            Gender::Male,
+            A_DESK_DAY,
+            NO_DEFICIT,
+        ));
 
         assert!(about(burned, 5.28 + 4.44));
     }
