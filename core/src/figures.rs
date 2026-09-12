@@ -26,6 +26,14 @@ pub fn typed_back(value: f64) -> String {
     format!("{}", to_the_hundredth(value) + 0.0)
 }
 
+pub fn bare(figure: Figure) -> String {
+    shown(figure)
+}
+
+pub fn signed(figure: Figure) -> String {
+    shown(figure)
+}
+
 pub fn shown(figure: Figure) -> String {
     let (value, unit) = match figure {
         Figure::Mass(kg) => (kg, " kg"),
@@ -122,5 +130,37 @@ mod tests {
     #[test]
     fn a_volume_shows_in_whole_millilitres_a_half_going_up() {
         assert_eq!(shown(Figure::Volume(1234.5)), "1235 mL");
+    }
+
+    #[test]
+    fn a_bare_figure_shows_its_number_without_its_unit_for_a_header_to_hold_it() {
+        assert_eq!(
+            [
+                bare(Figure::Mass(72.43)),
+                bare(Figure::Length(84.46)),
+                bare(Figure::Ratio(0.1521)),
+                bare(Figure::Energy(251.6)),
+                bare(Figure::Grams(19.4)),
+                bare(Figure::Volume(1234.5)),
+                bare(Figure::Duration(30.0)),
+                bare(Figure::Amount(2.5, Unit::Piece)),
+            ],
+            ["72.4", "84.5", "15.2", "252", "19", "1235", "30", "2.5"]
+        );
+    }
+
+    #[test]
+    fn a_signed_figure_shows_which_way_it_went_and_nothing_when_it_rounds_to_nothing() {
+        assert_eq!(
+            [
+                signed(Figure::Mass(0.34)),
+                signed(Figure::Mass(-1.0)),
+                signed(Figure::Mass(-0.04)),
+                signed(Figure::Ratio(-0.015)),
+                signed(Figure::Grams(12.4)),
+                signed(Figure::Grams(-0.3)),
+            ],
+            ["+0.3", "-1.0", "0.0", "-1.5", "+12", "0"]
+        );
     }
 }
