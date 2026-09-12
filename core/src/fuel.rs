@@ -33,8 +33,9 @@ pub struct MacroRow {
 }
 
 impl MacroRow {
+    /// What was eaten beyond the goal, which is the floor; short of it, the gap is negative.
     pub fn gap_g(&self) -> f64 {
-        0.0
+        self.eaten_g - self.floor_g
     }
 }
 
@@ -47,8 +48,23 @@ pub struct EnergyShares {
     pub total: f64,
 }
 
-pub fn energy_shares(_eaten: &Nutrients) -> Option<EnergyShares> {
-    None
+/// Each macro's share of the energy eaten, at 4 kcal a gram of protein and of carbs, 9 of fat
+/// and 2 of fibre; their total tells how much of that energy the four account for.
+pub fn energy_shares(eaten: &Nutrients) -> Option<EnergyShares> {
+    let energy = eaten.energy_kcal;
+    (energy > 0.0).then(|| {
+        let protein = eaten.protein_g * PROTEIN_KCAL_PER_G / energy;
+        let fat = eaten.fat_g * FAT_KCAL_PER_G / energy;
+        let fibre = eaten.fibre_g * FIBRE_KCAL_PER_G / energy;
+        let carbs = eaten.carbs_g * CARBS_KCAL_PER_G / energy;
+        EnergyShares {
+            protein,
+            fat,
+            fibre,
+            carbs,
+            total: protein + fat + fibre + carbs,
+        }
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
