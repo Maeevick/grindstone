@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::gender::Gender;
 use crate::volitional::Volitional;
 
@@ -21,6 +23,25 @@ pub struct Intake {
     pub macros: Macro,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Budget {
+    pub resting_kcal: f64,
+    pub organs_kcal: f64,
+    pub digestion_kcal: f64,
+    pub spontaneous_kcal: f64,
+    pub volitional_kcal: f64,
+}
+
+impl Budget {
+    pub fn kcal(&self) -> f64 {
+        self.resting_kcal
+            + self.organs_kcal
+            + self.digestion_kcal
+            + self.spontaneous_kcal
+            + self.volitional_kcal
+    }
+}
+
 /// The day's energy budget before the burn: basal rate, organs, digestion and the day off the clock.
 ///
 /// - Basal rate from lean mass (Katch-McArdle): McArdle W. D., Katch F. I., Katch V. L. (2015),
@@ -39,17 +60,23 @@ pub fn daily_energy_budget(
     volitional: Volitional,
     deficit: Deficit,
     intake: Intake,
-) -> f64 {
+) -> Budget {
     let Macro {
         protein,
         fat,
         fib,
         carb,
     } = intake.macros;
-    bmr_by_katch_and_mcardle(age, ffm)
-        + organ_overhead_by_elia(age, ffm, fm)
-        + tef_by_calcagno_et_al(age, protein, fat, fib, carb)
-        + neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit)
+    Budget {
+        resting_kcal: bmr_by_katch_and_mcardle(age, ffm)
+            + organ_overhead_by_elia(age, ffm, fm)
+            + tef_by_calcagno_et_al(age, protein, fat, fib, carb)
+            + neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit),
+        organs_kcal: 0.0,
+        digestion_kcal: 0.0,
+        spontaneous_kcal: 0.0,
+        volitional_kcal: 0.0,
+    }
 }
 
 fn bmr_by_katch_and_mcardle(age: u32, ffm: f64) -> f64 {
@@ -116,7 +143,8 @@ mod tests {
         };
 
         assert!(about(
-            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake),
+            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake)
+                .kcal(),
             1774.0 * 0.9685 + 102.5 + 275.75 + 431.52
         ));
     }
@@ -339,5 +367,27 @@ mod tests {
         let burned = neat_by_mayo_clinic(41, -65.0, -10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT);
 
         assert!(about(burned, 5.28 + 4.44));
+    }
+
+    #[test]
+    fn the_budget_tells_apart_its_resting_organ_digestion_spontaneous_and_volitional_parts() {
+        let intake = Intake {
+            energy: 2500.0,
+            macros: Macro {
+                protein: 150.0,
+                fat: 70.0,
+                fib: 35.0,
+                carb: 300.0,
+            },
+        };
+
+        let budget =
+            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake);
+
+        assert!(about(budget.resting_kcal, 1774.0 * 0.9685));
+        assert!(about(budget.organs_kcal, 102.5));
+        assert!(about(budget.digestion_kcal, 275.75));
+        assert!(about(budget.spontaneous_kcal, 234.0));
+        assert!(about(budget.volitional_kcal, 431.52 - 234.0));
     }
 }

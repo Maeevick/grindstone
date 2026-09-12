@@ -10,7 +10,7 @@ use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
 use crate::ledger::{Day, ledger};
-use crate::nutrition::{Deficit, Intake as Eaten, Macro, daily_energy_budget};
+use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
 use crate::profile::Profile;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
@@ -83,6 +83,7 @@ pub struct Fuel {
     pub band: Option<Band>,
     pub energy: Option<Verdict>,
     pub macros: Option<Macros>,
+    pub budget: Option<Budget>,
 }
 
 const PROTEIN_KCAL_PER_G: f64 = 4.0;
@@ -177,7 +178,8 @@ fn band_for(
         off_the_clock,
         deficit,
         digested,
-    );
+    )
+    .kcal();
     let cap_kcal = (budget + burnt_kcal).max(minimum_kcal);
     Band {
         minimum_kcal,
@@ -296,6 +298,7 @@ impl Ledgers<'_> {
             energy: banded
                 .map(|(band, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
             macros: banded.map(|(_, macros)| macros),
+            budget: None,
         }
     }
 }
@@ -498,12 +501,13 @@ mod tests {
         assert!(
             fuelled
                 .band
-                .is_some_and(|band| about(band.cap_kcal, budget + burnt))
+                .is_some_and(|band| about(band.cap_kcal, budget.kcal() + burnt))
         );
         assert!(fuelled.band.is_some_and(|band| about(
             band.floor_kcal,
-            (budget + burnt - 48.5 * fat_kg).max(25.0 * lean_kg + burnt)
+            (budget.kcal() + burnt - 48.5 * fat_kg).max(25.0 * lean_kg + burnt)
         )));
+        assert_eq!(fuelled.budget, Some(budget));
     }
 
     #[test]
@@ -719,6 +723,7 @@ mod tests {
                 },
             },
         )
+        .kcal()
     }
 
     fn gap_on(date: &str, fuel: &FuelRecords) -> f64 {
