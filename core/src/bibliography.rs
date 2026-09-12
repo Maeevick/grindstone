@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 26] = [
+pub const REFERENCES: [Reference; 23] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -169,21 +169,12 @@ pub const REFERENCES: [Reference; 26] = [
     },
     Reference {
         topic: Topic::Activity,
-        authors: "Tudor-Locke C., Bassett D. R.",
-        year: 2004,
-        title: "How many steps/day are enough? Preliminary pedometer indices for public health",
-        published_in: "Sports Medicine 34(1):1-8",
-        page: Some("https://pubmed.ncbi.nlm.nih.gov/14715035/"),
-        used_for: "The steps of each rhythm, behind the recommended usual day",
-    },
-    Reference {
-        topic: Topic::Activity,
         authors: "Bull F. C., Al-Ansari S. S., Biddle S., et al.",
         year: 2020,
         title: "World Health Organization 2020 guidelines on physical activity and sedentary behaviour",
         published_in: "British Journal of Sports Medicine 54(24):1451-1462",
         page: Some("https://doi.org/10.1136/bjsports-2020-102955"),
-        used_for: "Less sitting, more moving: the direction the rhythms take",
+        used_for: "Less sitting and more moving, at any intensity: the direction of the usual day",
     },
     Reference {
         topic: Topic::Macronutrients,
@@ -202,24 +193,6 @@ pub const REFERENCES: [Reference; 26] = [
         published_in: "British Journal of Sports Medicine 52(6):376-384",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/28698222/"),
         used_for: "Protein of 1.6 g per kilo, where the gains in lean mass from training level off",
-    },
-    Reference {
-        topic: Topic::Macronutrients,
-        authors: "World Health Organization, Food and Agriculture Organization, United Nations University",
-        year: 2007,
-        title: "Protein and amino acid requirements in human nutrition",
-        published_in: "WHO Technical Report Series 935",
-        page: Some("https://iris.who.int/handle/10665/43411"),
-        used_for: "Protein of 0.83 g per kilo, the safe level for a sedentary adult",
-    },
-    Reference {
-        topic: Topic::Macronutrients,
-        authors: "EFSA Panel on Dietetic Products, Nutrition and Allergies",
-        year: 2012,
-        title: "Scientific Opinion on Dietary Reference Values for protein",
-        published_in: "EFSA Journal 10(2):2557",
-        page: Some("https://doi.org/10.2903/j.efsa.2012.2557"),
-        used_for: "The same 0.83 g per kilo, as Europe's population reference intake",
     },
     Reference {
         topic: Topic::Macronutrients,
