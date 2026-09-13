@@ -79,12 +79,103 @@ pub struct Sharpening {
     pub burn: BurnNote,
 }
 
-pub fn sharpening_of(_insights: &Insights, _card: &GatherCard) -> Sharpening {
+/// A habit held in its band four days in five is sharp.
+const SHARP_SHARE: f64 = 0.8;
+
+/// Muscle-strengthening on two days a week or more: Bull F. C. et al. (2020), *World Health
+/// Organization 2020 guidelines on physical activity and sedentary behaviour*, Br J Sports Med 54(24).
+const ACTIVE_DAYS_A_WEEK: f64 = 2.0;
+
+fn logged(tally: &Tally) -> usize {
+    tally.low + tally.in_band + tally.high
+}
+
+fn share_in_band(tally: &Tally) -> f64 {
+    tally.in_band as f64 / logged(tally) as f64
+}
+
+fn band_note(habits: &[(Habit, Tally)]) -> BandNote {
+    let weakest = habits
+        .iter()
+        .filter(|(_, tally)| logged(tally) > 0)
+        .min_by(|(_, one), (_, other)| share_in_band(one).total_cmp(&share_in_band(other)));
+    match weakest {
+        None => BandNote::Unlogged,
+        Some((habit, tally)) if share_in_band(tally) >= SHARP_SHARE => BandNote::Sharp {
+            weakest: *habit,
+            in_band: tally.in_band,
+            logged: logged(tally),
+        },
+        Some((habit, tally)) => BandNote::Blunt {
+            habit: *habit,
+            in_band: tally.in_band,
+            logged: logged(tally),
+            leaning: if tally.low >= tally.high {
+                Leaning::Under
+            } else {
+                Leaning::Over
+            },
+        },
+    }
+}
+
+fn gather_note(insights: &Insights, card: &GatherCard) -> GatherNote {
+    if insights.weighed_days == 0 {
+        return GatherNote::Unweighed;
+    }
+    if insights.weighed_days * 2 < insights.days {
+        return GatherNote::Irregular {
+            weighed_days: insights.weighed_days,
+            days: insights.days,
+        };
+    }
+    match (card.progress, card.target_kg) {
+        (None, _) => GatherNote::TooSoon,
+        (Some(progress), None) => GatherNote::Aimless {
+            per_week_kg: progress.per_week,
+        },
+        (Some(progress), Some(_)) => match progress.reached_on {
+            Some(reached_on) => GatherNote::OnCourse {
+                per_week_kg: progress.per_week,
+                reached_on,
+            },
+            None => GatherNote::OffCourse {
+                per_week_kg: progress.per_week,
+            },
+        },
+    }
+}
+
+fn burn_note(insights: &Insights) -> BurnNote {
+    if insights.active_days == 0 {
+        return BurnNote::Idle;
+    }
+    let per_week = insights.active_days as f64 / insights.days as f64 * 7.0;
+    if per_week >= ACTIVE_DAYS_A_WEEK {
+        BurnNote::Steady {
+            per_week,
+            burnt_per_active_day: insights.burnt_per_active_day,
+        }
+    } else {
+        BurnNote::Sparse { per_week }
+    }
+}
+
+/// What is worth sharpening on each chip: for Fuel and Hydrate, the habit least often in its band,
+/// sharp when even it holds four days in five; for Gather, a weigh-in every other day at least,
+/// then the course of the trend towards the goal; for Burn, active days a week against two.
+pub fn sharpening_of(insights: &Insights, card: &GatherCard) -> Sharpening {
     Sharpening {
-        gather: GatherNote::TooSoon,
-        fuel: BandNote::Unlogged,
-        hydrate: BandNote::Unlogged,
-        burn: BurnNote::Idle,
+        gather: gather_note(insights, card),
+        fuel: band_note(&[
+            (Habit::Energy, insights.energy),
+            (Habit::Protein, insights.protein),
+            (Habit::Fat, insights.fat),
+            (Habit::Fibre, insights.fibre),
+            (Habit::Carbs, insights.carbs),
+        ]),
+        hydrate: band_note(&[(Habit::Hydrate, insights.hydrate)]),
+        burn: burn_note(insights),
     }
 }
 
