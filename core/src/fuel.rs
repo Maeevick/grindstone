@@ -19,6 +19,7 @@ use crate::volitional::Volitional;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Band {
+    pub minimum_kcal_per_kg_of_lean_mass: f64,
     pub minimum_kcal: f64,
     pub floor_kcal: f64,
     pub cap_kcal: f64,
@@ -181,6 +182,7 @@ fn band_for(
     );
     let cap_kcal = (budget.kcal() + burnt_kcal).max(minimum_kcal);
     let band = Band {
+        minimum_kcal_per_kg_of_lean_mass: 0.0,
         minimum_kcal,
         floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
         cap_kcal,
@@ -682,6 +684,12 @@ mod tests {
                 .band
                 .is_some_and(|band| about(band.minimum_kcal, 30.0 * lean_kg + burnt))
         );
+        assert_eq!(
+            fuelled
+                .band
+                .map(|band| band.minimum_kcal_per_kg_of_lean_mass),
+            Some(30.0)
+        );
         assert!(
             fuelled
                 .band
@@ -969,6 +977,23 @@ mod tests {
                 ..eaten
             }),
             None
+        );
+    }
+
+    #[test]
+    fn a_mans_band_tells_the_25_kcal_per_kilo_of_lean_mass_its_minimum_rests_on() {
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(80.0),
+            &a_desk_job(),
+            &aiming(),
+        );
+
+        assert_eq!(
+            fuelled
+                .band
+                .map(|band| band.minimum_kcal_per_kg_of_lean_mass),
+            Some(25.0)
         );
     }
 }
