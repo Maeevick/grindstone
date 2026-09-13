@@ -42,6 +42,7 @@ pub mod profile;
 pub mod progress;
 pub mod recommendations;
 pub mod refusal;
+pub mod sharpening;
 pub mod stats;
 pub mod streak;
 pub mod tendency;
