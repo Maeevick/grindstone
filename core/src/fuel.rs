@@ -182,7 +182,7 @@ fn band_for(
     );
     let cap_kcal = (budget.kcal() + burnt_kcal).max(minimum_kcal);
     let band = Band {
-        minimum_kcal_per_kg_of_lean_mass: 0.0,
+        minimum_kcal_per_kg_of_lean_mass,
         minimum_kcal,
         floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
         cap_kcal,
