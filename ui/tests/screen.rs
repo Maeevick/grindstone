@@ -26,7 +26,9 @@ wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen(inline_js = "
 export function answer_commands_with(answers) {
+    window.__asked = {};
     window.__TAURI__ = { core: { invoke: async (command, args) => {
+        window.__asked[command] = JSON.stringify(args);
         if (!(command in answers)) { throw { Broken: `no answer for ${command}` }; }
         const answer = answers[command];
         if (answer !== null && typeof answer === 'object' && '__by' in answer) {
@@ -35,12 +37,16 @@ export function answer_commands_with(answers) {
         return answer;
     } } };
 }
+export function asked(command) {
+    return window.__asked[command] || '';
+}
 export function a_moment() {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 ")]
 extern "C" {
     fn answer_commands_with(answers: &JsValue);
+    fn asked(command: &str) -> String;
     fn a_moment() -> js_sys::Promise;
 }
 
@@ -238,24 +244,124 @@ async fn the_profile_and_goals_in_force_today_fill_their_forms() {
     );
 }
 
-const A_MEASURED_DAY: &str = r#"[{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "age": 41,
-    "composition": { "fat_ratio": 0.1162, "fat_mass_kg": 9.3, "lean_mass_kg": 70.7 } }]"#;
+const A_GATHERED_DAY: &str = r#"{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "age": 41,
+    "composition": { "fat_ratio": 0.1162, "fat_mass_kg": 9.3, "lean_mass_kg": 70.7 } }"#;
 
-#[wasm_bindgen_test]
-async fn after_logging_a_measurement_the_day_stays_and_the_form_is_ready_for_the_next() {
-    answering(&format!(
-        r#"{{ "recent_days": [], "log_measurement": {A_MEASURED_DAY} }}"#
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+fn a_gathered_week() -> String {
+    format!(
+        r#"{{ "day": {A_GATHERED_DAY},
+              "days": [{A_GATHERED_DAY},
+                       {{ "day": "2026-10-07", "body_mass_kg": 80.6, "waist_cm": null, "age": 41,
+                          "composition": {{ "fat_ratio": 0.1158, "fat_mass_kg": 9.6, "lean_mass_kg": 71.0 }} }}],
+              "tendency": {{ "body_mass": {{ "by": -0.6, "heading": "Toward" }}, "waist": null,
+                             "fat_ratio": {{ "by": 0.0004, "heading": "Steady" }},
+                             "lean_mass": {{ "by": -0.3, "heading": "Away" }} }} }}"#
+    )
+}
+
+const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
+    "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } }"#;
+
+fn the_tracker(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
                 <Tracker />
             </Router>
         }
-    });
+    })
+}
+
+fn label_of(screen: &Element, name: &str) -> String {
+    found::<HtmlInputElement>(screen, &format!("input[name={name}]"))
+        .parent_element()
+        .and_then(|label| label.text_content())
+        .unwrap_or_default()
+}
+
+#[wasm_bindgen_test]
+async fn the_chosen_day_shows_as_year_month_day() {
+    answering(&format!(
+        r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
     settled().await;
-    let chosen_day = value_of(&screen, "day");
+
+    typed_into(&screen, "day", "2026-10-10");
+    settled().await;
+
+    let shown: Element = found(&screen, ".date .shown");
+    assert_eq!(shown.text_content().unwrap_or_default(), "2026-10-10");
+}
+
+#[wasm_bindgen_test]
+async fn a_gathered_day_fills_its_fields_and_a_day_not_gathered_yet_marks_the_body_mass_required() {
+    answering(&format!(
+        r#"{{ "gather_week": {{ "__by": "date", "2026-10-10": {}, "2026-10-11": {A_WEEK_NOT_GATHERED_YET} }} }}"#,
+        a_gathered_week()
+    ));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
+    settled().await;
+
+    typed_into(&screen, "day", "2026-10-10");
+    settled().await;
+    assert_eq!(
+        [value_of(&screen, "mass"), value_of(&screen, "waist")],
+        ["80", "80"]
+    );
+    assert!(!label_of(&screen, "mass").contains('*'));
+
+    typed_into(&screen, "day", "2026-10-11");
+    settled().await;
+    assert_eq!(
+        [value_of(&screen, "mass"), value_of(&screen, "waist")],
+        ["", ""]
+    );
+    assert!(label_of(&screen, "mass").contains('*'));
+}
+
+#[wasm_bindgen_test]
+async fn the_week_lists_its_days_under_their_units_the_chosen_one_highlighted_with_a_tendency_row()
+{
+    answering(&format!(r#"{{ "gather_week": {} }}"#, a_gathered_week()));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
+    settled().await;
+
+    typed_into(&screen, "day", "2026-10-10");
+    settled().await;
+
+    let text = |selector: &str| {
+        found::<Element>(&screen, selector)
+            .text_content()
+            .unwrap_or_default()
+    };
+    assert!(
+        text(".week thead").contains("Mass (kg)") && text(".week thead").contains("Fat (%)"),
+        "{}",
+        text(".week thead")
+    );
+    assert!(text(".week tr.chosen").contains("2026-10-10"));
+    assert!(text(".week tbody").contains("80.6") && !text(".week tbody").contains(" kg"));
+    assert_eq!(text(".week tfoot .toward"), "-0.6");
+    assert_eq!(text(".week tfoot .steady"), "-");
+    assert_eq!(text(".week tfoot .away"), "-0.3");
+    found::<Element>(&screen, ".week a[href='/stats']");
+}
+
+#[wasm_bindgen_test]
+async fn after_logging_a_measurement_the_day_stays_and_the_form_shows_what_was_gathered() {
+    answering(&format!(
+        r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET}, "log_measurement": {} }}"#,
+        a_gathered_week()
+    ));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
+    settled().await;
+    typed_into(&screen, "day", "2026-10-10");
+    settled().await;
 
     typed_into(&screen, "mass", "80");
     typed_into(&screen, "waist", "80");
@@ -264,39 +370,37 @@ async fn after_logging_a_measurement_the_day_stays_and_the_form_is_ready_for_the
         .expect("the measurement is logged");
     settled().await;
 
-    let listed: Element = found(&screen, "tbody");
+    let listed: Element = found(&screen, ".week tbody");
     assert!(
         listed
             .text_content()
-            .is_some_and(|days| days.contains("80.0 kg") && days.contains("11.6%"))
+            .is_some_and(|days| days.contains("80.0") && days.contains("11.6"))
     );
     assert_eq!(
         [value_of(&screen, "mass"), value_of(&screen, "waist")],
-        ["", ""]
+        ["80", "80"]
     );
-    assert_eq!(value_of(&screen, "day"), chosen_day);
+    assert_eq!(value_of(&screen, "day"), "2026-10-10");
 }
 
 #[wasm_bindgen_test]
-async fn removing_a_day_takes_it_off_the_list() {
+async fn removing_a_day_takes_it_off_the_week() {
     answering(&format!(
-        r#"{{ "recent_days": {A_MEASURED_DAY}, "remove_measurement": [] }}"#
+        r#"{{ "gather_week": {}, "remove_measurement": {A_WEEK_NOT_GATHERED_YET} }}"#,
+        a_gathered_week()
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <Tracker />
-            </Router>
-        }
-    });
+    let _mounted = the_tracker(&screen);
+    settled().await;
+    typed_into(&screen, "day", "2026-10-10");
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, "button.remove").click();
+    found::<web_sys::HtmlElement>(&screen, ".week button.remove").click();
     settled().await;
 
-    let listed: Element = found(&screen, "tbody");
+    let listed: Element = found(&screen, ".week tbody");
     assert_eq!(listed.text_content().unwrap_or_default(), "");
+    assert!(asked("remove_measurement").contains("2026-10-10"));
 }
 
 #[wasm_bindgen_test]
