@@ -66,6 +66,27 @@ pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64)
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EnergyGauge {
+    pub minimum_at: f64,
+    pub floor_at: f64,
+    pub cap_at: f64,
+    pub eaten_at: f64,
+}
+
+pub fn energy_gauge_of(
+    _eaten: f64,
+    (_minimum, _floor, _cap): (f64, f64, f64),
+    _width: f64,
+) -> EnergyGauge {
+    EnergyGauge {
+        minimum_at: 0.0,
+        floor_at: 0.0,
+        cap_at: 0.0,
+        eaten_at: 0.0,
+    }
+}
+
 pub fn scale_of(values: impl Iterator<Item = f64> + Clone) -> Option<(f64, f64)> {
     let (lowest, highest) = range_of(values);
     if !lowest.is_finite() {
@@ -222,5 +243,37 @@ mod tests {
             vec![107.0, 95.0, 30.0, 178.0]
         );
         assert_eq!(spread(&[175.0, 178.0], 12.0, 180.0), vec![168.0, 180.0]);
+    }
+
+    #[test]
+    fn an_energy_gauge_runs_a_tenth_of_its_band_past_the_minimum_and_the_cap() {
+        let gauge = energy_gauge_of(2200.0, (1600.0, 2000.0, 2400.0), 960.0);
+
+        for (placed, expected) in [
+            (gauge.minimum_at, 80.0),
+            (gauge.floor_at, 480.0),
+            (gauge.cap_at, 880.0),
+            (gauge.eaten_at, 680.0),
+        ] {
+            assert!((placed - expected).abs() < 1e-9, "{gauge:?}");
+        }
+    }
+
+    #[test]
+    fn what_was_eaten_beyond_the_gauge_stays_on_its_edge() {
+        let band = (1600.0, 2000.0, 2400.0);
+
+        assert_eq!(energy_gauge_of(100.0, band, 960.0).eaten_at, 0.0);
+        assert_eq!(energy_gauge_of(5000.0, band, 960.0).eaten_at, 960.0);
+    }
+
+    #[test]
+    fn a_band_closed_on_its_minimum_sits_in_the_middle_of_a_gauge_a_tenth_of_it_wide() {
+        let closed = energy_gauge_of(1800.0, (1800.0, 1800.0, 1800.0), 960.0);
+
+        assert_eq!(
+            (closed.minimum_at, closed.cap_at, closed.eaten_at),
+            (480.0, 480.0, 480.0)
+        );
     }
 }
