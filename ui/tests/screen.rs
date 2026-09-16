@@ -542,30 +542,124 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
         "fibre": { "eaten_g": 0.0, "floor_g": 32.0, "ceiling_g": 2.2, "verdict": "Low" },
         "carbs": { "eaten_g": 8.0, "floor_g": 212.1, "ceiling_g": 295.0, "verdict": "Low" } } }"#;
 
-#[wasm_bindgen_test]
-async fn logging_an_intake_shows_it_with_the_days_energy_against_its_band() {
-    answering(&format!(
-        r#"{{ "foods": [{{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
-                "nutrients": {{ "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 }} }}],
-             "fuel_day": {{ "day": "2026-10-10", "intakes": [], "band": null, "energy": null, "macros": null,
-                 "eaten": {{ "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 }} }},
-             "log_intake": {A_FUELLED_DAY} }}"#
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+const THREE_FOODS: &str = r#"[
+    { "name": "Ail", "unit": "Gram", "portion": 10.0,
+      "nutrients": { "energy_kcal": 15.0, "protein_g": 0.6, "carbs_g": 3.3, "fat_g": 0.1, "fibre_g": 0.2 } },
+    { "name": "Skyr", "unit": "Gram", "portion": 100.0,
+      "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } },
+    { "name": "Tapenade", "unit": "Gram", "portion": 30.0,
+      "nutrients": { "energy_kcal": 150.0, "protein_g": 0.5, "carbs_g": 1.0, "fat_g": 16.0, "fibre_g": 1.0 } }]"#;
+
+const A_DAY_NOT_FUELLED_YET: &str = r#"{ "day": "2026-10-10", "intakes": [], "band": null, "energy": null, "macros": null,
+    "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } }"#;
+
+fn the_fuel_day(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
                 <FuelDay day=day />
             </Router>
         }
-    });
+    })
+}
+
+fn focused(screen: &Element, name: &str) {
+    found::<HtmlInputElement>(screen, &format!("input[name={name}]"))
+        .dispatch_event(&Event::new("focus").expect("a focus event"))
+        .expect("the field is focused");
+}
+
+fn choices(screen: &Element) -> Vec<String> {
+    let offered = screen
+        .query_selector_all("ul.choices li")
+        .expect("the choices");
+    (0..offered.length())
+        .filter_map(|at| offered.item(at))
+        .filter_map(|choice| choice.text_content())
+        .collect()
+}
+
+fn picked(screen: &Element, option: &str) {
+    let offered = screen
+        .query_selector_all("ul.choices li")
+        .expect("the choices");
+    (0..offered.length())
+        .filter_map(|at| offered.item(at))
+        .find(|choice| choice.text_content().as_deref() == Some(option))
+        .expect(option)
+        .dispatch_event(&Event::new("mousedown").expect("a mousedown event"))
+        .expect("the option is picked");
+}
+
+fn text_of(screen: &Element, selector: &str) -> String {
+    found::<Element>(screen, selector)
+        .text_content()
+        .unwrap_or_default()
+}
+
+#[wasm_bindgen_test]
+async fn the_food_chooser_starts_on_select_me_and_narrows_from_three_letters() {
+    answering(&format!(
+        r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    let food: HtmlInputElement = found(&screen, "input[name=food]");
+    assert_eq!(
+        (food.value(), food.placeholder()),
+        (String::new(), "Select me".to_string())
+    );
+
+    focused(&screen, "food");
+    settled().await;
+    assert_eq!(choices(&screen).len(), 3);
+
+    typed_into(&screen, "food", "sky");
+    settled().await;
+    assert_eq!(choices(&screen), vec!["Skyr".to_string()]);
+
+    picked(&screen, "Skyr");
+    settled().await;
+    assert_eq!(value_of(&screen, "food"), "Skyr");
+    assert!(choices(&screen).is_empty());
+}
+
+#[wasm_bindgen_test]
+async fn a_quantity_left_empty_logs_one_portion_of_the_food_its_placeholder_shows() {
+    answering(&format!(
+        r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET}, "log_intake": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
     settled().await;
 
-    typed_into(&screen, "quantity", "200");
+    typed_into(&screen, "food", "skyr");
+    settled().await;
+    let quantity: HtmlInputElement = found(&screen, "input[name=quantity]");
+    assert_eq!(quantity.placeholder(), "100");
+    assert!(label_of(&screen, "quantity").contains("(g)"));
     found::<HtmlFormElement>(&screen, "form.intake")
         .request_submit()
         .expect("the intake is logged");
+    settled().await;
+
+    let sent = asked("log_intake");
+    assert!(
+        sent.contains(r#""food":"Skyr""#) && sent.contains(r#""quantity":null"#),
+        "{sent}"
+    );
+    assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
+}
+
+#[wasm_bindgen_test]
+async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_maintenance() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
     settled().await;
 
     let said = screen.text_content().unwrap_or_default();
@@ -573,18 +667,65 @@ async fn logging_an_intake_shows_it_with_the_days_energy_against_its_band() {
         said.contains("108 kcal") && said.contains("2199 to 2650 kcal"),
         "{said}"
     );
-    let listed: Element = found(&screen, "table.intakes tbody");
+    let gauge = text_of(&screen, ".fuel-gauge");
     assert!(
-        listed
-            .text_content()
-            .is_some_and(|rows| rows.contains("Skyr") && rows.contains("200 g"))
+        gauge.contains("EA25 1768")
+            && gauge.contains("Alpert 2199")
+            && gauge.contains("Maintenance 2650"),
+        "{gauge}"
     );
+    found::<Element>(&screen, ".fuel-gauge line.minimum");
+    found::<Element>(&screen, ".fuel-gauge rect.band");
+    found::<Element>(&screen, ".fuel-gauge circle.eaten");
+}
+
+#[wasm_bindgen_test]
+async fn the_macros_card_tells_each_goal_what_was_eaten_the_gap_and_its_share_of_the_energy() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    let heads = text_of(&screen, "table.macros thead");
     assert!(
-        screen
-            .query_selector(".macros .low")
-            .ok()
-            .flatten()
-            .is_some()
+        heads.contains("Goal (g)")
+            && heads.contains("Current (g)")
+            && heads.contains("Δ (g)")
+            && heads.contains("% cal"),
+        "{heads}"
+    );
+    let protein = text_of(&screen, "table.macros tr.protein");
+    assert!(
+        protein.contains("160")
+            && protein.contains("19")
+            && protein.contains("-141")
+            && protein.contains("70.4"),
+        "{protein}"
+    );
+    found::<Element>(&screen, "table.macros tr.protein .low");
+    assert!(text_of(&screen, "table.macros tfoot").contains("100.0"));
+}
+
+#[wasm_bindgen_test]
+async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    let heads = text_of(&screen, "table.intakes thead");
+    assert!(
+        heads.contains("kcal") && heads.contains("Prot (g)") && heads.contains("Carbs (g)"),
+        "{heads}"
+    );
+    let row = text_of(&screen, "table.intakes tbody tr");
+    assert!(
+        row.contains("Skyr") && row.contains("200 g") && row.contains("108") && row.contains("19"),
+        "{row}"
     );
 }
 
