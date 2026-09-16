@@ -551,3 +551,95 @@ select {
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+.date {
+	position: relative;
+	display: block;
+}
+
+.date .shown {
+	display: flex;
+	align-items: center;
+	height: 44px;
+	padding: 0 10px;
+	background: var(--inset);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	color: var(--txt);
+	font: 1rem var(--mono);
+}
+
+.date .shown.unset {
+	color: var(--mut);
+}
+
+.date input {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+}
+
+.date:focus-within .shown {
+	outline: 2px solid var(--acc);
+	outline-offset: 1px;
+}
+
+.card.day .pills {
+	margin: 16px 0 4px;
+}
+
+.required {
+	color: var(--acc);
+}
+
+.chooser {
+	position: relative;
+}
+
+.choices {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 5;
+	max-height: 40vh;
+	overflow-y: auto;
+	margin: 4px 0 0;
+	padding: 4px 0;
+	list-style: none;
+	background: var(--inset);
+	border: 1px solid var(--acc);
+	border-radius: 8px;
+}
+
+.choices li {
+	padding: 10px 12px;
+	color: var(--txt);
+	font: 0.95rem var(--mono);
+}
+
+.choices li + li {
+	border-top: 1px solid var(--line);
+}
+
+.week tr.chosen td {
+	color: var(--acc);
+}
+
+.week tfoot td {
+	border-top: 2px solid var(--line);
+	font-weight: 600;
+}
+
+.toward {
+	color: var(--ok);
+}
+
+.away {
+	color: var(--bad);
+}
+
+.steady,
+.unaimed {
+	color: var(--txt);
+}
