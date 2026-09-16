@@ -1,12 +1,26 @@
+const LETTERS_TO_FILTER: usize = 3;
+
 /// The options to offer for what is typed: every one below three letters; from three, those
 /// starting with it first, then those containing it, ignoring case.
-pub fn matching(_options: &[String], _typed: &str) -> Vec<String> {
-    vec![]
+pub fn matching(options: &[String], typed: &str) -> Vec<String> {
+    let typed = typed.trim().to_lowercase();
+    if typed.chars().count() < LETTERS_TO_FILTER {
+        return options.to_vec();
+    }
+    let (starting, containing): (Vec<&String>, Vec<&String>) = options
+        .iter()
+        .filter(|option| option.to_lowercase().contains(&typed))
+        .partition(|option| option.to_lowercase().starts_with(&typed));
+    starting.into_iter().chain(containing).cloned().collect()
 }
 
 /// The option typed whole, ignoring case.
-pub fn chosen(_options: &[String], _typed: &str) -> Option<String> {
-    None
+pub fn chosen(options: &[String], typed: &str) -> Option<String> {
+    let typed = typed.trim().to_lowercase();
+    options
+        .iter()
+        .find(|option| option.to_lowercase() == typed)
+        .cloned()
 }
 
 #[cfg(test)]
