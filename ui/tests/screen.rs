@@ -1091,7 +1091,7 @@ async fn the_days_hydrate_reloads_when_the_day_changes() {
 }
 
 #[wasm_bindgen_test]
-async fn a_logged_drink_joins_the_day_and_the_servings_go_back_to_one() {
+async fn a_logged_drink_joins_the_day_in_millilitres_and_the_form_empties() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY},
               "log_drink": {{ "day": "2026-10-11", "drinkings": [[1, {{ "day": "2026-10-11", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }}]],
@@ -1100,21 +1100,55 @@ async fn a_logged_drink_joins_the_day_and_the_servings_go_back_to_one() {
     let screen = screen();
     let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
     settled().await;
-    assert_eq!(value_of(&screen, "servings"), "1");
 
-    typed_into(&screen, "servings", "1,5");
+    typed_into(&screen, "drink", "Tea");
+    typed_into(&screen, "volume", "300");
     found::<HtmlFormElement>(&screen, "form.drinking")
         .request_submit()
         .expect("the drink is logged");
     settled().await;
 
+    assert!(asked("log_drink").contains(r#""volume_ml":300"#));
     let listed: Element = found(&screen, "tbody");
     assert!(
         listed
             .text_content()
             .is_some_and(|drunk| drunk.contains("Tea") && drunk.contains("300 mL"))
     );
-    assert_eq!(value_of(&screen, "servings"), "1");
+    assert_eq!(
+        [value_of(&screen, "drink"), value_of(&screen, "volume")],
+        ["", ""]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn the_drink_chooser_starts_on_select_me_and_a_volume_left_empty_logs_one_serving() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY}, "log_drink": {A_DRY_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
+    settled().await;
+    let drink: HtmlInputElement = found(&screen, "input[name=drink]");
+    assert_eq!(drink.placeholder(), "Select me");
+
+    focused(&screen, "drink");
+    settled().await;
+    picked(&screen, "Tea");
+    settled().await;
+    let volume: HtmlInputElement = found(&screen, "input[name=volume]");
+    assert_eq!(volume.placeholder(), "200");
+    assert!(label_of(&screen, "volume").contains("(mL)"));
+    found::<HtmlFormElement>(&screen, "form.drinking")
+        .request_submit()
+        .expect("the drink is logged");
+    settled().await;
+
+    let sent = asked("log_drink");
+    assert!(
+        sent.contains(r#""drink":"Tea""#) && !sent.contains("volume_ml"),
+        "{sent}"
+    );
 }
 
 #[wasm_bindgen_test]
