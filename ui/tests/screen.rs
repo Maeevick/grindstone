@@ -464,37 +464,136 @@ async fn importing_the_draft_tells_what_it_brought() {
 const AN_EMPTY_BURN: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0,
     "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true }"#;
 
-#[wasm_bindgen_test]
-async fn logging_a_workout_lists_it_with_what_it_burnt() {
-    answering(&format!(
-        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [], "burn_day": {AN_EMPTY_BURN},
-             "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true,
-                 "workouts": [{{ "id": 1, "burnt_kcal": 252.0, "workout": {{ "day": "2026-10-10", "exercise": "Walking",
-                     "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null }} }}] }} }}"#
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+fn the_burn_day(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
                 <BurnDay day=day />
             </Router>
         }
-    });
+    })
+}
+
+#[wasm_bindgen_test]
+async fn logging_a_workout_lists_it_with_what_it_burnt() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [], "burn_day": {AN_EMPTY_BURN},
+             "fuel_day": {A_DAY_NOT_FUELLED_YET},
+             "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true,
+                 "workouts": [{{ "id": 1, "burnt_kcal": 252.0, "workout": {{ "day": "2026-10-10", "exercise": "Walking",
+                     "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null }} }}] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
     settled().await;
     assert_eq!(value_of(&screen, "sitting"), "480");
 
+    typed_into(&screen, "exercise", "Walking");
     typed_into(&screen, "minutes", "60");
     found::<HtmlFormElement>(&screen, "form.workout")
         .request_submit()
         .expect("the workout is logged");
     settled().await;
 
-    let listed: Element = found(&screen, "table.workouts tbody");
-    let rows = listed.text_content().unwrap_or_default();
+    let rows = text_of(&screen, "table.expenditures tbody");
+    assert!(rows.contains("Walking") && rows.contains("252"), "{rows}");
+}
+
+#[wasm_bindgen_test]
+async fn the_burn_card_switches_between_a_workout_and_a_circuit() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    let shown = |selector: &str| screen.query_selector(selector).ok().flatten().is_some();
+    assert!(shown("form.workout") && !shown("form.circuit-log"));
+
+    found::<web_sys::HtmlElement>(&screen, "button.burn-Circuit").click();
+    settled().await;
+
+    assert!(shown("form.circuit-log") && !shown("form.workout"));
+}
+
+#[wasm_bindgen_test]
+async fn a_workout_left_blank_logs_a_minute_one_rep_one_set_and_no_load() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Push up", "met": 3.8 }}, {{ "name": "Walking", "met": 4.0 }}], "circuits": [],
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET}, "log_workout": {AN_EMPTY_BURN} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    let placeholder = |name: &str| {
+        found::<HtmlInputElement>(&screen, &format!("input[name={name}]")).placeholder()
+    };
+    assert_eq!(
+        ["exercise", "minutes", "reps", "sets", "load"].map(placeholder),
+        ["Select me", "1", "1", "1", "0"]
+    );
+
+    typed_into(&screen, "exercise", "push up");
+    found::<HtmlFormElement>(&screen, "form.workout")
+        .request_submit()
+        .expect("the workout is logged");
+    settled().await;
+
+    let sent = asked("log_workout");
+    assert!(sent.contains(r#""exercise":"Push up""#), "{sent}");
+    for left_blank in ["minutes", "reps", "sets", "load_kg"] {
+        assert!(!sent.contains(left_blank), "{sent}");
+    }
+}
+
+#[wasm_bindgen_test]
+async fn the_days_expenditures_list_its_workouts_newest_first_then_off_the_clock_and_fidgeting() {
+    answering(&format!(
+        r#"{{ "exercises": [], "circuits": [], "burn_day": {A_DAY_OF_MORNING_RUST},
+             "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    let heads = text_of(&screen, "table.expenditures thead");
     assert!(
-        rows.contains("Walking") && rows.contains("252 kcal"),
-        "{rows}"
+        heads.contains("Activity")
+            && heads.contains("kcal")
+            && heads.contains("min")
+            && heads.contains("reps"),
+        "{heads}"
+    );
+    let rows = screen
+        .query_selector_all("table.expenditures tbody tr")
+        .expect("the rows");
+    let row = |at: u32| {
+        rows.item(at)
+            .and_then(|row| row.text_content())
+            .unwrap_or_default()
+    };
+    assert_eq!(rows.length(), 4);
+    assert!(
+        row(0).contains("Burpee") && row(0).contains("80") && row(0).contains('-'),
+        "{}",
+        row(0)
+    );
+    assert!(
+        row(1).contains("Push up") && row(1).contains("1.5") && row(1).contains("36"),
+        "{}",
+        row(1)
+    );
+    assert!(
+        row(2).contains("Off the clock") && row(2).contains("198"),
+        "{}",
+        row(2)
+    );
+    assert!(
+        row(3).contains("Fidgeting") && row(3).contains("234"),
+        "{}",
+        row(3)
     );
 }
 
@@ -541,6 +640,13 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
         "fat": { "eaten_g": 0.0, "floor_g": 72.0, "ceiling_g": 4.0, "verdict": "Low" },
         "fibre": { "eaten_g": 0.0, "floor_g": 32.0, "ceiling_g": 2.2, "verdict": "Low" },
         "carbs": { "eaten_g": 8.0, "floor_g": 212.1, "ceiling_g": 295.0, "verdict": "Low" } } }"#;
+
+const A_FUELLED_DAY_WITH_ITS_BUDGET: &str = r#"{ "day": "2026-10-10", "intakes": [],
+    "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2 },
+    "energy": "Low", "macros": null,
+    "budget": { "resting_kcal": 1718.1, "organs_kcal": 102.5, "digestion_kcal": 275.8,
+                "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 } }"#;
 
 const THREE_FOODS: &str = r#"[
     { "name": "Ail", "unit": "Gram", "portion": 10.0,
@@ -1021,8 +1127,12 @@ async fn logging_a_circuit_hands_over_the_days_burn_with_a_workout_per_step() {
         }
     });
     settled().await;
-    assert_eq!(value_of(&screen, "circuit_sets"), "1");
+    assert_eq!(
+        found::<HtmlInputElement>(&screen, "input[name=circuit_sets]").placeholder(),
+        "1"
+    );
 
+    typed_into(&screen, "circuit", "Morning rust");
     typed_into(&screen, "circuit_sets", "3");
     found::<HtmlFormElement>(&screen, "form.circuit-log")
         .request_submit()
