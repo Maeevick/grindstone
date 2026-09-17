@@ -677,3 +677,11 @@ table.intakes {
 	border-top: 2px solid var(--line);
 	font-weight: 600;
 }
+
+.expenditures td {
+	font-size: 0.9rem;
+}
+
+.expenditures .neat td {
+	color: var(--mut);
+}
