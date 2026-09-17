@@ -1,7 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
-use grind_core::figures::{Figure, shown, typed_back};
+use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateBaseForm;
 use grind_core::hydrate::Hydrate;
@@ -10,7 +10,8 @@ use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::screens::fields::{DateField, FigureField};
+use crate::choice::chosen;
+use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::profile::Recommend;
 use crate::screens::references::ReferencesLink;
@@ -88,20 +89,23 @@ fn DrinkingsOfTheDay(
 pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     let hydrate = RwSignal::new(None::<Hydrate>);
     let catalog = RwSignal::new(Vec::<Drink>::new());
-    let chosen = RwSignal::new(String::new());
+    let drink = RwSignal::new(String::new());
     let volume = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let names = Signal::derive(move || {
+        catalog
+            .get()
+            .into_iter()
+            .map(|known| known.name)
+            .collect::<Vec<_>>()
+    });
+    let chosen_drink = move || {
+        chosen(&names.get(), &drink.get())
+            .and_then(|name| catalog.get().into_iter().find(|known| known.name == name))
+    };
     spawn_local(async move {
         match tauri::drinks().await {
-            Ok(drinks) => {
-                chosen.set(
-                    drinks
-                        .first()
-                        .map(|drink| drink.name.clone())
-                        .unwrap_or_default(),
-                );
-                catalog.set(drinks);
-            }
+            Ok(drinks) => catalog.set(drinks),
             Err(failure) => said.set(Some(lines::failure(&failure))),
         }
     });
@@ -116,19 +120,24 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     });
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        let Some(drunk) = chosen_drink() else {
+            said.set(Some(lines::CHOOSE_FIRST.into()));
+            return;
+        };
         let Some([volume_typed]) = figures_typed([&volume.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
         let form = DrinkingForm {
             date: day.get_untracked(),
-            drink: chosen.get_untracked(),
+            drink: drunk.name,
             volume_ml: volume_typed,
         };
         spawn_local(async move {
             match tauri::log_drink(&form).await {
                 Ok(logged) => {
                     hydrate.set(Some(logged));
+                    drink.set(String::new());
                     volume.set(String::new());
                     said.set(None);
                 }
@@ -141,23 +150,15 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             <h2>"Hydrate"</h2>
             <form class="drinking" on:submit=log>
                 <div class="row">
-                    <label class="field grow2">
-                        "Drink" <select
-                            name="drink"
-                            prop:value=move || chosen.get()
-                            on:change=move |event| chosen.set(event_target_value(&event))
-                        >
-                            <For
-                                each=move || catalog.get()
-                                key=|drink| drink.name.clone()
-                                children=|drink| {
-                                    let label = drink.name.clone();
-                                    view! { <option value=drink.name>{label}</option> }
-                                }
-                            />
-                        </select>
-                    </label>
-                    <FigureField label="Volume (mL)" name="volume" value=volume />
+                    <Chooser label="Drink" name="drink" options=names typed=drink />
+                    <FigureField
+                        label="Volume (mL)"
+                        name="volume"
+                        value=volume
+                        placeholder=Signal::derive(move || {
+                            chosen_drink().map(|known| bare(Figure::Volume(known.volume_ml)))
+                        })
+                    />
                 </div>
                 <button class="cta" type="submit">
                     "Hydrate"
