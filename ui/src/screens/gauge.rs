@@ -1,7 +1,8 @@
-use grind_core::figures::{Figure, shown};
+use grind_core::figures::{Figure, bare, shown};
+use grind_core::fuel::Band;
 use leptos::prelude::*;
 
-use crate::chart::gauge_of;
+use crate::chart::{energy_gauge_of, gauge_of};
 
 #[component]
 pub fn Gauge(
@@ -24,6 +25,40 @@ pub fn Gauge(
                 <span class="low">{format!("min {}", shown(shown_as(floor)))}</span>
                 <span>{format!("optimal {}", shown(shown_as(optimal)))}</span>
                 <span class="high">{format!("max {}", shown(shown_as(cap)))}</span>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn FuelGauge(eaten: f64, band: Band) -> impl IntoView {
+    let placed = energy_gauge_of(
+        eaten,
+        (band.minimum_kcal, band.floor_kcal, band.cap_kcal),
+        360.0,
+    );
+    view! {
+        <div class="gauge fuel-gauge">
+            <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+                <rect class="track" x="0" y="9" width="360" height="6" />
+                <rect class="band" x=placed.floor_at y="9" width=placed.cap_at - placed.floor_at height="6" />
+                <line class="minimum" x1=placed.minimum_at x2=placed.minimum_at y1="3" y2="21" />
+                <line class="tick" x1=placed.floor_at x2=placed.floor_at y1="3" y2="21" />
+                <line class="tick" x1=placed.cap_at x2=placed.cap_at y1="3" y2="21" />
+                <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
+            </svg>
+            <div class="gauge-labels">
+                <span class="low">
+                    {format!(
+                        "EA{} {}",
+                        bare(Figure::Count(band.minimum_kcal_per_kg_of_lean_mass)),
+                        bare(Figure::Energy(band.minimum_kcal)),
+                    )}
+                </span>
+                <span class="acc">{format!("Alpert {}", bare(Figure::Energy(band.floor_kcal)))}</span>
+                <span class="acc">
+                    {format!("Maintenance {}", bare(Figure::Energy(band.cap_kcal)))}
+                </span>
             </div>
         </div>
     }

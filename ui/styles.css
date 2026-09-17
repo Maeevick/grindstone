@@ -643,3 +643,37 @@ select {
 .unaimed {
 	color: var(--txt);
 }
+
+.acc {
+	color: var(--acc);
+}
+
+.fuel-gauge .minimum {
+	stroke: var(--bad);
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
+}
+
+.fuel-gauge .tick {
+	stroke: var(--acc);
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
+}
+
+.fuel-gauge .eaten {
+	fill: #7aa2f7;
+}
+
+.scroll {
+	overflow-x: auto;
+}
+
+table.intakes {
+	min-width: 32rem;
+}
+
+.macros tfoot td,
+.intakes tfoot td {
+	border-top: 2px solid var(--line);
+	font-weight: 600;
+}

@@ -647,7 +647,7 @@ async fn a_quantity_left_empty_logs_one_portion_of_the_food_its_placeholder_show
 
     let sent = asked("log_intake");
     assert!(
-        sent.contains(r#""food":"Skyr""#) && sent.contains(r#""quantity":null"#),
+        sent.contains(r#""food":"Skyr""#) && !sent.contains(r#""quantity""#),
         "{sent}"
     );
     assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));

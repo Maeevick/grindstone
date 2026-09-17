@@ -241,6 +241,8 @@ pub fn failure(failure: &Failure) -> String {
 pub const NO_BAND: &str = "No band yet: I need a profile and a weigh-in with a waist to price your day. \
     I do not guess bodies, not even goblin ones.";
 
+pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow it down. [Grimble taps the empty line twice.]";
+
 pub const NO_INTAKE: &str = "Nothing eaten on this day, or nothing filed yet.";
 
 pub const NO_FOOD: &str =
