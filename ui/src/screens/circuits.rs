@@ -81,9 +81,11 @@ fn CraftedCircuit(crafted: Circuit, remove: Callback<String>) -> impl IntoView {
 }
 
 #[component]
-pub fn CircuitCrafter() -> impl IntoView {
-    let catalog = RwSignal::new(Vec::<Exercise>::new());
-    let crafted = RwSignal::new(Vec::<Circuit>::new());
+pub fn NewCircuit(
+    exercises: RwSignal<Vec<Exercise>>,
+    circuits: RwSignal<Vec<Circuit>>,
+    done: Callback<String>,
+) -> impl IntoView {
     let name = RwSignal::new(String::new());
     let exercise = RwSignal::new(String::new());
     let reps = RwSignal::new(String::new());
@@ -91,24 +93,19 @@ pub fn CircuitCrafter() -> impl IntoView {
     let load = RwSignal::new(String::new());
     let steps = RwSignal::new(Vec::<StepForm>::new());
     let said = RwSignal::new(None::<Result<String, String>>);
-    spawn_local(async move {
-        match tauri::exercises().await {
-            Ok(known) => {
-                if let Some(first) = known.first() {
-                    exercise.set(first.name.clone());
-                }
-                catalog.set(known);
-            }
-            Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
-        }
-    });
-    spawn_local(async move {
-        match tauri::circuits().await {
-            Ok(known) => crafted.set(known),
-            Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
-        }
+    let names = Signal::derive(move || {
+        exercises
+            .get()
+            .into_iter()
+            .map(|known| known.name)
+            .collect::<Vec<_>>()
     });
     let add_step = move |_| {
+        let Some(chosen_exercise) = chosen(&names.get_untracked(), &exercise.get_untracked())
+        else {
+            said.set(Some(Err(lines::CHOOSE_FIRST.into())));
+            return;
+        };
         let Some([minutes_typed, load_typed]) =
             figures_typed([&minutes.get_untracked(), &load.get_untracked()])
         else {
@@ -116,15 +113,16 @@ pub fn CircuitCrafter() -> impl IntoView {
             return;
         };
         let step = StepForm {
-            exercise: exercise.get_untracked(),
+            exercise: chosen_exercise,
             reps: count_typed(&reps.get_untracked()),
             minutes: minutes_typed.unwrap_or(0.0),
             load_kg: load_typed.unwrap_or(0.0),
         };
         steps.update(|added| added.push(step));
-        reps.set(String::new());
-        minutes.set(String::new());
-        load.set(String::new());
+        for typed in [exercise, reps, minutes, load] {
+            typed.set(String::new());
+        }
+        said.set(None);
     };
     let craft = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
@@ -135,10 +133,8 @@ pub fn CircuitCrafter() -> impl IntoView {
         spawn_local(async move {
             match tauri::craft_circuit(&form).await {
                 Ok(known) => {
-                    crafted.set(known);
-                    name.set(String::new());
-                    steps.set(Vec::new());
-                    said.set(Some(Ok(lines::circuit_crafted(form.name.trim()))));
+                    circuits.set(known);
+                    done.run(lines::circuit_crafted(form.name.trim()));
                 }
                 Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
             }
@@ -151,95 +147,88 @@ pub fn CircuitCrafter() -> impl IntoView {
             .enumerate()
             .collect::<Vec<(usize, StepForm)>>()
     };
+    view! {
+        <p class="hint">{lines::CIRCUIT_HOW}</p>
+        <form class="circuit" on:submit=craft>
+            <div class="row">
+                <label class="field grow2">
+                    "Name"
+                    <input
+                        name="circuit_name"
+                        autocomplete="off"
+                        prop:value=move || name.get()
+                        on:input=move |event| name.set(event_target_value(&event))
+                    />
+                </label>
+            </div>
+            <div class="row">
+                <Chooser label="Exercise" name="step_exercise" options=names typed=exercise />
+                <FigureField label="Reps goal" name="step_reps" value=reps />
+            </div>
+            <div class="row">
+                <FigureField label="Minutes" name="step_minutes" value=minutes />
+                <FigureField label="Load (kg)" name="step_load" value=load />
+            </div>
+            <button class="cta ghost add-step" type="button" on:click=add_step>
+                "Add this step"
+            </button>
+            <ol class="figures steps">
+                <For
+                    each=steps_in_order
+                    key=|(position, step)| format!("{position} {step:?}")
+                    children=move |(position, step)| {
+                        view! {
+                            <li>
+                                {asked_step(&step)}
+                                <button
+                                    class="remove"
+                                    type="button"
+                                    aria-label="Remove this step"
+                                    on:click=move |_| {
+                                        steps
+                                            .update(|added| {
+                                                added.remove(position);
+                                            })
+                                    }
+                                >
+                                    "×"
+                                </button>
+                            </li>
+                        }
+                    }
+                />
+            </ol>
+            <button class="cta" type="submit">
+                "Craft the circuit"
+            </button>
+        </form>
+        {said_line(said)}
+    }
+}
+
+#[component]
+pub fn CircuitsList(
+    circuits: RwSignal<Vec<Circuit>>,
+    said: RwSignal<Option<String>>,
+) -> impl IntoView {
     let remove = Callback::new(move |named: String| {
         spawn_local(async move {
             match tauri::remove_circuit(&named).await {
-                Ok(known) => crafted.set(known),
-                Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
+                Ok(known) => circuits.set(known),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
     });
     view! {
         <section class="card">
             <h2>"Circuits"</h2>
-            <p class="hint">{lines::CIRCUIT_HOW}</p>
-            <form class="circuit" on:submit=craft>
-                <div class="row">
-                    <label class="field grow2">
-                        "Name"
-                        <input
-                            name="circuit_name"
-                            autocomplete="off"
-                            prop:value=move || name.get()
-                            on:input=move |event| name.set(event_target_value(&event))
-                        />
-                    </label>
-                </div>
-                <div class="row">
-                    <label class="field grow2">
-                        "Exercise"
-                        <select
-                            name="step_exercise"
-                            prop:value=move || exercise.get()
-                            on:change=move |event| exercise.set(event_target_value(&event))
-                        >
-                            <For
-                                each=move || catalog.get()
-                                key=|known| known.name.clone()
-                                children=move |known| {
-                                    let label = known.name.clone();
-                                    view! { <option value=known.name>{label}</option> }
-                                }
-                            />
-                        </select>
-                    </label>
-                    <FigureField label="Reps goal" name="step_reps" value=reps />
-                </div>
-                <div class="row">
-                    <FigureField label="Minutes" name="step_minutes" value=minutes />
-                    <FigureField label="Load (kg)" name="step_load" value=load />
-                </div>
-                <button class="cta ghost add-step" type="button" on:click=add_step>
-                    "Add this step"
-                </button>
-                <ol class="figures steps">
-                    <For
-                        each=steps_in_order
-                        key=|(position, step)| format!("{position} {step:?}")
-                        children=move |(position, step)| {
-                            view! {
-                                <li>
-                                    {asked_step(&step)}
-                                    <button
-                                        class="remove"
-                                        type="button"
-                                        aria-label="Remove this step"
-                                        on:click=move |_| {
-                                            steps
-                                                .update(|added| {
-                                                    added.remove(position);
-                                                })
-                                        }
-                                    >
-                                        "×"
-                                    </button>
-                                </li>
-                            }
-                        }
-                    />
-                </ol>
-                <button class="cta" type="submit">
-                    "Craft the circuit"
-                </button>
-            </form>
-            {said_line(said)}
             {move || {
-                crafted.get().is_empty().then(|| view! { <p class="empty">{lines::NO_CIRCUIT}</p> })
+                circuits.get().is_empty().then(|| view! { <p class="empty">{lines::NO_CIRCUIT}</p> })
             }}
             <table class="circuits">
                 <tbody>
                     <For
-                        each=move || crafted.get()
+                        each=move || circuits.get()
                         key=|kept| format!("{kept:?}")
                         children=move |kept| view! { <CraftedCircuit crafted=kept remove=remove /> }
                     />

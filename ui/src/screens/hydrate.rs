@@ -179,7 +179,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
 #[component]
 fn DrinkRow(
     drink: Drink,
-    catalog: RwSignal<Vec<Drink>>,
+    drinks: RwSignal<Vec<Drink>>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let name = drink.name.clone();
@@ -187,7 +187,7 @@ fn DrinkRow(
         let name = name.clone();
         spawn_local(async move {
             match tauri::remove_drink(&name).await {
-                Ok(left) => catalog.set(left),
+                Ok(left) => drinks.set(left),
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -221,18 +221,11 @@ fn kind_named(word: &str) -> DrinkKind {
 }
 
 #[component]
-pub fn DrinksCatalog() -> impl IntoView {
-    let catalog = RwSignal::new(Vec::<Drink>::new());
+pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl IntoView {
     let name = RwSignal::new(String::new());
     let serving = RwSignal::new(String::new());
     let kind = RwSignal::new(DrinkKind::Water);
     let said = RwSignal::new(None::<String>);
-    spawn_local(async move {
-        match tauri::drinks().await {
-            Ok(drinks) => catalog.set(drinks),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
-    });
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let named = name.get_untracked();
@@ -243,60 +236,62 @@ pub fn DrinksCatalog() -> impl IntoView {
         let volume_ml = volume_ml.unwrap_or(0.0);
         spawn_local(async move {
             match tauri::add_drink(&named, volume_ml, kind.get_untracked()).await {
-                Ok(drinks) => {
-                    catalog.set(drinks);
-                    name.set(String::new());
-                    serving.set(String::new());
-                    said.set(None);
+                Ok(known) => {
+                    drinks.set(known);
+                    done.run(lines::added(named.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
     };
     view! {
+        <form class="drink" on:submit=add>
+            <div class="row">
+                <label class="field grow2">
+                    "Name"
+                    <input
+                        name="drink_name"
+                        autocomplete="off"
+                        prop:value=move || name.get()
+                        on:input=move |event| name.set(event_target_value(&event))
+                    />
+                </label>
+                <FigureField label="Serving (mL)" name="serving" value=serving />
+                <label class="field">
+                    "Kind"
+                    <select
+                        name="drink_kind"
+                        on:change=move |event| kind.set(kind_named(&event_target_value(&event)))
+                    >
+                        {KINDS
+                            .into_iter()
+                            .map(|(named, label)| {
+                                view! { <option value=format!("{named:?}")>{label}</option> }
+                            })
+                            .collect_view()}
+                    </select>
+                </label>
+            </div>
+            <button class="cta" type="submit">
+                "Add to the catalog"
+            </button>
+            {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+        </form>
+    }
+}
+
+#[component]
+pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) -> impl IntoView {
+    view! {
         <section class="card">
-            <h2>"The drinks catalog"</h2>
-            <form class="drink" on:submit=add>
-                <div class="row">
-                    <label class="field grow2">
-                        "Name"
-                        <input
-                            name="drink_name"
-                            autocomplete="off"
-                            prop:value=move || name.get()
-                            on:input=move |event| name.set(event_target_value(&event))
-                        />
-                    </label>
-                    <FigureField label="Serving (mL)" name="serving" value=serving />
-                    <label class="field">
-                        "Kind"
-                        <select
-                            name="drink_kind"
-                            on:change=move |event| {
-                                kind.set(kind_named(&event_target_value(&event)))
-                            }
-                        >
-                            {KINDS
-                                .into_iter()
-                                .map(|(named, label)| {
-                                    view! { <option value=format!("{named:?}")>{label}</option> }
-                                })
-                                .collect_view()}
-                        </select>
-                    </label>
-                </div>
-                <button class="cta" type="submit">
-                    "Add to the catalog"
-                </button>
-                {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
-            </form>
-            <table>
+            <h2>"Drinks"</h2>
+            <table class="drinks">
                 <tbody>
                     <For
-                        each=move || catalog.get()
+                        each=move || drinks.get()
                         key=|drink| format!("{drink:?}")
                         children=move |drink| {
-                            view! { <DrinkRow drink=drink catalog=catalog said=said /> }
+                            view! { <DrinkRow drink=drink drinks=drinks said=said /> }
                         }
                     />
                 </tbody>

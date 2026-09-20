@@ -88,6 +88,10 @@ pub fn imported(imported: &Imported) -> String {
     )
 }
 
+pub fn added(name: &str) -> String {
+    format!("{name} joins the catalog. [Grimble files it under its own letter.]")
+}
+
 pub const NO_WORKOUT: &str = "No workout on this day. A rest day counts as work: \
     the point is to have decided, not to have moved.";
 
