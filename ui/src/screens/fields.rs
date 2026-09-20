@@ -9,6 +9,7 @@ pub fn FigureField(
     value: RwSignal<String>,
     #[prop(into, optional)] placeholder: MaybeProp<String>,
     #[prop(into, optional)] required: MaybeProp<bool>,
+    #[prop(into, optional)] disabled: MaybeProp<bool>,
 ) -> impl IntoView {
     view! {
         <label class="field">
@@ -26,6 +27,7 @@ pub fn FigureField(
                 inputmode="decimal"
                 autocomplete="off"
                 placeholder=move || placeholder.get()
+                prop:disabled=move || disabled.get().unwrap_or(false)
                 prop:value=move || value.get()
                 on:input=move |event| value.set(event_target_value(&event))
             />

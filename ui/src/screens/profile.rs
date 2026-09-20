@@ -85,11 +85,13 @@ fn GoalsCard() -> impl IntoView {
                     <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
                 </div>
                 {move || healthy.get().map(|line| view! { <p class="hint">{line}</p> })}
-                <Recommend fill=fill said=said />
+                <div class="actions">
+                    <Recommend fill=fill said=said />
+                    <button class="cta" type="submit">
+                        "Keep these goals"
+                    </button>
+                </div>
                 <ReferencesLink topic=Topic::HealthyRanges />
-                <button class="cta" type="submit">
-                    "Keep these goals"
-                </button>
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
@@ -151,11 +153,13 @@ fn UsualDayCard() -> impl IntoView {
                     <FigureField label="Standing (min)" name="usual_standing" value=standing />
                     <FigureField label="Moving (km)" name="usual_moving" value=moving />
                 </div>
-                <Recommend fill=fill said=said />
+                <div class="actions">
+                    <Recommend fill=fill said=said />
+                    <button class="cta" type="submit">
+                        "Keep this usual day"
+                    </button>
+                </div>
                 <ReferencesLink topic=Topic::Activity />
-                <button class="cta" type="submit">
-                    "Keep this usual day"
-                </button>
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
@@ -217,13 +221,15 @@ fn FuelTargetsCard() -> impl IntoView {
                     <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
                     <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
                 </div>
-                <Recommend fill=fill said=said />
-                <button class="cta" type="submit">
-                    "Keep these targets"
-                </button>
+                <div class="actions">
+                    <Recommend fill=fill said=said />
+                    <button class="cta" type="submit">
+                        "Keep these targets"
+                    </button>
+                </div>
+                <ReferencesLink topic=Topic::Macronutrients />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
-            <ReferencesLink topic=Topic::Macronutrients />
         </section>
     }
 }
@@ -270,7 +276,7 @@ pub fn ProfileScreen() -> impl IntoView {
             gender: gender.get_untracked(),
             height_cm: height_cm.unwrap_or(0.0),
             neck_cm: neck_cm.unwrap_or(0.0),
-            hip_cm,
+            hip_cm: hip_cm.filter(|_| gender.get_untracked() == Gender::Female),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_profile(&form).await {
@@ -311,9 +317,12 @@ pub fn ProfileScreen() -> impl IntoView {
                 </div>
                 <div class="row">
                     <FigureField label="Neck (cm)" name="neck" value=neck />
-                    <Show when=move || gender.get() == Gender::Female>
-                        <FigureField label="Hip (cm)" name="hip" value=hip />
-                    </Show>
+                    <FigureField
+                        label="Hip (cm)"
+                        name="hip"
+                        value=hip
+                        disabled=Signal::derive(move || gender.get() == Gender::Male)
+                    />
                 </div>
                 <button class="cta" type="submit">
                     "Keep this profile"

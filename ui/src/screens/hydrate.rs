@@ -348,21 +348,18 @@ pub fn HydrateBaseCard() -> impl IntoView {
                     <DateField label="From" name="hydrate_base_from" value=from />
                     <FigureField label="Base (mL)" name="hydrate_base" value=base />
                 </div>
-                <Recommend fill=fill said=said />
-                <ReferencesLink topic=Topic::Water />
                 {move || {
                     default_ml
                         .get()
-                        .map(|ml| {
-                            view! {
-                                <p class="hint">{lines::default_hydrate_base(ml)}</p>
-
-                            }
-                        })
+                        .map(|ml| view! { <p class="hint">{lines::default_hydrate_base(ml)}</p> })
                 }}
-                <button class="cta" type="submit">
-                    "Keep this base"
-                </button>
+                <div class="actions">
+                    <Recommend fill=fill said=said />
+                    <button class="cta" type="submit">
+                        "Keep this base"
+                    </button>
+                </div>
+                <ReferencesLink topic=Topic::Water />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
