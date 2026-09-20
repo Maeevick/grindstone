@@ -107,7 +107,7 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
 }
 
 #[wasm_bindgen_test]
-async fn the_hip_shows_in_the_profile_for_a_woman_only() {
+async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
     answering(r#"{ "profile_on": null, "goals_on": null }"#);
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -118,14 +118,9 @@ async fn the_hip_shows_in_the_profile_for_a_woman_only() {
         }
     });
     settled().await;
-    let hip_shown = |screen: &Element| {
-        screen
-            .query_selector("input[name=hip]")
-            .ok()
-            .flatten()
-            .is_some()
-    };
-    assert!(!hip_shown(&screen), "a man's profile asks for no hip");
+    let hip_closed =
+        |screen: &Element| found::<HtmlInputElement>(screen, "input[name=hip]").disabled();
+    assert!(hip_closed(&screen), "a man's profile asks for no hip");
 
     let gender: HtmlSelectElement = found(&screen, "select[name=gender]");
     gender.set_value("Female");
@@ -134,7 +129,37 @@ async fn the_hip_shows_in_the_profile_for_a_woman_only() {
         .expect("the gender changes");
     settled().await;
 
-    assert!(hip_shown(&screen), "a woman's profile asks for her hip");
+    assert!(!hip_closed(&screen), "a woman's profile asks for her hip");
+}
+
+#[wasm_bindgen_test]
+async fn each_card_sets_its_recommendation_and_its_keeping_side_by_side_with_its_references_below()
+{
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    for card in [".goals", ".fuel-targets", ".hydrate-base", ".usual-day"] {
+        found::<Element>(&screen, &format!("{card} .actions button.recommend"));
+        found::<Element>(&screen, &format!("{card} .actions button[type=submit]"));
+        found::<Element>(&screen, &format!("{card} .actions ~ a.references"));
+    }
+    let last: Element = found(&screen, ".disclaimer");
+    assert!(
+        last.next_element_sibling().is_none(),
+        "the disclaimer closes the profile"
+    );
 }
 
 fn typed_into(screen: &Element, name: &str, text: &str) {
