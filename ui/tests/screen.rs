@@ -5,10 +5,9 @@ use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::Catalog;
 use grind_ui::screens::charts::Charts;
-use grind_ui::screens::circuits::{CircuitCrafter, CircuitLog};
+use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
-use grind_ui::screens::hydrate::{DrinksCatalog, HydrateBaseCard, HydrateDay};
-use grind_ui::screens::meals::MealCooker;
+use grind_ui::screens::hydrate::{HydrateBaseCard, HydrateDay};
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
@@ -622,35 +621,59 @@ async fn the_days_expenditures_list_its_workouts_newest_first_then_off_the_clock
     );
 }
 
-#[wasm_bindgen_test]
-async fn the_catalog_adds_an_exercise_to_its_list() {
-    answering(
-        r#"{ "foods": [], "exercises": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
-    );
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+fn the_catalog(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
                 <Catalog />
             </Router>
         }
-    });
-    settled().await;
-    found::<web_sys::HtmlElement>(&screen, "button.shelf-Exercises").click();
-    settled().await;
+    })
+}
 
+fn clicked(screen: &Element, selector: &str) {
+    found::<web_sys::HtmlElement>(screen, selector).click();
+}
+
+fn a_sheet_is_open(screen: &Element) -> bool {
+    screen.query_selector(".sheet").ok().flatten().is_some()
+}
+
+fn tables_in_order(screen: &Element) -> Vec<String> {
+    let tables = screen.query_selector_all("table").expect("the tables");
+    (0..tables.length())
+        .filter_map(|at| tables.item(at))
+        .filter_map(|table| table.unchecked_into::<Element>().get_attribute("class"))
+        .collect()
+}
+
+#[wasm_bindgen_test]
+async fn the_burn_shelf_lists_circuits_before_exercises_and_adds_an_exercise_from_its_sheet() {
+    answering(
+        r#"{ "exercises": [], "circuits": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
+    );
+    let screen = screen();
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Burn");
+    settled().await;
+    assert_eq!(tables_in_order(&screen), ["circuits", "exercises"]);
+    assert!(!a_sheet_is_open(&screen));
+
+    clicked(&screen, "button.new-exercise");
+    settled().await;
     typed_into(&screen, "exercise_name", "Kettlebell swing");
     typed_into(&screen, "exercise_met", "9.8");
-    found::<HtmlFormElement>(&screen, "form.exercise")
+    found::<HtmlFormElement>(&screen, ".sheet form.exercise")
         .request_submit()
         .expect("the exercise is added");
     settled().await;
 
-    let listed: Element = found(&screen, "table.exercises tbody");
+    assert!(!a_sheet_is_open(&screen));
+    let rows = text_of(&screen, "table.exercises tbody");
     assert!(
-        listed
-            .text_content()
-            .is_some_and(|rows| rows.contains("Kettlebell swing") && rows.contains("9.8"))
+        rows.contains("Kettlebell swing") && rows.contains("9.8"),
+        "{rows}"
     );
 }
 
@@ -861,35 +884,30 @@ async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
 }
 
 #[wasm_bindgen_test]
-async fn the_catalog_adds_a_food_to_its_list() {
+async fn the_fuel_shelf_lists_meals_before_foods_and_adds_a_food_from_its_sheet() {
     answering(
-        r#"{ "exercises": [], "foods": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
+        r#"{ "foods": [], "meals": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
             "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } }] }"#,
     );
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <Catalog />
-            </Router>
-        }
-    });
+    let _mounted = the_catalog(&screen);
     settled().await;
+    assert_eq!(tables_in_order(&screen), ["meals", "foods"]);
+    assert!(!a_sheet_is_open(&screen));
 
+    clicked(&screen, "button.new-food");
+    settled().await;
     typed_into(&screen, "food_name", "Skyr");
     typed_into(&screen, "food_portion", "100");
     typed_into(&screen, "food_energy", "54");
-    found::<HtmlFormElement>(&screen, "form.food")
+    found::<HtmlFormElement>(&screen, ".sheet form.food")
         .request_submit()
         .expect("the food is added");
     settled().await;
 
-    let listed: Element = found(&screen, "table.foods tbody");
-    assert!(
-        listed
-            .text_content()
-            .is_some_and(|rows| rows.contains("Skyr") && rows.contains("54 kcal"))
-    );
+    assert!(!a_sheet_is_open(&screen));
+    let rows = text_of(&screen, "table.foods tbody");
+    assert!(rows.contains("Skyr") && rows.contains("54 kcal"), "{rows}");
 }
 
 const A_COOKED_MEAL: &str = r#"{ "name": "Rice and chicken", "recipe": "Boil, sear, stir.",
@@ -899,28 +917,25 @@ const A_COOKED_MEAL: &str = r#"{ "name": "Rice and chicken", "recipe": "Boil, se
     "totals": { "energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0 } }"#;
 
 #[wasm_bindgen_test]
-async fn a_meal_weighed_up_shows_its_totals_and_once_cooked_joins_the_list() {
+async fn a_meal_weighed_up_in_its_sheet_shows_its_totals_and_once_cooked_joins_the_list() {
     answering(&format!(
         r#"{{ "foods": [{{ "name": "Rice", "unit": "Gram", "portion": 100.0,
                 "nutrients": {{ "energy_kcal": 350.0, "protein_g": 7.0, "carbs_g": 75.0, "fat_g": 0.5, "fibre_g": 1.0 }} }}],
              "meals": [], "preview_meal": {A_COOKED_MEAL}, "cook_meal": [{A_COOKED_MEAL}] }}"#
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <MealCooker />
-            </Router>
-        }
-    });
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.new-meal");
     settled().await;
 
     typed_into(&screen, "meal_name", "Rice and chicken");
+    typed_into(&screen, "ingredient", "Rice");
     typed_into(&screen, "ingredient_quantity", "200");
-    found::<web_sys::HtmlElement>(&screen, "button.add-ingredient").click();
+    clicked(&screen, "button.add-ingredient");
     settled().await;
     typed_into(&screen, "cooked", "500");
-    found::<web_sys::HtmlElement>(&screen, "button.weigh-up").click();
+    clicked(&screen, "button.weigh-up");
     settled().await;
 
     let said = screen.text_content().unwrap_or_default();
@@ -929,17 +944,13 @@ async fn a_meal_weighed_up_shows_its_totals_and_once_cooked_joins_the_list() {
         "{said}"
     );
 
-    found::<HtmlFormElement>(&screen, "form.meal")
+    found::<HtmlFormElement>(&screen, ".sheet form.meal")
         .request_submit()
         .expect("the meal is cooked");
     settled().await;
 
-    let listed: Element = found(&screen, "table.meals tbody");
-    assert!(
-        listed
-            .text_content()
-            .is_some_and(|rows| rows.contains("Rice and chicken"))
-    );
+    assert!(!a_sheet_is_open(&screen));
+    assert!(text_of(&screen, "table.meals tbody").contains("Rice and chicken"));
 }
 
 #[wasm_bindgen_test]
@@ -1022,58 +1033,46 @@ const MORNING_RUST: &str = r#"{ "name": "Morning rust", "steps": [
     { "exercise": "Push up", "met": 3.8, "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
 
-fn chosen_in(screen: &Element, name: &str, value: &str) {
-    let field: HtmlSelectElement = found(screen, &format!("select[name={name}]"));
-    field.set_value(value);
-    field
-        .dispatch_event(&Event::new("change").expect("a change event"))
-        .expect("the choice is made");
-}
-
 #[wasm_bindgen_test]
-async fn the_crafter_crafts_a_circuit_from_its_steps_added_one_by_one() {
+async fn the_crafter_crafts_a_circuit_in_its_sheet_from_its_steps_added_one_by_one() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
              "circuits": [], "craft_circuit": [{MORNING_RUST}] }}"#
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <CircuitCrafter />
-            </Router>
-        }
-    });
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Burn");
+    settled().await;
+    clicked(&screen, "button.new-circuit");
     settled().await;
 
     typed_into(&screen, "circuit_name", "Morning rust");
-    chosen_in(&screen, "step_exercise", "Push up");
+    typed_into(&screen, "step_exercise", "Push up");
     typed_into(&screen, "step_reps", "12");
     typed_into(&screen, "step_minutes", "0.5");
-    found::<web_sys::HtmlElement>(&screen, "button.add-step").click();
-    chosen_in(&screen, "step_exercise", "Burpee");
+    clicked(&screen, "button.add-step");
+    typed_into(&screen, "step_exercise", "Burpee");
     typed_into(&screen, "step_minutes", "1");
     typed_into(&screen, "step_load", "5");
-    found::<web_sys::HtmlElement>(&screen, "button.add-step").click();
+    clicked(&screen, "button.add-step");
     settled().await;
-    let added: Element = found(&screen, "ol.steps");
-    let steps = added.text_content().unwrap_or_default();
+    let steps = text_of(&screen, "ol.steps");
     assert!(
         steps.contains("Push up") && steps.contains("Burpee"),
         "{steps}"
     );
-    found::<HtmlFormElement>(&screen, "form.circuit")
+    found::<HtmlFormElement>(&screen, ".sheet form.circuit")
         .request_submit()
         .expect("the circuit is crafted");
     settled().await;
 
-    let listed: Element = found(&screen, "table.circuits tbody");
-    let rows = listed.text_content().unwrap_or_default();
+    assert!(!a_sheet_is_open(&screen));
+    let rows = text_of(&screen, "table.circuits tbody");
     assert!(
         rows.contains("Morning rust") && rows.contains("Push up") && rows.contains("Burpee"),
         "{rows}"
     );
-    assert_eq!(value_of(&screen, "circuit_name"), "");
 }
 
 #[wasm_bindgen_test]
@@ -1082,23 +1081,21 @@ async fn a_step_added_by_mistake_leaves_the_circuit_before_it_is_crafted() {
         r#"{ "exercises": [{ "name": "Burpee", "met": 8.0 }, { "name": "Push up", "met": 3.8 }], "circuits": [] }"#,
     );
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <CircuitCrafter />
-            </Router>
-        }
-    });
+    let _mounted = the_catalog(&screen);
     settled().await;
+    clicked(&screen, "button.shelf-Burn");
+    settled().await;
+    clicked(&screen, "button.new-circuit");
+    settled().await;
+    typed_into(&screen, "step_exercise", "Burpee");
     typed_into(&screen, "step_minutes", "1");
-    found::<web_sys::HtmlElement>(&screen, "button.add-step").click();
+    clicked(&screen, "button.add-step");
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, "ol.steps button.remove").click();
+    clicked(&screen, "ol.steps button.remove");
     settled().await;
 
-    let added: Element = found(&screen, "ol.steps");
-    assert_eq!(added.text_content().unwrap_or_default(), "");
+    assert_eq!(text_of(&screen, "ol.steps"), "");
 }
 
 #[wasm_bindgen_test]
@@ -1107,20 +1104,15 @@ async fn removing_a_circuit_takes_it_out_of_the_lab() {
         r#"{{ "exercises": [], "circuits": [{MORNING_RUST}], "remove_circuit": [] }}"#
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <CircuitCrafter />
-            </Router>
-        }
-    });
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Burn");
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, "table.circuits button.remove").click();
+    clicked(&screen, "table.circuits button.remove");
     settled().await;
 
-    let listed: Element = found(&screen, "table.circuits tbody");
-    assert_eq!(listed.text_content().unwrap_or_default(), "");
+    assert_eq!(text_of(&screen, "table.circuits tbody"), "");
 }
 
 const A_DAY_OF_MORNING_RUST: &str = r#"{ "day": "2026-10-10", "burnt_kcal": 120.0, "off_the_clock": null,
@@ -1302,65 +1294,51 @@ async fn removing_a_drinking_takes_it_off_the_day() {
     assert_eq!(listed.text_content().unwrap_or_default(), "");
 }
 
-fn the_catalog_in(screen: &Element) -> impl Drop {
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <DrinksCatalog />
-            </Router>
-        }
-    })
-}
-
 #[wasm_bindgen_test]
-async fn an_added_drink_joins_the_catalog_and_the_form_empties() {
+async fn an_added_drink_joins_the_hydrate_shelf_its_kind_water_or_other() {
     answering(
         r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }] }"#,
     );
     let screen = screen();
-    let _mounted = the_catalog_in(&screen);
+    let _mounted = the_catalog(&screen);
     settled().await;
+    clicked(&screen, "button.shelf-Hydrate");
+    settled().await;
+    clicked(&screen, "button.new-drink");
+    settled().await;
+    assert_eq!(
+        found::<HtmlSelectElement>(&screen, ".sheet select[name=drink_kind]").length(),
+        2
+    );
 
     typed_into(&screen, "drink_name", "Tea");
     typed_into(&screen, "serving", "200");
-    found::<HtmlFormElement>(&screen, "form.drink")
+    found::<HtmlFormElement>(&screen, ".sheet form.drink")
         .request_submit()
         .expect("the drink is added");
     settled().await;
 
-    let listed: Element = found(&screen, "tbody");
-    assert!(
-        listed
-            .text_content()
-            .is_some_and(|drinks| drinks.contains("Tea") && drinks.contains("200 mL"))
-    );
-    assert_eq!(
-        [
-            value_of(&screen, "drink_name"),
-            value_of(&screen, "serving")
-        ],
-        ["", ""]
-    );
+    assert!(!a_sheet_is_open(&screen));
+    let rows = text_of(&screen, "table.drinks tbody");
+    assert!(rows.contains("Tea") && rows.contains("200 mL"), "{rows}");
 }
 
 #[wasm_bindgen_test]
-async fn removing_a_drink_takes_it_off_the_catalog() {
+async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "remove_drink": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }}] }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog_in(&screen);
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Hydrate");
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, "button.remove").click();
+    clicked(&screen, "table.drinks button.remove");
     settled().await;
 
-    let listed: Element = found(&screen, "tbody");
-    assert!(
-        listed
-            .text_content()
-            .is_some_and(|drinks| !drinks.contains("Expresso") && drinks.contains("Tea"))
-    );
+    let rows = text_of(&screen, "table.drinks tbody");
+    assert!(!rows.contains("Expresso") && rows.contains("Tea"), "{rows}");
 }
 
 fn the_base_card_in(screen: &Element) -> impl Drop {
