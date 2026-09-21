@@ -746,3 +746,9 @@ a.references {
 .close {
 	font-size: 1.4rem;
 }
+
+.veil-note {
+	margin: 0;
+	font-style: italic;
+	line-height: 1.55;
+}

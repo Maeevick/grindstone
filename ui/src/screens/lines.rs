@@ -1,9 +1,8 @@
 use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, shown};
+use grind_core::figures::{Figure, shown, signed};
 use grind_core::food::{Nutrients, Unit};
-use grind_core::for_charting::Insights;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
@@ -11,6 +10,7 @@ use grind_core::hydrate::Hydrate;
 use grind_core::meal::Meal;
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
+use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
 use grind_core::stats::{Measure, Summary, figure_of};
 use grind_core::streak::{Status, Streak, Ticks};
 use grind_draft::{DraftRefusal, ImportFailure};
@@ -452,60 +452,149 @@ pub const NOTHING_TO_CHART: &str =
 
 pub const NOTHING_THIS_MONTH: &str = "Nothing filed this month yet.";
 
-fn share_of(part: usize, whole: usize) -> f64 {
-    part as f64 / whole as f64
-}
-
-pub fn habits_to_sharpen(insights: &Insights) -> Vec<String> {
-    let mut banded: Vec<(f64, String)> = [
-        ("Energy", insights.energy, insights.fuelled_days),
-        ("Protein", insights.protein, insights.fuelled_days),
-        ("Fat", insights.fat, insights.fuelled_days),
-        ("Fibre", insights.fibre, insights.fuelled_days),
-        ("Carbs", insights.carbs, insights.fuelled_days),
-        ("Hydrate", insights.hydrate, insights.hydrated_days),
-    ]
-    .into_iter()
-    .filter(|(_, _, logged)| *logged > 0)
-    .map(|(habit, tally, logged)| {
-        let share = share_of(tally.in_band, logged);
-        (
-            share,
-            format!(
-                "{habit}: in its band on {} of {logged} logged days ({}), under it on {}, over it on {}.",
-                tally.in_band,
-                shown(Figure::Ratio(share)),
-                tally.low,
-                tally.high
-            ),
-        )
-    })
-    .collect();
-    banded.sort_by(|(one, _), (other, _)| one.total_cmp(other));
-    let mut lines: Vec<String> = banded.into_iter().map(|(_, line)| line).collect();
-    if insights.days > 0 {
-        lines.push(format!(
-            "Workouts on {} of {} days, {} a week{}.",
-            insights.active_days,
-            insights.days,
-            shown(Figure::Count(
-                share_of(insights.active_days, insights.days) * 7.0
-            )),
-            insights
-                .burnt_per_active_day
-                .map(|kcal| format!(", {} burnt on an active day", shown(Figure::Energy(kcal))))
-                .unwrap_or_default()
-        ));
-        lines.push(format!(
-            "Weighed on {} of {} days.",
-            insights.weighed_days, insights.days
-        ));
+fn habit_name(habit: Habit) -> &'static str {
+    match habit {
+        Habit::Energy => "Energy",
+        Habit::Protein => "Protein",
+        Habit::Fat => "Fat",
+        Habit::Fibre => "Fibre",
+        Habit::Carbs => "Carbs",
+        Habit::Hydrate => "Water",
     }
-    lines
 }
 
-pub const SHARPEN: &str =
-    "[Veil, without looking up:] the weakest habits first. A habit, not a verdict.";
+fn a_week(per_week_kg: f64) -> String {
+    format!("{} kg a week", signed(Figure::Mass(per_week_kg)))
+}
+
+pub fn gather_note(note: &GatherNote) -> String {
+    match note {
+        GatherNote::Unweighed => {
+            "No weigh-in in this window. Veil tracks footprints, and the scale has left none. \
+            [Veil waits. Veil is good at waiting.]"
+                .into()
+        }
+        GatherNote::Irregular { weighed_days, days } => format!(
+            "Weighed on {weighed_days} of {days} days. A trend wants a footprint every other day at least; \
+             fewer, and it is a rumour with a decimal point."
+        ),
+        GatherNote::TooSoon => "Too few weigh-ins for a trend yet. Patience is half the hunt. \
+            The other half, Veil insists, is also patience."
+            .into(),
+        GatherNote::Aimless { per_week_kg } => format!(
+            "{}, heading nowhere in particular: no goal is set. A hunt without a quarry is just a walk \
+             in the woods. Set one in Profile.",
+            a_week(*per_week_kg)
+        ),
+        GatherNote::OnCourse {
+            per_week_kg,
+            reached_on,
+        } => format!(
+            "{}: on this trend the goal falls around {reached_on}. Keep the pace, not the pressure.* \
+             (*Veil does not do pressure. Veil does patience, and arrows.)",
+            a_week(*per_week_kg)
+        ),
+        GatherNote::OffCourse { per_week_kg } => format!(
+            "{}, and the goal lies elsewhere. Not a verdict: trends turn when habits do, and habits \
+             are the one thing down here that sharpens.",
+            a_week(*per_week_kg)
+        ),
+    }
+}
+
+pub fn fuel_note(note: &BandNote) -> String {
+    match note {
+        BandNote::Unlogged => {
+            "Nothing eaten on the record in this window. Veil cannot hunt what was never filed. \
+            [Grimble looks wounded.]"
+                .into()
+        }
+        BandNote::Sharp {
+            weakest,
+            in_band,
+            logged,
+        } => format!(
+            "Every habit held its band four days in five; even the weakest, {}, on {in_band} of {logged}. \
+             Nothing to hunt. Veil finds this deeply suspicious.",
+            habit_name(*weakest)
+        ),
+        BandNote::Blunt {
+            habit,
+            in_band,
+            logged,
+            leaning: Leaning::Under,
+        } => format!(
+            "{} reached its band on {in_band} of {logged} days and fell short on the rest. \
+             The quarry is small, slow, and frankly asking to be caught.",
+            habit_name(*habit)
+        ),
+        BandNote::Blunt {
+            habit,
+            in_band,
+            logged,
+            leaning: Leaning::Over,
+        } => format!(
+            "{} went past its band on most days: in it on {in_band} of {logged}. \
+             Generosity is a virtue, except in a ledger.",
+            habit_name(*habit)
+        ),
+    }
+}
+
+pub fn hydrate_note(note: &BandNote) -> String {
+    match note {
+        BandNote::Unlogged => {
+            "Not a drop on the record in this window. The archive is drier than its oldest scroll, \
+            and that one is a fire hazard."
+                .into()
+        }
+        BandNote::Sharp {
+            in_band, logged, ..
+        } => format!(
+            "In the band on {in_band} of {logged} days. [Veil nods once, which for Veil is a standing ovation.]"
+        ),
+        BandNote::Blunt {
+            in_band,
+            logged,
+            leaning: Leaning::Under,
+            ..
+        } => format!(
+            "Short of water on most days: in the band on {in_band} of {logged}. A cup within reach does \
+             most of the work; remembering it is there does the rest."
+        ),
+        BandNote::Blunt {
+            in_band,
+            logged,
+            leaning: Leaning::Over,
+            ..
+        } => format!(
+            "Past the band on most days: in it on {in_band} of {logged}. More is not better, only wetter."
+        ),
+    }
+}
+
+pub fn burn_note(note: &BurnNote) -> String {
+    match note {
+        BurnNote::Idle => "No workout in this window. A rest day counts as work; a rest month is \
+            a different hunt altogether."
+            .into(),
+        BurnNote::Sparse { per_week } => format!(
+            "{} active days a week. The WHO asks for strength on two; the grindstone turns either way, \
+             but it turns better with a hand on it.",
+            shown(Figure::Count(*per_week))
+        ),
+        BurnNote::Steady {
+            per_week,
+            burnt_per_active_day,
+        } => format!(
+            "{} active days a week{}. Steady as a goblin with a grudge. [Veil marks the tree and moves on.]",
+            shown(Figure::Count(*per_week)),
+            burnt_per_active_day
+                .map(|kcal| format!(", {} burnt on each", shown(Figure::Energy(kcal))))
+                .unwrap_or_default()
+        ),
+    }
+}
 
 pub const UNREADABLE: &str = "That is no number I can read. Digits, with a point or a comma, please. [Grimble squints at the ink.]";
 

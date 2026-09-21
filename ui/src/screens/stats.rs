@@ -49,41 +49,11 @@ pub fn Stats() -> impl IntoView {
     let window = RwSignal::new(Window::Days90);
     let one = RwSignal::new(Measure::BodyMass);
     let other = RwSignal::new(Measure::Eaten);
-    let insights = LocalResource::new(move || {
-        let window = window.get();
-        async move { tauri::insights(&today(), window).await }
-    });
     let explored = LocalResource::new(move || {
         let (window, measures) = (window.get(), (one.get(), other.get()));
         async move { tauri::explore(&today(), window, measures).await }
     });
     view! {
-        <section class="card">
-            <h2>"What to sharpen"</h2>
-            <p class="hint">{lines::SHARPEN}</p>
-            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
-                {move || {
-                    insights
-                        .get()
-                        .map(|answer| match answer {
-                            Ok(found) => {
-                                view! {
-                                    <ol class="sharpen">
-                                        {lines::habits_to_sharpen(&found)
-                                            .into_iter()
-                                            .map(|line| view! { <li>{line}</li> })
-                                            .collect_view()}
-                                    </ol>
-                                }
-                                    .into_any()
-                            }
-                            Err(failure) => {
-                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
-                            }
-                        })
-                }}
-            </Transition>
-        </section>
         <section class="card">
             <h2>"Stats: Veil's hunting ground"</h2>
             <div class="row">
