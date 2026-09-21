@@ -1560,37 +1560,45 @@ async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
     );
 }
 
+const THE_INSIGHTS: &str = r#""insights": { "days": 30, "weighed_days": 25, "fuelled_days": 20,
+    "energy": { "low": 4, "in_band": 14, "high": 2 }, "protein": { "low": 2, "in_band": 18, "high": 0 },
+    "fat": { "low": 1, "in_band": 17, "high": 2 }, "fibre": { "low": 15, "in_band": 5, "high": 0 },
+    "carbs": { "low": 3, "in_band": 16, "high": 1 }, "hydrated_days": 10,
+    "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 }"#;
+
 #[wasm_bindgen_test]
-async fn stats_list_the_habits_to_sharpen_the_weakest_first() {
-    answering(
-        r#"{ "explore": { "one": [], "other": [], "one_summary": null, "other_summary": null, "pairs": [], "correlation": null },
-             "insights": { "days": 30, "weighed_days": 25, "fuelled_days": 20,
-                 "energy": { "low": 4, "in_band": 14, "high": 2 }, "protein": { "low": 2, "in_band": 18, "high": 0 },
-                 "fat": { "low": 1, "in_band": 17, "high": 2 }, "fibre": { "low": 15, "in_band": 5, "high": 0 },
-                 "carbs": { "low": 3, "in_band": 16, "high": 1 }, "hydrated_days": 10,
-                 "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 } }"#,
-    );
+async fn veil_notes_what_is_worth_sharpening_on_the_chosen_chip_between_the_chart_and_the_history()
+{
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, {THE_INSIGHTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <Stats />
-            </Router>
-        }
-    });
+    let _mounted = the_charts(&screen);
     settled().await;
 
-    let first: Element = found(&screen, "ol.sharpen li");
-    let weakest = first.text_content().unwrap_or_default();
-    assert!(
-        weakest.contains("Fibre") && weakest.contains("5 of 20"),
-        "{weakest}"
-    );
-    let said = screen.text_content().unwrap_or_default();
-    assert!(
-        said.contains("12 of 30 days") && said.contains("25 of 30 days"),
-        "{said}"
-    );
+    let cards = screen
+        .query_selector_all("section.card")
+        .expect("the cards");
+    let order: Vec<String> = (0..cards.length())
+        .filter_map(|at| cards.item(at))
+        .filter_map(|card| card.unchecked_into::<Element>().get_attribute("class"))
+        .collect();
+    assert_eq!(order, ["card charts", "card veil", "card history"]);
+    assert!(text_of(&screen, ".veil").contains("Too few weigh-ins"));
+
+    clicked(&screen, "button.chip-Fuel");
+    settled().await;
+    let fuel = text_of(&screen, ".veil");
+    assert!(fuel.contains("Fibre") && fuel.contains("5 of 20"), "{fuel}");
+
+    clicked(&screen, "button.chip-Hydrate");
+    settled().await;
+    assert!(text_of(&screen, ".veil").contains("4 of 10"));
+
+    clicked(&screen, "button.chip-Burn");
+    settled().await;
+    let burn = text_of(&screen, ".veil");
+    assert!(burn.contains("2.8") && burn.contains("210 kcal"), "{burn}");
 }
 
 #[wasm_bindgen_test]
