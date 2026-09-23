@@ -368,4 +368,12 @@ mod tests {
             BurnNote::Sparse { per_week: 1.0 }
         );
     }
+
+    #[test]
+    fn a_weigh_in_every_other_day_is_regular_enough_for_a_trend() {
+        assert_eq!(
+            sharpening_of(&weighed(15, 30), &GatherCard::default()).gather,
+            GatherNote::TooSoon
+        );
+    }
 }
