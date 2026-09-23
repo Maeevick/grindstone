@@ -174,4 +174,25 @@ mod tests {
             ["+0.3", "-1.0", "0.0", "-1.5", "+12", "0"]
         );
     }
+
+    #[test]
+    fn a_figure_that_rounds_to_nothing_shows_no_minus() {
+        assert_eq!(
+            [
+                shown(Figure::Mass(-0.04)),
+                shown(Figure::Length(-0.04)),
+                shown(Figure::Ratio(-0.0004)),
+                shown(Figure::Energy(-0.4)),
+                shown(Figure::Duration(-0.04)),
+                shown(Figure::Distance(-0.004)),
+                shown(Figure::Grams(-0.4)),
+                shown(Figure::Count(-0.04)),
+                shown(Figure::Amount(-0.04, Unit::Gram)),
+                shown(Figure::Volume(-0.4)),
+            ],
+            [
+                "0.0 kg", "0.0 cm", "0.0%", "0 kcal", "0 min", "0 km", "0 g", "0", "0 g", "0 mL"
+            ]
+        );
+    }
 }
