@@ -231,4 +231,17 @@ mod tests {
             Some((-2.0, Heading::Away))
         );
     }
+
+    #[test]
+    fn a_waist_moving_while_the_fat_ratio_sits_on_its_goal_heads_away() {
+        let week = [
+            measured("2026-10-05", 80.0, 90.0, 0.15, 68.0),
+            measured("2026-10-11", 80.0, 89.0, 0.15, 68.0),
+        ];
+
+        assert_eq!(
+            moved(tendency_of(&week, Some(&aiming_at(75.0, 0.15))).waist),
+            Some((-1.0, Heading::Away))
+        );
+    }
 }
