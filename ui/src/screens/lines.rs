@@ -264,14 +264,6 @@ pub fn energy_line(fuel: &Fuel) -> String {
     }
 }
 
-pub fn verdict_word(verdict: Verdict) -> &'static str {
-    match verdict {
-        Verdict::Low => "too low",
-        Verdict::InBand => "in the band",
-        Verdict::High => "too high",
-    }
-}
-
 pub fn verdict_class(verdict: Verdict) -> &'static str {
     match verdict {
         Verdict::Low => "low",
