@@ -227,4 +227,18 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn the_steps_fall_to_6000_on_the_sixtieth_birthday() {
+        let moving_on = |date| {
+            recommended(&born("1966-10-11", Gender::Male, 180.0), day(date), None)
+                .usual_day
+                .moving_km
+        };
+
+        assert_eq!(
+            (moving_on("2026-10-10"), moving_on("2026-10-11")),
+            (6.0, 4.5)
+        );
+    }
 }
