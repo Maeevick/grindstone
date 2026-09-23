@@ -291,7 +291,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                         <tr>
                             <th>"Activity"</th>
                             <th>"kcal"</th>
-                            <th>"min"</th>
+                            <th>"Duration (min)"</th>
                             <th>"reps"</th>
                             <th></th>
                         </tr>
