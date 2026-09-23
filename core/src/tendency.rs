@@ -218,4 +218,17 @@ mod tests {
             (None, None, None)
         );
     }
+
+    #[test]
+    fn a_measure_ending_as_far_past_its_goal_as_it_began_short_of_it_heads_away() {
+        let week = [
+            measured("2026-10-05", 76.0, 90.0, 0.2, 64.0),
+            measured("2026-10-11", 74.0, 90.0, 0.2, 64.0),
+        ];
+
+        assert_eq!(
+            moved(tendency_of(&week, Some(&aiming_at(75.0, 0.15))).body_mass),
+            Some((-2.0, Heading::Away))
+        );
+    }
 }
