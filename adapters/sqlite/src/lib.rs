@@ -1397,4 +1397,29 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn a_meal_kept_before_the_cooking_ratios_spreads_its_pot_ratio_over_its_ingredients() {
+        let records = database();
+        records
+            .0
+            .execute(
+                r#"insert into meals values ('Stew', '{"name": "Stew", "recipe": "Simmer.",
+                    "ingredients": [{"food": "Rice", "unit": "Gram", "quantity": 200.0,
+                        "nutrients": {"energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0}}],
+                    "raw_g": 200.0, "cooked_g": 500.0,
+                    "totals": {"energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0}}')"#,
+                [],
+            )
+            .expect("a meal kept by the earlier cooker");
+
+        let kept = records.fuel_records().expect("the records read").meals;
+
+        assert_eq!(
+            kept.iter()
+                .map(|meal| (meal.cooked_g, meal.ingredients[0].cooked_per_raw))
+                .collect::<Vec<_>>(),
+            vec![(500.0, 2.5)]
+        );
+    }
 }
