@@ -19,7 +19,7 @@ use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::hydrate_records::HydrateRecords;
 use grind_core::intake::Intake;
-use grind_core::meal::{Ingredient, Meal};
+use grind_core::meal::{Ingredient, MASS_KEPT, Meal};
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
@@ -596,7 +596,11 @@ struct KeptIngredient {
 fn meal_read(row: &rusqlite::Row) -> rusqlite::Result<Meal> {
     let kept: KeptMeal = serde_json::from_str(&row.get::<_, String>(0)?)
         .map_err(|error| rusqlite::Error::InvalidParameterName(error.to_string()))?;
-    let pot_ratio = kept.cooked_g / kept.raw_g;
+    let pot_ratio = if kept.raw_g > 0.0 {
+        kept.cooked_g / kept.raw_g
+    } else {
+        MASS_KEPT
+    };
     Ok(Meal {
         name: kept.name,
         recipe: kept.recipe,
