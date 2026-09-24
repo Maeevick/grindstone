@@ -63,4 +63,23 @@ mod tests {
         );
         assert_eq!(chosen(&the_catalog(), "sky"), None);
     }
+
+    #[test]
+    fn accents_are_ignored_whichever_side_carries_them() {
+        let catalog = ["Épinards", "Crème fraîche", "Œuf", "Pâtes"]
+            .map(String::from)
+            .to_vec();
+
+        assert_eq!(matching(&catalog, "epi"), vec!["Épinards".to_string()]);
+        assert_eq!(
+            matching(&catalog, "CREME"),
+            vec!["Crème fraîche".to_string()]
+        );
+        assert_eq!(matching(&catalog, "oeu"), vec!["Œuf".to_string()]);
+        assert_eq!(matching(&catalog, "pât"), vec!["Pâtes".to_string()]);
+        assert_eq!(
+            chosen(&catalog, "creme fraiche"),
+            Some("Crème fraîche".to_string())
+        );
+    }
 }
