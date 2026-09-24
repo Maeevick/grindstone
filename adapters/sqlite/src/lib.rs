@@ -19,12 +19,13 @@ use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::hydrate_records::HydrateRecords;
 use grind_core::intake::Intake;
-use grind_core::meal::Meal;
+use grind_core::meal::{Ingredient, Meal};
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
 use grind_core::workout::Workout;
 use rusqlite::{Connection, params};
+use serde::Deserialize;
 
 const MIGRATIONS: &[&str] = &[
     "create table weigh_ins (date text primary key, kg real not null)",
@@ -572,9 +573,48 @@ fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, FuelTargets
     ))
 }
 
+/// A meal as kept: those cooked before each ingredient had its own ratio spread the pot's over them.
+#[derive(Deserialize)]
+struct KeptMeal {
+    name: String,
+    recipe: String,
+    ingredients: Vec<KeptIngredient>,
+    raw_g: f64,
+    cooked_g: f64,
+    totals: Nutrients,
+}
+
+#[derive(Deserialize)]
+struct KeptIngredient {
+    food: String,
+    unit: Unit,
+    quantity: f64,
+    cooked_per_raw: Option<f64>,
+    nutrients: Nutrients,
+}
+
 fn meal_read(row: &rusqlite::Row) -> rusqlite::Result<Meal> {
-    serde_json::from_str(&row.get::<_, String>(0)?)
-        .map_err(|error| rusqlite::Error::InvalidParameterName(error.to_string()))
+    let kept: KeptMeal = serde_json::from_str(&row.get::<_, String>(0)?)
+        .map_err(|error| rusqlite::Error::InvalidParameterName(error.to_string()))?;
+    let pot_ratio = kept.cooked_g / kept.raw_g;
+    Ok(Meal {
+        name: kept.name,
+        recipe: kept.recipe,
+        ingredients: kept
+            .ingredients
+            .into_iter()
+            .map(|ingredient| Ingredient {
+                food: ingredient.food,
+                unit: ingredient.unit,
+                quantity: ingredient.quantity,
+                cooked_per_raw: ingredient.cooked_per_raw.unwrap_or(pot_ratio),
+                nutrients: ingredient.nutrients,
+            })
+            .collect(),
+        raw_g: kept.raw_g,
+        cooked_g: kept.cooked_g,
+        totals: kept.totals,
+    })
 }
 
 fn nutrients_read(row: &rusqlite::Row, first: usize) -> rusqlite::Result<Nutrients> {
