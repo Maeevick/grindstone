@@ -236,6 +236,16 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotADrink) => {
             "That drink is not in the catalog yet. Grimble searched every shelf, twice.".into()
         }
+        Failure::Refused(Refusal::NotACookingRatio) => {
+            "A cooking ratio above nothing, please: 2.5 for pasta that drinks its water, 0.66 for cream \
+             that boils down, 1 for what keeps its mass. ~ Trix 🧪💥"
+                .into()
+        }
+        Failure::Refused(Refusal::NotWeighed) => {
+            "That ingredient is counted in pieces, and the lab cooks by mass: add it in grams or \
+             millilitres for now. ~ Trix 🧪💥"
+                .into()
+        }
         Failure::Broken(reason) => {
             format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
         }

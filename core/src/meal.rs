@@ -8,13 +8,8 @@ pub struct Ingredient {
     pub food: String,
     pub unit: Unit,
     pub quantity: f64,
+    pub cooked_per_raw: f64,
     pub nutrients: Nutrients,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Cooking {
-    Weighed { cooked_g: f64 },
-    Ratio { cooked_per_raw: f64 },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -37,12 +32,7 @@ fn scaled(nutrients: Nutrients, share: f64) -> Nutrients {
     }
 }
 
-pub fn meal(
-    name: &str,
-    recipe: &str,
-    ingredients: &[(Food, f64)],
-    cooking: Cooking,
-) -> Result<Meal, Refusal> {
+pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Result<Meal, Refusal> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Refusal::NotAName);
@@ -50,16 +40,17 @@ pub fn meal(
     if ingredients.is_empty()
         || ingredients
             .iter()
-            .any(|(_, quantity)| !(quantity.is_finite() && *quantity > 0.0))
+            .any(|(_, quantity, _)| !(quantity.is_finite() && *quantity > 0.0))
     {
         return Err(Refusal::NotAQuantity);
     }
     let ingredients: Vec<Ingredient> = ingredients
         .iter()
-        .map(|(food, quantity)| Ingredient {
+        .map(|(food, quantity, cooked_per_raw)| Ingredient {
             food: food.name.clone(),
             unit: food.unit,
             quantity: *quantity,
+            cooked_per_raw: *cooked_per_raw,
             nutrients: nutrients_of(food, *quantity),
         })
         .collect();
@@ -68,20 +59,13 @@ pub fn meal(
         .filter(|ingredient| ingredient.unit != Unit::Piece)
         .map(|ingredient| ingredient.quantity)
         .sum();
-    let cooked_g = match cooking {
-        Cooking::Weighed { cooked_g } => cooked_g,
-        Cooking::Ratio { cooked_per_raw } => raw_g * cooked_per_raw,
-    };
-    if !(cooked_g.is_finite() && cooked_g > 0.0) {
-        return Err(Refusal::NotAPortion);
-    }
     Ok(Meal {
         name: name.into(),
         recipe: recipe.trim().into(),
         totals: summed(ingredients.iter().map(|ingredient| ingredient.nutrients)),
         ingredients,
         raw_g,
-        cooked_g,
+        cooked_g: raw_g,
     })
 }
 
@@ -126,44 +110,54 @@ mod tests {
         }
     }
 
-    fn rice_and_chicken(cooking: Cooking) -> Result<Meal, Refusal> {
+    fn pasta_in_cream() -> Result<Meal, Refusal> {
         meal(
-            " Rice and chicken ",
-            "Boil the rice, sear the chicken.",
+            " Pasta in cream ",
+            "Boil the pasta, reduce the cream, stir.",
             &[
-                (per_100_g("Rice", 350.0, 7.0), 200.0),
-                (per_100_g("Chicken", 120.0, 23.0), 300.0),
+                (per_100_g("Pasta", 360.0, 12.0), 100.0, 2.5),
+                (per_100_g("Cream", 300.0, 2.0), 200.0, 0.66),
             ],
-            cooking,
         )
     }
 
     #[test]
-    fn a_meal_adds_up_its_ingredients_before_cooking_and_keeps_its_recipe() {
-        let cooked = rice_and_chicken(Cooking::Weighed { cooked_g: 800.0 }).expect("a meal");
+    fn a_meal_adds_up_its_ingredients_raw_and_keeps_its_recipe() {
+        let cooked = pasta_in_cream().expect("a meal");
 
-        assert_eq!(cooked.name, "Rice and chicken");
-        assert_eq!(cooked.recipe, "Boil the rice, sear the chicken.");
-        assert_eq!(cooked.raw_g, 500.0);
-        assert!((cooked.totals.energy_kcal - 1060.0).abs() < 1e-9);
-        assert!((cooked.totals.protein_g - 83.0).abs() < 1e-9);
+        assert_eq!(cooked.name, "Pasta in cream");
+        assert_eq!(cooked.recipe, "Boil the pasta, reduce the cream, stir.");
+        assert_eq!(cooked.raw_g, 300.0);
+        assert!((cooked.totals.energy_kcal - 960.0).abs() < 1e-9);
+        assert!((cooked.totals.protein_g - 16.0).abs() < 1e-9);
     }
 
     #[test]
-    fn the_cooked_mass_is_weighed_or_the_raw_mass_times_its_ratio() {
-        let weighed = rice_and_chicken(Cooking::Weighed { cooked_g: 800.0 }).expect("a meal");
-        let shrunk = rice_and_chicken(Cooking::Ratio {
-            cooked_per_raw: 0.8,
-        })
-        .expect("a meal");
+    fn each_ingredient_cooks_to_its_quantity_times_its_ratio() {
+        let cooked = pasta_in_cream().expect("a meal");
 
-        assert_eq!(weighed.cooked_g, 800.0);
-        assert!((shrunk.cooked_g - 400.0).abs() < 1e-9);
+        assert!((cooked.cooked_g - (250.0 + 132.0)).abs() < 1e-9);
+        assert_eq!(
+            cooked
+                .ingredients
+                .iter()
+                .map(|ingredient| ingredient.cooked_per_raw)
+                .collect::<Vec<_>>(),
+            vec![2.5, 0.66]
+        );
     }
 
     #[test]
     fn a_cooked_meal_joins_the_foods_with_its_figures_per_100_g_of_cooked_mass() {
-        let cooked = rice_and_chicken(Cooking::Weighed { cooked_g: 800.0 }).expect("a meal");
+        let cooked = meal(
+            "Rice and chicken",
+            "",
+            &[
+                (per_100_g("Rice", 350.0, 7.0), 200.0, 2.5),
+                (per_100_g("Chicken", 120.0, 23.0), 300.0, 1.0),
+            ],
+        )
+        .expect("a meal");
 
         let food = food_of(&cooked);
 
@@ -176,44 +170,46 @@ mod tests {
     }
 
     #[test]
-    fn pieces_bring_their_figures_but_no_raw_mass_so_the_pot_must_be_weighed() {
-        let omelette = meal(
-            "Omelette",
-            "",
-            &[(an_egg(), 3.0)],
-            Cooking::Ratio {
-                cooked_per_raw: 0.9,
-            },
-        );
-        let weighed = meal(
-            "Omelette",
-            "",
-            &[(an_egg(), 3.0)],
-            Cooking::Weighed { cooked_g: 150.0 },
-        )
-        .expect("a meal");
+    fn millilitres_weigh_as_grams_until_the_catalog_knows_densities() {
+        let milk = Food {
+            unit: Unit::Millilitre,
+            ..per_100_g("Milk", 46.0, 3.4)
+        };
 
-        assert_eq!(omelette, Err(Refusal::NotAPortion));
-        assert!((weighed.totals.energy_kcal - 210.0).abs() < 1e-9);
+        let porridge = meal("Porridge", "", &[(milk, 250.0, 0.9)]).expect("a meal");
+
+        assert_eq!(porridge.raw_g, 250.0);
+        assert!((porridge.cooked_g - 225.0).abs() < 1e-9);
     }
 
     #[test]
-    fn a_nameless_meal_no_ingredient_or_no_cooked_mass_is_refused() {
-        let weighed = Cooking::Weighed { cooked_g: 800.0 };
+    fn an_ingredient_counted_in_pieces_is_refused_until_the_catalog_weighs_its_pieces() {
+        assert_eq!(
+            meal("Omelette", "", &[(an_egg(), 3.0, 1.0)]),
+            Err(Refusal::NotWeighed)
+        );
+    }
+
+    #[test]
+    fn a_nameless_meal_no_ingredient_no_quantity_or_no_cooking_ratio_is_refused() {
+        let rice = per_100_g("Rice", 350.0, 7.0);
 
         assert_eq!(
-            meal(" ", "", &[(per_100_g("Rice", 350.0, 7.0), 200.0)], weighed),
+            meal(" ", "", &[(rice.clone(), 200.0, 2.5)]),
             Err(Refusal::NotAName)
         );
-        assert_eq!(meal("Rice", "", &[], weighed), Err(Refusal::NotAQuantity));
+        assert_eq!(meal("Rice", "", &[]), Err(Refusal::NotAQuantity));
         assert_eq!(
-            meal("Rice", "", &[(per_100_g("Rice", 350.0, 7.0), 0.0)], weighed),
+            meal("Rice", "", &[(rice.clone(), 0.0, 2.5)]),
             Err(Refusal::NotAQuantity)
         );
-        assert_eq!(
-            rice_and_chicken(Cooking::Weighed { cooked_g: 0.0 }),
-            Err(Refusal::NotAPortion)
-        );
+        for ratio in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                meal("Rice", "", &[(rice.clone(), 200.0, ratio)]),
+                Err(Refusal::NotACookingRatio),
+                "{ratio}"
+            );
+        }
     }
 
     #[test]
@@ -230,13 +226,7 @@ mod tests {
                 fibre_g: 10.0,
             },
         };
-        let dal = meal(
-            "Dal",
-            "",
-            &[(lentils, 200.0)],
-            Cooking::Weighed { cooked_g: 500.0 },
-        )
-        .expect("a meal");
+        let dal = meal("Dal", "", &[(lentils, 200.0, 2.5)]).expect("a meal");
 
         let per_100_g = food_of(&dal).nutrients;
 

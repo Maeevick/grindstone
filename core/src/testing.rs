@@ -813,6 +813,7 @@ pub mod honouring_for_storing_fuel_records {
                 food: "Rice".into(),
                 unit: Unit::Gram,
                 quantity: 200.0,
+                cooked_per_raw: cooked_g / 200.0,
                 nutrients: Nutrients {
                     energy_kcal: 700.0,
                     ..Nutrients::default()

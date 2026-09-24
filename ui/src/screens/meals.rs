@@ -1,7 +1,7 @@
 use grind_core::figures::{Figure, shown};
 use grind_core::food::{Food, Unit};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
-use grind_core::meal::{Cooking, Meal, food_of};
+use grind_core::meal::{Meal, food_of};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -22,8 +22,6 @@ pub fn NewMeal(
     let ingredients = RwSignal::new(Vec::<IngredientForm>::new());
     let food = RwSignal::new(String::new());
     let quantity = RwSignal::new(String::new());
-    let by_ratio = RwSignal::new(false);
-    let cooked_figure = RwSignal::new(String::new());
     let preview = RwSignal::new(None::<Meal>);
     let said = RwSignal::new(None::<String>);
     let names = Signal::derive(move || {
@@ -46,6 +44,7 @@ pub fn NewMeal(
             added.push(IngredientForm {
                 food: chosen_food,
                 quantity: quantity_typed.unwrap_or(0.0),
+                cooked_per_raw: None,
             })
         });
         food.set(String::new());
@@ -53,19 +52,10 @@ pub fn NewMeal(
         said.set(None);
     };
     let form = move || {
-        let [figure] = figures_typed([&cooked_figure.get_untracked()])?;
-        let figure = figure.unwrap_or(0.0);
         Some(MealForm {
             name: name.get_untracked(),
             recipe: recipe.get_untracked(),
             ingredients: ingredients.get_untracked(),
-            cooking: if by_ratio.get_untracked() {
-                Cooking::Ratio {
-                    cooked_per_raw: figure / 100.0,
-                }
-            } else {
-                Cooking::Weighed { cooked_g: figure }
-            },
         })
     };
     let weigh_up = move |_| {
@@ -164,19 +154,6 @@ pub fn NewMeal(
                         .collect_view()
                 }}
             </ul>
-            <div class="row">
-                <label class="field">
-                    "After cooking"
-                    <select
-                        name="cooking"
-                        on:change=move |event| by_ratio.set(event_target_value(&event) == "ratio")
-                    >
-                        <option value="weighed">"weighed (g)"</option>
-                        <option value="ratio">"ratio of the raw mass (%)"</option>
-                    </select>
-                </label>
-                <FigureField label="Cooked" name="cooked" value=cooked_figure />
-            </div>
             <div class="row">
                 <button class="cta ghost weigh-up" type="button" on:click=weigh_up>
                     "Weigh it up"

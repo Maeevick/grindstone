@@ -6,7 +6,7 @@ use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::meal::{Cooking, Meal, food_of, meal};
+use crate::meal::{Meal, food_of, meal};
 use crate::refusal::Refusal;
 use serde::{Deserialize, Serialize};
 
@@ -59,6 +59,7 @@ pub fn remove_food(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<
 pub struct IngredientForm {
     pub food: String,
     pub quantity: f64,
+    pub cooked_per_raw: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -66,7 +67,6 @@ pub struct MealForm {
     pub name: String,
     pub recipe: String,
     pub ingredients: Vec<IngredientForm>,
-    pub cooking: Cooking,
 }
 
 pub fn meals(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Meal>, Failure> {
@@ -82,11 +82,17 @@ pub fn preview_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Resul
             catalog
                 .iter()
                 .find(|known| known.name == ingredient.food)
-                .map(|known| (known.clone(), ingredient.quantity))
+                .map(|known| {
+                    (
+                        known.clone(),
+                        ingredient.quantity,
+                        ingredient.cooked_per_raw.unwrap_or(0.0),
+                    )
+                })
                 .ok_or(Failure::Refused(Refusal::NotAFood))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    meal(&form.name, &form.recipe, &ingredients, form.cooking).map_err(Failure::Refused)
+    meal(&form.name, &form.recipe, &ingredients).map_err(Failure::Refused)
 }
 
 pub fn cook_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Vec<Meal>, Failure> {
@@ -270,13 +276,14 @@ mod tests {
                 IngredientForm {
                     food: "Rice".into(),
                     quantity: 200.0,
+                    cooked_per_raw: Some(2.5),
                 },
                 IngredientForm {
                     food: "Chicken".into(),
                     quantity: 300.0,
+                    cooked_per_raw: None,
                 },
             ],
-            cooking: Cooking::Weighed { cooked_g: 800.0 },
         }
     }
 
@@ -312,6 +319,23 @@ mod tests {
     }
 
     #[test]
+    fn an_ingredient_cooked_without_a_ratio_keeps_its_own_mass() {
+        let fuel = a_kitchen();
+
+        let cooked = cook_meal(&fuel, &rice_and_chicken()).expect("the meals");
+
+        let kept = cooked.first().expect("the meal kept");
+        assert!((kept.cooked_g - 800.0).abs() < 1e-9);
+        assert_eq!(
+            kept.ingredients
+                .iter()
+                .map(|ingredient| ingredient.cooked_per_raw)
+                .collect::<Vec<_>>(),
+            vec![2.5, 1.0]
+        );
+    }
+
+    #[test]
     fn a_meal_of_a_food_missing_from_the_catalog_is_refused_and_a_removed_meal_leaves() {
         let fuel = a_kitchen();
         cook_meal(&fuel, &rice_and_chicken()).expect("a meal cooks");
@@ -319,6 +343,7 @@ mod tests {
             ingredients: vec![IngredientForm {
                 food: "Saffron".into(),
                 quantity: 1.0,
+                cooked_per_raw: None,
             }],
             ..rice_and_chicken()
         };
