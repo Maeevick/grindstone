@@ -1,25 +1,48 @@
 const LETTERS_TO_FILTER: usize = 3;
 
+/// The text as compared: lower case, accents dropped, trimmed.
+fn folded(text: &str) -> String {
+    text.trim()
+        .to_lowercase()
+        .chars()
+        .fold(String::new(), |mut plain, letter| {
+            match letter {
+                'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' => plain.push('a'),
+                'ç' => plain.push('c'),
+                'è' | 'é' | 'ê' | 'ë' => plain.push('e'),
+                'ì' | 'í' | 'î' | 'ï' => plain.push('i'),
+                'ñ' => plain.push('n'),
+                'ò' | 'ó' | 'ô' | 'õ' | 'ö' => plain.push('o'),
+                'ù' | 'ú' | 'û' | 'ü' => plain.push('u'),
+                'ý' | 'ÿ' => plain.push('y'),
+                'œ' => plain.push_str("oe"),
+                'æ' => plain.push_str("ae"),
+                other => plain.push(other),
+            }
+            plain
+        })
+}
+
 /// The options to offer for what is typed: every one below three letters; from three, those
-/// starting with it first, then those containing it, ignoring case.
+/// starting with it first, then those containing it, ignoring case and accents.
 pub fn matching(options: &[String], typed: &str) -> Vec<String> {
-    let typed = typed.trim().to_lowercase();
+    let typed = folded(typed);
     if typed.chars().count() < LETTERS_TO_FILTER {
         return options.to_vec();
     }
     let (starting, containing): (Vec<&String>, Vec<&String>) = options
         .iter()
-        .filter(|option| option.to_lowercase().contains(&typed))
-        .partition(|option| option.to_lowercase().starts_with(&typed));
+        .filter(|option| folded(option).contains(&typed))
+        .partition(|option| folded(option).starts_with(&typed));
     starting.into_iter().chain(containing).cloned().collect()
 }
 
-/// The option typed whole, ignoring case.
+/// The option typed whole, ignoring case and accents.
 pub fn chosen(options: &[String], typed: &str) -> Option<String> {
-    let typed = typed.trim().to_lowercase();
+    let typed = folded(typed);
     options
         .iter()
-        .find(|option| option.to_lowercase() == typed)
+        .find(|option| folded(option) == typed)
         .cloned()
 }
 
