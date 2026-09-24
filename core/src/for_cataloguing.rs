@@ -6,7 +6,7 @@ use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::meal::{Meal, food_of, meal};
+use crate::meal::{MASS_KEPT, Meal, food_of, meal};
 use crate::refusal::Refusal;
 use serde::{Deserialize, Serialize};
 
@@ -86,7 +86,7 @@ pub fn preview_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Resul
                     (
                         known.clone(),
                         ingredient.quantity,
-                        ingredient.cooked_per_raw.unwrap_or(0.0),
+                        ingredient.cooked_per_raw.unwrap_or(MASS_KEPT),
                     )
                 })
                 .ok_or(Failure::Refused(Refusal::NotAFood))

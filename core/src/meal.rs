@@ -32,6 +32,13 @@ fn scaled(nutrients: Nutrients, share: f64) -> Nutrients {
     }
 }
 
+/// The cooking ratio of an ingredient whose mass cooking leaves as it was.
+pub const MASS_KEPT: f64 = 1.0;
+
+/// A meal from its ingredients, each with its quantity and the ratio of its cooked mass to its raw
+/// one: 2.5 for pasta that drinks its water, 0.66 for cream that boils down. Its energy and macros
+/// add up from the raw quantities, its cooked mass from each quantity times its ratio. Millilitres
+/// weigh as grams until the catalog knows densities; an ingredient counted in pieces has no mass yet.
 pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Result<Meal, Refusal> {
     let name = name.trim();
     if name.is_empty() {
@@ -44,6 +51,18 @@ pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Resul
     {
         return Err(Refusal::NotAQuantity);
     }
+    if ingredients
+        .iter()
+        .any(|(_, _, cooked_per_raw)| !(cooked_per_raw.is_finite() && *cooked_per_raw > 0.0))
+    {
+        return Err(Refusal::NotACookingRatio);
+    }
+    if ingredients
+        .iter()
+        .any(|(food, _, _)| food.unit == Unit::Piece)
+    {
+        return Err(Refusal::NotWeighed);
+    }
     let ingredients: Vec<Ingredient> = ingredients
         .iter()
         .map(|(food, quantity, cooked_per_raw)| Ingredient {
@@ -54,18 +73,19 @@ pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Resul
             nutrients: nutrients_of(food, *quantity),
         })
         .collect();
-    let raw_g: f64 = ingredients
-        .iter()
-        .filter(|ingredient| ingredient.unit != Unit::Piece)
-        .map(|ingredient| ingredient.quantity)
-        .sum();
     Ok(Meal {
         name: name.into(),
         recipe: recipe.trim().into(),
         totals: summed(ingredients.iter().map(|ingredient| ingredient.nutrients)),
+        raw_g: ingredients
+            .iter()
+            .map(|ingredient| ingredient.quantity)
+            .sum(),
+        cooked_g: ingredients
+            .iter()
+            .map(|ingredient| ingredient.quantity * ingredient.cooked_per_raw)
+            .sum(),
         ingredients,
-        raw_g,
-        cooked_g: raw_g,
     })
 }
 
