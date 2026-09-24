@@ -1462,4 +1462,24 @@ mod tests {
             vec![(500.0, 2.5)]
         );
     }
+
+    #[test]
+    fn a_meal_of_pieces_kept_before_the_cooking_ratios_keeps_its_ingredients_at_their_own_mass() {
+        let records = database();
+        records
+            .0
+            .execute(
+                r#"insert into meals values ('Omelette', '{"name": "Omelette", "recipe": "",
+                    "ingredients": [{"food": "Egg", "unit": "Piece", "quantity": 3.0,
+                        "nutrients": {"energy_kcal": 210.0, "protein_g": 18.0, "carbs_g": 0.0, "fat_g": 15.0, "fibre_g": 0.0}}],
+                    "raw_g": 0.0, "cooked_g": 150.0,
+                    "totals": {"energy_kcal": 210.0, "protein_g": 18.0, "carbs_g": 0.0, "fat_g": 15.0, "fibre_g": 0.0}}')"#,
+                [],
+            )
+            .expect("a meal kept by the earlier cooker");
+
+        let kept = records.fuel_records().expect("the records read").meals;
+
+        assert_eq!(kept[0].ingredients[0].cooked_per_raw, 1.0);
+    }
 }
