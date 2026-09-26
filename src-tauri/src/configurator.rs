@@ -47,7 +47,6 @@ pub fn run() {
             commands::set_fuel_targets,
             commands::fuel_targets_on,
             commands::meals,
-            commands::preview_meal,
             commands::cook_meal,
             commands::remove_meal,
             commands::streak,

@@ -73,7 +73,7 @@ pub fn meals(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Meal>, Failure> {
     Ok(fuel.fuel_records()?.meals)
 }
 
-pub fn preview_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Meal, Failure> {
+fn meal_of(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Meal, Failure> {
     let catalog = fuel.fuel_records()?.foods;
     let ingredients = form
         .ingredients
@@ -96,7 +96,7 @@ pub fn preview_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Resul
 }
 
 pub fn cook_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Vec<Meal>, Failure> {
-    let cooked = preview_meal(fuel, form)?;
+    let cooked = meal_of(fuel, form)?;
     fuel.save_meal(&cooked)?;
     fuel.save_food(&food_of(&cooked))?;
     meals(fuel)
@@ -288,16 +288,6 @@ mod tests {
     }
 
     #[test]
-    fn a_previewed_meal_tells_its_totals_without_cooking_anything() {
-        let fuel = a_kitchen();
-
-        let previewed = preview_meal(&fuel, &rice_and_chicken()).expect("a meal");
-
-        assert!((previewed.totals.energy_kcal - 1060.0).abs() < 1e-9);
-        assert_eq!(meals(&fuel), Ok(vec![]));
-    }
-
-    #[test]
     fn a_cooked_meal_keeps_its_recipe_and_joins_the_foods_per_100_g_cooked() {
         let fuel = a_kitchen();
 
@@ -349,7 +339,7 @@ mod tests {
         };
 
         assert_eq!(
-            preview_meal(&fuel, &unknown),
+            cook_meal(&fuel, &unknown),
             Err(Failure::Refused(Refusal::NotAFood))
         );
         assert_eq!(remove_meal(&fuel, "Rice and chicken"), Ok(vec![]));

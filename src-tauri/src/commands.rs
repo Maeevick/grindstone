@@ -237,12 +237,6 @@ pub fn meals(records: State<Records>) -> Result<Vec<Meal>, Failure> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn preview_meal(records: State<Records>, form: MealForm) -> Result<Meal, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_cataloguing::preview_meal(&*records, &form)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn cook_meal(records: State<Records>, form: MealForm) -> Result<Vec<Meal>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_cataloguing::cook_meal(&*records, &form)
@@ -488,7 +482,6 @@ mod tests {
                 set_fuel_targets,
                 fuel_targets_on,
                 meals,
-                preview_meal,
                 cook_meal,
                 remove_meal,
                 streak,
@@ -890,21 +883,19 @@ mod tests {
     }
 
     #[test]
-    fn a_meal_previewed_cooked_and_removed_from_the_screen_answers_as_the_screen_reads_it() {
+    fn a_meal_cooked_and_removed_from_the_screen_answers_as_the_screen_reads_it() {
         let (_app, screen) = launched();
         with_skyr_in_the_catalog(&screen).expect("a food adds");
         let form = json!({ "form": { "name": "Skyr bowl", "recipe": "Stir.",
-            "ingredients": [{ "food": "Skyr", "quantity": 200.0 }],
-            "cooking": { "Weighed": { "cooked_g": 200.0 } } } });
+            "ingredients": [{ "food": "Skyr", "quantity": 200.0, "cooked_per_raw": 1.0 }] } });
 
-        let previewed = invoke(&screen, "preview_meal", form.clone()).expect("a meal");
-        let cooked = invoke(&screen, "cook_meal", form);
+        let cooked = invoke(&screen, "cook_meal", form).expect("the meals");
         let listed = invoke(&screen, "meals", json!({}));
         let removed = invoke(&screen, "remove_meal", json!({ "name": "Skyr bowl" }));
 
-        assert_eq!(previewed["totals"]["energy_kcal"], json!(108.0));
-        assert_eq!(cooked, Ok(json!([previewed])));
-        assert_eq!(listed, cooked);
+        assert_eq!(cooked[0]["totals"]["energy_kcal"], json!(108.0));
+        assert_eq!(cooked[0]["cooked_g"], json!(200.0));
+        assert_eq!(listed, Ok(cooked));
         assert_eq!(removed, Ok(json!([])));
     }
 

@@ -223,10 +223,6 @@ pub async fn meals() -> Result<Vec<Meal>, Failure> {
     call("meals", Nothing {}, broken).await
 }
 
-pub async fn preview_meal(form: &MealForm) -> Result<Meal, Failure> {
-    call("preview_meal", Form { form }, broken).await
-}
-
 pub async fn cook_meal(form: &MealForm) -> Result<Vec<Meal>, Failure> {
     call("cook_meal", Form { form }, broken).await
 }
