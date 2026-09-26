@@ -12,6 +12,12 @@ pub struct Ingredient {
     pub nutrients: Nutrients,
 }
 
+impl Ingredient {
+    pub fn cooked_g(&self) -> f64 {
+        0.0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Meal {
     pub name: String,
@@ -260,5 +266,18 @@ mod tests {
         for (figure, expected) in figures.into_iter().zip([140.0, 9.6, 20.0, 0.8, 4.0]) {
             assert!((figure - expected).abs() < 1e-9, "{figure} {expected}");
         }
+    }
+
+    #[test]
+    fn each_ingredient_tells_the_mass_it_cooks_to() {
+        let cooked = pasta_in_cream().expect("a meal");
+
+        let masses: Vec<f64> = cooked
+            .ingredients
+            .iter()
+            .map(Ingredient::cooked_g)
+            .collect();
+
+        assert!((masses[0] - 250.0).abs() < 1e-9 && (masses[1] - 132.0).abs() < 1e-9);
     }
 }
