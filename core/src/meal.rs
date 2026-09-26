@@ -14,7 +14,7 @@ pub struct Ingredient {
 
 impl Ingredient {
     pub fn cooked_g(&self) -> f64 {
-        0.0
+        self.quantity * self.cooked_per_raw
     }
 }
 
@@ -87,10 +87,7 @@ pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Resul
             .iter()
             .map(|ingredient| ingredient.quantity)
             .sum(),
-        cooked_g: ingredients
-            .iter()
-            .map(|ingredient| ingredient.quantity * ingredient.cooked_per_raw)
-            .sum(),
+        cooked_g: ingredients.iter().map(Ingredient::cooked_g).sum(),
         ingredients,
     })
 }
