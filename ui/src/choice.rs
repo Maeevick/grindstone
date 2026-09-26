@@ -105,4 +105,14 @@ mod tests {
             Some("Crème fraîche".to_string())
         );
     }
+
+    #[test]
+    fn every_accented_letter_folds_to_its_plain_one() {
+        let accented = vec!["Àáâãäå Ç Èéêë Ìíîï Ñ Òóôõö Ùúûü Ýÿ Œ Æ".to_string()];
+
+        assert_eq!(
+            chosen(&accented, "aaaaaa c eeee iiii n ooooo uuuu yy oe ae"),
+            Some(accented[0].clone())
+        );
+    }
 }
