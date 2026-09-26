@@ -12,6 +12,7 @@ pub enum Figure {
     Amount(f64, Unit),
     Volume(f64),
     Count(f64),
+    Times(f64),
 }
 
 fn to_the_tenth(value: f64) -> f64 {
@@ -47,6 +48,7 @@ fn parts(figure: Figure) -> (String, &'static str) {
             (format!("{amount}"), unit)
         }
         Figure::Volume(ml) => (format!("{}", ml.round() + 0.0), " mL"),
+        Figure::Times(_) => (String::new(), ""),
     }
 }
 
@@ -193,6 +195,19 @@ mod tests {
             [
                 "0.0 kg", "0.0 cm", "0.0%", "0 kcal", "0 min", "0 km", "0 g", "0", "0 g", "0 mL"
             ]
+        );
+    }
+
+    #[test]
+    fn a_ratio_of_masses_shows_as_times_to_the_hundredth_without_trailing_zeros() {
+        assert_eq!(
+            [
+                shown(Figure::Times(0.66)),
+                shown(Figure::Times(2.5)),
+                shown(Figure::Times(1.0)),
+                bare(Figure::Times(0.666)),
+            ],
+            ["× 0.66", "× 2.5", "× 1", "0.67"]
         );
     }
 }
