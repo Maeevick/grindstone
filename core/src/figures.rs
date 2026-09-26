@@ -48,13 +48,16 @@ fn parts(figure: Figure) -> (String, &'static str) {
             (format!("{amount}"), unit)
         }
         Figure::Volume(ml) => (format!("{}", ml.round() + 0.0), " mL"),
-        Figure::Times(_) => (String::new(), ""),
+        Figure::Times(ratio) => (format!("{}", to_the_hundredth(ratio) + 0.0), ""),
     }
 }
 
 pub fn shown(figure: Figure) -> String {
     let (number, unit) = parts(figure);
-    format!("{number}{unit}")
+    match figure {
+        Figure::Times(_) => format!("× {number}"),
+        _ => format!("{number}{unit}"),
+    }
 }
 
 /// The number alone, for a table whose header holds the unit.
