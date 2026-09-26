@@ -910,18 +910,32 @@ async fn the_fuel_shelf_lists_meals_before_foods_and_adds_a_food_from_its_sheet(
     assert!(rows.contains("Skyr") && rows.contains("54 kcal"), "{rows}");
 }
 
-const A_COOKED_MEAL: &str = r#"{ "name": "Rice and chicken", "recipe": "Boil, sear, stir.",
-    "ingredients": [{ "food": "Rice", "unit": "Gram", "quantity": 200.0,
-        "nutrients": { "energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0 } }],
-    "raw_g": 200.0, "cooked_g": 500.0,
-    "totals": { "energy_kcal": 700.0, "protein_g": 14.0, "carbs_g": 150.0, "fat_g": 1.0, "fibre_g": 2.0 } }"#;
+const PASTA_AND_CREAM: &str = r#"[
+    { "name": "Pasta", "unit": "Gram", "portion": 100.0,
+      "nutrients": { "energy_kcal": 360.0, "protein_g": 12.0, "carbs_g": 70.0, "fat_g": 1.5, "fibre_g": 3.0 } },
+    { "name": "Crème fraîche", "unit": "Gram", "portion": 100.0,
+      "nutrients": { "energy_kcal": 300.0, "protein_g": 2.0, "carbs_g": 3.0, "fat_g": 30.0, "fibre_g": 0.0 } }]"#;
+
+const PASTA_IN_CREAM: &str = r#"{ "name": "Pasta in cream", "recipe": "Boil, reduce, stir.",
+    "ingredients": [
+        { "food": "Pasta", "unit": "Gram", "quantity": 100.0, "cooked_per_raw": 2.5,
+          "nutrients": { "energy_kcal": 360.0, "protein_g": 12.0, "carbs_g": 70.0, "fat_g": 1.5, "fibre_g": 3.0 } },
+        { "food": "Crème fraîche", "unit": "Gram", "quantity": 200.0, "cooked_per_raw": 0.66,
+          "nutrients": { "energy_kcal": 600.0, "protein_g": 4.0, "carbs_g": 6.0, "fat_g": 60.0, "fibre_g": 0.0 } } ],
+    "raw_g": 300.0, "cooked_g": 382.0,
+    "totals": { "energy_kcal": 960.0, "protein_g": 16.0, "carbs_g": 76.0, "fat_g": 61.5, "fibre_g": 3.0 } }"#;
+
+async fn added_to_the_pot(screen: &Element, food: &str, quantity: &str) {
+    typed_into(screen, "ingredient", food);
+    typed_into(screen, "ingredient_quantity", quantity);
+    clicked(screen, "button.add-ingredient");
+    settled().await;
+}
 
 #[wasm_bindgen_test]
-async fn a_meal_weighed_up_in_its_sheet_shows_its_totals_and_once_cooked_joins_the_list() {
+async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_list_with_its_figures() {
     answering(&format!(
-        r#"{{ "foods": [{{ "name": "Rice", "unit": "Gram", "portion": 100.0,
-                "nutrients": {{ "energy_kcal": 350.0, "protein_g": 7.0, "carbs_g": 75.0, "fat_g": 0.5, "fibre_g": 1.0 }} }}],
-             "meals": [], "preview_meal": {A_COOKED_MEAL}, "cook_meal": [{A_COOKED_MEAL}] }}"#
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
     ));
     let screen = screen();
     let _mounted = the_catalog(&screen);
@@ -929,28 +943,64 @@ async fn a_meal_weighed_up_in_its_sheet_shows_its_totals_and_once_cooked_joins_t
     clicked(&screen, "button.new-meal");
     settled().await;
 
-    typed_into(&screen, "meal_name", "Rice and chicken");
-    typed_into(&screen, "ingredient", "Rice");
-    typed_into(&screen, "ingredient_quantity", "200");
-    clicked(&screen, "button.add-ingredient");
-    settled().await;
-    typed_into(&screen, "cooked", "500");
-    clicked(&screen, "button.weigh-up");
-    settled().await;
-
-    let said = screen.text_content().unwrap_or_default();
-    assert!(
-        said.contains("700 kcal") && said.contains("140 kcal"),
-        "{said}"
+    typed_into(&screen, "meal_name", "Pasta in cream");
+    added_to_the_pot(&screen, "pasta", "100").await;
+    added_to_the_pot(&screen, "creme fraiche", "200").await;
+    assert_eq!(
+        found::<HtmlInputElement>(&screen, "input[name=ratio_1]").placeholder(),
+        "1"
     );
-
+    typed_into(&screen, "ratio_0", "2,5");
+    typed_into(&screen, "ratio_1", "0.66");
     found::<HtmlFormElement>(&screen, ".sheet form.meal")
         .request_submit()
         .expect("the meal is cooked");
     settled().await;
 
+    let sent = asked("cook_meal");
+    assert!(
+        sent.contains(r#""food":"Crème fraîche""#)
+            && sent.contains(r#""cooked_per_raw":2.5"#)
+            && sent.contains(r#""cooked_per_raw":0.66"#),
+        "{sent}"
+    );
     assert!(!a_sheet_is_open(&screen));
-    assert!(text_of(&screen, "table.meals tbody").contains("Rice and chicken"));
+    let listed = text_of(&screen, "table.meals tbody");
+    for figure in [
+        "Pasta in cream",
+        "382 g cooked from 300 g raw",
+        "960 kcal",
+        "251 kcal",
+        "× 0.66",
+        "132 g",
+    ] {
+        assert!(listed.contains(figure), "{figure} in {listed}");
+    }
+}
+
+#[wasm_bindgen_test]
+async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.new-meal");
+    settled().await;
+
+    typed_into(&screen, "meal_name", "Plain pasta");
+    added_to_the_pot(&screen, "Pasta", "100").await;
+    found::<HtmlFormElement>(&screen, ".sheet form.meal")
+        .request_submit()
+        .expect("the meal is cooked");
+    settled().await;
+
+    let sent = asked("cook_meal");
+    assert!(
+        sent.contains(r#""food":"Pasta""#) && !sent.contains("cooked_per_raw"),
+        "{sent}"
+    );
 }
 
 #[wasm_bindgen_test]
