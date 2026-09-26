@@ -753,3 +753,13 @@ a.references {
 	font-style: italic;
 	line-height: 1.55;
 }
+
+.pot input.ratio {
+	width: 5.5rem;
+	height: 36px;
+}
+
+.meals details summary {
+	color: var(--txt);
+	cursor: pointer;
+}

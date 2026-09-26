@@ -7,7 +7,7 @@ use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::hydrate::Hydrate;
-use grind_core::meal::Meal;
+use grind_core::meal::{Ingredient, Meal};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
@@ -301,19 +301,30 @@ pub fn figures_of(nutrients: &Nutrients) -> String {
     )
 }
 
-pub fn weighed_up(meal: &Meal, per_100_g: &Nutrients) -> [String; 2] {
-    [
-        format!(
-            "Before cooking, {} raw: {}.",
-            shown(Figure::Amount(meal.raw_g, Unit::Gram)),
-            figures_of(&meal.totals)
-        ),
-        format!(
-            "After cooking, {} in the pot: {} per 100 g. [Trix: \"Fire in the hole!\"]",
-            shown(Figure::Amount(meal.cooked_g, Unit::Gram)),
-            figures_of(per_100_g)
-        ),
-    ]
+pub const COOKING_RATIO_HOW: &str = "Ratio: the cooked mass over the raw one. 2.5 for pasta that drinks \
+    its water, 0.66 for cream that boils down, 1 when left empty. No need to weigh the pot, it is hot. ~ Trix 🧪💥";
+
+pub fn cooked_ingredient(ingredient: &Ingredient) -> String {
+    format!(
+        "{} {} {} → {}",
+        shown(Figure::Amount(ingredient.quantity, ingredient.unit)),
+        ingredient.food,
+        shown(Figure::Times(ingredient.cooked_per_raw)),
+        shown(Figure::Amount(ingredient.cooked_g(), Unit::Gram))
+    )
+}
+
+pub fn meal_totals(meal: &Meal) -> String {
+    format!(
+        "{} cooked from {} raw: {}.",
+        shown(Figure::Amount(meal.cooked_g, Unit::Gram)),
+        shown(Figure::Amount(meal.raw_g, Unit::Gram)),
+        figures_of(&meal.totals)
+    )
+}
+
+pub fn per_100_g_cooked(per_100_g: &Nutrients) -> String {
+    format!("Per 100 g cooked: {}.", figures_of(per_100_g))
 }
 
 pub fn cooked(name: &str) -> String {
