@@ -53,7 +53,7 @@ fn step_frozen_on_its_exercise(
 
 pub fn circuit(
     name: &str,
-    _description: &str,
+    description: &str,
     steps: &[StepForm],
     catalog: &[Exercise],
 ) -> Result<Circuit, Refusal> {
@@ -66,7 +66,7 @@ pub fn circuit(
     }
     Ok(Circuit {
         name: name.into(),
-        description: String::new(),
+        description: description.trim().into(),
         steps: steps
             .iter()
             .map(|asked| step_frozen_on_its_exercise(asked, catalog))
