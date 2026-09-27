@@ -132,8 +132,7 @@ async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
 }
 
 #[wasm_bindgen_test]
-async fn each_card_sets_its_recommendation_and_its_keeping_side_by_side_with_its_references_below()
-{
+async fn each_card_offers_its_recommendation_above_its_keeping_and_its_references_below() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
@@ -150,10 +149,16 @@ async fn each_card_sets_its_recommendation_and_its_keeping_side_by_side_with_its
     settled().await;
 
     for card in [".goals", ".fuel-targets", ".hydrate-base", ".usual-day"] {
-        found::<Element>(&screen, &format!("{card} .actions button.recommend"));
-        found::<Element>(&screen, &format!("{card} .actions button[type=submit]"));
-        found::<Element>(&screen, &format!("{card} .actions ~ a.references"));
+        found::<Element>(
+            &screen,
+            &format!("{card} button.recommend ~ button[type=submit]"),
+        );
+        found::<Element>(
+            &screen,
+            &format!("{card} button[type=submit] ~ a.references"),
+        );
     }
+    assert!(screen.query_selector(".actions").ok().flatten().is_none());
     let last: Element = found(&screen, ".disclaimer");
     assert!(
         last.next_element_sibling().is_none(),
