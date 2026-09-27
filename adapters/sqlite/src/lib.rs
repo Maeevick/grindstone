@@ -87,6 +87,7 @@ const MIGRATIONS: &[&str] = &[
          where drink in (select name from drinks);",
     "update drinks set kind = 'Other' where kind in ('Coffee', 'Tea');
      update drinkings set kind = 'Other' where kind in ('Coffee', 'Tea');",
+    "select 1;",
 ];
 
 pub struct Sqlite(Connection);
@@ -877,6 +878,10 @@ impl ForStoringHydrateRecords for Sqlite {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const BEFORE_THE_DRINK_KINDS: usize = 11;
+    const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
+    const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
@@ -1334,7 +1339,7 @@ mod tests {
             std::process::id()
         ));
         let before = Connection::open(&file).expect("a database before the drinks' kinds");
-        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 2]) {
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..BEFORE_THE_DRINK_KINDS]) {
             before
                 .execute_batch(migration)
                 .expect("an earlier migration");
@@ -1395,7 +1400,7 @@ mod tests {
             std::process::id()
         ));
         let before = Connection::open(&file).expect("a database before the two kinds");
-        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..MIGRATIONS.len() - 1]) {
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..BEFORE_THE_TWO_DRINK_KINDS]) {
             before
                 .execute_batch(migration)
                 .expect("an earlier migration");
@@ -1487,5 +1492,46 @@ mod tests {
         let kept = records.fuel_records().expect("the records read").meals;
 
         assert_eq!(kept[0].ingredients[0].cooked_per_raw, 1.0);
+    }
+
+    #[test]
+    fn the_circuits_already_on_the_phone_keep_their_steps_with_no_description_yet() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-circuit-descriptions-{}.sqlite",
+            std::process::id()
+        ));
+        let before = Connection::open(&file).expect("a database before the descriptions");
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..BEFORE_THE_CIRCUIT_DESCRIPTIONS]) {
+            before
+                .execute_batch(migration)
+                .expect("an earlier migration");
+            before
+                .pragma_update(None, "user_version", version)
+                .expect("its version");
+        }
+        before
+            .execute_batch(
+                "insert into circuit_steps (circuit, position, exercise, met, reps, minutes, load_kg)
+                 values ('Morning rust', 1, 'Push up', 3.8, 12, 0.5, 0.0);",
+            )
+            .expect("a circuit crafted before");
+        drop(before);
+
+        let carried = Sqlite::open(&file).and_then(|database| database.burn_records());
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        let carried = carried.expect("the records read");
+        assert_eq!(
+            carried
+                .circuits
+                .iter()
+                .map(|circuit| (
+                    circuit.name.as_str(),
+                    circuit.description.as_str(),
+                    circuit.steps.len()
+                ))
+                .collect::<Vec<_>>(),
+            vec![("Morning rust", "", 1)]
+        );
     }
 }
