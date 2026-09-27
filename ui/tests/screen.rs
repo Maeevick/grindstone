@@ -363,16 +363,41 @@ async fn the_week_lists_its_days_under_their_units_the_chosen_one_highlighted_wi
             .unwrap_or_default()
     };
     assert!(
-        text(".week thead").contains("Mass (kg)") && text(".week thead").contains("Fat (%)"),
+        text(".last-days thead").contains("Mass (kg)")
+            && text(".last-days thead").contains("Fat (%)"),
         "{}",
-        text(".week thead")
+        text(".last-days thead")
     );
-    assert!(text(".week tr.chosen").contains("2026-10-10"));
-    assert!(text(".week tbody").contains("80.6") && !text(".week tbody").contains(" kg"));
-    assert_eq!(text(".week tfoot .toward"), "-0.6");
-    assert_eq!(text(".week tfoot .steady"), "-");
-    assert_eq!(text(".week tfoot .away"), "-0.3");
-    found::<Element>(&screen, ".week a[href='/stats']");
+    assert!(text(".last-days tr.chosen").contains("2026-10-10"));
+    assert!(text(".last-days tbody").contains("80.6") && !text(".last-days tbody").contains(" kg"));
+    assert_eq!(text(".last-days tfoot .toward"), "-0.6");
+    assert_eq!(text(".last-days tfoot .steady"), "-");
+    assert_eq!(text(".last-days tfoot .away"), "-0.3");
+}
+
+#[wasm_bindgen_test]
+async fn explore_in_stats_closes_every_segment_of_the_tracker() {
+    answering(&format!(
+        r#"{{ "gather_week": {}, "foods": [], "fuel_day": {A_DAY_NOT_FUELLED_YET}, "drinks": [],
+              "hydrate_day": {A_DRY_DAY}, "exercises": [], "circuits": [], "burn_day": {AN_EMPTY_BURN} }}"#,
+        a_gathered_week()
+    ));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
+    settled().await;
+
+    for segment in ["Gather", "Fuel", "Hydrate", "Burn"] {
+        clicked(&screen, &format!("button.segment-{segment}"));
+        settled().await;
+        let last = screen
+            .last_element_child()
+            .expect("the tracker's last element");
+        assert_eq!(
+            (last.tag_name(), last.get_attribute("href")),
+            ("A".to_string(), Some("/stats".to_string())),
+            "{segment}"
+        );
+    }
 }
 
 #[wasm_bindgen_test]
@@ -394,7 +419,7 @@ async fn after_logging_a_measurement_the_day_stays_and_the_form_shows_what_was_g
         .expect("the measurement is logged");
     settled().await;
 
-    let listed: Element = found(&screen, ".week tbody");
+    let listed: Element = found(&screen, ".last-days tbody");
     assert!(
         listed
             .text_content()
@@ -419,10 +444,10 @@ async fn removing_a_day_takes_it_off_the_week() {
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, ".week button.remove").click();
+    found::<web_sys::HtmlElement>(&screen, ".last-days button.remove").click();
     settled().await;
 
-    let listed: Element = found(&screen, ".week tbody");
+    let listed: Element = found(&screen, ".last-days tbody");
     assert_eq!(listed.text_content().unwrap_or_default(), "");
     assert!(asked("remove_measurement").contains("2026-10-10"));
 }
