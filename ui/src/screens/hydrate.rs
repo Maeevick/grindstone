@@ -238,6 +238,8 @@ pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl In
             match tauri::add_drink(&named, volume_ml, kind.get_untracked()).await {
                 Ok(known) => {
                     drinks.set(known);
+                    name.set(String::new());
+                    serving.set(String::new());
                     done.run(lines::added(named.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),

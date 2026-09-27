@@ -134,6 +134,8 @@ pub fn NewCircuit(
             match tauri::craft_circuit(&form).await {
                 Ok(known) => {
                     circuits.set(known);
+                    name.set(String::new());
+                    steps.set(Vec::new());
                     done.run(lines::circuit_crafted(form.name.trim()));
                 }
                 Err(failure) => said.set(Some(Err(lines::failure(&failure)))),

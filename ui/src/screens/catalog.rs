@@ -16,28 +16,6 @@ use crate::screens::meals::{MealsList, NewMeal};
 use crate::tauri;
 use crate::typed::figures_typed;
 
-#[component]
-fn Sheet(title: &'static str, close: Callback<()>, children: Children) -> impl IntoView {
-    view! {
-        <div class="sheet" role="dialog" aria-label=title>
-            <section class="card">
-                <header class="sheet-top">
-                    <h2>{title}</h2>
-                    <button
-                        class="remove close"
-                        type="button"
-                        aria-label="Close"
-                        on:click=move |_| close.run(())
-                    >
-                        "×"
-                    </button>
-                </header>
-                {children()}
-            </section>
-        </div>
-    }
-}
-
 fn said_on_the_shelf(said: RwSignal<Option<String>>) -> impl IntoView {
     move || said.get().map(|line| view! { <p class="said">{line}</p> })
 }
@@ -59,6 +37,8 @@ fn NewExercise(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> im
             match tauri::add_exercise(&named, met_typed).await {
                 Ok(known) => {
                     exercises.set(known);
+                    name.set(String::new());
+                    met.set(String::new());
                     done.run(lines::added(named.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
@@ -193,6 +173,9 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
             match tauri::add_food(&form).await {
                 Ok(known) => {
                     foods.set(known);
+                    for typed in [name, energy, protein, carbs, fat, fibre] {
+                        typed.set(String::new());
+                    }
                     done.run(lines::added(form.name.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
@@ -297,23 +280,40 @@ fn FoodsList(foods: RwSignal<Vec<Food>>, said: RwSignal<Option<String>>) -> impl
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Opened {
+enum Form {
     Food,
     Meal,
-    Drink,
     Exercise,
     Circuit,
 }
 
-fn opening(opened: RwSignal<Option<Opened>>, which: Opened) -> impl Fn(leptos::ev::MouseEvent) {
-    move |_| opened.set(Some(which))
+fn form_pills(chosen: RwSignal<Form>, forms: [(Form, &'static str); 2]) -> impl IntoView {
+    view! {
+        <div class="pills">
+            {forms
+                .into_iter()
+                .map(|(named, label)| {
+                    view! {
+                        <button
+                            type="button"
+                            class=format!("pill form-{named:?}")
+                            class:chosen=move || chosen.get() == named
+                            on:click=move |_| chosen.set(named)
+                        >
+                            {label}
+                        </button>
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
 }
 
 #[component]
 fn FuelShelf() -> impl IntoView {
     let foods = RwSignal::new(Vec::<Food>::new());
     let meals = RwSignal::new(Vec::<Meal>::new());
-    let opened = RwSignal::new(None::<Opened>);
+    let form = RwSignal::new(Form::Food);
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::foods().await {
@@ -324,53 +324,25 @@ fn FuelShelf() -> impl IntoView {
             meals.set(kept);
         }
     });
-    let done = Callback::new(move |line: String| {
-        opened.set(None);
-        said.set(Some(line));
-    });
-    let close = Callback::new(move |()| opened.set(None));
+    let done = Callback::new(move |line: String| said.set(Some(line)));
     view! {
-        <div class="actions">
-            <button class="cta new-food" type="button" on:click=opening(opened, Opened::Food)>
-                "New food"
-            </button>
-            <button class="cta new-meal" type="button" on:click=opening(opened, Opened::Meal)>
-                "New meal"
-            </button>
-        </div>
-        {said_on_the_shelf(said)}
+        <section class="card">
+            <h2>"Add to the catalog"</h2>
+            {form_pills(form, [(Form::Food, "Food"), (Form::Meal, "Meal")])}
+            {move || match form.get() {
+                Form::Meal => view! { <NewMeal foods=foods meals=meals done=done /> }.into_any(),
+                _ => view! { <NewFood foods=foods done=done /> }.into_any(),
+            }}
+            {said_on_the_shelf(said)}
+        </section>
         <MealsList meals=meals said=said />
         <FoodsList foods=foods said=said />
-        {move || match opened.get() {
-            Some(Opened::Food) => {
-                Some(
-                    view! {
-                        <Sheet title="New food" close=close>
-                            <NewFood foods=foods done=done />
-                        </Sheet>
-                    }
-                        .into_any(),
-                )
-            }
-            Some(Opened::Meal) => {
-                Some(
-                    view! {
-                        <Sheet title="Trix's lab: the meal cooker" close=close>
-                            <NewMeal foods=foods meals=meals done=done />
-                        </Sheet>
-                    }
-                        .into_any(),
-                )
-            }
-            _ => None,
-        }}
     }
 }
 
 #[component]
 fn HydrateShelf() -> impl IntoView {
     let drinks = RwSignal::new(Vec::<Drink>::new());
-    let opened = RwSignal::new(None::<Opened>);
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::drinks().await {
@@ -378,29 +350,14 @@ fn HydrateShelf() -> impl IntoView {
             Err(failure) => said.set(Some(lines::failure(&failure))),
         }
     });
-    let done = Callback::new(move |line: String| {
-        opened.set(None);
-        said.set(Some(line));
-    });
-    let close = Callback::new(move |()| opened.set(None));
+    let done = Callback::new(move |line: String| said.set(Some(line)));
     view! {
-        <div class="actions">
-            <button class="cta new-drink" type="button" on:click=opening(opened, Opened::Drink)>
-                "New drink"
-            </button>
-        </div>
-        {said_on_the_shelf(said)}
+        <section class="card">
+            <h2>"Add to the catalog"</h2>
+            <NewDrink drinks=drinks done=done />
+            {said_on_the_shelf(said)}
+        </section>
         <DrinksList drinks=drinks said=said />
-        {move || {
-            (opened.get() == Some(Opened::Drink))
-                .then(|| {
-                    view! {
-                        <Sheet title="New drink" close=close>
-                            <NewDrink drinks=drinks done=done />
-                        </Sheet>
-                    }
-                })
-        }}
     }
 }
 
@@ -408,7 +365,7 @@ fn HydrateShelf() -> impl IntoView {
 fn BurnShelf() -> impl IntoView {
     let exercises = RwSignal::new(Vec::<Exercise>::new());
     let circuits = RwSignal::new(Vec::<Circuit>::new());
-    let opened = RwSignal::new(None::<Opened>);
+    let form = RwSignal::new(Form::Exercise);
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::exercises().await {
@@ -419,46 +376,21 @@ fn BurnShelf() -> impl IntoView {
             circuits.set(known);
         }
     });
-    let done = Callback::new(move |line: String| {
-        opened.set(None);
-        said.set(Some(line));
-    });
-    let close = Callback::new(move |()| opened.set(None));
+    let done = Callback::new(move |line: String| said.set(Some(line)));
     view! {
-        <div class="actions">
-            <button class="cta new-exercise" type="button" on:click=opening(opened, Opened::Exercise)>
-                "New exercise"
-            </button>
-            <button class="cta new-circuit" type="button" on:click=opening(opened, Opened::Circuit)>
-                "New circuit"
-            </button>
-        </div>
-        {said_on_the_shelf(said)}
+        <section class="card">
+            <h2>"Add to the catalog"</h2>
+            {form_pills(form, [(Form::Exercise, "Exercise"), (Form::Circuit, "Circuit")])}
+            {move || match form.get() {
+                Form::Circuit => {
+                    view! { <NewCircuit exercises=exercises circuits=circuits done=done /> }.into_any()
+                }
+                _ => view! { <NewExercise exercises=exercises done=done /> }.into_any(),
+            }}
+            {said_on_the_shelf(said)}
+        </section>
         <CircuitsList circuits=circuits said=said />
         <ExercisesList exercises=exercises said=said />
-        {move || match opened.get() {
-            Some(Opened::Exercise) => {
-                Some(
-                    view! {
-                        <Sheet title="New exercise" close=close>
-                            <NewExercise exercises=exercises done=done />
-                        </Sheet>
-                    }
-                        .into_any(),
-                )
-            }
-            Some(Opened::Circuit) => {
-                Some(
-                    view! {
-                        <Sheet title="Trix's lab: a new circuit" close=close>
-                            <NewCircuit exercises=exercises circuits=circuits done=done />
-                        </Sheet>
-                    }
-                        .into_any(),
-                )
-            }
-            _ => None,
-        }}
     }
 }
 

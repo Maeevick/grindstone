@@ -95,6 +95,10 @@ pub fn NewMeal(
                     if let Ok(known) = tauri::foods().await {
                         foods.set(known);
                     }
+                    for typed in [name, recipe, food, quantity] {
+                        typed.set(String::new());
+                    }
+                    pot.set(Vec::new());
                     done.run(lines::cooked(form.name.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
@@ -128,6 +132,7 @@ pub fn NewMeal(
                     "Add"
                 </button>
             </div>
+            <Show when=move || !pot.get().is_empty()>
             <table class="pot">
                 <thead>
                     <tr>
@@ -182,6 +187,7 @@ pub fn NewMeal(
                     }}
                 </tbody>
             </table>
+            </Show>
             <p class="hint">{lines::COOKING_RATIO_HOW}</p>
             <button class="cta" type="submit">
                 "Cook"
