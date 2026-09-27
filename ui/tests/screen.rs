@@ -665,10 +665,6 @@ fn clicked(screen: &Element, selector: &str) {
     found::<web_sys::HtmlElement>(screen, selector).click();
 }
 
-fn a_sheet_is_open(screen: &Element) -> bool {
-    screen.query_selector(".sheet").ok().flatten().is_some()
-}
-
 fn tables_in_order(screen: &Element) -> Vec<String> {
     let tables = screen.query_selector_all("table").expect("the tables");
     (0..tables.length())
@@ -678,7 +674,7 @@ fn tables_in_order(screen: &Element) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
-async fn the_burn_shelf_lists_circuits_before_exercises_and_adds_an_exercise_from_its_sheet() {
+async fn the_burn_shelf_adds_an_exercise_from_its_form_card_then_lists_circuits_before_exercises() {
     answering(
         r#"{ "exercises": [], "circuits": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
     );
@@ -688,23 +684,22 @@ async fn the_burn_shelf_lists_circuits_before_exercises_and_adds_an_exercise_fro
     clicked(&screen, "button.shelf-Burn");
     settled().await;
     assert_eq!(tables_in_order(&screen), ["circuits", "exercises"]);
-    assert!(!a_sheet_is_open(&screen));
+    found::<Element>(&screen, "button.form-Exercise.chosen");
+    found::<Element>(&screen, "button.form-Circuit");
 
-    clicked(&screen, "button.new-exercise");
-    settled().await;
     typed_into(&screen, "exercise_name", "Kettlebell swing");
     typed_into(&screen, "exercise_met", "9.8");
-    found::<HtmlFormElement>(&screen, ".sheet form.exercise")
+    found::<HtmlFormElement>(&screen, "form.exercise")
         .request_submit()
         .expect("the exercise is added");
     settled().await;
 
-    assert!(!a_sheet_is_open(&screen));
     let rows = text_of(&screen, "table.exercises tbody");
     assert!(
         rows.contains("Kettlebell swing") && rows.contains("9.8"),
         "{rows}"
     );
+    assert_eq!(value_of(&screen, "exercise_name"), "");
 }
 
 const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
@@ -914,7 +909,7 @@ async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
 }
 
 #[wasm_bindgen_test]
-async fn the_fuel_shelf_lists_meals_before_foods_and_adds_a_food_from_its_sheet() {
+async fn the_fuel_shelf_adds_a_food_from_its_form_card_then_lists_meals_before_foods() {
     answering(
         r#"{ "foods": [], "meals": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
             "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } }] }"#,
@@ -923,21 +918,20 @@ async fn the_fuel_shelf_lists_meals_before_foods_and_adds_a_food_from_its_sheet(
     let _mounted = the_catalog(&screen);
     settled().await;
     assert_eq!(tables_in_order(&screen), ["meals", "foods"]);
-    assert!(!a_sheet_is_open(&screen));
+    found::<Element>(&screen, "button.form-Food.chosen");
+    found::<Element>(&screen, "button.form-Meal");
 
-    clicked(&screen, "button.new-food");
-    settled().await;
     typed_into(&screen, "food_name", "Skyr");
     typed_into(&screen, "food_portion", "100");
     typed_into(&screen, "food_energy", "54");
-    found::<HtmlFormElement>(&screen, ".sheet form.food")
+    found::<HtmlFormElement>(&screen, "form.food")
         .request_submit()
         .expect("the food is added");
     settled().await;
 
-    assert!(!a_sheet_is_open(&screen));
     let rows = text_of(&screen, "table.foods tbody");
     assert!(rows.contains("Skyr") && rows.contains("54 kcal"), "{rows}");
+    assert_eq!(value_of(&screen, "food_name"), "");
 }
 
 const PASTA_AND_CREAM: &str = r#"[
@@ -970,7 +964,7 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_list_with
     let screen = screen();
     let _mounted = the_catalog(&screen);
     settled().await;
-    clicked(&screen, "button.new-meal");
+    clicked(&screen, "button.form-Meal");
     settled().await;
 
     typed_into(&screen, "meal_name", "Pasta in cream");
@@ -982,7 +976,7 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_list_with
     );
     typed_into(&screen, "ratio_0", "2,5");
     typed_into(&screen, "ratio_1", "0.66");
-    found::<HtmlFormElement>(&screen, ".sheet form.meal")
+    found::<HtmlFormElement>(&screen, "form.meal")
         .request_submit()
         .expect("the meal is cooked");
     settled().await;
@@ -994,7 +988,7 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_list_with
             && sent.contains(r#""cooked_per_raw":0.66"#),
         "{sent}"
     );
-    assert!(!a_sheet_is_open(&screen));
+    assert_eq!(value_of(&screen, "meal_name"), "");
     let listed = text_of(&screen, "table.meals tbody");
     for figure in [
         "Pasta in cream",
@@ -1016,12 +1010,12 @@ async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
     let screen = screen();
     let _mounted = the_catalog(&screen);
     settled().await;
-    clicked(&screen, "button.new-meal");
+    clicked(&screen, "button.form-Meal");
     settled().await;
 
     typed_into(&screen, "meal_name", "Plain pasta");
     added_to_the_pot(&screen, "Pasta", "100").await;
-    found::<HtmlFormElement>(&screen, ".sheet form.meal")
+    found::<HtmlFormElement>(&screen, "form.meal")
         .request_submit()
         .expect("the meal is cooked");
     settled().await;
@@ -1114,7 +1108,7 @@ const MORNING_RUST: &str = r#"{ "name": "Morning rust", "steps": [
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
 
 #[wasm_bindgen_test]
-async fn the_crafter_crafts_a_circuit_in_its_sheet_from_its_steps_added_one_by_one() {
+async fn the_crafter_crafts_a_circuit_from_its_steps_added_one_by_one() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
              "circuits": [], "craft_circuit": [{MORNING_RUST}] }}"#
@@ -1124,7 +1118,7 @@ async fn the_crafter_crafts_a_circuit_in_its_sheet_from_its_steps_added_one_by_o
     settled().await;
     clicked(&screen, "button.shelf-Burn");
     settled().await;
-    clicked(&screen, "button.new-circuit");
+    clicked(&screen, "button.form-Circuit");
     settled().await;
 
     typed_into(&screen, "circuit_name", "Morning rust");
@@ -1142,12 +1136,12 @@ async fn the_crafter_crafts_a_circuit_in_its_sheet_from_its_steps_added_one_by_o
         steps.contains("Push up") && steps.contains("Burpee"),
         "{steps}"
     );
-    found::<HtmlFormElement>(&screen, ".sheet form.circuit")
+    found::<HtmlFormElement>(&screen, "form.circuit")
         .request_submit()
         .expect("the circuit is crafted");
     settled().await;
 
-    assert!(!a_sheet_is_open(&screen));
+    assert_eq!(value_of(&screen, "circuit_name"), "");
     let rows = text_of(&screen, "table.circuits tbody");
     assert!(
         rows.contains("Morning rust") && rows.contains("Push up") && rows.contains("Burpee"),
@@ -1165,7 +1159,7 @@ async fn a_step_added_by_mistake_leaves_the_circuit_before_it_is_crafted() {
     settled().await;
     clicked(&screen, "button.shelf-Burn");
     settled().await;
-    clicked(&screen, "button.new-circuit");
+    clicked(&screen, "button.form-Circuit");
     settled().await;
     typed_into(&screen, "step_exercise", "Burpee");
     typed_into(&screen, "step_minutes", "1");
@@ -1375,7 +1369,7 @@ async fn removing_a_drinking_takes_it_off_the_day() {
 }
 
 #[wasm_bindgen_test]
-async fn an_added_drink_joins_the_hydrate_shelf_its_kind_water_or_other() {
+async fn a_drink_added_from_the_hydrate_shelfs_form_card_joins_its_list_its_kind_water_or_other() {
     answering(
         r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }] }"#,
     );
@@ -1384,21 +1378,19 @@ async fn an_added_drink_joins_the_hydrate_shelf_its_kind_water_or_other() {
     settled().await;
     clicked(&screen, "button.shelf-Hydrate");
     settled().await;
-    clicked(&screen, "button.new-drink");
-    settled().await;
     assert_eq!(
-        found::<HtmlSelectElement>(&screen, ".sheet select[name=drink_kind]").length(),
+        found::<HtmlSelectElement>(&screen, "select[name=drink_kind]").length(),
         2
     );
 
     typed_into(&screen, "drink_name", "Tea");
     typed_into(&screen, "serving", "200");
-    found::<HtmlFormElement>(&screen, ".sheet form.drink")
+    found::<HtmlFormElement>(&screen, "form.drink")
         .request_submit()
         .expect("the drink is added");
     settled().await;
 
-    assert!(!a_sheet_is_open(&screen));
+    assert_eq!(value_of(&screen, "drink_name"), "");
     let rows = text_of(&screen, "table.drinks tbody");
     assert!(rows.contains("Tea") && rows.contains("200 mL"), "{rows}");
 }
