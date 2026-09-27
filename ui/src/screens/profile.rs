@@ -85,12 +85,10 @@ fn GoalsCard() -> impl IntoView {
                     <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
                 </div>
                 {move || healthy.get().map(|line| view! { <p class="hint">{line}</p> })}
-                <div class="actions">
-                    <Recommend fill=fill said=said />
-                    <button class="cta" type="submit">
-                        "Keep these goals"
-                    </button>
-                </div>
+                <Recommend fill=fill said=said />
+                <button class="cta" type="submit">
+                    "Keep these goals"
+                </button>
                 <ReferencesLink topic=Topic::HealthyRanges />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
@@ -153,12 +151,10 @@ fn UsualDayCard() -> impl IntoView {
                     <FigureField label="Standing (min)" name="usual_standing" value=standing />
                     <FigureField label="Moving (km)" name="usual_moving" value=moving />
                 </div>
-                <div class="actions">
-                    <Recommend fill=fill said=said />
-                    <button class="cta" type="submit">
-                        "Keep this usual day"
-                    </button>
-                </div>
+                <Recommend fill=fill said=said />
+                <button class="cta" type="submit">
+                    "Keep this usual day"
+                </button>
                 <ReferencesLink topic=Topic::Activity />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
@@ -221,12 +217,10 @@ fn FuelTargetsCard() -> impl IntoView {
                     <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
                     <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
                 </div>
-                <div class="actions">
-                    <Recommend fill=fill said=said />
-                    <button class="cta" type="submit">
-                        "Keep these targets"
-                    </button>
-                </div>
+                <Recommend fill=fill said=said />
+                <button class="cta" type="submit">
+                    "Keep these targets"
+                </button>
                 <ReferencesLink topic=Topic::Macronutrients />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>

@@ -348,12 +348,10 @@ pub fn HydrateBaseCard() -> impl IntoView {
                         .get()
                         .map(|ml| view! { <p class="hint">{lines::default_hydrate_base(ml)}</p> })
                 }}
-                <div class="actions">
-                    <Recommend fill=fill said=said />
-                    <button class="cta" type="submit">
-                        "Keep this base"
-                    </button>
-                </div>
+                <Recommend fill=fill said=said />
+                <button class="cta" type="submit">
+                    "Keep this base"
+                </button>
                 <ReferencesLink topic=Topic::Water />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
