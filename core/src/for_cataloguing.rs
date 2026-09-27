@@ -110,6 +110,7 @@ pub fn remove_meal(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CircuitForm {
     pub name: String,
+    pub description: String,
     pub steps: Vec<StepForm>,
 }
 
@@ -122,7 +123,9 @@ pub fn craft_circuit(
     form: &CircuitForm,
 ) -> Result<Vec<Circuit>, Failure> {
     let catalog = burn.burn_records()?.exercises;
-    burn.save_circuit(&circuit(&form.name, &form.steps, &catalog).map_err(Failure::Refused)?)?;
+    burn.save_circuit(
+        &circuit(&form.name, &form.description, &form.steps, &catalog).map_err(Failure::Refused)?,
+    )?;
     circuits(burn)
 }
 
@@ -380,6 +383,7 @@ mod tests {
     fn morning_rust() -> CircuitForm {
         CircuitForm {
             name: "Morning rust".into(),
+            description: "Found on YouTube.".into(),
             steps: vec![
                 asked("Push up", Some(12), 0.5, 0.0),
                 asked("Burpee", Some(10), 1.0, 5.0),
@@ -390,12 +394,14 @@ mod tests {
     fn evening_grind() -> CircuitForm {
         CircuitForm {
             name: "Evening grind".into(),
+            description: String::new(),
             steps: vec![asked("Burpee", None, 2.0, 0.0)],
         }
     }
 
     #[test]
-    fn crafted_circuits_come_back_by_name_their_steps_frozen_on_the_catalog() {
+    fn crafted_circuits_come_back_by_name_with_their_description_their_steps_frozen_on_the_catalog()
+    {
         let burn = with_push_ups_and_burpees();
         craft_circuit(&burn, &morning_rust()).expect("a circuit crafts");
 
@@ -406,10 +412,12 @@ mod tests {
             Ok(vec![
                 Circuit {
                     name: "Evening grind".into(),
+                    description: String::new(),
                     steps: vec![frozen("Burpee", 8.0, None, 2.0, 0.0)],
                 },
                 Circuit {
                     name: "Morning rust".into(),
+                    description: "Found on YouTube.".into(),
                     steps: vec![
                         frozen("Push up", 3.8, Some(12), 0.5, 0.0),
                         frozen("Burpee", 8.0, Some(10), 1.0, 5.0),

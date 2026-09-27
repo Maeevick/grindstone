@@ -317,6 +317,7 @@ mod tests {
             &burn,
             &CircuitForm {
                 name: "Morning rust".into(),
+                description: String::new(),
                 steps: vec![
                     StepForm {
                         exercise: "Push up".into(),

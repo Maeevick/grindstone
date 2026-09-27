@@ -128,6 +128,7 @@ pub fn NewCircuit(
         event.prevent_default();
         let form = CircuitForm {
             name: name.get_untracked(),
+            description: String::new(),
             steps: steps.get_untracked(),
         };
         spawn_local(async move {

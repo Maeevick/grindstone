@@ -328,6 +328,7 @@ fn step_filed_in_its_circuit(
         Some(circuit) if circuit.name == name => circuit.steps.push(step),
         _ => circuits.push(Circuit {
             name,
+            description: String::new(),
             steps: vec![step],
         }),
     }
@@ -1212,6 +1213,7 @@ mod tests {
         };
         let kept = Circuit {
             name: "Morning rust".into(),
+            description: "Found on YouTube.".into(),
             steps: vec![step("Push up", 0.5)],
         };
         records.save_circuit(&kept).expect("a circuit saves");

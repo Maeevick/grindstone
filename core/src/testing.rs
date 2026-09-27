@@ -461,6 +461,7 @@ pub mod honouring_for_storing_burn_records {
     fn morning_rust() -> Circuit {
         Circuit {
             name: "Morning rust".into(),
+            description: "Found on YouTube.".into(),
             steps: vec![
                 step("Push up", 3.8, Some(12), 0.5, 0.0),
                 step("Burpee", 8.0, None, 1.0, 5.0),
@@ -471,6 +472,7 @@ pub mod honouring_for_storing_burn_records {
     fn evening_grind() -> Circuit {
         Circuit {
             name: "Evening grind".into(),
+            description: String::new(),
             steps: vec![step("Squat", 5.0, Some(15), 1.0, 20.0)],
         }
     }

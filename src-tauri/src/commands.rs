@@ -956,7 +956,7 @@ mod tests {
         invoke(
             screen,
             "craft_circuit",
-            json!({ "form": { "name": "Morning rust", "steps": [
+            json!({ "form": { "name": "Morning rust", "description": "Found on YouTube.", "steps": [
                 { "exercise": "Push up", "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
                 { "exercise": "Burpee", "reps": null, "minutes": 1.0, "load_kg": 5.0 }
             ] } }),
@@ -972,7 +972,7 @@ mod tests {
         let listed = invoke(&screen, "circuits", json!({}));
         let removed = invoke(&screen, "remove_circuit", json!({ "name": "Morning rust" }));
 
-        let morning_rust = json!([{ "name": "Morning rust", "steps": [
+        let morning_rust = json!([{ "name": "Morning rust", "description": "Found on YouTube.", "steps": [
             { "exercise": "Push up", "met": 3.8, "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
             { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 }
         ] }]);

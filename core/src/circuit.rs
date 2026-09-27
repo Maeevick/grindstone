@@ -16,6 +16,7 @@ pub struct CircuitStep {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Circuit {
     pub name: String,
+    pub description: String,
     pub steps: Vec<CircuitStep>,
 }
 
@@ -50,7 +51,12 @@ fn step_frozen_on_its_exercise(
     })
 }
 
-pub fn circuit(name: &str, steps: &[StepForm], catalog: &[Exercise]) -> Result<Circuit, Refusal> {
+pub fn circuit(
+    name: &str,
+    _description: &str,
+    steps: &[StepForm],
+    catalog: &[Exercise],
+) -> Result<Circuit, Refusal> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Refusal::NotAName);
@@ -60,6 +66,7 @@ pub fn circuit(name: &str, steps: &[StepForm], catalog: &[Exercise]) -> Result<C
     }
     Ok(Circuit {
         name: name.into(),
+        description: String::new(),
         steps: steps
             .iter()
             .map(|asked| step_frozen_on_its_exercise(asked, catalog))
@@ -120,9 +127,11 @@ mod tests {
     }
 
     #[test]
-    fn a_circuit_keeps_its_trimmed_name_and_its_steps_in_order_each_frozen_on_its_exercise_met() {
+    fn a_circuit_keeps_its_trimmed_name_its_description_and_its_steps_in_order_each_frozen_on_its_exercise_met()
+     {
         let crafted = circuit(
             "  Morning rust ",
+            "  Found on YouTube, the rusty goblin channel.  ",
             &push_ups_then_loaded_burpees(),
             &the_catalog(),
         );
@@ -131,6 +140,7 @@ mod tests {
             crafted,
             Ok(Circuit {
                 name: "Morning rust".into(),
+                description: "Found on YouTube, the rusty goblin channel.".into(),
                 steps: vec![
                     CircuitStep {
                         exercise: "Push up".into(),
@@ -155,6 +165,7 @@ mod tests {
     fn no_reps_goal_at_all_reads_as_a_step_counted_in_minutes() {
         let crafted = circuit(
             "Plank break",
+            "",
             &[asked("Push up", Some(0), 1.0, 0.0)],
             &the_catalog(),
         );
@@ -168,11 +179,11 @@ mod tests {
     #[test]
     fn a_circuit_without_a_name_or_without_a_single_step_is_refused() {
         assert_eq!(
-            circuit("   ", &push_ups_then_loaded_burpees(), &the_catalog()),
+            circuit("   ", "", &push_ups_then_loaded_burpees(), &the_catalog()),
             Err(Refusal::NotAName)
         );
         assert_eq!(
-            circuit("Morning rust", &[], &the_catalog()),
+            circuit("Morning rust", "", &[], &the_catalog()),
             Err(Refusal::NotASingleStep)
         );
     }
@@ -182,6 +193,7 @@ mod tests {
         assert_eq!(
             circuit(
                 "Morning rust",
+                "",
                 &[asked("Star plank", None, 1.0, 0.0)],
                 &the_catalog()
             ),
@@ -195,6 +207,7 @@ mod tests {
             assert_eq!(
                 circuit(
                     "Morning rust",
+                    "",
                     &[asked("Push up", None, minutes, 0.0)],
                     &the_catalog()
                 ),
@@ -205,6 +218,7 @@ mod tests {
         assert_eq!(
             circuit(
                 "Morning rust",
+                "",
                 &[asked("Push up", None, 1.0, f64::NAN)],
                 &the_catalog()
             ),
@@ -216,6 +230,7 @@ mod tests {
     fn a_set_of_a_circuit_burns_the_sum_of_its_steps_above_rest_at_the_body_mass() {
         let crafted = circuit(
             "Morning rust",
+            "",
             &push_ups_then_loaded_burpees(),
             &the_catalog(),
         )
