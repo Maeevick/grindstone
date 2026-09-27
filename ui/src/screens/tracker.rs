@@ -131,7 +131,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                 {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
             </form>
         </section>
-        <section class="card week">
+        <section class="card last-days">
             <h2>"The last days"</h2>
             <table>
                 <thead>
@@ -177,9 +177,6 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                     }}
                 </tfoot>
             </table>
-            <A href="/stats" attr:class="cta ghost">
-                "Explore in Stats"
-            </A>
         </section>
     }
 }
@@ -230,5 +227,8 @@ pub fn Tracker() -> impl IntoView {
             Segment::Hydrate => view! { <HydrateDay day=day /> }.into_any(),
             Segment::Burn => view! { <BurnDay day=day /> }.into_any(),
         }}
+        <A href="/stats" attr:class="cta ghost explore">
+            "Explore in Stats"
+        </A>
     }
 }

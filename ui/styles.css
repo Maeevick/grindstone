@@ -561,6 +561,8 @@ select {
 	display: flex;
 	align-items: center;
 	height: 44px;
+	overflow: hidden;
+	white-space: nowrap;
 	padding: 0 10px;
 	background: var(--inset);
 	border: 1px solid var(--line);
@@ -622,11 +624,11 @@ select {
 	border-top: 1px solid var(--line);
 }
 
-.week tr.chosen td {
+.last-days tr.chosen td {
 	color: var(--acc);
 }
 
-.week tfoot td {
+.last-days tfoot td {
 	border-top: 2px solid var(--line);
 	font-weight: 600;
 }
@@ -762,4 +764,8 @@ a.references {
 .meals details summary {
 	color: var(--txt);
 	cursor: pointer;
+}
+
+.cta.explore {
+	margin: 4px 0 12px;
 }
