@@ -319,10 +319,7 @@ impl Sqlite {
     }
 
     fn circuit_inserted(&self, circuit: &Circuit) -> Result<(), Broken> {
-        self.run(
-            "insert into circuits (name, description) values (?1, ?2)",
-            params![circuit.name, circuit.description],
-        )?;
+        self.run(CIRCUIT_INSERTED, params![circuit.name, circuit.description])?;
         (1_i64..)
             .zip(&circuit.steps)
             .try_for_each(|(position, step)| {
@@ -373,6 +370,8 @@ fn workout_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Workout)> {
 }
 
 const CIRCUITS: &str = "select name, description from circuits order by name";
+
+const CIRCUIT_INSERTED: &str = "insert into circuits (name, description) values (?1, ?2)";
 
 const CIRCUIT_STEPS: &str =
     "select circuit, exercise, met, reps, minutes, load_kg from circuit_steps

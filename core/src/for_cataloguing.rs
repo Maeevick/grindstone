@@ -123,9 +123,9 @@ pub fn craft_circuit(
     form: &CircuitForm,
 ) -> Result<Vec<Circuit>, Failure> {
     let catalog = burn.burn_records()?.exercises;
-    burn.save_circuit(
-        &circuit(&form.name, &form.description, &form.steps, &catalog).map_err(Failure::Refused)?,
-    )?;
+    let crafted =
+        circuit(&form.name, &form.description, &form.steps, &catalog).map_err(Failure::Refused)?;
+    burn.save_circuit(&crafted)?;
     circuits(burn)
 }
 
