@@ -87,7 +87,8 @@ const MIGRATIONS: &[&str] = &[
          where drink in (select name from drinks);",
     "update drinks set kind = 'Other' where kind in ('Coffee', 'Tea');
      update drinkings set kind = 'Other' where kind in ('Coffee', 'Tea');",
-    "select 1;",
+    "create table circuits (name text primary key, description text not null default '');
+     insert into circuits (name) select distinct circuit from circuit_steps;",
 ];
 
 pub struct Sqlite(Connection);
@@ -300,7 +301,28 @@ impl Sqlite {
             .map_err(broken)
     }
 
-    fn circuit_steps_inserted(&self, circuit: &Circuit) -> Result<(), Broken> {
+    fn circuits(&self) -> Result<Vec<Circuit>, Broken> {
+        let steps = self.rows(CIRCUIT_STEPS, circuit_step_read)?;
+        Ok(self
+            .rows(CIRCUITS, |row| Ok((row.get(0)?, row.get(1)?)))?
+            .into_iter()
+            .map(|(name, description): (String, String)| Circuit {
+                steps: steps
+                    .iter()
+                    .filter(|(of, _)| *of == name)
+                    .map(|(_, step)| step.clone())
+                    .collect(),
+                name,
+                description,
+            })
+            .collect())
+    }
+
+    fn circuit_inserted(&self, circuit: &Circuit) -> Result<(), Broken> {
+        self.run(
+            "insert into circuits (name, description) values (?1, ?2)",
+            params![circuit.name, circuit.description],
+        )?;
         (1_i64..)
             .zip(&circuit.steps)
             .try_for_each(|(position, step)| {
@@ -319,21 +341,6 @@ impl Sqlite {
                 )
             })
     }
-}
-
-fn step_filed_in_its_circuit(
-    mut circuits: Vec<Circuit>,
-    (name, step): (String, CircuitStep),
-) -> Vec<Circuit> {
-    match circuits.last_mut() {
-        Some(circuit) if circuit.name == name => circuit.steps.push(step),
-        _ => circuits.push(Circuit {
-            name,
-            description: String::new(),
-            steps: vec![step],
-        }),
-    }
-    circuits
 }
 
 const EXERCISES: &str = "select name, met from exercises order by name";
@@ -364,6 +371,8 @@ fn workout_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Workout)> {
         },
     ))
 }
+
+const CIRCUITS: &str = "select name, description from circuits order by name";
 
 const CIRCUIT_STEPS: &str =
     "select circuit, exercise, met, reps, minutes, load_kg from circuit_steps
@@ -466,7 +475,8 @@ impl ForStoringBurnRecords for Sqlite {
         replacing
             .execute_batch(
                 "delete from exercises; delete from workouts;
-                 delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;",
+                 delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;
+                 delete from circuits;",
             )
             .map_err(broken)?;
         for exercise in &records.exercises {
@@ -482,7 +492,7 @@ impl ForStoringBurnRecords for Sqlite {
             self.save_usual_day(*from, volitional)?;
         }
         for circuit in &records.circuits {
-            self.circuit_steps_inserted(circuit)?;
+            self.circuit_inserted(circuit)?;
         }
         replacing.commit().map_err(broken)
     }
@@ -493,21 +503,19 @@ impl ForStoringBurnRecords for Sqlite {
             workouts: self.rows(WORKOUTS, workout_read)?,
             days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
             usual_days: self.rows(USUAL_DAYS, volitional_read)?,
-            circuits: self
-                .rows(CIRCUIT_STEPS, circuit_step_read)?
-                .into_iter()
-                .fold(Vec::new(), step_filed_in_its_circuit),
+            circuits: self.circuits()?,
         })
     }
 
     fn save_circuit(&self, circuit: &Circuit) -> Result<(), Broken> {
         let saving = self.0.unchecked_transaction().map_err(broken)?;
         self.remove_circuit(&circuit.name)?;
-        self.circuit_steps_inserted(circuit)?;
+        self.circuit_inserted(circuit)?;
         saving.commit().map_err(broken)
     }
 
     fn remove_circuit(&self, name: &str) -> Result<(), Broken> {
+        self.run("delete from circuits where name = ?1", params![name])?;
         self.run(
             "delete from circuit_steps where circuit = ?1",
             params![name],
