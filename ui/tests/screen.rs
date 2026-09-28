@@ -166,6 +166,13 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_its_reference
     );
 }
 
+fn written_into(screen: &Element, name: &str, text: &str) {
+    let area: HtmlInputElement = found(screen, &format!("textarea[name={name}]"));
+    area.set_value(text);
+    area.dispatch_event(&Event::new("input").expect("an input event"))
+        .expect("the area is written into");
+}
+
 fn typed_into(screen: &Element, name: &str, text: &str) {
     let field: HtmlInputElement = found(screen, &format!("input[name={name}]"));
     field.set_value(text);
@@ -1103,12 +1110,12 @@ async fn stats_draw_two_measures_and_tell_how_they_move_together() {
     );
 }
 
-const MORNING_RUST: &str = r#"{ "name": "Morning rust", "steps": [
+const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on YouTube, the rusty goblin channel.", "steps": [
     { "exercise": "Push up", "met": 3.8, "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
 
 #[wasm_bindgen_test]
-async fn the_crafter_crafts_a_circuit_from_its_steps_added_one_by_one() {
+async fn the_crafter_crafts_a_circuit_with_its_description_from_its_steps_added_one_by_one() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
              "circuits": [], "craft_circuit": [{MORNING_RUST}] }}"#
@@ -1122,6 +1129,11 @@ async fn the_crafter_crafts_a_circuit_from_its_steps_added_one_by_one() {
     settled().await;
 
     typed_into(&screen, "circuit_name", "Morning rust");
+    written_into(
+        &screen,
+        "circuit_description",
+        "Found on YouTube, the rusty goblin channel.",
+    );
     typed_into(&screen, "step_exercise", "Push up");
     typed_into(&screen, "step_reps", "12");
     typed_into(&screen, "step_minutes", "0.5");
@@ -1141,10 +1153,17 @@ async fn the_crafter_crafts_a_circuit_from_its_steps_added_one_by_one() {
         .expect("the circuit is crafted");
     settled().await;
 
+    assert!(
+        asked("craft_circuit")
+            .contains(r#""description":"Found on YouTube, the rusty goblin channel.""#)
+    );
     assert_eq!(value_of(&screen, "circuit_name"), "");
     let rows = text_of(&screen, "table.circuits tbody");
     assert!(
-        rows.contains("Morning rust") && rows.contains("Push up") && rows.contains("Burpee"),
+        rows.contains("Morning rust")
+            && rows.contains("Found on YouTube, the rusty goblin channel.")
+            && rows.contains("Push up")
+            && rows.contains("Burpee"),
         "{rows}"
     );
 }
