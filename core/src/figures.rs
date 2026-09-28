@@ -101,9 +101,17 @@ mod tests {
     }
 
     #[test]
-    fn a_duration_shows_in_minutes_to_the_tenth_without_a_trailing_zero() {
-        assert_eq!(shown(Figure::Duration(30.0)), "30 min");
-        assert_eq!(shown(Figure::Duration(0.25)), "0.3 min");
+    fn a_duration_shows_in_minutes_to_the_hundredth_without_trailing_zeros() {
+        assert_eq!(
+            [
+                shown(Figure::Duration(30.0)),
+                shown(Figure::Duration(0.75)),
+                shown(Figure::Duration(1.5)),
+                shown(Figure::Duration(1.0 / 3.0)),
+                bare(Figure::Duration(0.75)),
+            ],
+            ["30 min", "0.75 min", "1.5 min", "0.33 min", "0.75"]
+        );
     }
 
     #[test]
@@ -188,7 +196,7 @@ mod tests {
                 shown(Figure::Length(-0.04)),
                 shown(Figure::Ratio(-0.0004)),
                 shown(Figure::Energy(-0.4)),
-                shown(Figure::Duration(-0.04)),
+                shown(Figure::Duration(-0.004)),
                 shown(Figure::Distance(-0.004)),
                 shown(Figure::Grams(-0.4)),
                 shown(Figure::Count(-0.04)),
