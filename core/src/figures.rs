@@ -33,7 +33,7 @@ fn parts(figure: Figure) -> (String, &'static str) {
         Figure::Length(cm) => (format!("{:.1}", to_the_tenth(cm) + 0.0), " cm"),
         Figure::Ratio(ratio) => (format!("{:.1}", to_the_tenth(ratio * 100.0) + 0.0), "%"),
         Figure::Energy(kcal) => (format!("{}", kcal.round() + 0.0), " kcal"),
-        Figure::Duration(minutes) => (format!("{}", to_the_tenth(minutes) + 0.0), " min"),
+        Figure::Duration(minutes) => (format!("{}", to_the_hundredth(minutes) + 0.0), " min"),
         Figure::Distance(km) => (format!("{}", to_the_hundredth(km) + 0.0), " km"),
         Figure::Grams(grams) => (format!("{}", grams.round() + 0.0), " g"),
         Figure::Count(count) => (format!("{}", to_the_tenth(count) + 0.0), ""),
