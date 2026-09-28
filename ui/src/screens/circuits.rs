@@ -58,6 +58,8 @@ fn CraftedCircuit(crafted: Circuit, remove: Callback<String>) -> impl IntoView {
         <tr>
             <td>
                 <strong>{crafted.name.clone()}</strong>
+                {(!crafted.description.is_empty())
+                    .then(|| view! { <p class="hint description">{crafted.description.clone()}</p> })}
                 <ol class="figures">
                     {crafted
                         .steps
@@ -87,6 +89,7 @@ pub fn NewCircuit(
     done: Callback<String>,
 ) -> impl IntoView {
     let name = RwSignal::new(String::new());
+    let description = RwSignal::new(String::new());
     let exercise = RwSignal::new(String::new());
     let reps = RwSignal::new(String::new());
     let minutes = RwSignal::new(String::new());
@@ -128,7 +131,7 @@ pub fn NewCircuit(
         event.prevent_default();
         let form = CircuitForm {
             name: name.get_untracked(),
-            description: String::new(),
+            description: description.get_untracked(),
             steps: steps.get_untracked(),
         };
         spawn_local(async move {
@@ -136,6 +139,7 @@ pub fn NewCircuit(
                 Ok(known) => {
                     circuits.set(known);
                     name.set(String::new());
+                    description.set(String::new());
                     steps.set(Vec::new());
                     done.run(lines::circuit_crafted(form.name.trim()));
                 }
@@ -164,6 +168,16 @@ pub fn NewCircuit(
                     />
                 </label>
             </div>
+            <label class="field grow2">
+                "Description"
+                <textarea
+                    name="circuit_description"
+                    rows="2"
+                    placeholder="Where it comes from, what to mind"
+                    prop:value=move || description.get()
+                    on:input=move |event| description.set(event_target_value(&event))
+                ></textarea>
+            </label>
             <div class="row">
                 <Chooser label="Exercise" name="step_exercise" options=names typed=exercise />
                 <FigureField label="Reps goal" name="step_reps" value=reps />

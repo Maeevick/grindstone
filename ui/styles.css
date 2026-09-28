@@ -740,3 +740,9 @@ textarea:focus {
 	outline: 2px solid var(--acc);
 	outline-offset: 1px;
 }
+
+.description {
+	margin: 4px 0;
+	white-space: pre-line;
+	overflow-wrap: anywhere;
+}
