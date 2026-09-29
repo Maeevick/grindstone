@@ -649,8 +649,7 @@ mod tests {
         }
 
         #[test]
-        fn before_the_switch_over_a_day_is_fuelled_on_its_energy_alone_and_after_it_on_its_macros_too()
-         {
+        fn a_day_is_fuelled_on_its_energy_alone_its_macros_aside_switch_over_or_not() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-08", "Plate");
             a_full_day(&records, "2026-10-09", "Fibreless plate");
@@ -659,13 +658,13 @@ mod tests {
             let without_switch_over = ticks_on(&records, "2026-10-10", "2026-10-09");
             records
                 .switch_over
-                .save_switch_over(day("2026-10-10"))
+                .save_switch_over(day("2026-10-08"))
                 .expect("a switch-over saves");
             let after_the_import = ticks_on(&records, "2026-10-10", "2026-10-09");
 
             assert_eq!(
                 without_switch_over.and_then(|ticks| ticks.fuelled),
-                Some(false)
+                Some(true)
             );
             assert_eq!(after_the_import.and_then(|ticks| ticks.fuelled), Some(true));
         }
