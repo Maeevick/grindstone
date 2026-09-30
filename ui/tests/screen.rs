@@ -1588,7 +1588,8 @@ fn lines_drawn(screen: &Element) -> u32 {
 }
 
 #[wasm_bindgen_test]
-async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines_and_legend() {
+async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines_and_legend_burn_without_reps()
+ {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
@@ -1606,7 +1607,7 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
     for (chip, lines, said) in [
         ("Fuel", 3, "1900 kcal"),
         ("Hydrate", 3, "2100 mL"),
-        ("Burn", 3, "60 min"),
+        ("Burn", 2, "60 min"),
     ] {
         found::<web_sys::HtmlElement>(&screen, &format!("button.chip-{chip}")).click();
         settled().await;
@@ -1615,6 +1616,11 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
         let labels = screen.text_content().unwrap_or_default();
         assert!(labels.contains(said), "{chip}: {labels}");
     }
+    let legend = text_of(&screen, ".charts ul.legend");
+    assert!(
+        legend.contains("Burnt (kcal)") && legend.contains("Minutes") && !legend.contains("Reps"),
+        "{legend}"
+    );
 }
 
 #[wasm_bindgen_test]
