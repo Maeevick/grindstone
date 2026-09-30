@@ -665,6 +665,28 @@ mod tests {
         }
 
         #[test]
+        fn a_day_eaten_below_its_energy_band_leaves_the_fuel_tick_open() {
+            let records = a_man_at_his_desk();
+            a_full_day(&records, "2026-10-09", "Plate");
+            log_intake(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                &IntakeForm {
+                    date: "2026-10-10".into(),
+                    food: "Plate".into(),
+                    quantity: Some(0.5),
+                },
+            )
+            .expect("an intake logs");
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-10").and_then(|ticks| ticks.fuelled),
+                Some(false)
+            );
+        }
+
+        #[test]
         fn once_imported_each_tick_counts_from_its_oldest_record() {
             let records = a_man_at_his_desk();
             log_measurement(&records.gather, "2026-10-05", 80.0, Some(80.0))
