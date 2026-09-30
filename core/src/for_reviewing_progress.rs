@@ -134,7 +134,7 @@ pub fn streak(
                             .iter()
                             .any(|measured| measured.day == *day),
                     ),
-                    fuelled: ticked_from(fuelled_from, in_band(&fuelled_day, *day >= checked_from)),
+                    fuelled: ticked_from(fuelled_from, in_band(&fuelled_day)),
                     worked_out: ticked_from(
                         worked_out_from,
                         burnt.workouts.iter().any(|(_, done)| done.day == *day),
@@ -150,13 +150,8 @@ pub fn streak(
     Ok(streak_of(&ticked, today))
 }
 
-fn in_band(fuelled: &Fuel, macros_checked: bool) -> bool {
-    let macros_in_band = fuelled.macros.is_some_and(|macros| {
-        [macros.protein, macros.fat, macros.fibre, macros.carbs]
-            .iter()
-            .all(|row| row.verdict == Verdict::InBand)
-    });
-    fuelled.energy == Some(Verdict::InBand) && (!macros_checked || macros_in_band)
+fn in_band(fuelled: &Fuel) -> bool {
+    fuelled.energy == Some(Verdict::InBand)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
