@@ -145,7 +145,7 @@ Then, in the app, go to Profile, the gear, then **Import the draft**. Grimble te
 - foods and intakes;
 - drinks and drinkings.
 
-The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records and makes its day the switch-over: from that day on, the streak also asks for Hydrate and the four macros. It can run again with a newer backup until the switch.
+The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records and makes its day the switch-over: from that day on, the streak also asks for Hydrate. It can run again with a newer backup until the switch.
 
 ## Update
 

@@ -15,7 +15,7 @@ Version 0.1, the full scope, on four tabs.
 
 - **Home:** Grimble's welcome until a profile exists. After that:
   - the streak:
-    - four ticks a day: a weigh-in; Fuel, meaning energy and the four macros in their bands; a workout; Hydrate inside its band;
+    - four ticks a day: a weigh-in; Fuel, meaning the day's energy inside its band; a workout; Hydrate inside its band;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
     - laid out as weeks from Monday to Sunday, five at a time, with the earlier weeks on demand;
   - today's fuel, hydrate and burn;
