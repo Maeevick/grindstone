@@ -67,7 +67,7 @@ pub fn gather_figures(card: &GatherCard) -> Vec<String> {
 
 pub const IMPORT_HOW: &str = "Bring the draft's latest backup from the Mac with make import-draft-android, \
     the phone plugged in, or make import-draft-mac for the Mac app, then import it here. It replaces every record the draft had, and from its day the streak \
-    asks for Hydrate and the four macros too. Run it again with a newer backup until you switch for good.";
+    asks for Hydrate too. Run it again with a newer backup until you switch for good.";
 
 fn counted(count: usize, one: &str, many: &str) -> String {
     format!("{count} {}", if count == 1 { one } else { many })
