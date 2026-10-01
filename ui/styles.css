@@ -491,8 +491,7 @@ select {
     color: #e8b04b;
 }
 
-.lean,
-.reps {
+.lean {
     stroke: #f1f1f1;
     color: #f1f1f1;
 }

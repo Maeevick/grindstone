@@ -212,21 +212,16 @@ fn band_plot(
 }
 
 fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
-    let span = span_of(chart.burnt.iter().chain(&chart.reps).chain(&chart.minutes))?;
-    let series: [Series; 3] = [
+    let span = span_of(chart.burnt.iter().chain(&chart.minutes))?;
+    let series: [Series; 2] = [
         (&chart.burnt, Figure::Energy, "burnt"),
-        (&chart.reps, Figure::Count, "reps"),
         (&chart.minutes, Figure::Duration, "minutes"),
     ];
     let mut plotted = Plotted {
         lines: vec![],
         left: vec![],
         right: vec![],
-        legend: vec![
-            ("burnt", "Burnt (kcal)"),
-            ("reps", "Reps"),
-            ("minutes", "Minutes"),
-        ],
+        legend: vec![("burnt", "Burnt (kcal)"), ("minutes", "Minutes")],
     };
     for (points, figure, class) in series {
         let Some(scale) = scale_of(points.iter().map(|(_, value)| *value).chain([0.0])) else {
