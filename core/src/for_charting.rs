@@ -37,7 +37,6 @@ pub struct BandChart {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct BurnChart {
     pub burnt: Vec<(NaiveDate, f64)>,
-    pub reps: Vec<(NaiveDate, f64)>,
     pub minutes: Vec<(NaiveDate, f64)>,
 }
 
@@ -185,7 +184,6 @@ pub fn burn_chart(
             .iter()
             .filter_map(|of_the_day| of_the_day.burnt_kcal.map(|kcal| (of_the_day.day, kcal)))
             .collect(),
-        reps: summed(|done| f64::from(done.sets * done.reps.unwrap_or(0))),
         minutes: summed(|done| f64::from(done.sets) * done.minutes),
     })
 }
@@ -689,16 +687,12 @@ mod tests {
     }
 
     #[test]
-    fn the_burn_chart_draws_each_days_burn_reps_and_minutes() {
+    fn the_burn_chart_draws_each_days_burn_and_minutes() {
         let logged = a_logged_man();
 
         let chart = burn_chart(&logged.gather, &logged.burn, "2026-10-10", Window::Days30)
             .expect("a chart");
 
-        assert_eq!(
-            chart.reps,
-            vec![(day("2026-10-09"), 36.0), (day("2026-10-10"), 36.0)]
-        );
         assert_eq!(
             chart.minutes,
             vec![(day("2026-10-09"), 1.5), (day("2026-10-10"), 1.5)]

@@ -1161,7 +1161,7 @@ mod tests {
             vec![
                 Ok(json!({ "amounts": [], "floors": [], "caps": [] })),
                 Ok(json!({ "amounts": [], "floors": [], "caps": [] })),
-                Ok(json!({ "burnt": [], "reps": [], "minutes": [] })),
+                Ok(json!({ "burnt": [], "minutes": [] })),
             ]
         );
     }
