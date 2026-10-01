@@ -1039,7 +1039,7 @@ mod tests {
         assert_eq!(
             answer,
             Ok(json!({
-                "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low"
+                "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "floor_ml": 1600.0, "cap_ml": 2400.0, "verdict": "Low"
             }))
         );
     }
@@ -1055,7 +1055,7 @@ mod tests {
             Ok(json!({
                 "day": "2026-10-10",
                 "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }]],
-                "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low"
+                "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1600.0, "cap_ml": 2400.0, "verdict": "Low"
             }))
         );
     }

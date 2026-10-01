@@ -658,7 +658,7 @@ mod tests {
     }
 
     #[test]
-    fn the_hydrate_chart_draws_each_days_drinks_ten_percent_either_side_of_its_target() {
+    fn the_hydrate_chart_draws_each_days_drinks_twenty_percent_either_side_of_its_target() {
         let logged = a_logged_man();
 
         let chart = hydrate_chart(
@@ -682,7 +682,7 @@ mod tests {
                 .floors
                 .iter()
                 .zip(&chart.caps)
-                .all(|((_, floor), (_, cap))| (cap / floor - 1.1 / 0.9).abs() < 1e-9)
+                .all(|((_, floor), (_, cap))| (cap / floor - 1.2 / 0.8).abs() < 1e-9)
         );
     }
 

@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn a_day_reads_its_band_from_ten_percent_under_to_ten_percent_over_its_target() {
+    fn a_day_reads_its_band_from_twenty_percent_under_to_twenty_percent_over_its_target() {
         let hydrate = hydrate_on(
             day("2026-10-10"),
             &based_on(2000.0, vec![]),
@@ -189,8 +189,8 @@ mod tests {
             &BurnRecords::default(),
         );
 
-        assert!(about(hydrate.floor_ml, 1800.0));
-        assert!(about(hydrate.cap_ml, 2200.0));
+        assert!(about(hydrate.floor_ml, 1600.0));
+        assert!(about(hydrate.cap_ml, 2400.0));
     }
 
     #[test]
@@ -198,10 +198,10 @@ mod tests {
         let records = based_on(
             500.0,
             vec![
-                (1, drunk("2026-10-09", "Tea", 400.0)),
+                (1, drunk("2026-10-09", "Tea", 350.0)),
                 (2, drunk("2026-10-10", "Tea", 300.0)),
                 (3, drunk("2026-10-10", "Tea", 200.0)),
-                (4, drunk("2026-10-11", "Tea", 600.0)),
+                (4, drunk("2026-10-11", "Tea", 650.0)),
             ],
         );
         let verdict_on = |date| {
