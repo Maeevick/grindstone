@@ -102,12 +102,40 @@ impl Axis {
     }
 
     pub fn ticks(&self) -> Vec<f64> {
-        vec![]
+        let steps = ((self.highest - self.lowest) / self.step).round() as usize;
+        (0..=steps)
+            .map(|step| self.lowest + step as f64 * self.step)
+            .collect()
     }
 }
 
-pub fn axis_of(_values: impl Iterator<Item = f64> + Clone) -> Option<Axis> {
-    None
+/// An axis over every value, on round ends: about a third of the span, rounded up to 1, 2, 2.5
+/// or 5 times a power of ten, makes its step, so one to three ticks fall between its ends.
+/// A lone value gets a unit either side, never below nothing when it is not.
+pub fn axis_of(values: impl Iterator<Item = f64> + Clone) -> Option<Axis> {
+    let (lowest, highest) = range_of(values);
+    if !lowest.is_finite() {
+        return None;
+    }
+    let (lowest, highest) = if highest > lowest {
+        (lowest, highest)
+    } else if lowest >= 0.0 {
+        ((lowest - 1.0).max(0.0), highest + 1.0)
+    } else {
+        (lowest - 1.0, highest + 1.0)
+    };
+    let rough = (highest - lowest) / 3.0;
+    let magnitude = 10_f64.powf(rough.log10().floor());
+    let step = [1.0, 2.0, 2.5, 5.0, 10.0]
+        .into_iter()
+        .find(|factor| factor * magnitude >= rough)
+        .unwrap_or(10.0)
+        * magnitude;
+    Some(Axis {
+        lowest: (lowest / step).floor() * step,
+        highest: (highest / step).ceil() * step,
+        step,
+    })
 }
 
 pub fn scale_of(values: impl Iterator<Item = f64> + Clone) -> Option<(f64, f64)> {
