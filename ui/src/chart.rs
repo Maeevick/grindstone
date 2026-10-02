@@ -355,4 +355,16 @@ mod tests {
         assert_eq!(single.ticks().last(), Some(&71.0));
         assert_eq!(axis(&[]), None);
     }
+
+    #[test]
+    fn a_lone_value_below_nothing_gets_a_unit_either_side_and_one_at_nothing_none_below_it() {
+        assert_eq!(
+            axis(&[-0.5]).map(|negative| negative.ticks()),
+            Some(vec![-2.0, -1.0, 0.0, 1.0])
+        );
+        assert_eq!(
+            axis(&[0.0]).map(|nothing| nothing.ticks()),
+            Some(vec![0.0, 0.5, 1.0])
+        );
+    }
 }
