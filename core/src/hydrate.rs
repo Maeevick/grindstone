@@ -21,7 +21,7 @@ pub struct Hydrate {
 }
 
 const ML_PER_KCAL_BURNT: f64 = 1.0;
-const BAND_SHARE_EITHER_SIDE: f64 = 0.10;
+const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
 
 pub fn hydrate_on(
     day: NaiveDate,
