@@ -89,6 +89,27 @@ pub fn energy_gauge_of(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Axis {
+    pub lowest: f64,
+    pub highest: f64,
+    pub step: f64,
+}
+
+impl Axis {
+    pub fn scale(&self) -> (f64, f64) {
+        (self.lowest, self.highest)
+    }
+
+    pub fn ticks(&self) -> Vec<f64> {
+        vec![]
+    }
+}
+
+pub fn axis_of(_values: impl Iterator<Item = f64> + Clone) -> Option<Axis> {
+    None
+}
+
 pub fn scale_of(values: impl Iterator<Item = f64> + Clone) -> Option<(f64, f64)> {
     let (lowest, highest) = range_of(values);
     if !lowest.is_finite() {
@@ -277,5 +298,33 @@ mod tests {
             (closed.minimum_at, closed.cap_at, closed.eaten_at),
             (480.0, 480.0, 480.0)
         );
+    }
+
+    fn axis(values: &[f64]) -> Option<Axis> {
+        axis_of(values.iter().copied())
+    }
+
+    #[test]
+    fn an_axis_spans_every_value_on_round_ends_with_one_to_three_round_ticks_between() {
+        let masses = axis(&[63.0, 80.2, 70.0]).expect("an axis");
+        let energies = axis(&[1900.0, 2650.0, 2199.0]).expect("an axis");
+        let burns = axis(&[0.0, 120.0, 252.0]).expect("an axis");
+
+        assert_eq!(masses.ticks(), vec![60.0, 70.0, 80.0, 90.0]);
+        assert_eq!(
+            energies.ticks(),
+            vec![1750.0, 2000.0, 2250.0, 2500.0, 2750.0]
+        );
+        assert_eq!(burns.ticks(), vec![0.0, 100.0, 200.0, 300.0]);
+        assert_eq!(burns.scale(), (0.0, 300.0));
+    }
+
+    #[test]
+    fn a_single_value_sits_in_the_middle_of_a_narrow_axis_and_no_value_draws_none() {
+        let single = axis(&[70.0]).expect("an axis");
+
+        assert_eq!(single.ticks().first(), Some(&69.0));
+        assert_eq!(single.ticks().last(), Some(&71.0));
+        assert_eq!(axis(&[]), None);
     }
 }
