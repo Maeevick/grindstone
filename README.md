@@ -17,11 +17,11 @@ Version 0.1, the full scope, on four tabs.
   - the streak:
     - four ticks a day: a weigh-in; Fuel, meaning the day's energy inside its band; a workout; Hydrate inside its band;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
-    - laid out as weeks from Monday to Sunday, five at a time, with the earlier weeks on demand;
+    - its count and today's four ticks at the top, each day's dot in the history beneath the chart;
   - today's fuel, hydrate and burn;
   - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 30 days, 90 days or everything, with its axes' values, the current values and a legend;
   - beneath it, Veil's note on what is worth sharpening for the chosen chip: the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
-  - each chip's history beneath, month by month.
+  - each chip's history beneath, month by month, its units in the headers and each day's streak dot.
 - **Tracker:** one day at a time, today by default, shown as yyyy-mm-dd, in four segments, each closed by a way into Stats. Every list of the catalog starts on "Select me" and narrows from three letters typed, starting matches first, then those containing them, ignoring case and accents.
   - **Gather:** mass and waist, filled with the day's record when there is one, the body mass marked required when there is not. The last 7 days show their mass, waist, fat ratio and lean mass under their units, the chosen day in gold, with a tendency row: green when a measure closes on its goal, red when it moves away, a dash when it holds steady.
   - **Fuel:** intakes from the catalog, one portion of the food when no quantity is typed. The day's energy sits on a gauge: the minimum (25 kcal per kilo of lean mass for a man, 30 for a woman, plus the burn) in red, Alpert's floor and maintenance in gold, the band between them in green, what was eaten in blue. The four macros show their goal, what was eaten, the gap and their share of the energy, with a total. The day's intakes list each food with its quantity, energy and macros.
