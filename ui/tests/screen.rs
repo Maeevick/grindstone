@@ -1035,7 +1035,7 @@ async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
 }
 
 #[wasm_bindgen_test]
-async fn home_shows_the_streak_its_recent_days_and_todays_ticks() {
+async fn home_shows_the_streak_count_and_todays_four_ticks() {
     answering(
         r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
              "gather_card": { "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
@@ -1054,24 +1054,18 @@ async fn home_shows_the_streak_its_recent_days_and_todays_ticks() {
 
     let said = screen.text_content().unwrap_or_default();
     assert!(said.contains("2 days"), "{said}");
-    let dots = screen
-        .query_selector_all(".streak .week .dot")
+    let ticks = screen
+        .query_selector_all(".streak .ticks li")
         .map(|found| found.length())
         .unwrap_or_default();
-    assert_eq!(dots, 3);
+    assert_eq!(ticks, 4);
+    found::<Element>(&screen, ".streak .ticks .held");
     assert!(
         screen
-            .query_selector(".streak .week .dot.Joker")
+            .query_selector(".streak .dot")
             .ok()
             .flatten()
-            .is_some()
-    );
-    assert!(
-        screen
-            .query_selector(".ticks .held")
-            .ok()
-            .flatten()
-            .is_some()
+            .is_none()
     );
 }
 
@@ -1507,54 +1501,32 @@ async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
     assert!(scale.query_selector("svg .amount").ok().flatten().is_some());
 }
 
-fn a_streak_of(days: u32) -> String {
-    let first = chrono::NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day")
-        - chrono::Days::new(u64::from(days) - 1);
-    let history: Vec<String> = (0..days)
-        .map(|offset| {
-            format!(
-                r#"{{ "day": "{}", "status": "Success", "ticks": {{ "weighed": true, "fuelled": true, "worked_out": true, "hydrated": true }} }}"#,
-                first + chrono::Days::new(u64::from(offset))
-            )
-        })
-        .collect();
-    format!(
-        r#"{{ "days": {days}, "at_risk": false, "history": [{}] }}"#,
-        history.join(", ")
-    )
-}
-
 #[wasm_bindgen_test]
-async fn a_long_streak_shows_its_latest_weeks_and_loads_the_earlier_ones() {
+async fn the_history_marks_each_day_with_its_streak_dot_under_headers_holding_the_units() {
     answering(&format!(
-        r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
-             "gather_card": {{ "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null }},
-             "streak": {} }}"#,
-        a_streak_of(60)
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
+                {{ "day": "2026-10-10", "body_mass_kg": 80.0, "lean_mass_kg": 70.7, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }},
+                {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
-    settled().await;
-    settled().await;
-    let weeks_shown = |screen: &Element| {
-        screen
-            .query_selector_all(".streak .week")
-            .map(|found| found.length())
-            .unwrap_or_default()
-    };
-    assert_eq!(weeks_shown(&screen), 5);
-
-    found::<web_sys::HtmlElement>(&screen, ".streak button.more").click();
+    let _mounted = the_charts(&screen);
     settled().await;
 
-    assert_eq!(weeks_shown(&screen), 9);
-    assert!(
-        screen
-            .query_selector(".streak .legend")
-            .ok()
-            .flatten()
-            .is_some()
+    let heads = text_of(&screen, ".history thead");
+    for head in ["Day", "BM (kg)", "FFM (kg)", "FM (kg)", "Fat %", "Streak"] {
+        assert!(heads.contains(head), "{head} in {heads}");
+    }
+    let rows = text_of(&screen, ".history tbody");
+    assert!(rows.contains("80.0") && !rows.contains("kg"), "{rows}");
+    found::<Element>(
+        &screen,
+        ".history tbody tr:first-child td:last-child .dot.Pending",
     );
+    found::<Element>(
+        &screen,
+        ".history tbody tr:nth-child(2) td:last-child .dot.Joker",
+    );
+    found::<Element>(&screen, ".history .legend .dot.Success");
 }
 
 const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_kg": 70.0, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
@@ -1568,7 +1540,10 @@ const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_
                     "minutes": [["2026-10-09", 6.0], ["2026-10-10", 60.0]] },
     "fuel_month": { "month": "2026-10", "earlier": null, "rows": [] },
     "hydrate_month": { "month": "2026-10", "earlier": null, "rows": [] },
-    "burn_month": { "month": "2026-10", "earlier": null, "rows": [] }"#;
+    "burn_month": { "month": "2026-10", "earlier": null, "rows": [] },
+    "streak": { "days": 2, "at_risk": true, "history": [
+        { "day": "2026-10-09", "status": "Joker", "ticks": { "weighed": true, "fuelled": false, "worked_out": true, "hydrated": true } },
+        { "day": "2026-10-10", "status": "Pending", "ticks": { "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true } } ] }"#;
 
 fn the_charts(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
