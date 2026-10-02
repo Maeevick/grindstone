@@ -1,7 +1,6 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
-use crate::calendar::weeks_of;
 use crate::screens::charts::Charts;
 
 use crate::screens::{lines, today};
@@ -23,12 +22,9 @@ fn Welcome() -> impl IntoView {
     }
 }
 
-const WEEKS_AT_A_TIME: usize = 5;
-
 #[component]
 fn StreakCard() -> impl IntoView {
     let streak = LocalResource::new(move || async move { tauri::streak(&today()).await });
-    let weeks_shown = RwSignal::new(WEEKS_AT_A_TIME);
     view! {
         <section class="card streak">
             <h2>"Streak"</h2>
@@ -43,87 +39,8 @@ fn StreakCard() -> impl IntoView {
                                     .last()
                                     .map(|today| lines::ticks_of(&today.ticks))
                                     .unwrap_or_default();
-                                let weeks = weeks_of(
-                                    &streak
-                                        .history
-                                        .iter()
-                                        .map(|streaked| (streaked.day, *streaked))
-                                        .collect::<Vec<_>>(),
-                                );
-                                let all_weeks = weeks.len();
                                 view! {
                                     <p class="figures">{lines::streak_line(&streak)}</p>
-                                    <div class="calendar">
-                                        <div class="weekdays">
-                                            {["M", "T", "W", "T", "F", "S", "S"]
-                                                .into_iter()
-                                                .map(|initial| view! { <span>{initial}</span> })
-                                                .collect_view()}
-                                        </div>
-                                        {move || {
-                                            weeks
-                                                .iter()
-                                                .take(weeks_shown.get())
-                                                .map(|week| {
-                                                    view! {
-                                                        <div class="week">
-                                                            {week
-                                                                .iter()
-                                                                .map(|cell| match cell {
-                                                                    Some(streaked) => {
-                                                                        view! {
-                                                                            <span
-                                                                                class=format!("dot {:?}", streaked.status)
-                                                                                title=format!(
-                                                                                    "{}: {}",
-                                                                                    streaked.day,
-                                                                                    lines::status_word(streaked.status),
-                                                                                )
-                                                                            ></span>
-                                                                        }
-                                                                            .into_any()
-                                                                    }
-                                                                    None => view! { <span class="blank"></span> }.into_any(),
-                                                                })
-                                                                .collect_view()}
-                                                        </div>
-                                                    }
-                                                })
-                                                .collect_view()
-                                        }}
-                                    </div>
-                                    {move || {
-                                        (weeks_shown.get() < all_weeks)
-                                            .then(|| {
-                                                view! {
-                                                    <button
-                                                        class="cta ghost more"
-                                                        type="button"
-                                                        on:click=move |_| weeks_shown.update(|shown| *shown += WEEKS_AT_A_TIME)
-                                                    >
-                                                        "Load more weeks"
-                                                    </button>
-                                                }
-                                            })
-                                    }}
-                                    <ul class="legend">
-                                        {[
-                                            ("Success", "every tick"),
-                                            ("Joker", "a joker"),
-                                            ("Break", "a break"),
-                                            ("Pending", "under way"),
-                                        ]
-                                            .into_iter()
-                                            .map(|(status, meaning)| {
-                                                view! {
-                                                    <li>
-                                                        <span class=format!("dot {status}")></span>
-                                                        {meaning}
-                                                    </li>
-                                                }
-                                            })
-                                            .collect_view()}
-                                    </ul>
                                     <ul class="ticks">
                                         {today_ticks
                                             .into_iter()

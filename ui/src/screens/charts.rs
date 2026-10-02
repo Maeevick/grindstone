@@ -1,11 +1,12 @@
 use chrono::NaiveDate;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, shown};
+use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_charting::{
     BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
 use grind_core::for_reviewing_progress::Window;
 use grind_core::sharpening::sharpening_of;
+use grind_core::streak::{Status, StreakDay};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -373,60 +374,91 @@ fn LoadMore(earlier: Option<String>, load: Callback<String>) -> impl IntoView {
     })
 }
 
-fn gather_row(row: GatherRow) -> impl IntoView {
-    let optional = |value: Option<f64>, figure: fn(f64) -> Figure| {
-        value.map(|value| shown(figure(value))).unwrap_or_default()
-    };
+fn streak_cell(status: Option<Status>) -> impl IntoView {
+    view! {
+        <td>
+            {status
+                .map(|status| {
+                    view! {
+                        <span class=format!("dot {status:?}") title=lines::status_word(status)></span>
+                    }
+                })}
+        </td>
+    }
+}
+
+fn header(name: &'static str, unit: &'static str) -> impl IntoView {
+    view! {
+        {name}
+        {(!unit.is_empty())
+            .then(|| {
+                view! {
+                    " "
+                    <span class="unit">{format!("({unit})")}</span>
+                }
+            })}
+    }
+}
+
+fn bare_or_blank(value: Option<f64>, figure: fn(f64) -> Figure) -> String {
+    value.map(|value| bare(figure(value))).unwrap_or_default()
+}
+
+fn gather_row(row: GatherRow, status: Option<Status>) -> impl IntoView {
     view! {
         <tr>
             <td>{row.day.to_string()}</td>
-            <td>{shown(Figure::Mass(row.body_mass_kg))}</td>
-            <td>{optional(row.lean_mass_kg, Figure::Mass)}</td>
-            <td>{optional(row.fat_mass_kg, Figure::Mass)}</td>
-            <td>{optional(row.fat_ratio, Figure::Ratio)}</td>
+            <td>{bare(Figure::Mass(row.body_mass_kg))}</td>
+            <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>
+            <td>{bare_or_blank(row.fat_mass_kg, Figure::Mass)}</td>
+            <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
+            {streak_cell(status)}
         </tr>
     }
 }
 
-fn fuel_row(row: FuelRow) -> impl IntoView {
+fn fuel_row(row: FuelRow, status: Option<Status>) -> impl IntoView {
     view! {
         <tr>
             <td>{row.day.to_string()}</td>
-            <td>{shown(Figure::Energy(row.eaten.energy_kcal))}</td>
-            <td>{shown(Figure::Grams(row.eaten.protein_g))}</td>
-            <td>{shown(Figure::Grams(row.eaten.fat_g))}</td>
-            <td>{shown(Figure::Grams(row.eaten.carbs_g))}</td>
-            <td>{shown(Figure::Grams(row.eaten.fibre_g))}</td>
+            <td>{bare(Figure::Energy(row.eaten.energy_kcal))}</td>
+            <td>{bare(Figure::Grams(row.eaten.protein_g))}</td>
+            <td>{bare(Figure::Grams(row.eaten.fat_g))}</td>
+            <td>{bare(Figure::Grams(row.eaten.carbs_g))}</td>
+            <td>{bare(Figure::Grams(row.eaten.fibre_g))}</td>
+            {streak_cell(status)}
         </tr>
     }
 }
 
-fn hydrate_row(row: HydrateRow) -> impl IntoView {
+fn hydrate_row(row: HydrateRow, status: Option<Status>) -> impl IntoView {
     view! {
         <tr>
             <td>{row.day.to_string()}</td>
-            <td>{shown(Figure::Volume(row.drunk_ml))}</td>
-            <td>{shown(Figure::Ratio(row.water_ratio))}</td>
+            <td>{bare(Figure::Volume(row.drunk_ml))}</td>
+            <td>{bare(Figure::Ratio(row.water_ratio))}</td>
+            {streak_cell(status)}
         </tr>
     }
 }
 
-fn burn_row(row: BurnRow) -> impl IntoView {
+fn burn_row(row: BurnRow, status: Option<Status>) -> impl IntoView {
     view! {
         <tr>
             <td>{row.day.to_string()}</td>
-            <td>{row.burnt_kcal.map(|kcal| shown(Figure::Energy(kcal))).unwrap_or_default()}</td>
-            <td>{shown(Figure::Duration(row.minutes))}</td>
-            <td>{shown(Figure::Count(row.reps))}</td>
+            <td>{bare_or_blank(row.burnt_kcal, Figure::Energy)}</td>
+            <td>{bare(Figure::Duration(row.minutes))}</td>
+            <td>{bare(Figure::Count(row.reps))}</td>
             <td>{row.top_exercise.unwrap_or_default()}</td>
+            {streak_cell(status)}
         </tr>
     }
 }
 
 macro_rules! history {
-    ($name:ident, $row:ty, $load:path, $render:ident, [$($head:literal),*]) => {
+    ($name:ident, $row:ty, $load:path, $render:ident, [$(($head:literal, $unit:literal)),*]) => {
         #[component]
-        fn $name(today: String) -> impl IntoView {
+        fn $name(today: String, streaked: Signal<Vec<StreakDay>>) -> impl IntoView {
             let months = RwSignal::new(Vec::<Month<$row>>::new());
             let said = RwSignal::new(None::<String>);
             let load = Callback::new(move |month: String| {
@@ -439,16 +471,31 @@ macro_rules! history {
             });
             load.run(today.chars().take(7).collect());
             view! {
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            $(<th>{$head}</th>)*
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {move || months_of(months).into_iter().map($render).collect_view()}
-                    </tbody>
-                </table>
+                <div class="scroll">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                $(<th>{header($head, $unit)}</th>)*
+                                <th>"Streak"</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {move || {
+                                let days = streaked.get();
+                                months_of(months)
+                                    .into_iter()
+                                    .map(|row| {
+                                        let status = days
+                                            .iter()
+                                            .find(|streaked| streaked.day == row.day)
+                                            .map(|streaked| streaked.status);
+                                        $render(row, status)
+                                    })
+                                    .collect_view()
+                            }}
+                        </tbody>
+                    </table>
+                </div>
                 {move || {
                     months_of(months)
                         .is_empty()
@@ -469,28 +516,47 @@ history!(
     GatherRow,
     tauri::gather_month,
     gather_row,
-    ["Day", "Mass", "Lean", "Fat", "Fat %"]
+    [
+        ("Day", ""),
+        ("BM", "kg"),
+        ("FFM", "kg"),
+        ("FM", "kg"),
+        ("Fat %", "")
+    ]
 );
 history!(
     FuelHistory,
     FuelRow,
     tauri::fuel_month,
     fuel_row,
-    ["Day", "kcal", "Protein", "Fat", "Carbs", "Fibre"]
+    [
+        ("Day", ""),
+        ("Energy", "kcal"),
+        ("Prot", "g"),
+        ("Fat", "g"),
+        ("Carbs", "g"),
+        ("Fib", "g")
+    ]
 );
 history!(
     HydrateHistory,
     HydrateRow,
     tauri::hydrate_month,
     hydrate_row,
-    ["Day", "Drunk", "Water"]
+    [("Day", ""), ("Drunk", "mL"), ("Water %", "")]
 );
 history!(
     BurnHistory,
     BurnRow,
     tauri::burn_month,
     burn_row,
-    ["Day", "kcal", "Minutes", "Reps", "Top exercise"]
+    [
+        ("Day", ""),
+        ("Burnt", "kcal"),
+        ("Duration", "min"),
+        ("Reps", ""),
+        ("Top exercise", "")
+    ]
 );
 
 #[component]
@@ -535,6 +601,17 @@ pub fn Charts(today: String) -> impl IntoView {
     let chip = RwSignal::new(Chip::Gather);
     let window = RwSignal::new(Window::Days30);
     let today = StoredValue::new(today);
+    let streak = LocalResource::new(move || {
+        let today = today.get_value();
+        async move { tauri::streak(&today).await }
+    });
+    let streaked = Signal::derive(move || {
+        streak
+            .get()
+            .and_then(Result::ok)
+            .map(|streak| streak.history)
+            .unwrap_or_default()
+    });
     view! {
         <section class="card charts">
             <div class="pills chips">
@@ -590,11 +667,37 @@ pub fn Charts(today: String) -> impl IntoView {
         <section class="card history">
             <h2>"History"</h2>
             {move || match chip.get() {
-                Chip::Gather => view! { <GatherHistory today=today.get_value() /> }.into_any(),
-                Chip::Fuel => view! { <FuelHistory today=today.get_value() /> }.into_any(),
-                Chip::Hydrate => view! { <HydrateHistory today=today.get_value() /> }.into_any(),
-                Chip::Burn => view! { <BurnHistory today=today.get_value() /> }.into_any(),
+                Chip::Gather => {
+                    view! { <GatherHistory today=today.get_value() streaked=streaked /> }.into_any()
+                }
+                Chip::Fuel => {
+                    view! { <FuelHistory today=today.get_value() streaked=streaked /> }.into_any()
+                }
+                Chip::Hydrate => {
+                    view! { <HydrateHistory today=today.get_value() streaked=streaked /> }.into_any()
+                }
+                Chip::Burn => {
+                    view! { <BurnHistory today=today.get_value() streaked=streaked /> }.into_any()
+                }
             }}
+            <ul class="legend">
+                {[
+                    (Status::Success, "every tick"),
+                    (Status::Joker, "a joker"),
+                    (Status::Break, "a break"),
+                    (Status::Pending, "under way"),
+                ]
+                    .into_iter()
+                    .map(|(status, meaning)| {
+                        view! {
+                            <li>
+                                <span class=format!("dot {status:?}")></span>
+                                {meaning}
+                            </li>
+                        }
+                    })
+                    .collect_view()}
+            </ul>
         </section>
     }
 }

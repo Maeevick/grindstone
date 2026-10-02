@@ -311,31 +311,6 @@ select {
     color: #e8b04b;
 }
 
-.calendar {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    margin: 0.5rem 0;
-}
-
-.weekdays,
-.week {
-    display: grid;
-    grid-template-columns: repeat(7, 1.1rem);
-    gap: 0.45rem;
-}
-
-.weekdays span {
-    font-size: 0.7rem;
-    color: #9aa0a6;
-    text-align: center;
-}
-
-.blank {
-    width: 0.8rem;
-    height: 0.8rem;
-}
-
 .legend {
     list-style: none;
     padding: 0;
@@ -744,4 +719,12 @@ textarea:focus {
 	margin: 4px 0;
 	white-space: pre-line;
 	overflow-wrap: anywhere;
+}
+
+.unit {
+	text-transform: none;
+}
+
+.history-table .dot {
+	display: inline-block;
 }
