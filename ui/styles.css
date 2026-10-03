@@ -728,3 +728,33 @@ textarea:focus {
 .history-table .dot {
 	display: inline-block;
 }
+
+.plot .grid {
+	stroke: #2a2a30;
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.plot .axis {
+	stroke: #4a4a52;
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.plot .label.tick {
+	color: var(--mut);
+	font-size: 0.62rem;
+}
+
+.plot .label.tick.burnt {
+	color: #e8b04b;
+}
+
+.plot .label.tick.minutes {
+	color: #7aa2f7;
+}
+
+.history-table td,
+.history-table th {
+	white-space: nowrap;
+}

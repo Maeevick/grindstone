@@ -10,7 +10,7 @@ use grind_core::streak::{Status, StreakDay};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::chart::{height_of, line_of, scale_of, spread};
+use crate::chart::{Axis, axis_of, height_of, line_of, spread};
 use crate::screens::lines;
 use crate::tauri;
 
@@ -40,7 +40,6 @@ const WINDOWS: [(Window, &str); 3] = [
 ];
 
 type Points = Vec<(NaiveDate, f64)>;
-type Series<'a> = (&'a Points, fn(f64) -> Figure, &'static str);
 
 #[derive(Clone)]
 struct Line {
@@ -60,6 +59,8 @@ struct Plotted {
     lines: Vec<Line>,
     left: Vec<Label>,
     right: Vec<Label>,
+    ticks: Vec<Label>,
+    right_ticks: Vec<Label>,
     legend: Vec<(&'static str, &'static str)>,
 }
 
@@ -80,14 +81,6 @@ fn current(points: &[(NaiveDate, f64)]) -> Option<f64> {
     points.last().map(|(_, value)| *value)
 }
 
-fn highest(points: &[(NaiveDate, f64)]) -> Option<f64> {
-    points.iter().map(|(_, value)| *value).reduce(f64::max)
-}
-
-fn lowest(points: &[(NaiveDate, f64)]) -> Option<f64> {
-    points.iter().map(|(_, value)| *value).reduce(f64::min)
-}
-
 fn labelled(
     value: Option<f64>,
     scale: (f64, f64),
@@ -101,12 +94,35 @@ fn labelled(
     })
 }
 
+fn ticks_on(axis: Axis, figure: fn(f64) -> Figure, class: &'static str) -> Vec<Label> {
+    axis.ticks()
+        .into_iter()
+        .map(|value| Label {
+            at: height_of(value, axis.scale(), HEIGHT),
+            text: bare(figure(value)),
+            class,
+        })
+        .collect()
+}
+
 fn spread_out(labels: Vec<Label>) -> Vec<Label> {
     let heights: Vec<f64> = labels.iter().map(|label| label.at).collect();
     labels
         .into_iter()
         .zip(spread(&heights, LABEL_GAP, HEIGHT))
         .map(|(label, at)| Label { at, ..label })
+        .collect()
+}
+
+/// The ticks a series' own label leaves room for: the label says more than the tick it covers.
+fn clear_of(ticks: Vec<Label>, labels: &[Label]) -> Vec<Label> {
+    ticks
+        .into_iter()
+        .filter(|tick| {
+            labels
+                .iter()
+                .all(|label| (label.at - tick.at).abs() >= LABEL_GAP)
+        })
         .collect()
 }
 
@@ -119,7 +135,8 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
         .map(|(_, kg)| *kg)
         .chain(chart.goal_kg)
         .chain(chart.goal_lean_kg);
-    let scale = scale_of(values)?;
+    let axis = axis_of(values)?;
+    let scale = axis.scale();
     let mut lines = vec![
         Line {
             points: line_of(&chart.masses, span, scale, WIDTH, HEIGHT),
@@ -141,7 +158,6 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
     Some(Plotted {
         lines,
         left: [
-            labelled(highest(&chart.masses), scale, Figure::Mass, "mass"),
             labelled(chart.goal_kg, scale, Figure::Mass, "goal"),
             labelled(chart.goal_lean_kg, scale, Figure::Mass, "lean"),
         ]
@@ -155,6 +171,8 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
         .into_iter()
         .flatten()
         .collect(),
+        ticks: ticks_on(axis, Figure::Mass, ""),
+        right_ticks: vec![],
         legend: vec![
             ("mass", "Body mass"),
             ("lean", "Lean mass"),
@@ -176,7 +194,8 @@ fn band_plot(
         .chain(&chart.floors)
         .chain(&chart.caps)
         .map(|(_, value)| *value);
-    let scale = scale_of(values)?;
+    let axis = axis_of(values)?;
+    let scale = axis.scale();
     let (class, name) = amount;
     Some(Plotted {
         lines: vec![
@@ -193,13 +212,7 @@ fn band_plot(
                 class: "cap",
             },
         ],
-        left: [
-            labelled(highest(&chart.amounts), scale, figure, class),
-            labelled(lowest(&chart.amounts), scale, figure, class),
-        ]
-        .into_iter()
-        .flatten()
-        .collect(),
+        left: vec![],
         right: [
             labelled(current(&chart.amounts), scale, figure, class),
             labelled(current(&chart.floors), scale, figure, "floor"),
@@ -208,38 +221,34 @@ fn band_plot(
         .into_iter()
         .flatten()
         .collect(),
+        ticks: ticks_on(axis, figure, ""),
+        right_ticks: vec![],
         legend: vec![(class, name), ("floor", "Floor"), ("cap", "Cap")],
     })
 }
 
+/// Two scales, two axes: the energy burnt on the left, the minutes on the right, each in its colour.
 fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
     let span = span_of(chart.burnt.iter().chain(&chart.minutes))?;
-    let series: [Series; 2] = [
-        (&chart.burnt, Figure::Energy, "burnt"),
-        (&chart.minutes, Figure::Duration, "minutes"),
-    ];
-    let mut plotted = Plotted {
-        lines: vec![],
+    let axis_over = |points: &Points| axis_of(points.iter().map(|(_, value)| *value).chain([0.0]));
+    let (burnt, minutes) = (axis_over(&chart.burnt)?, axis_over(&chart.minutes)?);
+    Some(Plotted {
+        lines: vec![
+            Line {
+                points: line_of(&chart.burnt, span, burnt.scale(), WIDTH, HEIGHT),
+                class: "burnt",
+            },
+            Line {
+                points: line_of(&chart.minutes, span, minutes.scale(), WIDTH, HEIGHT),
+                class: "minutes",
+            },
+        ],
         left: vec![],
         right: vec![],
+        ticks: ticks_on(burnt, Figure::Energy, "burnt"),
+        right_ticks: ticks_on(minutes, Figure::Duration, "minutes"),
         legend: vec![("burnt", "Burnt (kcal)"), ("minutes", "Minutes")],
-    };
-    for (points, figure, class) in series {
-        let Some(scale) = scale_of(points.iter().map(|(_, value)| *value).chain([0.0])) else {
-            continue;
-        };
-        plotted.lines.push(Line {
-            points: line_of(points, span, scale, WIDTH, HEIGHT),
-            class,
-        });
-        plotted
-            .left
-            .extend(labelled(highest(points), scale, figure, class));
-        plotted
-            .right
-            .extend(labelled(current(points), scale, figure, class));
-    }
-    Some(plotted)
+    })
 }
 
 #[component]
@@ -259,17 +268,40 @@ fn Plot(plotted: Option<Plotted>) -> impl IntoView {
                     }
                 }
             };
+            let tick = |side: &'static str| {
+                move |label: Label| {
+                    view! {
+                        <span
+                            class=format!("label {side} tick {}", label.class)
+                            style=format!("top: {:.1}%", label.at / HEIGHT * 100.0)
+                        >
+                            {label.text}
+                        </span>
+                    }
+                }
+            };
+            let (left, right) = (spread_out(plotted.left), spread_out(plotted.right));
+            let grid: Vec<f64> = plotted.ticks.iter().map(|tick| tick.at).collect();
+            let two_axes = !plotted.right_ticks.is_empty();
             view! {
                 <div class="plot">
                     <svg viewBox="0 0 360 180" preserveAspectRatio="none">
+                        {grid
+                            .into_iter()
+                            .map(|y| view! { <line class="grid" x1="0" x2="360" y1=y y2=y /> })
+                            .collect_view()}
+                        <line class="axis" x1="0" x2="0" y1="0" y2="180" />
+                        {two_axes.then(|| view! { <line class="axis" x1="360" x2="360" y1="0" y2="180" /> })}
                         {plotted
                             .lines
                             .into_iter()
                             .map(|line| view! { <polyline class=line.class points=line.points /> })
                             .collect_view()}
                     </svg>
-                    {spread_out(plotted.left).into_iter().map(place("left")).collect_view()}
-                    {spread_out(plotted.right).into_iter().map(place("right")).collect_view()}
+                    {clear_of(plotted.ticks, &left).into_iter().map(tick("left")).collect_view()}
+                    {clear_of(plotted.right_ticks, &right).into_iter().map(tick("right")).collect_view()}
+                    {left.into_iter().map(place("left")).collect_view()}
+                    {right.into_iter().map(place("right")).collect_view()}
                 </div>
                 <ul class="legend">
                     {plotted
