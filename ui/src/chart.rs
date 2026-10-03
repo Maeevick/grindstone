@@ -49,13 +49,16 @@ pub fn scatter_of(pairs: &[(f64, f64)], width: f64, height: f64) -> Vec<(f64, f6
 }
 
 pub fn dots_of(
-    _pairs: &[(f64, f64)],
-    _xs: (f64, f64),
-    _ys: (f64, f64),
-    _width: f64,
-    _height: f64,
+    pairs: &[(f64, f64)],
+    xs: (f64, f64),
+    ys: (f64, f64),
+    width: f64,
+    height: f64,
 ) -> Vec<(f64, f64)> {
-    vec![]
+    pairs
+        .iter()
+        .map(|(x, y)| (placed(*x, xs, width), height_of(*y, ys, height)))
+        .collect()
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
