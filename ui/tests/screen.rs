@@ -1070,7 +1070,7 @@ async fn home_shows_the_streak_count_and_todays_four_ticks() {
 }
 
 #[wasm_bindgen_test]
-async fn stats_draw_two_measures_and_tell_how_they_move_together() {
+async fn stats_draw_two_measures_on_their_own_y_axes_and_tell_how_they_move_together() {
     answering(
         r#"{ "explore": { "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
                "other": [["2026-10-08", 2600.0], ["2026-10-09", 2500.0], ["2026-10-10", 2400.0]],
@@ -1088,16 +1088,39 @@ async fn stats_draw_two_measures_and_tell_how_they_move_together() {
     });
     settled().await;
 
-    let lines_drawn = screen
-        .query_selector_all("svg.timeline polyline")
-        .map(|found| found.length())
-        .unwrap_or_default();
-    let pairs_drawn = screen
-        .query_selector_all("svg.scatter circle")
-        .map(|found| found.length())
-        .unwrap_or_default();
+    let count = |selector: &str| {
+        screen
+            .query_selector_all(selector)
+            .map(|found| found.length())
+            .unwrap_or_default()
+    };
     let said = screen.text_content().unwrap_or_default();
-    assert_eq!((lines_drawn, pairs_drawn), (2, 3));
+    assert_eq!(
+        (
+            count(".timeline svg polyline"),
+            count(".scatter svg circle")
+        ),
+        (2, 3)
+    );
+    assert_eq!(
+        (
+            count(".timeline svg line.axis"),
+            count(".scatter svg line.axis")
+        ),
+        (2, 1)
+    );
+    assert_eq!(
+        texts_of(&screen, ".timeline .label.tick.one"),
+        ["80.0", "80.2", "80.4"]
+    );
+    assert_eq!(
+        texts_of(&screen, ".timeline .label.tick.other"),
+        ["2400", "2500", "2600"]
+    );
+    assert_eq!(
+        texts_of(&screen, ".scatter .label.tick.other"),
+        ["2400", "2500", "2600"]
+    );
     assert!(
         said.contains("80.4 kg") && said.contains("2400 kcal") && said.contains("1.00"),
         "{said}"
