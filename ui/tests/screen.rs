@@ -1582,7 +1582,7 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
     for (chip, lines, said) in [
         ("Fuel", 3, "1900 kcal"),
         ("Hydrate", 3, "2100 mL"),
-        ("Burn", 2, "60 min"),
+        ("Burn", 2, "Minutes"),
     ] {
         found::<web_sys::HtmlElement>(&screen, &format!("button.chip-{chip}")).click();
         settled().await;
@@ -1595,6 +1595,58 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
     assert!(
         legend.contains("Burnt (kcal)") && legend.contains("Minutes") && !legend.contains("Reps"),
         "{legend}"
+    );
+}
+
+fn texts_of(screen: &Element, selector: &str) -> Vec<String> {
+    let found = screen.query_selector_all(selector).expect(selector);
+    let mut texts: Vec<String> = (0..found.length())
+        .filter_map(|at| found.item(at))
+        .filter_map(|node| node.text_content())
+        .collect();
+    texts.sort();
+    texts
+}
+
+#[wasm_bindgen_test]
+async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, {THE_INSIGHTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+    let count = |screen: &Element, selector: &str| {
+        screen
+            .query_selector_all(selector)
+            .map(|found| found.length())
+            .unwrap_or_default()
+    };
+
+    assert_eq!(count(&screen, ".charts svg line.axis"), 1);
+    assert_eq!(count(&screen, ".charts svg line.grid"), 4);
+    assert_eq!(
+        texts_of(&screen, ".charts .label.tick"),
+        ["60.0", "80.0", "90.0"]
+    );
+
+    clicked(&screen, "button.chip-Fuel");
+    settled().await;
+    assert_eq!(
+        texts_of(&screen, ".charts .label.tick"),
+        ["1750", "2000", "2250", "2500", "2750"]
+    );
+
+    clicked(&screen, "button.chip-Burn");
+    settled().await;
+    assert_eq!(count(&screen, ".charts svg line.axis"), 2);
+    assert_eq!(
+        texts_of(&screen, ".charts .label.tick.burnt"),
+        ["0", "100", "200", "300"]
+    );
+    assert_eq!(
+        texts_of(&screen, ".charts .label.tick.minutes"),
+        ["0", "20", "40", "60"]
     );
 }
 
