@@ -14,8 +14,8 @@ use crate::chart::{Axis, axis_of, height_of, line_of, spread};
 use crate::screens::lines;
 use crate::tauri;
 
-const WIDTH: f64 = 360.0;
-const HEIGHT: f64 = 180.0;
+pub const WIDTH: f64 = 360.0;
+pub const HEIGHT: f64 = 180.0;
 const LABEL_GAP: f64 = 16.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -39,32 +39,33 @@ const WINDOWS: [(Window, &str); 3] = [
     (Window::Everything, "Everything"),
 ];
 
-type Points = Vec<(NaiveDate, f64)>;
+pub type Points = Vec<(NaiveDate, f64)>;
 
 #[derive(Clone)]
-struct Line {
-    points: String,
-    class: &'static str,
+pub struct Line {
+    pub points: String,
+    pub class: &'static str,
 }
 
 #[derive(Clone)]
-struct Label {
+pub struct Label {
     at: f64,
     text: String,
     class: &'static str,
 }
 
-#[derive(Clone)]
-struct Plotted {
-    lines: Vec<Line>,
-    left: Vec<Label>,
-    right: Vec<Label>,
-    ticks: Vec<Label>,
-    right_ticks: Vec<Label>,
-    legend: Vec<(&'static str, &'static str)>,
+#[derive(Clone, Default)]
+pub struct Plotted {
+    pub lines: Vec<Line>,
+    pub dots: Vec<(f64, f64)>,
+    pub left: Vec<Label>,
+    pub right: Vec<Label>,
+    pub ticks: Vec<Label>,
+    pub right_ticks: Vec<Label>,
+    pub legend: Vec<(&'static str, &'static str)>,
 }
 
-fn span_of<'a>(
+pub fn span_of<'a>(
     series: impl Iterator<Item = &'a (NaiveDate, f64)> + Clone,
 ) -> Option<(NaiveDate, NaiveDate)> {
     let first = series.clone().map(|(day, _)| *day).min()?;
@@ -94,7 +95,7 @@ fn labelled(
     })
 }
 
-fn ticks_on(axis: Axis, figure: fn(f64) -> Figure, class: &'static str) -> Vec<Label> {
+pub fn ticks_on(axis: Axis, figure: impl Fn(f64) -> Figure, class: &'static str) -> Vec<Label> {
     axis.ticks()
         .into_iter()
         .map(|value| Label {
@@ -157,6 +158,7 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
     }));
     Some(Plotted {
         lines,
+        dots: vec![],
         left: [
             labelled(chart.goal_kg, scale, Figure::Mass, "goal"),
             labelled(chart.goal_lean_kg, scale, Figure::Mass, "lean"),
@@ -212,6 +214,7 @@ fn band_plot(
                 class: "cap",
             },
         ],
+        dots: vec![],
         left: vec![],
         right: [
             labelled(current(&chart.amounts), scale, figure, class),
@@ -243,6 +246,7 @@ fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
                 class: "minutes",
             },
         ],
+        dots: vec![],
         left: vec![],
         right: vec![],
         ticks: ticks_on(burnt, Figure::Energy, "burnt"),
@@ -252,7 +256,7 @@ fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
 }
 
 #[component]
-fn Plot(plotted: Option<Plotted>) -> impl IntoView {
+pub fn Plot(plotted: Option<Plotted>) -> impl IntoView {
     match plotted {
         None => view! { <p class="empty">{lines::NOTHING_TO_CHART}</p> }.into_any(),
         Some(plotted) => {
@@ -296,6 +300,11 @@ fn Plot(plotted: Option<Plotted>) -> impl IntoView {
                             .lines
                             .into_iter()
                             .map(|line| view! { <polyline class=line.class points=line.points /> })
+                            .collect_view()}
+                        {plotted
+                            .dots
+                            .into_iter()
+                            .map(|(x, y)| view! { <circle cx=x cy=y r="3" /> })
                             .collect_view()}
                     </svg>
                     {clear_of(plotted.ticks, &left).into_iter().map(tick("left")).collect_view()}

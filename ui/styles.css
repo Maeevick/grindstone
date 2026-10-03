@@ -758,3 +758,17 @@ textarea:focus {
 .history-table th {
 	white-space: nowrap;
 }
+
+.one {
+	stroke: #e8b04b;
+	color: #e8b04b;
+}
+
+.other {
+	stroke: #7aa2f7;
+	color: #7aa2f7;
+}
+
+.scatter circle {
+	fill: #7aa2f7;
+}
