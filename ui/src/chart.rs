@@ -48,6 +48,16 @@ pub fn scatter_of(pairs: &[(f64, f64)], width: f64, height: f64) -> Vec<(f64, f6
         .collect()
 }
 
+pub fn dots_of(
+    _pairs: &[(f64, f64)],
+    _xs: (f64, f64),
+    _ys: (f64, f64),
+    _width: f64,
+    _height: f64,
+) -> Vec<(f64, f64)> {
+    vec![]
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Gauge {
     pub band_from: f64,
@@ -365,6 +375,20 @@ mod tests {
         assert_eq!(
             axis(&[0.0]).map(|nothing| nothing.ticks()),
             Some(vec![0.0, 0.5, 1.0])
+        );
+    }
+
+    #[test]
+    fn a_scatters_dots_sit_on_the_scales_of_their_two_axes() {
+        assert_eq!(
+            dots_of(
+                &[(80.0, 2400.0), (80.5, 2600.0)],
+                (80.0, 81.0),
+                (2400.0, 2800.0),
+                360.0,
+                180.0
+            ),
+            vec![(0.0, 180.0), (180.0, 90.0)]
         );
     }
 }
