@@ -27,6 +27,7 @@ pub struct StreakDay {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Streak {
     pub days: u32,
+    pub longest: u32,
     pub at_risk: bool,
     pub history: Vec<StreakDay>,
 }
@@ -102,6 +103,7 @@ pub fn streak_of(ticked: &[(NaiveDate, Ticks)], today: NaiveDate) -> Streak {
             .is_some_and(|yesterday| yesterday.status == Status::Joker);
     Streak {
         days: days as u32,
+        longest: 0,
         at_risk,
         history: statuses,
     }
@@ -269,5 +271,30 @@ mod tests {
         let ticked = days_ending("2026-10-10", &[ALL, Ticks::default(), ALL]);
 
         assert_eq!(streak_of(&ticked, day("2026-10-10")).days, 1);
+    }
+
+    #[test]
+    fn the_longest_streak_is_the_longest_run_of_full_or_joker_days_the_current_one_included() {
+        let broken_after_four = days_ending(
+            "2026-10-10",
+            &[ALL, ALL, ALL, ALL, four(false, false, true, true), ALL, ALL],
+        );
+        let longest_now = days_ending(
+            "2026-10-10",
+            &[
+                ALL,
+                four(false, false, true, true),
+                ALL,
+                four(true, true, false, true),
+                ALL,
+                ALL,
+            ],
+        );
+
+        let earlier = streak_of(&broken_after_four, day("2026-10-10"));
+        let current = streak_of(&longest_now, day("2026-10-10"));
+
+        assert_eq!((earlier.days, earlier.longest), (2, 4));
+        assert_eq!((current.days, current.longest), (4, 4));
     }
 }

@@ -914,7 +914,7 @@ mod tests {
         assert_eq!(
             answer,
             Ok(
-                json!({ "days": 0, "at_risk": false, "history": [{ "day": "2026-10-10",
+                json!({ "days": 0, "longest": 0, "at_risk": false, "history": [{ "day": "2026-10-10",
                 "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": false },
                 "status": "Pending" }] })
             )
