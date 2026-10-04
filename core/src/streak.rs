@@ -101,9 +101,17 @@ pub fn streak_of(ticked: &[(NaiveDate, Ticks)], today: NaiveDate) -> Streak {
         && latest
             .next()
             .is_some_and(|yesterday| yesterday.status == Status::Joker);
+    let (_, longest) =
+        statuses
+            .iter()
+            .fold((0, 0), |(run, longest), streaked| match streaked.status {
+                Status::Success | Status::Joker => (run + 1, longest.max(run + 1)),
+                Status::Break => (0, longest),
+                Status::Pending => (run, longest),
+            });
     Streak {
         days: days as u32,
-        longest: 0,
+        longest,
         at_risk,
         history: statuses,
     }
