@@ -15,39 +15,6 @@ fn range_of(values: impl Iterator<Item = f64> + Clone) -> (f64, f64) {
     )
 }
 
-pub fn timeline_of(
-    points: &[(NaiveDate, f64)],
-    (first, last): (NaiveDate, NaiveDate),
-    width: f64,
-    height: f64,
-) -> String {
-    let days = (first, last);
-    let along = |day: NaiveDate| {
-        let (from, to) = days;
-        placed(
-            (day - from).num_days() as f64,
-            (0.0, (to - from).num_days() as f64),
-            width,
-        )
-    };
-    let values = range_of(points.iter().map(|(_, value)| *value));
-    points
-        .iter()
-        .map(|(day, value)| (along(*day), height - placed(*value, values, height)))
-        .map(|(x, y)| format!("{x:.1},{y:.1}"))
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-pub fn scatter_of(pairs: &[(f64, f64)], width: f64, height: f64) -> Vec<(f64, f64)> {
-    let xs = range_of(pairs.iter().map(|(x, _)| *x));
-    let ys = range_of(pairs.iter().map(|(_, y)| *y));
-    pairs
-        .iter()
-        .map(|(x, y)| (placed(*x, xs, width), height - placed(*y, ys, height)))
-        .collect()
-}
-
 pub fn dots_of(
     pairs: &[(f64, f64)],
     xs: (f64, f64),
@@ -151,15 +118,6 @@ pub fn axis_of(values: impl Iterator<Item = f64> + Clone) -> Option<Axis> {
     })
 }
 
-pub fn scale_of(values: impl Iterator<Item = f64> + Clone) -> Option<(f64, f64)> {
-    let (lowest, highest) = range_of(values);
-    if !lowest.is_finite() {
-        return None;
-    }
-    let spare = ((highest - lowest) / 20.0).max(1.0);
-    Some((lowest - spare, highest + spare))
-}
-
 pub fn height_of(value: f64, scale: (f64, f64), height: f64) -> f64 {
     height - placed(value, scale, height)
 }
@@ -210,52 +168,6 @@ mod tests {
     }
 
     #[test]
-    fn a_timeline_spreads_its_days_over_the_span_and_its_values_over_their_own_range() {
-        let points = [(day("2026-10-01"), 80.0), (day("2026-10-11"), 78.0)];
-
-        assert_eq!(
-            timeline_of(
-                &points,
-                (day("2026-10-01"), day("2026-10-11")),
-                360.0,
-                180.0
-            ),
-            "0.0,0.0 360.0,180.0"
-        );
-    }
-
-    #[test]
-    fn a_flat_timeline_or_a_single_day_runs_through_the_middle() {
-        let flat = [(day("2026-10-01"), 80.0), (day("2026-10-11"), 80.0)];
-        let single = [(day("2026-10-05"), 80.0)];
-
-        assert_eq!(
-            timeline_of(&flat, (day("2026-10-01"), day("2026-10-11")), 360.0, 180.0),
-            "0.0,90.0 360.0,90.0"
-        );
-        assert_eq!(
-            timeline_of(
-                &single,
-                (day("2026-10-05"), day("2026-10-05")),
-                360.0,
-                180.0
-            ),
-            "180.0,90.0"
-        );
-    }
-
-    #[test]
-    fn a_scatter_spreads_its_pairs_over_both_ranges_and_a_flat_side_sits_in_the_middle() {
-        let pairs = [(1.0, 10.0), (3.0, 30.0), (2.0, 10.0)];
-
-        assert_eq!(
-            scatter_of(&pairs, 360.0, 180.0),
-            vec![(0.0, 180.0), (360.0, 0.0), (180.0, 180.0)]
-        );
-        assert_eq!(scatter_of(&[(1.0, 5.0)], 360.0, 180.0), vec![(180.0, 90.0)]);
-    }
-
-    #[test]
     fn a_gauge_runs_from_nothing_to_a_quarter_past_the_cap_and_places_the_band_the_optimal_and_the_amount()
      {
         assert_eq!(
@@ -274,13 +186,6 @@ mod tests {
         let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), 400.0);
 
         assert_eq!((gauge.amount_at, gauge.optimal_at), (400.0, 200.0));
-    }
-
-    #[test]
-    fn a_scale_spans_every_value_with_a_twentieth_to_spare_either_side() {
-        assert_eq!(scale_of([60.0, 80.0, 70.0].into_iter()), Some((59.0, 81.0)));
-        assert_eq!(scale_of([70.0].into_iter()), Some((69.0, 71.0)));
-        assert_eq!(scale_of(std::iter::empty()), None);
     }
 
     #[test]
