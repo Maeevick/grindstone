@@ -22,6 +22,7 @@ use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
+    Days7,
     Days30,
     Days90,
     Everything,
@@ -251,7 +252,7 @@ pub fn explore(
 
 pub(crate) fn first_day_of(window: Window, today: NaiveDate) -> NaiveDate {
     match window {
-        Window::Days30 => today - Days::new(29),
+        Window::Days7 | Window::Days30 => today - Days::new(29),
         Window::Days90 => today - Days::new(89),
         Window::Everything => NaiveDate::MIN,
     }

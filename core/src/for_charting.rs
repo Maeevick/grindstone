@@ -946,4 +946,20 @@ mod tests {
 
         assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Squat"));
     }
+
+    #[test]
+    fn a_week_window_charts_the_seven_days_ending_today() {
+        let logged = a_logged_man();
+        log_measurement(&logged.gather, "2026-10-01", 81.0, Some(80.0))
+            .expect("a measurement logs");
+
+        let week = gather_chart(&logged.gather, "2026-10-10", Window::Days7).expect("a chart");
+        let month = gather_chart(&logged.gather, "2026-10-10", Window::Days30).expect("a chart");
+
+        assert_eq!(
+            week.masses.iter().map(|(day, _)| *day).collect::<Vec<_>>(),
+            vec![day("2026-10-09"), day("2026-10-10")]
+        );
+        assert_eq!(month.masses.len(), 3);
+    }
 }
