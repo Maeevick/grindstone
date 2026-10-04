@@ -772,3 +772,11 @@ textarea:focus {
 .scatter circle {
 	fill: #7aa2f7;
 }
+
+.plot .label.tick.one {
+	color: #e8b04b;
+}
+
+.plot .label.tick.other {
+	color: #7aa2f7;
+}
