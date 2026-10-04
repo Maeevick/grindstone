@@ -299,4 +299,20 @@ mod tests {
             vec![(0.0, 180.0), (180.0, 90.0)]
         );
     }
+
+    #[test]
+    fn a_line_of_a_single_day_stands_in_the_middle_of_the_width() {
+        let points = [(day("2026-10-10"), 70.0)];
+
+        assert_eq!(
+            line_of(
+                &points,
+                (day("2026-10-10"), day("2026-10-10")),
+                (60.0, 80.0),
+                360.0,
+                180.0
+            ),
+            "180.0,90.0"
+        );
+    }
 }
