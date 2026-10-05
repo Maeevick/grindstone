@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 
-use crate::circuit::{Circuit, StepForm, circuit};
+use crate::burn::body_mass_in_force_on;
+use crate::circuit::{Circuit, StepForm, burnt_per_set, circuit};
 use crate::drink::{Drink, DrinkKind, drink};
 use crate::exercise::{Exercise, exercise};
 use crate::failure::Failure;
@@ -124,19 +125,23 @@ pub struct PricedCircuit {
     pub burnt_per_set_kcal: Option<f64>,
 }
 
+/// Each circuit with what one set of it burns at the body mass in force on the day, its steps
+/// at their preset minutes; none before a weigh-in.
 pub fn priced_circuits(
-    _gather: &impl ForStoringGatherRecords,
+    gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     date: &str,
 ) -> Result<Vec<PricedCircuit>, Failure> {
-    let _ = NaiveDate::parse_from_str(date, "%Y-%m-%d");
+    let day = NaiveDate::parse_from_str(date, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    let body_mass_kg = body_mass_in_force_on(day, &gather.gather_records()?.measurements);
     Ok(burn
         .burn_records()?
         .circuits
         .into_iter()
         .map(|circuit| PricedCircuit {
+            burnt_per_set_kcal: body_mass_kg.map(|kg| burnt_per_set(&circuit, kg)),
             circuit,
-            burnt_per_set_kcal: None,
         })
         .collect())
 }
