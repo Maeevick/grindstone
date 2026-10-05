@@ -104,6 +104,7 @@ pub fn cook_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<V
 
 pub fn remove_meal(fuel: &impl ForStoringFuelRecords, name: &str) -> Result<Vec<Meal>, Failure> {
     fuel.remove_meal(name)?;
+    fuel.remove_food(name)?;
     meals(fuel)
 }
 
