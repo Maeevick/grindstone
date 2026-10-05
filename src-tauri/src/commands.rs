@@ -982,6 +982,34 @@ mod tests {
     }
 
     #[test]
+    fn circuits_cross_to_the_screen_priced_per_set_once_weighed() {
+        let (_app, screen) = launched();
+        with_push_ups_and_burpees_in_the_catalog(&screen);
+        crafting_morning_rust(&screen).expect("a circuit crafts");
+        let on_the_day = json!({ "date": "2026-10-10" });
+        let unweighed = invoke(&screen, "priced_circuits", on_the_day.clone());
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let priced = invoke(&screen, "priced_circuits", on_the_day).expect("the circuits");
+
+        assert_eq!(
+            unweighed.map(|circuits| circuits[0]["burnt_per_set_kcal"].clone()),
+            Ok(json!(null))
+        );
+        assert_eq!(priced[0]["circuit"]["name"], json!("Morning rust"));
+        assert!(
+            priced[0]["burnt_per_set_kcal"]
+                .as_f64()
+                .is_some_and(|kcal| kcal > 0.0)
+        );
+    }
+
+    #[test]
     fn a_circuit_logged_from_the_screen_answers_the_days_burn_with_a_workout_per_step() {
         let (_app, screen) = launched();
         with_push_ups_and_burpees_in_the_catalog(&screen);
