@@ -21,7 +21,7 @@ impl Ingredient {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Meal {
     pub name: String,
-    pub recipe: String,
+    pub description: String,
     pub ingredients: Vec<Ingredient>,
     pub raw_g: f64,
     pub cooked_g: f64,
@@ -45,7 +45,11 @@ pub const MASS_KEPT: f64 = 1.0;
 /// one: 2.5 for pasta that drinks its water, 0.66 for cream that boils down. Its energy and macros
 /// add up from the raw quantities, its cooked mass from each quantity times its ratio. Millilitres
 /// weigh as grams until the catalog knows densities; an ingredient counted in pieces has no mass yet.
-pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Result<Meal, Refusal> {
+pub fn meal(
+    name: &str,
+    description: &str,
+    ingredients: &[(Food, f64, f64)],
+) -> Result<Meal, Refusal> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Refusal::NotAName);
@@ -81,7 +85,7 @@ pub fn meal(name: &str, recipe: &str, ingredients: &[(Food, f64, f64)]) -> Resul
         .collect();
     Ok(Meal {
         name: name.into(),
-        recipe: recipe.trim().into(),
+        description: description.trim().into(),
         totals: summed(ingredients.iter().map(|ingredient| ingredient.nutrients)),
         raw_g: ingredients
             .iter()
@@ -145,11 +149,14 @@ mod tests {
     }
 
     #[test]
-    fn a_meal_adds_up_its_ingredients_raw_and_keeps_its_recipe() {
+    fn a_meal_adds_up_its_ingredients_raw_and_keeps_its_description() {
         let cooked = pasta_in_cream().expect("a meal");
 
         assert_eq!(cooked.name, "Pasta in cream");
-        assert_eq!(cooked.recipe, "Boil the pasta, reduce the cream, stir.");
+        assert_eq!(
+            cooked.description,
+            "Boil the pasta, reduce the cream, stir."
+        );
         assert_eq!(cooked.raw_g, 300.0);
         assert!((cooked.totals.energy_kcal - 960.0).abs() < 1e-9);
         assert!((cooked.totals.protein_g - 16.0).abs() < 1e-9);

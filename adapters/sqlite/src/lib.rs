@@ -586,7 +586,8 @@ fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, FuelTargets
 #[derive(Deserialize)]
 struct KeptMeal {
     name: String,
-    recipe: String,
+    #[serde(alias = "recipe")]
+    description: String,
     ingredients: Vec<KeptIngredient>,
     raw_g: f64,
     cooked_g: f64,
@@ -612,7 +613,7 @@ fn meal_read(row: &rusqlite::Row) -> rusqlite::Result<Meal> {
     };
     Ok(Meal {
         name: kept.name,
-        recipe: kept.recipe,
+        description: kept.description,
         ingredients: kept
             .ingredients
             .into_iter()
@@ -1475,9 +1476,13 @@ mod tests {
 
         assert_eq!(
             kept.iter()
-                .map(|meal| (meal.cooked_g, meal.ingredients[0].cooked_per_raw))
+                .map(|meal| (
+                    meal.description.as_str(),
+                    meal.cooked_g,
+                    meal.ingredients[0].cooked_per_raw
+                ))
                 .collect::<Vec<_>>(),
-            vec![(500.0, 2.5)]
+            vec![("Simmer.", 500.0, 2.5)]
         );
     }
 

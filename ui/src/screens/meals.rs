@@ -26,7 +26,7 @@ pub fn NewMeal(
     done: Callback<String>,
 ) -> impl IntoView {
     let name = RwSignal::new(String::new());
-    let recipe = RwSignal::new(String::new());
+    let description = RwSignal::new(String::new());
     let food = RwSignal::new(String::new());
     let quantity = RwSignal::new(String::new());
     let pot = RwSignal::new(Vec::<InThePot>::new());
@@ -77,7 +77,7 @@ pub fn NewMeal(
         };
         let form = MealForm {
             name: name.get_untracked(),
-            recipe: recipe.get_untracked(),
+            description: description.get_untracked(),
             ingredients: in_the_pot
                 .iter()
                 .zip(ratios)
@@ -95,7 +95,7 @@ pub fn NewMeal(
                     if let Ok(known) = tauri::foods().await {
                         foods.set(known);
                     }
-                    for typed in [name, recipe, food, quantity] {
+                    for typed in [name, description, food, quantity] {
                         typed.set(String::new());
                     }
                     pot.set(Vec::new());
@@ -117,12 +117,12 @@ pub fn NewMeal(
                 />
             </label>
             <label class="field grow2">
-                "Recipe"
+                "Description"
                 <textarea
-                    name="recipe"
+                    name="meal_description"
                     rows="3"
-                    prop:value=move || recipe.get()
-                    on:input=move |event| recipe.set(event_target_value(&event))
+                    prop:value=move || description.get()
+                    on:input=move |event| description.set(event_target_value(&event))
                 ></textarea>
             </label>
             <div class="row">
@@ -206,7 +206,8 @@ fn KeptMeal(meal: Meal, remove: Callback<String>) -> impl IntoView {
             <td>
                 <details>
                     <summary>{meal.name.clone()}</summary>
-                    {(!meal.recipe.is_empty()).then(|| view! { <p class="hint">{meal.recipe.clone()}</p> })}
+                    {(!meal.description.is_empty())
+                        .then(|| view! { <p class="hint">{meal.description.clone()}</p> })}
                     <ul class="figures">
                         {meal
                             .ingredients

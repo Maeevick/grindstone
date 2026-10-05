@@ -947,7 +947,7 @@ const PASTA_AND_CREAM: &str = r#"[
     { "name": "Crème fraîche", "unit": "Gram", "portion": 100.0,
       "nutrients": { "energy_kcal": 300.0, "protein_g": 2.0, "carbs_g": 3.0, "fat_g": 30.0, "fibre_g": 0.0 } }]"#;
 
-const PASTA_IN_CREAM: &str = r#"{ "name": "Pasta in cream", "recipe": "Boil, reduce, stir.",
+const PASTA_IN_CREAM: &str = r#"{ "name": "Pasta in cream", "description": "Boil, reduce, stir.",
     "ingredients": [
         { "food": "Pasta", "unit": "Gram", "quantity": 100.0, "cooked_per_raw": 2.5,
           "nutrients": { "energy_kcal": 360.0, "protein_g": 12.0, "carbs_g": 70.0, "fat_g": 1.5, "fibre_g": 3.0 } },

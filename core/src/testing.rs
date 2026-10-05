@@ -810,7 +810,7 @@ pub mod honouring_for_storing_fuel_records {
     fn cooked(name: &str, cooked_g: f64) -> Meal {
         Meal {
             name: name.into(),
-            recipe: "Stir.".into(),
+            description: "Stir.".into(),
             ingredients: vec![crate::meal::Ingredient {
                 food: "Rice".into(),
                 unit: Unit::Gram,

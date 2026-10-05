@@ -886,7 +886,7 @@ mod tests {
     fn a_meal_cooked_and_removed_from_the_screen_answers_as_the_screen_reads_it() {
         let (_app, screen) = launched();
         with_skyr_in_the_catalog(&screen).expect("a food adds");
-        let form = json!({ "form": { "name": "Skyr bowl", "recipe": "Stir.",
+        let form = json!({ "form": { "name": "Skyr bowl", "description": "Stir.",
             "ingredients": [{ "food": "Skyr", "quantity": 200.0, "cooked_per_raw": 1.0 }] } });
 
         let cooked = invoke(&screen, "cook_meal", form).expect("the meals");

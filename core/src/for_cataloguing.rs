@@ -65,7 +65,7 @@ pub struct IngredientForm {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MealForm {
     pub name: String,
-    pub recipe: String,
+    pub description: String,
     pub ingredients: Vec<IngredientForm>,
 }
 
@@ -92,7 +92,7 @@ fn meal_of(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Meal, F
                 .ok_or(Failure::Refused(Refusal::NotAFood))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    meal(&form.name, &form.recipe, &ingredients).map_err(Failure::Refused)
+    meal(&form.name, &form.description, &ingredients).map_err(Failure::Refused)
 }
 
 pub fn cook_meal(fuel: &impl ForStoringFuelRecords, form: &MealForm) -> Result<Vec<Meal>, Failure> {
@@ -275,7 +275,7 @@ mod tests {
     fn rice_and_chicken() -> MealForm {
         MealForm {
             name: "Rice and chicken".into(),
-            recipe: "Boil, sear, stir.".into(),
+            description: "Boil, sear, stir.".into(),
             ingredients: vec![
                 IngredientForm {
                     food: "Rice".into(),
@@ -292,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn a_cooked_meal_keeps_its_recipe_and_joins_the_foods_per_100_g_cooked() {
+    fn a_cooked_meal_keeps_its_description_and_joins_the_foods_per_100_g_cooked() {
         let fuel = a_kitchen();
 
         let cooked = cook_meal(&fuel, &rice_and_chicken()).expect("the meals");
@@ -300,7 +300,7 @@ mod tests {
         assert_eq!(
             cooked
                 .iter()
-                .map(|meal| meal.recipe.as_str())
+                .map(|meal| meal.description.as_str())
                 .collect::<Vec<_>>(),
             vec!["Boil, sear, stir."]
         );
