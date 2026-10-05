@@ -576,4 +576,19 @@ mod tests {
             Err(Failure::Broken("the disk is full".into()))
         );
     }
+
+    #[test]
+    fn removing_a_meal_takes_its_food_out_of_the_catalog_too() {
+        let fuel = a_kitchen();
+        cook_meal(&fuel, &rice_and_chicken()).expect("a meal cooks");
+
+        remove_meal(&fuel, "Rice and chicken").expect("the meals");
+
+        assert!(
+            !foods(&fuel)
+                .expect("the foods")
+                .iter()
+                .any(|food| food.name == "Rice and chicken")
+        );
+    }
 }
