@@ -1,3 +1,5 @@
+use chrono::NaiveDate;
+
 use crate::circuit::{Circuit, StepForm, circuit};
 use crate::drink::{Drink, DrinkKind, drink};
 use crate::exercise::{Exercise, exercise};
@@ -5,6 +7,7 @@ use crate::failure::Failure;
 use crate::food::{Food, Nutrients, Unit, food};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
+use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::meal::{MASS_KEPT, Meal, food_of, meal};
 use crate::refusal::Refusal;
@@ -113,6 +116,29 @@ pub struct CircuitForm {
     pub name: String,
     pub description: String,
     pub steps: Vec<StepForm>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PricedCircuit {
+    pub circuit: Circuit,
+    pub burnt_per_set_kcal: Option<f64>,
+}
+
+pub fn priced_circuits(
+    _gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    date: &str,
+) -> Result<Vec<PricedCircuit>, Failure> {
+    let _ = NaiveDate::parse_from_str(date, "%Y-%m-%d");
+    Ok(burn
+        .burn_records()?
+        .circuits
+        .into_iter()
+        .map(|circuit| PricedCircuit {
+            circuit,
+            burnt_per_set_kcal: None,
+        })
+        .collect())
 }
 
 pub fn circuits(burn: &impl ForStoringBurnRecords) -> Result<Vec<Circuit>, Failure> {
@@ -590,6 +616,32 @@ mod tests {
                 .expect("the foods")
                 .iter()
                 .any(|food| food.name == "Rice and chicken")
+        );
+    }
+
+    #[test]
+    fn the_lab_prices_each_circuit_per_set_at_the_body_mass_in_force_on_the_day() {
+        let burn = with_push_ups_and_burpees();
+        craft_circuit(&burn, &morning_rust()).expect("a circuit crafts");
+        let gather = crate::testing::GatherRecordsInMemory::default();
+        let unweighed = priced_circuits(&gather, &burn, "2026-10-10").expect("the circuits");
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, None)
+            .expect("a measurement logs");
+
+        let priced = priced_circuits(&gather, &burn, "2026-10-10").expect("the circuits");
+
+        let crafted = circuits(&burn).expect("the circuits");
+        assert_eq!(
+            priced
+                .iter()
+                .map(|priced| priced.burnt_per_set_kcal)
+                .collect::<Vec<_>>(),
+            vec![Some(crate::circuit::burnt_per_set(&crafted[0], 80.0))]
+        );
+        assert_eq!(unweighed[0].burnt_per_set_kcal, None);
+        assert_eq!(
+            priced_circuits(&gather, &burn, "2026-02-30"),
+            Err(Failure::Refused(Refusal::NotADate))
         );
     }
 }

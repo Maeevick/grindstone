@@ -23,7 +23,7 @@ pub struct Burn {
     pub off_the_clock_is_usual: bool,
 }
 
-fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]) -> Option<f64> {
+pub(crate) fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]) -> Option<f64> {
     let masses: Vec<(NaiveDate, f64)> = measurements
         .iter()
         .map(|measured| (measured.day, measured.body_mass_kg))
