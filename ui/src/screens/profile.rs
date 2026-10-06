@@ -81,6 +81,8 @@ fn GoalsCard() -> impl IntoView {
             <form class="goals" on:submit=save>
                 <div class="row">
                     <DateField label="From" name="goals_from" value=from />
+                </div>
+                <div class="row">
                     <FigureField label="Target mass (kg)" name="target_mass" value=target_mass />
                     <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
                 </div>
@@ -147,6 +149,8 @@ fn UsualDayCard() -> impl IntoView {
             <form class="usual-day" on:submit=save>
                 <div class="row">
                     <DateField label="From" name="usual_from" value=from />
+                </div>
+                <div class="row thirds">
                     <FigureField label="Sitting (min)" name="usual_sitting" value=sitting />
                     <FigureField label="Standing (min)" name="usual_standing" value=standing />
                     <FigureField label="Moving (km)" name="usual_moving" value=moving />
@@ -213,6 +217,8 @@ fn FuelTargetsCard() -> impl IntoView {
             <form class="fuel-targets" on:submit=save>
                 <div class="row">
                     <DateField label="From" name="targets_from" value=from />
+                </div>
+                <div class="row thirds">
                     <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
                     <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
                     <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
