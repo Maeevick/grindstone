@@ -674,6 +674,25 @@ fn clicked(screen: &Element, selector: &str) {
     found::<web_sys::HtmlElement>(screen, selector).click();
 }
 
+fn fields_in_rows(screen: &Element, form: &str) -> Vec<Vec<String>> {
+    let rows = screen
+        .query_selector_all(&format!("{form} .row"))
+        .expect("the rows");
+    (0..rows.length())
+        .filter_map(|at| rows.item(at))
+        .map(|row| {
+            let fields = row
+                .unchecked_into::<Element>()
+                .query_selector_all("input, select")
+                .expect("the fields");
+            (0..fields.length())
+                .filter_map(|at| fields.item(at))
+                .filter_map(|field| field.unchecked_into::<Element>().get_attribute("name"))
+                .collect()
+        })
+        .collect()
+}
+
 fn tables_in_order(screen: &Element) -> Vec<String> {
     let tables = screen.query_selector_all("table").expect("the tables");
     (0..tables.length())
@@ -683,7 +702,7 @@ fn tables_in_order(screen: &Element) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
-async fn the_burn_shelf_adds_an_exercise_from_its_form_card_then_lists_circuits_before_exercises() {
+async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the_exercises_alone() {
     answering(
         r#"{ "exercises": [], "circuits": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
     );
@@ -692,7 +711,7 @@ async fn the_burn_shelf_adds_an_exercise_from_its_form_card_then_lists_circuits_
     settled().await;
     clicked(&screen, "button.shelf-Burn");
     settled().await;
-    assert_eq!(tables_in_order(&screen), ["circuits", "exercises"]);
+    assert_eq!(tables_in_order(&screen), ["exercises"]);
     found::<Element>(&screen, "button.form-Exercise.chosen");
     found::<Element>(&screen, "button.form-Circuit");
 
@@ -918,7 +937,8 @@ async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
 }
 
 #[wasm_bindgen_test]
-async fn the_fuel_shelf_adds_a_food_from_its_form_card_then_lists_meals_before_foods() {
+async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_larder_its_macros_in_columns()
+{
     answering(
         r#"{ "foods": [], "meals": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
             "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } }] }"#,
@@ -926,9 +946,17 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_then_lists_meals_before_f
     let screen = screen();
     let _mounted = the_catalog(&screen);
     settled().await;
-    assert_eq!(tables_in_order(&screen), ["meals", "foods"]);
+    assert_eq!(tables_in_order(&screen), ["larder"]);
     found::<Element>(&screen, "button.form-Food.chosen");
     found::<Element>(&screen, "button.form-Meal");
+    assert_eq!(
+        fields_in_rows(&screen, "form.food"),
+        [
+            vec!["food_name"],
+            vec!["food_portion", "food_unit", "food_energy"],
+            vec!["food_protein", "food_fat", "food_fibre", "food_carbs"],
+        ]
+    );
 
     typed_into(&screen, "food_name", "Skyr");
     typed_into(&screen, "food_portion", "100");
@@ -938,12 +966,16 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_then_lists_meals_before_f
         .expect("the food is added");
     settled().await;
 
-    let rows = text_of(&screen, "table.foods tbody");
-    assert!(rows.contains("Skyr") && rows.contains("54 kcal"), "{rows}");
+    let row = texts_of(&screen, "table.larder tbody tr td");
+    for cell in ["🧪", "Skyr", "100 g", "54", "10", "0", "4"] {
+        assert!(row.contains(&cell.to_string()), "{cell} in {row:?}");
+    }
     assert_eq!(value_of(&screen, "food_name"), "");
 }
 
 const PASTA_AND_CREAM: &str = r#"[
+    { "name": "Pasta in cream", "unit": "Gram", "portion": 100.0,
+      "nutrients": { "energy_kcal": 251.3, "protein_g": 4.2, "carbs_g": 19.9, "fat_g": 16.1, "fibre_g": 0.8 } },
     { "name": "Pasta", "unit": "Gram", "portion": 100.0,
       "nutrients": { "energy_kcal": 360.0, "protein_g": 12.0, "carbs_g": 70.0, "fat_g": 1.5, "fibre_g": 3.0 } },
     { "name": "Crème fraîche", "unit": "Gram", "portion": 100.0,
@@ -966,7 +998,8 @@ async fn added_to_the_pot(screen: &Element, food: &str, quantity: &str) {
 }
 
 #[wasm_bindgen_test]
-async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_list_with_its_figures() {
+async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_larder_its_details_on_a_click()
+ {
     answering(&format!(
         r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
     ));
@@ -998,16 +1031,26 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_list_with
         "{sent}"
     );
     assert_eq!(value_of(&screen, "meal_name"), "");
-    let listed = text_of(&screen, "table.meals tbody");
+    let meal = found::<Element>(&screen, "table.larder tr.meal");
+    assert!(meal.text_content().unwrap_or_default().contains("🍽️"));
+    assert!(
+        screen
+            .query_selector("table.larder tr.details")
+            .ok()
+            .flatten()
+            .is_none()
+    );
+    meal.unchecked_into::<web_sys::HtmlElement>().click();
+    settled().await;
+    let details = text_of(&screen, "table.larder tr.details");
     for figure in [
-        "Pasta in cream",
+        "Boil, reduce, stir.",
         "382 g cooked from 300 g raw",
         "960 kcal",
-        "251 kcal",
         "× 0.66",
         "132 g",
     ] {
-        assert!(listed.contains(figure), "{figure} in {listed}");
+        assert!(details.contains(figure), "{figure} in {details}");
     }
 }
 
@@ -1138,10 +1181,11 @@ const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
 
 #[wasm_bindgen_test]
-async fn the_crafter_crafts_a_circuit_with_its_description_from_its_steps_added_one_by_one() {
+async fn the_crafter_crafts_a_circuit_the_lab_lists_priced_per_set_its_steps_on_a_click() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
-             "circuits": [], "craft_circuit": [{MORNING_RUST}] }}"#
+             "circuits": [], "craft_circuit": [{MORNING_RUST}],
+             "priced_circuits": [{{ "circuit": {MORNING_RUST}, "burnt_per_set_kcal": 12.3 }}] }}"#
     ));
     let screen = screen();
     let _mounted = the_catalog(&screen);
@@ -1181,13 +1225,20 @@ async fn the_crafter_crafts_a_circuit_with_its_description_from_its_steps_added_
             .contains(r#""description":"Found on YouTube, the rusty goblin channel.""#)
     );
     assert_eq!(value_of(&screen, "circuit_name"), "");
-    let rows = text_of(&screen, "table.circuits tbody");
+    assert_eq!(
+        texts_of(&screen, "table.circuits thead th"),
+        ["", "Name", "kcal / set"]
+    );
+    let row = text_of(&screen, "table.circuits tbody tr");
+    assert!(row.contains("Morning rust") && row.contains("12"), "{row}");
+    clicked(&screen, "table.circuits tbody tr");
+    settled().await;
+    let details = text_of(&screen, "table.circuits tr.details");
     assert!(
-        rows.contains("Morning rust")
-            && rows.contains("Found on YouTube, the rusty goblin channel.")
-            && rows.contains("Push up")
-            && rows.contains("Burpee"),
-        "{rows}"
+        details.contains("Found on YouTube, the rusty goblin channel.")
+            && details.contains("Push up")
+            && details.contains("Burpee"),
+        "{details}"
     );
 }
 
@@ -1217,13 +1268,17 @@ async fn a_step_added_by_mistake_leaves_the_circuit_before_it_is_crafted() {
 #[wasm_bindgen_test]
 async fn removing_a_circuit_takes_it_out_of_the_lab() {
     answering(&format!(
-        r#"{{ "exercises": [], "circuits": [{MORNING_RUST}], "remove_circuit": [] }}"#
+        r#"{{ "exercises": [], "circuits": [{MORNING_RUST}], "remove_circuit": [],
+              "priced_circuits": [{{ "circuit": {MORNING_RUST}, "burnt_per_set_kcal": null }}] }}"#
     ));
     let screen = screen();
     let _mounted = the_catalog(&screen);
     settled().await;
     clicked(&screen, "button.shelf-Burn");
     settled().await;
+    clicked(&screen, "button.form-Circuit");
+    settled().await;
+    assert_eq!(tables_in_order(&screen), ["circuits"]);
 
     clicked(&screen, "table.circuits button.remove");
     settled().await;
