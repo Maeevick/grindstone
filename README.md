@@ -17,20 +17,21 @@ Version 0.1, the full scope, on four tabs.
   - the streak:
     - four ticks a day: a weigh-in; Fuel, meaning the day's energy inside its band; a workout; Hydrate inside its band;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
-    - its count and today's four ticks at the top, each day's dot in the history beneath the chart;
-  - today's fuel, hydrate and burn;
-  - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 30 days, 90 days or everything, with its axes' values, the current values and a legend;
+    - its count in gold, its longest run and today's four ticks at the top, each day's dot in the history beneath the chart;
+  - today in three tiles: ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt;
+  - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞, its y axis on round ticks over thin grid lines, its x axis dated from the oldest day to the newest, the current values and a legend;
   - beneath it, Veil's note on what is worth sharpening for the chosen chip: the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
-  - each chip's history beneath, month by month, its units in the headers and each day's streak dot.
+  - each chip's history beneath, month by month, its units in the headers and each day's streak dot;
+  - a way into Stats at the bottom.
 - **Tracker:** one day at a time, today by default, shown as yyyy-mm-dd, in four segments, each closed by a way into Stats. Every list of the catalog starts on "Select me" and narrows from three letters typed, starting matches first, then those containing them, ignoring case and accents.
   - **Gather:** mass and waist, filled with the day's record when there is one, the body mass marked required when there is not. The last 7 days show their mass, waist, fat ratio and lean mass under their units, the chosen day in gold, with a tendency row: green when a measure closes on its goal, red when it moves away, a dash when it holds steady.
   - **Fuel:** intakes from the catalog, one portion of the food when no quantity is typed. The day's energy sits on a gauge: the minimum (25 kcal per kilo of lean mass for a man, 30 for a woman, plus the burn) in red, Alpert's floor and maintenance in gold, the band between them in green, what was eaten in blue. The four macros show their goal, what was eaten, the gap and their share of the energy, with a total. The day's intakes list each food with its quantity, energy and macros.
   - **Hydrate:** drinks in millilitres, one serving when none are typed, on a scale from min through optimal to max, the band running 20% either side of the target.
   - **Burn:** a workout or a circuit, on two tabs; blank fields log a minute, one rep, one set and no load. The day off the clock (sitting, standing, moving). The day's expenditures list the workouts newest first, then the day off the clock and fidgeting, the two parts of non-exercise activity.
 - **Catalog:** three shelves, each adding from a form card at its top, chips switching between its forms:
-  - **Fuel:** meals cooked in Trix's lab, each ingredient with its cooking ratio (the cooked mass over the raw one, 1 when left empty, so the hot pot needs no weighing), kept with their recipe, ingredients, masses raw and cooked, totals and figures per 100 g cooked; then foods with their figures per portion;
+  - **Fuel:** foods and meals in one list, a 🧪 for a food and a 🍽️ for a meal, their figures per portion in columns. A meal is cooked in Trix's lab, each ingredient with its cooking ratio (the cooked mass over the raw one, 1 when left empty, so the hot pot needs no weighing); a click on it shows its description, ingredients, masses raw and cooked, totals and figures per 100 g cooked;
   - **Hydrate:** drinks, water or other;
-  - **Burn:** circuits fixed at creation, each with a description to note where it came from, then exercises with their MET.
+  - **Burn:** exercises with their MET, or circuits fixed at creation with their energy per set at today's body mass, a click showing a circuit's description and steps.
 - **Profile:**
   - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only), goals, fuel targets in g/kg, the hydrate base and the usual day off the clock, each kept from a chosen day;
   - on each card but the first, "Use the recommendation" above "Keep", filling the card from health recommendations to check and adjust: WHO's normal body mass index, Gallagher's healthy fat, Morton's 1.6 g of protein per kilo, EFSA's fat, fibre and water, and a usual day of 8 hours sitting at most (Ekelund), 2 standing (Buckley) and the steps that pay off at the age (Paluch);
