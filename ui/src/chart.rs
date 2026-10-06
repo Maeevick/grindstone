@@ -15,14 +15,20 @@ fn range_of(values: impl Iterator<Item = f64> + Clone) -> (f64, f64) {
     )
 }
 
-/// The days to date an x axis with: the oldest, the newest and three between, each with where it
-/// stands along the width, months instead of days past a year.
+const DAYS_IN_A_WEEK: i64 = 7;
+
+/// The days to date an x axis with: every one over a week at most, else the oldest, the newest
+/// and three between, each with where it stands along the width, months instead of days past a year.
 pub fn days_along((first, last): (NaiveDate, NaiveDate), width: f64) -> Vec<(f64, String)> {
     let days = (last - first).num_days();
     let format = if days > 365 { "%Y-%m" } else { "%m-%d" };
-    let mut offsets: Vec<i64> = (0..=4)
-        .map(|quarter| (quarter as f64 * days as f64 / 4.0).round() as i64)
-        .collect();
+    let mut offsets: Vec<i64> = if days < DAYS_IN_A_WEEK {
+        (0..=days).collect()
+    } else {
+        (0..=4)
+            .map(|quarter| (quarter as f64 * days as f64 / 4.0).round() as i64)
+            .collect()
+    };
     offsets.dedup();
     offsets
         .into_iter()
