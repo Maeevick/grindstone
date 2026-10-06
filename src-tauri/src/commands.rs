@@ -10,7 +10,7 @@ use grind_core::food::Food;
 use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
-use grind_core::for_cataloguing::{self, FoodForm, MealForm};
+use grind_core::for_cataloguing::{self, FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
     self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights,
     Month,
@@ -282,6 +282,15 @@ pub fn circuits(records: State<Records>) -> Result<Vec<Circuit>, Failure> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn priced_circuits(
+    records: State<Records>,
+    date: String,
+) -> Result<Vec<PricedCircuit>, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_cataloguing::priced_circuits(&*records, &*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn craft_circuit(records: State<Records>, form: CircuitForm) -> Result<Vec<Circuit>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_cataloguing::craft_circuit(&*records, &form)
@@ -487,6 +496,7 @@ mod tests {
                 streak,
                 explore,
                 circuits,
+                priced_circuits,
                 craft_circuit,
                 remove_circuit,
                 log_circuit,

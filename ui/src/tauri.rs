@@ -7,7 +7,7 @@ use grind_core::food::Food;
 use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
-use grind_core::for_cataloguing::{FoodForm, MealForm};
+use grind_core::for_cataloguing::{FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
     BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights, Month,
 };
@@ -329,6 +329,10 @@ pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
 
 pub async fn circuits() -> Result<Vec<Circuit>, Failure> {
     call("circuits", Nothing {}, broken).await
+}
+
+pub async fn priced_circuits(date: &str) -> Result<Vec<PricedCircuit>, Failure> {
+    call("priced_circuits", OnDay { date }, broken).await
 }
 
 pub async fn craft_circuit(form: &CircuitForm) -> Result<Vec<Circuit>, Failure> {

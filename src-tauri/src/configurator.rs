@@ -63,6 +63,7 @@ pub fn run() {
             commands::erase_everything,
             commands::recommended_on,
             commands::circuits,
+            commands::priced_circuits,
             commands::craft_circuit,
             commands::remove_circuit,
             commands::log_circuit,
