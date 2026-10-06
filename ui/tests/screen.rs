@@ -465,11 +465,11 @@ async fn removing_a_day_takes_it_off_the_week() {
 }
 
 #[wasm_bindgen_test]
-async fn the_window_pills_redraw_the_chart_over_the_days_they_name() {
+async fn the_window_pills_start_on_seven_days_and_redraw_the_chart_over_the_days_they_name() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }},
              "gather_chart": {{ "__by": "window",
-                 "Days30": {{ "masses": [["2026-09-20", 80.4], ["2026-10-10", 80.0]], "lean_masses": [],
+                 "Days7": {{ "masses": [["2026-10-04", 80.4], ["2026-10-10", 80.0]], "lean_masses": [],
                               "goal_kg": 70.0, "goal_lean_kg": null }},
                  "Days90": {{ "masses": [["2026-08-01", 82.0], ["2026-09-20", 80.4], ["2026-10-10", 80.0]],
                               "lean_masses": [], "goal_kg": 70.0, "goal_lean_kg": null }} }} }}"#
@@ -487,6 +487,8 @@ async fn the_window_pills_redraw_the_chart_over_the_days_they_name() {
             .unwrap_or_default()
     };
     assert_eq!(masses_drawn(&screen), 2);
+    found::<Element>(&screen, "button.window-Days7.chosen");
+    assert_eq!(text_of(&screen, "button.window-Everything"), "∞");
 
     found::<web_sys::HtmlElement>(&screen, "button.window-Days90").click();
     settled().await;
@@ -1035,7 +1037,8 @@ async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
 }
 
 #[wasm_bindgen_test]
-async fn home_shows_the_streak_count_and_todays_four_ticks() {
+async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with_stats_at_the_bottom()
+ {
     answering(
         r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
              "gather_card": { "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
@@ -1052,8 +1055,11 @@ async fn home_shows_the_streak_count_and_todays_four_ticks() {
     settled().await;
     settled().await;
 
-    let said = screen.text_content().unwrap_or_default();
-    assert!(said.contains("2 days"), "{said}");
+    assert_eq!(text_of(&screen, ".streak .current"), "2 days");
+    assert!(text_of(&screen, ".streak .longest").contains("5 days"));
+    let tiles = texts_of(&screen, ".today .tile .icon");
+    assert_eq!(tiles, ["⚡", "💧", "🔥"]);
+    found::<Element>(&screen, "main.wrap > a.explore:last-child");
     let ticks = screen
         .query_selector_all(".streak .ticks li")
         .map(|found| found.length())
@@ -1596,6 +1602,13 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
     settled().await;
 
     assert_eq!(lines_drawn(&screen), 4);
+    assert!(
+        screen
+            .query_selector(".charts ul.figures")
+            .ok()
+            .flatten()
+            .is_none()
+    );
     let labels = screen.text_content().unwrap_or_default();
     assert!(
         labels.contains("80.0 kg") && labels.contains("70.0 kg") && labels.contains("Lean mass"),
@@ -1670,6 +1683,23 @@ async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines()
     assert_eq!(
         texts_of(&screen, ".charts .label.tick.minutes"),
         ["0", "20", "40", "60"]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_chart_dates_its_x_axis_from_its_oldest_day_to_its_newest_with_three_between() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }},
+             "gather_chart": {{ "masses": [["2026-09-10", 81.0], ["2026-10-10", 80.0]], "lean_masses": [],
+                                "goal_kg": null, "goal_lean_kg": null }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(
+        texts_of(&screen, ".charts .label.x"),
+        ["09-10", "09-18", "09-25", "10-03", "10-10"]
     );
 }
 
