@@ -1,9 +1,8 @@
-use grind_core::circuit::Circuit;
 use grind_core::drink::Drink;
 use grind_core::exercise::Exercise;
-use grind_core::figures::{Figure, shown};
+use grind_core::figures::{Figure, bare, shown};
 use grind_core::food::{Food, Nutrients, Unit};
-use grind_core::for_cataloguing::FoodForm;
+use grind_core::for_cataloguing::{FoodForm, PricedCircuit};
 use grind_core::meal::Meal;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -11,8 +10,8 @@ use leptos::task::spawn_local;
 use crate::screens::circuits::{CircuitsList, NewCircuit};
 use crate::screens::fields::FigureField;
 use crate::screens::hydrate::{DrinksList, NewDrink};
-use crate::screens::lines;
-use crate::screens::meals::{MealsList, NewMeal};
+use crate::screens::meals::{MealDetails, NewMeal};
+use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -185,7 +184,7 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
     view! {
         <form class="food" on:submit=add>
             <div class="row">
-                <label class="field grow2">
+                <label class="field">
                     "Name"
                     <input
                         name="food_name"
@@ -194,6 +193,9 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
                         on:input=move |event| name.set(event_target_value(&event))
                     />
                 </label>
+            </div>
+            <div class="row thirds">
+                <FigureField label="Per" name="food_portion" value=portion />
                 <label class="field">
                     "Unit"
                     <select
@@ -206,14 +208,13 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
                         <option value="Piece">"piece"</option>
                     </select>
                 </label>
-                <FigureField label="Per" name="food_portion" value=portion />
-            </div>
-            <div class="row">
                 <FigureField label="kcal" name="food_energy" value=energy />
+            </div>
+            <div class="row quarters">
                 <FigureField label="Protein (g)" name="food_protein" value=protein />
-                <FigureField label="Carbs (g)" name="food_carbs" value=carbs />
                 <FigureField label="Fat (g)" name="food_fat" value=fat />
                 <FigureField label="Fibre (g)" name="food_fibre" value=fibre />
+                <FigureField label="Carbs (g)" name="food_carbs" value=carbs />
             </div>
             <button class="cta" type="submit">
                 "Add to the catalog"
@@ -224,57 +225,117 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
 }
 
 #[component]
-fn FoodsList(foods: RwSignal<Vec<Food>>, said: RwSignal<Option<String>>) -> impl IntoView {
-    let remove = move |named: String| {
+fn LarderRow(
+    food: Food,
+    meal: Option<Meal>,
+    opened: RwSignal<Option<String>>,
+    remove: Callback<(String, bool)>,
+) -> impl IntoView {
+    let named = food.name.clone();
+    let is_meal = meal.is_some();
+    let toggled = named.clone();
+    let toggle = move |_| {
+        if is_meal {
+            opened.update(|shown| {
+                *shown = (shown.as_deref() != Some(toggled.as_str())).then(|| toggled.clone())
+            });
+        }
+    };
+    let removed = named.clone();
+    let figures = food.nutrients;
+    let shown_name = named.clone();
+    view! {
+        <tr class=if is_meal { "meal" } else { "food" } on:click=toggle>
+            <td class="icon">{if is_meal { "🍽️" } else { "🧪" }}</td>
+            <td>{food.name.clone()}</td>
+            <td>{shown(Figure::Amount(food.portion, food.unit))}</td>
+            <td>{bare(Figure::Energy(figures.energy_kcal))}</td>
+            <td>{bare(Figure::Grams(figures.protein_g))}</td>
+            <td>{bare(Figure::Grams(figures.fat_g))}</td>
+            <td>{bare(Figure::Grams(figures.fibre_g))}</td>
+            <td>{bare(Figure::Grams(figures.carbs_g))}</td>
+            <td>
+                <button
+                    class="remove"
+                    type="button"
+                    aria-label="Remove from the catalog"
+                    on:click=move |event| {
+                        event.stop_propagation();
+                        remove.run((removed.clone(), is_meal));
+                    }
+                >
+                    "×"
+                </button>
+            </td>
+        </tr>
+        {move || {
+            meal.clone()
+                .filter(|_| opened.get().as_deref() == Some(shown_name.as_str()))
+                .map(|meal| view! { <MealDetails meal=meal /> })
+        }}
+    }
+}
+
+#[component]
+fn Larder(
+    foods: RwSignal<Vec<Food>>,
+    meals: RwSignal<Vec<Meal>>,
+    said: RwSignal<Option<String>>,
+) -> impl IntoView {
+    let opened = RwSignal::new(None::<String>);
+    let remove = Callback::new(move |(named, is_meal): (String, bool)| {
         spawn_local(async move {
-            match tauri::remove_food(&named).await {
+            let left = if is_meal {
+                match tauri::remove_meal(&named).await {
+                    Ok(kept) => {
+                        meals.set(kept);
+                        tauri::foods().await
+                    }
+                    Err(failure) => Err(failure),
+                }
+            } else {
+                tauri::remove_food(&named).await
+            };
+            match left {
                 Ok(known) => foods.set(known),
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
-    };
+    });
     view! {
         <section class="card">
-            <h2>"Foods"</h2>
+            <h2>"Foods and meals"</h2>
             {move || foods.get().is_empty().then(|| view! { <p class="empty">{lines::NO_FOOD}</p> })}
-            <table class="foods">
-                <tbody>
-                    <For
-                        each=move || foods.get()
-                        key=|known| format!("{known:?}")
-                        children=move |known| {
-                            let named = known.name.clone();
-                            let figures = known.nutrients;
-                            view! {
-                                <tr>
-                                    <td>{known.name.clone()}</td>
-                                    <td>{format!("per {}", shown(Figure::Amount(known.portion, known.unit)))}</td>
-                                    <td>{shown(Figure::Energy(figures.energy_kcal))}</td>
-                                    <td>
-                                        {format!(
-                                            "P {} · C {} · F {} · Fib {}",
-                                            shown(Figure::Grams(figures.protein_g)),
-                                            shown(Figure::Grams(figures.carbs_g)),
-                                            shown(Figure::Grams(figures.fat_g)),
-                                            shown(Figure::Grams(figures.fibre_g)),
-                                        )}
-                                    </td>
-                                    <td>
-                                        <button
-                                            class="remove"
-                                            type="button"
-                                            aria-label="Remove this food"
-                                            on:click=move |_| remove(named.clone())
-                                        >
-                                            "×"
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    />
-                </tbody>
-            </table>
+            <div class="scroll">
+                <table class="larder">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>"Name"</th>
+                            <th>"Per"</th>
+                            <th>"kcal"</th>
+                            <th>"Prot (g)"</th>
+                            <th>"Fat (g)"</th>
+                            <th>"Fib (g)"</th>
+                            <th>"Carbs (g)"</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {move || {
+                            let kept = meals.get();
+                            foods
+                                .get()
+                                .into_iter()
+                                .map(|food| {
+                                    let meal = kept.iter().find(|meal| meal.name == food.name).cloned();
+                                    view! { <LarderRow food=food meal=meal opened=opened remove=remove /> }
+                                })
+                                .collect_view()
+                        }}
+                    </tbody>
+                </table>
+            </div>
         </section>
     }
 }
@@ -335,8 +396,7 @@ fn FuelShelf() -> impl IntoView {
             }}
             {said_on_the_shelf(said)}
         </section>
-        <MealsList meals=meals said=said />
-        <FoodsList foods=foods said=said />
+        <Larder foods=foods meals=meals said=said />
     }
 }
 
@@ -364,33 +424,41 @@ fn HydrateShelf() -> impl IntoView {
 #[component]
 fn BurnShelf() -> impl IntoView {
     let exercises = RwSignal::new(Vec::<Exercise>::new());
-    let circuits = RwSignal::new(Vec::<Circuit>::new());
+    let priced = RwSignal::new(Vec::<PricedCircuit>::new());
     let form = RwSignal::new(Form::Exercise);
     let said = RwSignal::new(None::<String>);
+    let price = move || {
+        spawn_local(async move {
+            if let Ok(known) = tauri::priced_circuits(&today()).await {
+                priced.set(known);
+            }
+        });
+    };
     spawn_local(async move {
         match tauri::exercises().await {
             Ok(known) => exercises.set(known),
             Err(failure) => said.set(Some(lines::failure(&failure))),
         }
-        if let Ok(known) = tauri::circuits().await {
-            circuits.set(known);
-        }
     });
-    let done = Callback::new(move |line: String| said.set(Some(line)));
+    price();
+    let done = Callback::new(move |line: String| {
+        said.set(Some(line));
+        price();
+    });
     view! {
         <section class="card">
             <h2>"Add to the catalog"</h2>
             {form_pills(form, [(Form::Exercise, "Exercise"), (Form::Circuit, "Circuit")])}
             {move || match form.get() {
-                Form::Circuit => {
-                    view! { <NewCircuit exercises=exercises circuits=circuits done=done /> }.into_any()
-                }
+                Form::Circuit => view! { <NewCircuit exercises=exercises done=done /> }.into_any(),
                 _ => view! { <NewExercise exercises=exercises done=done /> }.into_any(),
             }}
             {said_on_the_shelf(said)}
         </section>
-        <CircuitsList circuits=circuits said=said />
-        <ExercisesList exercises=exercises said=said />
+        {move || match form.get() {
+            Form::Circuit => view! { <CircuitsList priced=priced said=said /> }.into_any(),
+            _ => view! { <ExercisesList exercises=exercises said=said /> }.into_any(),
+        }}
     }
 }
 

@@ -253,8 +253,6 @@ pub fn fuel_targets_kept(from: &str) -> String {
     )
 }
 
-pub const NO_MEAL: &str = "No meal cooked yet. Trix's lab is spotless, which worries everyone.";
-
 pub fn figures_of(nutrients: &Nutrients) -> String {
     format!(
         "{} · P {} · C {} · F {} · Fib {}",

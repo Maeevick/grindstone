@@ -1,9 +1,9 @@
 use grind_core::burn::Burn;
 use grind_core::circuit::{Circuit, CircuitStep, StepForm};
 use grind_core::exercise::Exercise;
-use grind_core::figures::{Figure, shown};
+use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_burning::{CircuitSessionForm, DEFAULT_SETS};
-use grind_core::for_cataloguing::CircuitForm;
+use grind_core::for_cataloguing::{CircuitForm, PricedCircuit};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -52,42 +52,72 @@ fn said_line(said: RwSignal<Option<Result<String, String>>>) -> impl IntoView {
 }
 
 #[component]
-fn CraftedCircuit(crafted: Circuit, remove: Callback<String>) -> impl IntoView {
-    let named = crafted.name.clone();
+fn PricedRow(
+    priced: PricedCircuit,
+    opened: RwSignal<Option<String>>,
+    remove: Callback<String>,
+) -> impl IntoView {
+    let named = priced.circuit.name.clone();
+    let toggled = named.clone();
+    let removed = named.clone();
+    let shown_name = named.clone();
+    let crafted = priced.circuit.clone();
     view! {
-        <tr>
+        <tr
+            class="circuit"
+            on:click=move |_| {
+                opened.update(|shown| {
+                    *shown = (shown.as_deref() != Some(toggled.as_str())).then(|| toggled.clone())
+                })
+            }
+        >
+            <td>{named.clone()}</td>
             <td>
-                <strong>{crafted.name.clone()}</strong>
-                {(!crafted.description.is_empty())
-                    .then(|| view! { <p class="hint description">{crafted.description.clone()}</p> })}
-                <ol class="figures">
-                    {crafted
-                        .steps
-                        .iter()
-                        .map(|step| view! { <li>{frozen_step(step)}</li> })
-                        .collect_view()}
-                </ol>
+                {priced
+                    .burnt_per_set_kcal
+                    .map_or_else(|| "-".to_string(), |kcal| bare(Figure::Energy(kcal)))}
             </td>
             <td>
                 <button
                     class="remove"
                     type="button"
                     aria-label="Remove this circuit"
-                    on:click=move |_| remove.run(named.clone())
+                    on:click=move |event| {
+                        event.stop_propagation();
+                        remove.run(removed.clone());
+                    }
                 >
                     "×"
                 </button>
             </td>
         </tr>
+        {move || {
+            (opened.get().as_deref() == Some(shown_name.as_str()))
+                .then(|| {
+                    view! {
+                        <tr class="details">
+                            <td colspan="3">
+                                {(!crafted.description.is_empty())
+                                    .then(|| {
+                                        view! { <p class="hint description">{crafted.description.clone()}</p> }
+                                    })}
+                                <ol class="figures">
+                                    {crafted
+                                        .steps
+                                        .iter()
+                                        .map(|step| view! { <li>{frozen_step(step)}</li> })
+                                        .collect_view()}
+                                </ol>
+                            </td>
+                        </tr>
+                    }
+                })
+        }}
     }
 }
 
 #[component]
-pub fn NewCircuit(
-    exercises: RwSignal<Vec<Exercise>>,
-    circuits: RwSignal<Vec<Circuit>>,
-    done: Callback<String>,
-) -> impl IntoView {
+pub fn NewCircuit(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> impl IntoView {
     let name = RwSignal::new(String::new());
     let description = RwSignal::new(String::new());
     let exercise = RwSignal::new(String::new());
@@ -136,8 +166,7 @@ pub fn NewCircuit(
         };
         spawn_local(async move {
             match tauri::craft_circuit(&form).await {
-                Ok(known) => {
-                    circuits.set(known);
+                Ok(_) => {
                     name.set(String::new());
                     description.set(String::new());
                     steps.set(Vec::new());
@@ -225,13 +254,19 @@ pub fn NewCircuit(
 
 #[component]
 pub fn CircuitsList(
-    circuits: RwSignal<Vec<Circuit>>,
+    priced: RwSignal<Vec<PricedCircuit>>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
+    let opened = RwSignal::new(None::<String>);
     let remove = Callback::new(move |named: String| {
         spawn_local(async move {
             match tauri::remove_circuit(&named).await {
-                Ok(known) => circuits.set(known),
+                Ok(left) => priced.update(|kept| {
+                    kept.retain(|priced| {
+                        left.iter()
+                            .any(|circuit| circuit.name == priced.circuit.name)
+                    })
+                }),
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -240,15 +275,24 @@ pub fn CircuitsList(
         <section class="card">
             <h2>"Circuits"</h2>
             {move || {
-                circuits.get().is_empty().then(|| view! { <p class="empty">{lines::NO_CIRCUIT}</p> })
+                priced.get().is_empty().then(|| view! { <p class="empty">{lines::NO_CIRCUIT}</p> })
             }}
             <table class="circuits">
+                <thead>
+                    <tr>
+                        <th>"Name"</th>
+                        <th>"kcal / set"</th>
+                        <th></th>
+                    </tr>
+                </thead>
                 <tbody>
-                    <For
-                        each=move || circuits.get()
-                        key=|kept| format!("{kept:?}")
-                        children=move |kept| view! { <CraftedCircuit crafted=kept remove=remove /> }
-                    />
+                    {move || {
+                        priced
+                            .get()
+                            .into_iter()
+                            .map(|kept| view! { <PricedRow priced=kept opened=opened remove=remove /> })
+                            .collect_view()
+                    }}
                 </tbody>
             </table>
         </section>

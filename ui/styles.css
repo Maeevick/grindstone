@@ -845,3 +845,35 @@ textarea:focus {
 	color: var(--mut);
 	font-size: 0.6rem;
 }
+
+.row.thirds .field,
+.row.quarters .field {
+	min-width: 0;
+}
+
+table.larder {
+	min-width: 34rem;
+}
+
+.larder tr.meal,
+.circuits tr.circuit {
+	cursor: pointer;
+}
+
+.larder .icon {
+	width: 1.6rem;
+	font-size: 1rem;
+}
+
+tr.details td {
+	border-top: 0;
+	padding-top: 0;
+	background: var(--inset);
+}
+
+tr.details .pinned {
+	position: sticky;
+	left: 0;
+	max-width: calc(100vw - 64px);
+	white-space: normal;
+}

@@ -198,16 +198,14 @@ pub fn NewMeal(
 }
 
 #[component]
-fn KeptMeal(meal: Meal, remove: Callback<String>) -> impl IntoView {
-    let named = meal.name.clone();
+pub fn MealDetails(meal: Meal) -> impl IntoView {
     let per_100_g = food_of(&meal).nutrients;
     view! {
-        <tr>
-            <td>
-                <details>
-                    <summary>{meal.name.clone()}</summary>
+        <tr class="details">
+            <td colspan="9">
+                <div class="pinned">
                     {(!meal.description.is_empty())
-                        .then(|| view! { <p class="hint">{meal.description.clone()}</p> })}
+                        .then(|| view! { <p class="hint description">{meal.description.clone()}</p> })}
                     <ul class="figures">
                         {meal
                             .ingredients
@@ -215,47 +213,10 @@ fn KeptMeal(meal: Meal, remove: Callback<String>) -> impl IntoView {
                             .map(|ingredient| view! { <li>{lines::cooked_ingredient(ingredient)}</li> })
                             .collect_view()}
                     </ul>
-                </details>
-                <p class="hint">{lines::meal_totals(&meal)}</p>
-                <p class="hint">{lines::per_100_g_cooked(&per_100_g)}</p>
-            </td>
-            <td>
-                <button
-                    class="remove"
-                    type="button"
-                    aria-label="Remove this meal"
-                    on:click=move |_| remove.run(named.clone())
-                >
-                    "×"
-                </button>
+                    <p class="hint">{lines::meal_totals(&meal)}</p>
+                    <p class="hint">{lines::per_100_g_cooked(&per_100_g)}</p>
+                </div>
             </td>
         </tr>
-    }
-}
-
-#[component]
-pub fn MealsList(meals: RwSignal<Vec<Meal>>, said: RwSignal<Option<String>>) -> impl IntoView {
-    let remove = Callback::new(move |named: String| {
-        spawn_local(async move {
-            match tauri::remove_meal(&named).await {
-                Ok(kept) => meals.set(kept),
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
-    });
-    view! {
-        <section class="card">
-            <h2>"Meals"</h2>
-            {move || meals.get().is_empty().then(|| view! { <p class="empty">{lines::NO_MEAL}</p> })}
-            <table class="meals">
-                <tbody>
-                    <For
-                        each=move || meals.get()
-                        key=|meal| format!("{meal:?}")
-                        children=move |meal| view! { <KeptMeal meal=meal remove=remove /> }
-                    />
-                </tbody>
-            </table>
-        </section>
     }
 }
