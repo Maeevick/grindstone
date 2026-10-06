@@ -3,7 +3,7 @@ use grind_core::for_reviewing_progress::Window;
 use grind_core::stats::{MEASURES, Measure, figure_of};
 use leptos::prelude::*;
 
-use crate::chart::{axis_of, dots_of, line_of};
+use crate::chart::{axis_of, days_along, dots_of, line_of};
 use crate::screens::charts::{HEIGHT, Line, Plot, Plotted, WIDTH, span_of, ticks_on};
 use crate::screens::{lines, today};
 use crate::tauri;
@@ -11,7 +11,7 @@ use crate::tauri;
 const WINDOWS: [(Window, &str); 3] = [
     (Window::Days30, "30 days"),
     (Window::Days90, "90 days"),
-    (Window::Everything, "Everything"),
+    (Window::Everything, "∞"),
 ];
 
 #[component]
@@ -71,6 +71,7 @@ fn timeline_plot(explored: &Explored, (one, other): (Measure, Measure)) -> Optio
         right_ticks: other_axis
             .map(|axis| ticks_on(axis, |value| figure_of(other, value), "other"))
             .unwrap_or_default(),
+        days: days_along(span, WIDTH),
         legend: vec![
             ("one", lines::measure_name(one)),
             ("other", lines::measure_name(other)),

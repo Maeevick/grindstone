@@ -10,7 +10,7 @@ use grind_core::streak::{Status, StreakDay};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::chart::{Axis, axis_of, height_of, line_of, spread};
+use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
 use crate::screens::lines;
 use crate::tauri;
 
@@ -33,10 +33,11 @@ const CHIPS: [(Chip, &str); 4] = [
     (Chip::Burn, "Burn"),
 ];
 
-const WINDOWS: [(Window, &str); 3] = [
+const WINDOWS: [(Window, &str); 4] = [
+    (Window::Days7, "7 days"),
     (Window::Days30, "30 days"),
     (Window::Days90, "90 days"),
-    (Window::Everything, "Everything"),
+    (Window::Everything, "∞"),
 ];
 
 pub type Points = Vec<(NaiveDate, f64)>;
@@ -62,6 +63,7 @@ pub struct Plotted {
     pub right: Vec<Label>,
     pub ticks: Vec<Label>,
     pub right_ticks: Vec<Label>,
+    pub days: Vec<(f64, String)>,
     pub legend: Vec<(&'static str, &'static str)>,
 }
 
@@ -174,6 +176,7 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
         .flatten()
         .collect(),
         ticks: ticks_on(axis, Figure::Mass, ""),
+        days: days_along(span, WIDTH),
         right_ticks: vec![],
         legend: vec![
             ("mass", "Body mass"),
@@ -225,6 +228,7 @@ fn band_plot(
         .flatten()
         .collect(),
         ticks: ticks_on(axis, figure, ""),
+        days: days_along(span, WIDTH),
         right_ticks: vec![],
         legend: vec![(class, name), ("floor", "Floor"), ("cap", "Cap")],
     })
@@ -250,6 +254,7 @@ fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
         left: vec![],
         right: vec![],
         ticks: ticks_on(burnt, Figure::Energy, "burnt"),
+        days: days_along(span, WIDTH),
         right_ticks: ticks_on(minutes, Figure::Duration, "minutes"),
         legend: vec![("burnt", "Burnt (kcal)"), ("minutes", "Minutes")],
     })
@@ -295,6 +300,12 @@ pub fn Plot(plotted: Option<Plotted>) -> impl IntoView {
                             .map(|y| view! { <line class="grid" x1="0" x2="360" y1=y y2=y /> })
                             .collect_view()}
                         <line class="axis" x1="0" x2="0" y1="0" y2="180" />
+                        <line class="x-axis" x1="0" x2="360" y1="180" y2="180" />
+                        {plotted
+                            .days
+                            .iter()
+                            .map(|(x, _)| view! { <line class="mark" x1=*x x2=*x y1="180" y2="186" /> })
+                            .collect_view()}
                         {two_axes.then(|| view! { <line class="axis" x1="360" x2="360" y1="0" y2="180" /> })}
                         {plotted
                             .lines
@@ -311,6 +322,17 @@ pub fn Plot(plotted: Option<Plotted>) -> impl IntoView {
                     {clear_of(plotted.right_ticks, &right).into_iter().map(tick("right")).collect_view()}
                     {left.into_iter().map(place("left")).collect_view()}
                     {right.into_iter().map(place("right")).collect_view()}
+                    {plotted
+                        .days
+                        .into_iter()
+                        .map(|(x, day)| {
+                            view! {
+                                <span class="label x" style=format!("left: {:.1}%", x / WIDTH * 100.0)>
+                                    {day}
+                                </span>
+                            }
+                        })
+                        .collect_view()}
                 </div>
                 <ul class="legend">
                     {plotted
@@ -362,32 +384,6 @@ fn ChipPlot(chip: Chip, today: String, window: RwSignal<Window>) -> impl IntoVie
                         Ok(plotted) => view! { <Plot plotted=plotted /> }.into_any(),
                         Err(failure) => {
                             view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
-                        }
-                    })
-            }}
-        </Transition>
-    }
-}
-
-#[component]
-fn GatherFigures(today: String, window: RwSignal<Window>) -> impl IntoView {
-    let card = LocalResource::new(move || {
-        let (today, window) = (today.clone(), window.get());
-        async move { tauri::gather_card(&today, window).await }
-    });
-    view! {
-        <Transition fallback=|| ()>
-            {move || {
-                card.get()
-                    .and_then(Result::ok)
-                    .map(|card| {
-                        view! {
-                            <ul class="figures">
-                                {lines::gather_figures(&card)
-                                    .into_iter()
-                                    .map(|line| view! { <li>{line}</li> })
-                                    .collect_view()}
-                            </ul>
                         }
                     })
             }}
@@ -640,7 +636,7 @@ fn VeilNotes(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -> i
 #[component]
 pub fn Charts(today: String) -> impl IntoView {
     let chip = RwSignal::new(Chip::Gather);
-    let window = RwSignal::new(Window::Days30);
+    let window = RwSignal::new(Window::Days7);
     let today = StoredValue::new(today);
     let streak = LocalResource::new(move || {
         let today = today.get_value();
@@ -689,20 +685,7 @@ pub fn Charts(today: String) -> impl IntoView {
                     })
                     .collect_view()}
             </div>
-            {move || {
-                let chosen = chip.get();
-                let plot = view! { <ChipPlot chip=chosen today=today.get_value() window=window /> };
-                match chosen {
-                    Chip::Gather => {
-                        view! {
-                            {plot}
-                            <GatherFigures today=today.get_value() window=window />
-                        }
-                            .into_any()
-                    }
-                    _ => plot.into_any(),
-                }
-            }}
+            {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
         </section>
         <VeilNotes chip=chip today=today.get_value() window=window />
         <section class="card history">

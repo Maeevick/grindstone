@@ -4,7 +4,6 @@ use grind_core::failure::Failure;
 use grind_core::figures::{Figure, shown, signed};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
-use grind_core::for_reviewing_progress::GatherCard;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::hydrate::Hydrate;
 use grind_core::meal::{Ingredient, Meal};
@@ -29,40 +28,6 @@ pub fn profile_kept(from: &str) -> String {
 
 pub fn goals_kept(from: &str) -> String {
     format!("Noted in the margin, in very small letters: these goals are kept from {from}.")
-}
-
-pub fn gather_figures(card: &GatherCard) -> Vec<String> {
-    let rate = card.progress.map(|progress| {
-        format!(
-            "{} a week ({}), by my meticulous observations.",
-            shown(Figure::Mass(progress.per_week)),
-            shown(Figure::Ratio(progress.share_per_week))
-        )
-    });
-    let changes = card
-        .fat_change_kg
-        .zip(card.lean_change_kg)
-        .map(|(fat, lean)| {
-            format!(
-                "Fat {}, lean {} over the window.",
-                shown(Figure::Mass(fat)),
-                shown(Figure::Mass(lean))
-            )
-        });
-    let target =
-        card.target_kg.map(
-            |target| match card.progress.and_then(|progress| progress.reached_on) {
-                Some(day) => format!(
-                    "{} reached around {day}, give or take a goblin.",
-                    shown(Figure::Mass(target))
-                ),
-                None => format!(
-                    "{}: the trend is not heading there yet.",
-                    shown(Figure::Mass(target))
-                ),
-            },
-        );
-    [rate, changes, target].into_iter().flatten().collect()
 }
 
 pub const IMPORT_HOW: &str = "Bring the draft's latest backup from the Mac with make import-draft-android, \
@@ -331,18 +296,29 @@ pub fn cooked(name: &str) -> String {
     format!("{name} is in the food catalog, per 100 g cooked. Weigh your portions in Fuel.")
 }
 
-pub fn streak_line(streak: &Streak) -> String {
-    let days = match streak.days {
-        0 => "No streak yet".to_string(),
+fn days_counted(days: u32) -> String {
+    match days {
         1 => "1 day".to_string(),
         many => format!("{many} days"),
-    };
+    }
+}
+
+pub fn streak_count(days: u32) -> String {
+    match days {
+        0 => "No streak yet".to_string(),
+        days => days_counted(days),
+    }
+}
+
+pub fn longest_streak(longest: u32) -> String {
+    format!("Longest: {}", days_counted(longest))
+}
+
+pub fn streak_remark(streak: &Streak) -> &'static str {
     if streak.at_risk {
-        format!(
-            "{days}. Yesterday was a joker: today must be complete, or the streak goes back to the archive."
-        )
+        "Yesterday was a joker: today must be complete, or the streak goes back to the archive."
     } else {
-        format!("{days}. The streak is there to build habits, not to flatter.")
+        "The streak is there to build habits, not to flatter."
     }
 }
 
@@ -503,8 +479,7 @@ pub fn gather_note(note: &GatherNote) -> String {
             per_week_kg,
             reached_on,
         } => format!(
-            "{}: on this trend the goal falls around {reached_on}. Keep the pace, not the pressure.* \
-             (*Veil does not do pressure. Veil does patience, and arrows.)",
+            "{}: on this trend the goal falls around {reached_on}. Keep the pace, not the pressure.",
             a_week(*per_week_kg)
         ),
         GatherNote::OffCourse { per_week_kg } => format!(
