@@ -15,6 +15,12 @@ fn range_of(values: impl Iterator<Item = f64> + Clone) -> (f64, f64) {
     )
 }
 
+/// The days to date an x axis with: the oldest, the newest and three between, each with where it
+/// stands along the width, months instead of days past a year.
+pub fn days_along(_span: (NaiveDate, NaiveDate), _width: f64) -> Vec<(f64, String)> {
+    vec![]
+}
+
 pub fn dots_of(
     pairs: &[(f64, f64)],
     xs: (f64, f64),
@@ -313,6 +319,39 @@ mod tests {
                 180.0
             ),
             "180.0,90.0"
+        );
+    }
+
+    #[test]
+    fn an_x_axis_dates_its_oldest_day_its_newest_and_three_between() {
+        assert_eq!(
+            days_along((day("2026-09-10"), day("2026-10-10")), 360.0),
+            vec![
+                (0.0, "09-10".to_string()),
+                (96.0, "09-18".to_string()),
+                (180.0, "09-25".to_string()),
+                (276.0, "10-03".to_string()),
+                (360.0, "10-10".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_short_span_dates_each_day_once_and_a_long_one_its_months() {
+        assert_eq!(
+            days_along((day("2026-10-09"), day("2026-10-10")), 360.0),
+            vec![(0.0, "10-09".to_string()), (360.0, "10-10".to_string())]
+        );
+        assert_eq!(
+            days_along((day("2026-10-10"), day("2026-10-10")), 360.0),
+            vec![(180.0, "10-10".to_string())]
+        );
+        assert_eq!(
+            days_along((day("2025-06-01"), day("2026-10-10")), 360.0)
+                .into_iter()
+                .map(|(_, label)| label)
+                .collect::<Vec<_>>(),
+            ["2025-06", "2025-10", "2026-02", "2026-06", "2026-10"]
         );
     }
 }
