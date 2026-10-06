@@ -106,6 +106,43 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
 }
 
 #[wasm_bindgen_test]
+async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_figures() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(
+        fields_in_rows(&screen, "form.goals"),
+        [vec!["goals_from"], vec!["target_mass", "target_fat"]]
+    );
+    assert_eq!(
+        fields_in_rows(&screen, "form.fuel-targets"),
+        [
+            vec!["targets_from"],
+            vec!["target_protein", "target_fat_g", "target_fibre"]
+        ]
+    );
+    assert_eq!(
+        fields_in_rows(&screen, "form.usual-day"),
+        [
+            vec!["usual_from"],
+            vec!["usual_sitting", "usual_standing", "usual_moving"]
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
     answering(r#"{ "profile_on": null, "goals_on": null }"#);
     let screen = screen();
