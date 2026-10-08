@@ -301,16 +301,6 @@ select {
     font-size: 0.9rem;
 }
 
-.sources {
-    font-size: 0.8rem;
-    color: #9aa0a6;
-    padding-left: 1.1rem;
-}
-
-.sources a {
-    color: #e8b04b;
-}
-
 .legend {
     list-style: none;
     padding: 0;
@@ -688,11 +678,6 @@ a.references {
 .pot input.ratio {
 	width: 5.5rem;
 	height: 36px;
-}
-
-.meals details summary {
-	color: var(--txt);
-	cursor: pointer;
 }
 
 .cta.explore {
