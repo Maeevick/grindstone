@@ -6,7 +6,7 @@ use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::hydrate::Hydrate;
-use grind_core::meal::{Ingredient, Meal};
+use grind_core::meal::Ingredient;
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
@@ -224,6 +224,8 @@ pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow
 
 pub const NO_INTAKE: &str = "Nothing eaten on this day, or nothing filed yet.";
 
+pub const NO_MEAL: &str = "No meal cooked yet. Trix's lab is spotless, which worries everyone.";
+
 pub const NO_FOOD: &str =
     "The catalog has no food yet. Add one with its figures per portion, or import the draft's.";
 
@@ -275,19 +277,6 @@ pub fn cooked_ingredient(ingredient: &Ingredient) -> String {
         shown(Figure::Times(ingredient.cooked_per_raw)),
         shown(Figure::Amount(ingredient.cooked_g(), Unit::Gram))
     )
-}
-
-pub fn meal_totals(meal: &Meal) -> String {
-    format!(
-        "{} cooked from {} raw: {}.",
-        shown(Figure::Amount(meal.cooked_g, Unit::Gram)),
-        shown(Figure::Amount(meal.raw_g, Unit::Gram)),
-        figures_of(&meal.totals)
-    )
-}
-
-pub fn per_100_g_cooked(per_100_g: &Nutrients) -> String {
-    format!("Per 100 g cooked: {}.", figures_of(per_100_g))
 }
 
 pub fn cooked(name: &str) -> String {

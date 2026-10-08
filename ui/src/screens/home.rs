@@ -91,11 +91,23 @@ fn TodayCard() -> impl IntoView {
     let fuel = LocalResource::new(move || async move { tauri::fuel_day(&today()).await });
     let burn = LocalResource::new(move || async move { tauri::burn_day(&today()).await });
     let hydrate = LocalResource::new(move || async move { tauri::hydrate_day(&today()).await });
+    let week = LocalResource::new(move || async move { tauri::gather_week(&today()).await });
     let not_yet = || "-".to_string();
     view! {
         <section class="card today">
             <h2>"Today"</h2>
             <div class="tiles">
+                <Tile
+                    icon="⚖️"
+                    figure=Signal::derive(move || {
+                        week.get()
+                            .and_then(Result::ok)
+                            .and_then(|week| week.day)
+                            .map_or_else(not_yet, |own| bare(Figure::Mass(own.body_mass_kg)))
+                    })
+                    unit="kg weighed"
+                    class=Signal::derive(|| "weighed")
+                />
                 <Tile
                     icon="⚡"
                     figure=Signal::derive(move || {

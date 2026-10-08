@@ -1,7 +1,7 @@
 use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::food::{Food, Unit};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
-use grind_core::meal::{MASS_KEPT, Meal, food_of};
+use grind_core::meal::{MASS_KEPT, Meal};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -199,10 +199,9 @@ pub fn NewMeal(
 
 #[component]
 pub fn MealDetails(meal: Meal) -> impl IntoView {
-    let per_100_g = food_of(&meal).nutrients;
     view! {
         <tr class="details">
-            <td colspan="9">
+            <td colspan="8">
                 <div class="pinned">
                     {(!meal.description.is_empty())
                         .then(|| view! { <p class="hint description">{meal.description.clone()}</p> })}
@@ -213,8 +212,6 @@ pub fn MealDetails(meal: Meal) -> impl IntoView {
                             .map(|ingredient| view! { <li>{lines::cooked_ingredient(ingredient)}</li> })
                             .collect_view()}
                     </ul>
-                    <p class="hint">{lines::meal_totals(&meal)}</p>
-                    <p class="hint">{lines::per_100_g_cooked(&per_100_g)}</p>
                 </div>
             </td>
         </tr>
