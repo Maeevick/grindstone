@@ -974,7 +974,7 @@ async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
 }
 
 #[wasm_bindgen_test]
-async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_larder_its_macros_in_columns()
+async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_macros_in_columns()
 {
     answering(
         r#"{ "foods": [], "meals": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
@@ -983,7 +983,7 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_larder_its
     let screen = screen();
     let _mounted = the_catalog(&screen);
     settled().await;
-    assert_eq!(tables_in_order(&screen), ["larder"]);
+    assert_eq!(tables_in_order(&screen), ["foods"]);
     found::<Element>(&screen, "button.form-Food.chosen");
     found::<Element>(&screen, "button.form-Meal");
     assert_eq!(
@@ -1003,8 +1003,8 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_larder_its
         .expect("the food is added");
     settled().await;
 
-    let row = texts_of(&screen, "table.larder tbody tr td");
-    for cell in ["🧪", "Skyr", "100 g", "54", "10", "0", "4"] {
+    let row = texts_of(&screen, "table.foods tbody tr td");
+    for cell in ["Skyr", "100 g", "54", "10", "0", "4"] {
         assert!(row.contains(&cell.to_string()), "{cell} in {row:?}");
     }
     assert_eq!(value_of(&screen, "food_name"), "");
@@ -1035,7 +1035,7 @@ async fn added_to_the_pot(screen: &Element, food: &str, quantity: &str) {
 }
 
 #[wasm_bindgen_test]
-async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_larder_its_details_on_a_click()
+async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_meals_its_ingredients_on_a_click()
  {
     answering(&format!(
         r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
@@ -1068,27 +1068,30 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_larder_it
         "{sent}"
     );
     assert_eq!(value_of(&screen, "meal_name"), "");
-    let meal = found::<Element>(&screen, "table.larder tr.meal");
-    assert!(meal.text_content().unwrap_or_default().contains("🍽️"));
+    assert_eq!(tables_in_order(&screen), ["meals"]);
+    let meal = found::<Element>(&screen, "table.meals tr.meal");
+    assert!(
+        meal.text_content()
+            .unwrap_or_default()
+            .contains("Pasta in cream")
+    );
     assert!(
         screen
-            .query_selector("table.larder tr.details")
+            .query_selector("table.meals tr.details")
             .ok()
             .flatten()
             .is_none()
     );
     meal.unchecked_into::<web_sys::HtmlElement>().click();
     settled().await;
-    let details = text_of(&screen, "table.larder tr.details");
-    for figure in [
-        "Boil, reduce, stir.",
-        "382 g cooked from 300 g raw",
-        "960 kcal",
-        "× 0.66",
-        "132 g",
-    ] {
+    let details = text_of(&screen, "table.meals tr.details");
+    for figure in ["Boil, reduce, stir.", "× 0.66", "132 g"] {
         assert!(details.contains(figure), "{figure} in {details}");
     }
+    assert!(
+        !details.contains("960 kcal") && !details.contains("Per 100 g"),
+        "{details}"
+    );
 }
 
 #[wasm_bindgen_test]
@@ -1128,7 +1131,9 @@ async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with
                  { "day": "2026-10-10", "status": "Pending", "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": true } } ] },
              "fuel_day": { "day": "2026-10-10", "intakes": [], "band": null, "energy": null, "macros": null,
                  "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } },
-             "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null, "off_the_clock_is_usual": true } }"#,
+             "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null, "off_the_clock_is_usual": true },
+             "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
+                 "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
@@ -1138,7 +1143,8 @@ async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with
     assert_eq!(text_of(&screen, ".streak .current"), "2 days");
     assert!(text_of(&screen, ".streak .longest").contains("5 days"));
     let tiles = texts_of(&screen, ".today .tile .icon");
-    assert_eq!(tiles, ["⚡", "💧", "🔥"]);
+    assert_eq!(tiles, ["⚖️", "⚡", "💧", "🔥"]);
+    assert!(text_of(&screen, ".today .tile.weighed").contains("71.7"));
     found::<Element>(&screen, "main.wrap > a.explore:last-child");
     let ticks = screen
         .query_selector_all(".streak .ticks li")
