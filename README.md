@@ -13,14 +13,14 @@ A personal tracker for body mass, food and training, carried on an Android phone
 
 Version 0.1, the full scope, on four tabs.
 
-- **Home:** Grimble's welcome until a profile exists. After that:
+- **Home:** a welcome until a profile exists. After that:
   - the streak:
     - four ticks a day: a weigh-in; Fuel, meaning the day's energy inside its band; a workout; Hydrate inside its band;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
     - its count in gold, its longest run and today's four ticks at the top, each day's dot in the history beneath the chart;
   - today in four tiles: ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt;
   - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞, its y axis on round ticks over thin grid lines, its x axis dated from the oldest day to the newest (every day over a week), the current values and a legend;
-  - beneath it, Veil's note on what is worth sharpening for the chosen chip: the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
+  - beneath it, the unwanted tips: what is worth sharpening for the chosen chip, the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
   - each chip's history beneath, month by month, its units in the headers and each day's streak dot;
   - a way into Stats at the bottom.
 - **Tracker:** one day at a time, today by default, shown as yyyy-mm-dd, in four segments, each closed by a way into Stats. Every list of the catalog starts on "Select me" and narrows from three letters typed, starting matches first, then those containing them, ignoring case and accents.
@@ -29,7 +29,7 @@ Version 0.1, the full scope, on four tabs.
   - **Hydrate:** drinks in millilitres, one serving when none are typed, on a scale from min through optimal to max, the band running 20% either side of the target.
   - **Burn:** a workout or a circuit, on two tabs; blank fields log a minute, one rep, one set and no load. The day off the clock (sitting, standing, moving). The day's expenditures list the workouts newest first, then the day off the clock and fidgeting, the two parts of non-exercise activity.
 - **Catalog:** three shelves, each adding from a form card at its top, chips switching between its forms:
-  - **Fuel:** foods or meals, each list on its chip, their figures per portion in columns. A meal is cooked in Trix's lab, each ingredient with its cooking ratio (the cooked mass over the raw one, 1 when left empty, so the hot pot needs no weighing), then logs in Fuel by the weighed portion, per 100 g cooked; a click on it shows its description and ingredients, each raw quantity × ratio → cooked mass;
+  - **Fuel:** foods or meals, each list on its chip, their figures per portion in columns. A meal is cooked in the lab, each ingredient with its cooking ratio (the cooked mass over the raw one, 1 when left empty, so the hot pot needs no weighing), then logs in Fuel by the weighed portion, per 100 g cooked; a click on it shows its description and ingredients, each raw quantity × ratio → cooked mass;
   - **Hydrate:** drinks, water or other;
   - **Burn:** exercises with their MET, or circuits fixed at creation with their energy per set at today's body mass, a click showing a circuit's description and steps.
 - **Profile:**

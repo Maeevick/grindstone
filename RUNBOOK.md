@@ -125,7 +125,7 @@ Expected: `Success`.
 
 ## 10. Smoke test, on the phone
 
-1. Open **Grindstone**: Grimble's welcome shows until a profile exists.
+1. Open **Grindstone**: the welcome shows until a profile exists.
 2. **Profile:** save a profile, goals, fuel targets, the hydrate base and the usual day. Each says from which day it is kept.
 3. **Catalog:** add a food, a drink and an exercise.
 4. **Tracker:** log the day's mass and waist, an intake, a drink and a workout, each in its segment.
@@ -139,7 +139,7 @@ The app must have run once, which creates its Documents folder. With the phone p
 make import-draft-android BACKUP=../grindstone_draft/data/backups/<latest backup>.json
 ```
 
-Then, in the app, go to Profile, the gear, then **Import the draft**. Grimble tells what he filed:
+Then, in the app, go to Profile, the gear, then **Import the draft**. The app tells what it filed:
 - measurements, profiles and goals;
 - exercises and workouts;
 - foods and intakes;
