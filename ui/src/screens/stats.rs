@@ -101,7 +101,7 @@ pub fn Stats() -> impl IntoView {
     });
     view! {
         <section class="card">
-            <h2>"Stats: Veil's hunting ground"</h2>
+            <h2>"Stats: the hunting ground"</h2>
             <div class="row">
                 <MeasurePicker name="One" chosen=one />
                 <MeasurePicker name="Other" chosen=other />
@@ -152,6 +152,10 @@ pub fn Stats() -> impl IntoView {
                                         <Plot plotted=scatter_plot(&explored.pairs, other_measure) />
                                     </div>
                                     <p class="said">{lines::together(explored.correlation, explored.pairs.len())}</p>
+                                    {explored
+                                        .correlation
+                                        .is_some()
+                                        .then(|| view! { <p class="quote">{lines::HUNTING}</p> })}
                                 }
                                     .into_any()
                             }

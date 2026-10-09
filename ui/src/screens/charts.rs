@@ -607,8 +607,8 @@ fn VeilNotes(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -> i
         }
     });
     view! {
-        <section class="card veil">
-            <h2>"Veil's hunt"</h2>
+        <section class="card tips">
+            <h2>"The unwanted tips"</h2>
             <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
                 {move || {
                     notes
@@ -621,7 +621,7 @@ fn VeilNotes(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -> i
                                     Chip::Hydrate => lines::hydrate_note(&found.hydrate),
                                     Chip::Burn => lines::burn_note(&found.burn),
                                 };
-                                view! { <p class="veil-note">{line}</p> }.into_any()
+                                view! { <p class="tip">{line}</p> }.into_any()
                             }
                             Err(failure) => {
                                 view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()

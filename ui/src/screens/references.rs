@@ -61,6 +61,7 @@ pub fn ReferencesScreen() -> impl IntoView {
             <h2>"Scientific references"</h2>
         </header>
         <p class="hint">{lines::REFERENCES_INTRO}</p>
+        <p class="quote">{lines::READING}</p>
         {TOPICS
             .into_iter()
             .map(|topic| {

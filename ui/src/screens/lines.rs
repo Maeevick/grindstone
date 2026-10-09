@@ -14,16 +14,15 @@ use grind_core::stats::{Measure, Summary, figure_of};
 use grind_core::streak::{Status, Streak, Ticks};
 use grind_draft::{DraftRefusal, ImportFailure};
 
-pub const WELCOME: &str = "Greetings, rusty one. I am Grimble, archivist of the Great Library of Cogsburg. \
-    From today I file your every gram. [He adjusts his glasses.] Shall we begin with your profile, \
-    or fetch the old records from the draft first?";
+pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
+    Shall we begin with your profile, or fetch the old records from the draft first?";
 
-pub const LOADING: &str = "Grimble is fetching the ledger…";
+pub const LOADING: &str = "Fetching the ledger…";
 
 pub const LOST: &str = "Lost in the tunnels under the library. Try another tab.";
 
 pub fn profile_kept(from: &str) -> String {
-    format!("Filed. [Grimble licks a finger and turns a page.] This profile is kept from {from}.")
+    format!("Filed. This profile is kept from {from}.")
 }
 
 pub fn goals_kept(from: &str) -> String {
@@ -40,7 +39,7 @@ fn counted(count: usize, one: &str, many: &str) -> String {
 
 pub fn imported(imported: &Imported) -> String {
     format!(
-        "Filed: {}, {}, {}, {}, {}, {}, {}, {} and {}. [Grimble dusts off the old records.]",
+        "Filed: {}, {}, {}, {}, {}, {}, {}, {} and {}.",
         counted(imported.measurements, "day", "days"),
         counted(imported.profiles, "profile", "profiles"),
         counted(imported.goals, "goal", "goals"),
@@ -54,7 +53,7 @@ pub fn imported(imported: &Imported) -> String {
 }
 
 pub fn added(name: &str) -> String {
-    format!("{name} joins the catalog. [Grimble files it under its own letter.]")
+    format!("{name} joins the catalog.")
 }
 
 pub const NO_WORKOUT: &str = "No workout on this day. A rest day counts as work: \
@@ -87,7 +86,7 @@ pub fn usual_day_kept(from: &str) -> String {
     format!("Filed: the usual day off the clock is kept from {from}.")
 }
 
-pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only. [Grimble underlines it twice.]";
+pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only.";
 
 pub fn import_failure(refused: &ImportFailure) -> String {
     match refused {
@@ -96,7 +95,7 @@ pub fn import_failure(refused: &ImportFailure) -> String {
         ),
         ImportFailure::Draft(DraftRefusal::Unreadable(where_it_stopped)) => {
             format!(
-                "This backup reads like Trix's notes: it stops making sense at {where_it_stopped}."
+                "This backup reads like lab notes: it stops making sense at {where_it_stopped}."
             )
         }
         ImportFailure::Draft(DraftRefusal::NotAVersionWeRead(version)) => {
@@ -161,7 +160,7 @@ pub fn failure(failure: &Failure) -> String {
             "Recommendations need the rusty you first: birthday, gender and height.".into()
         }
         Failure::Refused(Refusal::NotAName) => {
-            "Even Trix names her explosions. A name, please.".into()
+            "Even the lab names its explosions. A name, please.".into()
         }
         Failure::Refused(Refusal::NotAMet) => {
             "A MET above nothing: resting already counts as one.".into()
@@ -179,40 +178,39 @@ pub fn failure(failure: &Failure) -> String {
             "A portion above nothing: per 100 g, per 250 mL or per piece.".into()
         }
         Failure::Refused(Refusal::NotANutrient) => {
-            "Energy and macros of nothing or more. Negative protein is a Trix experiment.".into()
+            "Energy and macros of nothing or more. Negative protein is a lab experiment.".into()
         }
         Failure::Refused(Refusal::NotAQuantity) => "A quantity above nothing, please.".into(),
         Failure::Refused(Refusal::NotAFood) => {
             "That food is not in the catalog yet. Add it there first.".into()
         }
         Failure::Refused(Refusal::NotAnExercise) => {
-            "That exercise is not in the catalog yet. Veil checked twice.".into()
+            "That exercise is not in the catalog yet. I checked twice.".into()
         }
         Failure::Refused(Refusal::NotASingleStep) => {
-            "A circuit needs one step at least. Even my experiments have one: the bang. ~ Trix 🧪💥"
-                .into()
+            "A circuit needs one step at least. Even my experiments have one: the bang.".into()
         }
         Failure::Refused(Refusal::NotACircuit) => {
-            "That circuit is not in the lab. Craft it in Catalog first. ~ Trix 🧪💥".into()
+            "That circuit is not in the lab. Craft it in Catalog first.".into()
         }
         Failure::Refused(Refusal::NotAVolume) => {
             "Some millilitres above nothing, please. An empty cup files as nothing at all.".into()
         }
         Failure::Refused(Refusal::NotADrink) => {
-            "That drink is not in the catalog yet. Grimble searched every shelf, twice.".into()
+            "That drink is not in the catalog yet. I searched every shelf, twice.".into()
         }
         Failure::Refused(Refusal::NotACookingRatio) => {
             "A cooking ratio above nothing, please: 2.5 for pasta that drinks its water, 0.66 for cream \
-             that boils down, 1 for what keeps its mass. ~ Trix 🧪💥"
+             that boils down, 1 for what keeps its mass."
                 .into()
         }
         Failure::Refused(Refusal::NotWeighed) => {
             "That ingredient is counted in pieces, and the lab cooks by mass: add it in grams or \
-             millilitres for now. ~ Trix 🧪💥"
+             millilitres for now."
                 .into()
         }
         Failure::Broken(reason) => {
-            format!("Something broke: {reason}. [A distant explosion.] Trix says it is data.")
+            format!("Something broke: {reason}. [A distant explosion.] The lab calls it data.")
         }
     }
 }
@@ -220,11 +218,11 @@ pub fn failure(failure: &Failure) -> String {
 pub const NO_BAND: &str = "No band yet: I need a profile and a weigh-in with a waist to price your day. \
     I do not guess bodies, not even goblin ones.";
 
-pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow it down. [Grimble taps the empty line twice.]";
+pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow it down.";
 
 pub const NO_INTAKE: &str = "Nothing eaten on this day, or nothing filed yet.";
 
-pub const NO_MEAL: &str = "No meal cooked yet. Trix's lab is spotless, which worries everyone.";
+pub const NO_MEAL: &str = "No meal cooked yet. The lab is spotless, which worries everyone.";
 
 pub const NO_FOOD: &str =
     "The catalog has no food yet. Add one with its figures per portion, or import the draft's.";
@@ -251,7 +249,7 @@ pub fn verdict_class(verdict: Verdict) -> &'static str {
 
 pub fn fuel_targets_kept(from: &str) -> String {
     format!(
-        "Filed: these targets are kept from {from}. Grimble recalculates every band from that day."
+        "Filed: these targets are kept from {from}, and every band is recalculated from that day."
     )
 }
 
@@ -267,7 +265,7 @@ pub fn figures_of(nutrients: &Nutrients) -> String {
 }
 
 pub const COOKING_RATIO_HOW: &str = "Ratio: the cooked mass over the raw one. 2.5 for pasta that drinks \
-    its water, 0.66 for cream that boils down, 1 when left empty. No need to weigh the pot, it is hot. ~ Trix 🧪💥";
+    its water, 0.66 for cream that boils down, 1 when left empty. No need to weigh the pot, it is hot.";
 
 pub fn cooked_ingredient(ingredient: &Ingredient) -> String {
     format!(
@@ -362,31 +360,33 @@ pub fn summed_up(measure: Measure, summary: &Summary) -> String {
 pub fn together(correlation: Option<f64>, shared: usize) -> String {
     match correlation {
         Some(r) => format!(
-            "Correlation {r:.2} over {shared} shared days. [Veil, from behind a bush: \"shhhhh! I'm hunting...\" and a correlation is not a cause.]"
+            "Correlation {r:.2} over {shared} shared days, and a correlation is not a cause."
         ),
-        None => format!(
-            "{shared} shared days: Veil needs at least three that move to hunt a correlation."
-        ),
+        None => {
+            format!("{shared} shared days: hunting a correlation takes at least three that move.")
+        }
     }
 }
+
+pub const HUNTING: &str = "“shhhhh! I’m hunting...”";
 
 pub const NOTHING_TO_EXPLORE: &str = "Nothing logged for this measure in the window.";
 
 pub const CIRCUIT_HOW: &str = "Name it, stack its steps one by one, then craft. Once crafted it is \
-    welded shut, like my last cauldron: to change it, remove it and craft another. ~ Trix 🧪💥";
+    welded shut, like my last cauldron: to change it, remove it and craft another.";
 
 pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Stack a few exercises from the catalog \
-    and craft one. ~ Trix 🧪💥";
+    and craft one.";
 
-pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is in Catalog. ~ Trix 🧪💥";
+pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is in Catalog.";
 
 pub fn circuit_crafted(name: &str) -> String {
-    format!("{name} is crafted, its steps welded in place. ~ Trix 🧪💥")
+    format!("{name} is crafted, its steps welded in place.")
 }
 
 pub fn circuit_logged(name: &str, sets: u32) -> String {
     format!(
-        "Fire in the hole! {name}, {}, filed in the ledger. ~ Trix 🧪💥",
+        "Fire in the hole! {name}, {}, filed in the ledger.",
         counted(sets as usize, "set", "sets")
     )
 }
@@ -399,14 +399,13 @@ pub fn drunk_against_target(hydrate: &Hydrate) -> String {
     )
 }
 
-pub const TARGET_DRUNK: &str =
-    "Target reached. [Grimble files the cup beside the 213 espressos, purely for science.]";
+pub const TARGET_DRUNK: &str = "Target reached.";
 
 pub const NO_DRINKING: &str =
     "Not a drop filed on this day yet. The archive is drier than its oldest scroll.";
 
 pub fn hydrate_base_kept(from: &str) -> String {
-    format!("Filed. [Grimble dips his quill.] This base is kept from {from}.")
+    format!("Filed. This base is kept from {from}.")
 }
 
 pub fn default_hydrate_base(base_ml: f64) -> String {
@@ -423,8 +422,7 @@ pub fn month_name(month: &str) -> String {
         .unwrap_or_else(|_| month.to_string())
 }
 
-pub const NOTHING_TO_CHART: &str =
-    "Nothing filed in this window yet. Grimble keeps the parchment ready.";
+pub const NOTHING_TO_CHART: &str = "Nothing filed in this window yet. The parchment is ready.";
 
 pub const NOTHING_THIS_MONTH: &str = "Nothing filed this month yet.";
 
@@ -446,8 +444,7 @@ fn a_week(per_week_kg: f64) -> String {
 pub fn gather_note(note: &GatherNote) -> String {
     match note {
         GatherNote::Unweighed => {
-            "No weigh-in in this window. Veil tracks footprints, and the scale has left none. \
-            [Veil waits. Veil is good at waiting.]"
+            "No weigh-in in this window. A hunt tracks footprints, and the scale has left none."
                 .into()
         }
         GatherNote::Irregular { weighed_days, days } => format!(
@@ -455,7 +452,7 @@ pub fn gather_note(note: &GatherNote) -> String {
              fewer, and it is a rumour with a decimal point."
         ),
         GatherNote::TooSoon => "Too few weigh-ins for a trend yet. Patience is half the hunt. \
-            The other half, Veil insists, is also patience."
+            The other half is also patience."
             .into(),
         GatherNote::Aimless { per_week_kg } => format!(
             "{}, heading nowhere in particular: no goal is set. A hunt without a quarry is just a walk \
@@ -480,8 +477,7 @@ pub fn gather_note(note: &GatherNote) -> String {
 pub fn fuel_note(note: &BandNote) -> String {
     match note {
         BandNote::Unlogged => {
-            "Nothing eaten on the record in this window. Veil cannot hunt what was never filed. \
-            [Grimble looks wounded.]"
+            "Nothing eaten on the record in this window, and nobody hunts what was never filed."
                 .into()
         }
         BandNote::Sharp {
@@ -490,7 +486,7 @@ pub fn fuel_note(note: &BandNote) -> String {
             logged,
         } => format!(
             "Every habit held its band four days in five; even the weakest, {}, on {in_band} of {logged}. \
-             Nothing to hunt. Veil finds this deeply suspicious.",
+             Nothing to hunt, which is deeply suspicious.",
             habit_name(*weakest)
         ),
         BandNote::Blunt {
@@ -525,9 +521,7 @@ pub fn hydrate_note(note: &BandNote) -> String {
         }
         BandNote::Sharp {
             in_band, logged, ..
-        } => format!(
-            "In the band on {in_band} of {logged} days. [Veil nods once, which for Veil is a standing ovation.]"
-        ),
+        } => format!("In the band on {in_band} of {logged} days."),
         BandNote::Blunt {
             in_band,
             logged,
@@ -562,7 +556,7 @@ pub fn burn_note(note: &BurnNote) -> String {
             per_week,
             burnt_per_active_day,
         } => format!(
-            "{} active days a week{}. Steady as a goblin with a grudge. [Veil marks the tree and moves on.]",
+            "{} active days a week{}. Steady as a goblin with a grudge.",
             shown(Figure::Count(*per_week)),
             burnt_per_active_day
                 .map(|kcal| format!(", {} burnt on each", shown(Figure::Energy(kcal))))
@@ -571,13 +565,14 @@ pub fn burn_note(note: &BurnNote) -> String {
     }
 }
 
-pub const UNREADABLE: &str = "That is no number I can read. Digits, with a point or a comma, please. [Grimble squints at the ink.]";
+pub const UNREADABLE: &str =
+    "That is no number I can read. Digits, with a point or a comma, please.";
 
 pub const ERASE_WARNING: &str = "Erasing removes every record on this device: measurements, profile, goals, \
     foods, meals, intakes, drinks, workouts, circuits and settings. There is no undo. The app starts again \
     as on its first launch, and the draft can be imported again.";
 
-pub const ERASED: &str = "Everything is erased. [Grimble closes an empty ledger and opens a fresh one.] Home starts over with the welcome.";
+pub const ERASED: &str = "Everything is erased. Home starts over with the welcome.";
 
 pub const RECOMMENDATIONS_DISCLAIMER: &str = "Recommendations for health, made for an average body: not medical advice, \
     and not a prescription. Grindstone takes no responsibility for them. Check them, adjust them, and keep adjusting \
@@ -600,8 +595,9 @@ pub fn healthy_ranges(advised: &Recommendations) -> String {
 }
 
 pub const REFERENCES_INTRO: &str = "The studies and guidelines behind Grindstone's figures, as a bibliography. \
-    Each public page shows the abstract; reading a study in full may cost money, the reference itself never should. \
-    [Veil, from the shelves: \"shhhhh! I'm reading...\"]";
+    Each public page shows the abstract; reading a study in full may cost money, the reference itself never should.";
+
+pub const READING: &str = "“shhhhh! I’m reading...”";
 
 pub fn topic_name(topic: Topic) -> &'static str {
     match topic {
