@@ -597,7 +597,7 @@ history!(
 );
 
 #[component]
-fn VeilNotes(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -> impl IntoView {
+fn UnwantedTips(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -> impl IntoView {
     let notes = LocalResource::new(move || {
         let (today, window) = (today.clone(), window.get());
         async move {
@@ -687,7 +687,7 @@ pub fn Charts(today: String) -> impl IntoView {
             </div>
             {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
         </section>
-        <VeilNotes chip=chip today=today.get_value() window=window />
+        <UnwantedTips chip=chip today=today.get_value() window=window />
         <section class="card history">
             <h2>"History"</h2>
             {move || match chip.get() {
