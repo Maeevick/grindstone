@@ -1161,23 +1161,27 @@ async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with
     );
 }
 
-#[wasm_bindgen_test]
-async fn stats_draw_two_measures_on_their_own_y_axes_and_tell_how_they_move_together() {
-    answering(
-        r#"{ "explore": { "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
-               "other": [["2026-10-08", 2600.0], ["2026-10-09", 2500.0], ["2026-10-10", 2400.0]],
-               "one_summary": { "first": 80.4, "last": 80.0, "mean": 80.2, "lowest": 80.0, "highest": 80.4 },
-               "other_summary": { "first": 2600.0, "last": 2400.0, "mean": 2500.0, "lowest": 2400.0, "highest": 2600.0 },
-               "pairs": [[80.4, 2600.0], [80.2, 2500.0], [80.0, 2400.0]], "correlation": 1.0 } }"#,
-    );
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+const TWO_MEASURES_EXPLORED: &str = r#"{ "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
+    "other": [["2026-10-08", 2600.0], ["2026-10-09", 2500.0], ["2026-10-10", 2400.0]],
+    "one_summary": { "first": 80.4, "last": 80.0, "mean": 80.2, "lowest": 80.0, "highest": 80.4 },
+    "other_summary": { "first": 2600.0, "last": 2400.0, "mean": 2500.0, "lowest": 2400.0, "highest": 2600.0 },
+    "pairs": [[80.4, 2600.0], [80.2, 2500.0], [80.0, 2400.0]], "correlation": 1.0 }"#;
+
+fn the_stats(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
                 <Stats />
             </Router>
         }
-    });
+    })
+}
+
+#[wasm_bindgen_test]
+async fn stats_draw_two_measures_on_their_own_y_axes_and_tell_how_they_move_together() {
+    answering(&format!(r#"{{ "explore": {TWO_MEASURES_EXPLORED} }}"#));
+    let screen = screen();
+    let _mounted = the_stats(&screen);
     settled().await;
 
     let count = |selector: &str| {
@@ -1842,8 +1846,8 @@ const THE_INSIGHTS: &str = r#""insights": { "days": 30, "weighed_days": 25, "fue
     "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 }"#;
 
 #[wasm_bindgen_test]
-async fn veil_notes_what_is_worth_sharpening_on_the_chosen_chip_between_the_chart_and_the_history()
-{
+async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_between_the_chart_and_the_history()
+ {
     answering(&format!(
         r#"{{ {THE_CHARTS}, {THE_INSIGHTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
@@ -1858,22 +1862,32 @@ async fn veil_notes_what_is_worth_sharpening_on_the_chosen_chip_between_the_char
         .filter_map(|at| cards.item(at))
         .filter_map(|card| card.unchecked_into::<Element>().get_attribute("class"))
         .collect();
-    assert_eq!(order, ["card charts", "card veil", "card history"]);
-    assert!(text_of(&screen, ".veil").contains("Too few weigh-ins"));
+    assert_eq!(order, ["card charts", "card tips", "card history"]);
+    assert_eq!(text_of(&screen, ".tips h2"), "The unwanted tips");
+    let gather = text_of(&screen, ".tips p");
+    assert!(gather.contains("Too few weigh-ins"), "{gather}");
 
     clicked(&screen, "button.chip-Fuel");
     settled().await;
-    let fuel = text_of(&screen, ".veil");
+    let fuel = text_of(&screen, ".tips p");
     assert!(fuel.contains("Fibre") && fuel.contains("5 of 20"), "{fuel}");
 
     clicked(&screen, "button.chip-Hydrate");
     settled().await;
-    assert!(text_of(&screen, ".veil").contains("4 of 10"));
+    let hydrate = text_of(&screen, ".tips p");
+    assert!(hydrate.contains("4 of 10"), "{hydrate}");
 
     clicked(&screen, "button.chip-Burn");
     settled().await;
-    let burn = text_of(&screen, ".veil");
+    let burn = text_of(&screen, ".tips p");
     assert!(burn.contains("2.8") && burn.contains("210 kcal"), "{burn}");
+    assert!(
+        [gather, fuel, hydrate, burn]
+            .iter()
+            .all(|tip| naming_the_cast(tip).is_empty() && !tip.contains('[')),
+        "{:?}",
+        texts_of(&screen, ".tips p")
+    );
 }
 
 #[wasm_bindgen_test]
@@ -2031,4 +2045,114 @@ async fn each_profile_card_points_to_its_scientific_references() {
         .collect();
     assert_eq!(pointed.len(), 4, "{pointed:?}");
     assert!(screen.query_selector("ul.sources").ok().flatten().is_none());
+}
+
+fn naming_the_cast(said: &str) -> Vec<&'static str> {
+    ["Veil", "Trix", "Grimble"]
+        .into_iter()
+        .filter(|name| said.contains(name))
+        .collect()
+}
+
+fn spoken_on(screen: &Element) -> String {
+    screen.text_content().unwrap_or_default()
+}
+
+#[wasm_bindgen_test]
+async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
+    answering(&format!(
+        r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
+             "hydrate_base_on": {{ "base_ml": 2000.0, "is_default": true }},
+             "foods": [], "meals": [], "exercises": [], "circuits": [], "priced_circuits": [],
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
+             "plugin:opener|open_url": null, "explore": {TWO_MEASURES_EXPLORED} }}"#
+    ));
+    let mut said = Vec::new();
+
+    let welcome = screen();
+    let _welcome = leptos::mount::mount_to(welcome.clone().unchecked_into(), App);
+    let charts = screen();
+    let _charts = the_charts(&charts);
+    said.push(spoken_on(&charts));
+    settled().await;
+    said.extend([spoken_on(&welcome), spoken_on(&charts)]);
+
+    let catalog = screen();
+    let _catalog = the_catalog(&catalog);
+    settled().await;
+    clicked(&catalog, "button.form-Meal");
+    settled().await;
+    said.push(spoken_on(&catalog));
+    clicked(&catalog, "button.shelf-Burn");
+    settled().await;
+    clicked(&catalog, "button.form-Circuit");
+    settled().await;
+    said.push(spoken_on(&catalog));
+
+    let burn = screen();
+    let _burn = the_burn_day(&burn);
+    settled().await;
+    clicked(&burn, "button.burn-Circuit");
+    settled().await;
+    said.push(spoken_on(&burn));
+
+    let profile = screen();
+    let _profile = leptos::mount::mount_to(profile.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    let references = screen();
+    let _references = leptos::mount::mount_to(references.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ReferencesScreen />
+            </Router>
+        }
+    });
+    let stats = screen();
+    let _stats = the_stats(&stats);
+    settled().await;
+    said.extend([&profile, &references, &stats].map(spoken_on));
+
+    let named: Vec<Vec<&str>> = said.iter().map(|text| naming_the_cast(text)).collect();
+    assert!(named.iter().all(Vec::is_empty), "{named:?}");
+    assert!(
+        texts_of(&profile, "h2").contains(&"How to feed the forge".to_string()),
+        "{:?}",
+        texts_of(&profile, "h2")
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_quote_stands_on_its_own_line_in_curly_marks() {
+    answering(&format!(
+        r#"{{ "plugin:opener|open_url": null, "explore": {TWO_MEASURES_EXPLORED} }}"#
+    ));
+    let references = screen();
+    let _references = leptos::mount::mount_to(references.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ReferencesScreen />
+            </Router>
+        }
+    });
+    let stats = screen();
+    let _stats = the_stats(&stats);
+    settled().await;
+
+    assert_eq!(
+        [text_of(&references, "p.quote"), text_of(&stats, "p.quote")],
+        ["“shhhhh! I’m reading...”", "“shhhhh! I’m hunting...”"]
+    );
+    assert!(
+        [&references, &stats]
+            .map(spoken_on)
+            .iter()
+            .all(|said| !said.contains('"')),
+        "a straight quotation mark is left"
+    );
 }
