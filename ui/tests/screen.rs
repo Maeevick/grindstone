@@ -1094,6 +1094,58 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_meals_its
     );
 }
 
+fn cells_by_row(screen: &Element, rows: &str) -> Vec<Vec<String>> {
+    let rows = screen.query_selector_all(rows).expect("the rows");
+    (0..rows.length())
+        .filter_map(|at| rows.item(at))
+        .map(|row| {
+            let cells = row
+                .unchecked_into::<Element>()
+                .query_selector_all("td")
+                .expect("the cells");
+            (0..cells.length())
+                .filter_map(|at| cells.item(at))
+                .filter_map(|cell| cell.text_content())
+                .collect()
+        })
+        .collect()
+}
+
+#[wasm_bindgen_test]
+async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_what_each_brings() {
+    answering(&format!(r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [] }}"#));
+    let screen = screen();
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.form-Meal");
+    settled().await;
+
+    typed_into(&screen, "ingredient", "pasta");
+    typed_into(&screen, "ingredient_quantity", "100");
+    settled().await;
+    assert_eq!(
+        text_of(&screen, "p.preview"),
+        "360 kcal · P 12 g · F 2 g · Fib 3 g · C 70 g"
+    );
+
+    clicked(&screen, "button.add-ingredient");
+    settled().await;
+    added_to_the_pot(&screen, "creme fraiche", "200").await;
+
+    assert!(screen.query_selector("p.preview").ok().flatten().is_none());
+    assert_eq!(
+        cells_by_row(&screen, "table.pot tbody tr"),
+        [
+            ["100 g Pasta", "", "360", "12", "2", "3", "70", "×"],
+            ["200 g Crème fraîche", "", "600", "4", "60", "0", "6", "×"]
+        ]
+    );
+    assert_eq!(
+        cells_by_row(&screen, "table.pot tfoot tr"),
+        [["Total", "", "960", "16", "62", "3", "76", ""]]
+    );
+}
+
 #[wasm_bindgen_test]
 async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
     answering(&format!(
