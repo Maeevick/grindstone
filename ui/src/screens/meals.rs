@@ -1,4 +1,4 @@
-use grind_core::figures::{Figure, bare, shown, typed_back};
+use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::food::{Food, Nutrients, Unit, nutrients_of, summed};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
 use grind_core::meal::{MASS_KEPT, Meal};
@@ -6,6 +6,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::chosen;
+use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::lines;
 use crate::tauri;
@@ -18,16 +19,6 @@ struct InThePot {
     quantity: f64,
     nutrients: Nutrients,
     ratio: RwSignal<String>,
-}
-
-fn nutrient_cells(nutrients: Nutrients) -> impl IntoView {
-    view! {
-        <td>{bare(Figure::Energy(nutrients.energy_kcal))}</td>
-        <td>{bare(Figure::Grams(nutrients.protein_g))}</td>
-        <td>{bare(Figure::Grams(nutrients.fat_g))}</td>
-        <td>{bare(Figure::Grams(nutrients.fibre_g))}</td>
-        <td>{bare(Figure::Grams(nutrients.carbs_g))}</td>
-    }
 }
 
 #[component]

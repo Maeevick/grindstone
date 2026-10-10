@@ -1,5 +1,6 @@
 pub mod burn;
 pub mod catalog;
+pub mod cells;
 pub mod charts;
 pub mod circuits;
 pub mod fields;

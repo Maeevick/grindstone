@@ -7,6 +7,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::chosen;
+use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::lines;
@@ -89,16 +90,11 @@ fn IntakeRow(
             }
         });
     };
-    let figures = eaten.nutrients;
     view! {
         <tr>
             <td>{eaten.food.clone()}</td>
             <td>{shown(Figure::Amount(eaten.quantity, eaten.unit))}</td>
-            <td>{bare(Figure::Energy(figures.energy_kcal))}</td>
-            <td>{bare(Figure::Grams(figures.protein_g))}</td>
-            <td>{bare(Figure::Grams(figures.fat_g))}</td>
-            <td>{bare(Figure::Grams(figures.fibre_g))}</td>
-            <td>{bare(Figure::Grams(figures.carbs_g))}</td>
+            {nutrient_cells(eaten.nutrients)}
             <td>
                 <button class="remove" type="button" on:click=remove aria-label="Remove this intake">
                     "×"

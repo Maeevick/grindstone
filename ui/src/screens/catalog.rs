@@ -1,12 +1,13 @@
 use grind_core::drink::Drink;
 use grind_core::exercise::Exercise;
-use grind_core::figures::{Figure, bare, shown};
+use grind_core::figures::{Figure, shown};
 use grind_core::food::{Food, Nutrients, Unit};
 use grind_core::for_cataloguing::{FoodForm, PricedCircuit};
 use grind_core::meal::{Meal, food_of};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::screens::cells::nutrient_cells;
 use crate::screens::circuits::{CircuitsList, NewCircuit};
 use crate::screens::fields::FigureField;
 use crate::screens::hydrate::{DrinksList, NewDrink};
@@ -225,14 +226,9 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
 }
 
 fn figure_cells(food: &Food) -> impl IntoView + use<> {
-    let figures = food.nutrients;
     view! {
         <td>{shown(Figure::Amount(food.portion, food.unit))}</td>
-        <td>{bare(Figure::Energy(figures.energy_kcal))}</td>
-        <td>{bare(Figure::Grams(figures.protein_g))}</td>
-        <td>{bare(Figure::Grams(figures.fat_g))}</td>
-        <td>{bare(Figure::Grams(figures.fibre_g))}</td>
-        <td>{bare(Figure::Grams(figures.carbs_g))}</td>
+        {nutrient_cells(food.nutrients)}
     }
 }
 
