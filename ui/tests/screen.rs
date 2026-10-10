@@ -8,6 +8,7 @@ use grind_ui::screens::charts::Charts;
 use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::hydrate::{HydrateBaseCard, HydrateDay};
+use grind_ui::screens::meals::MealInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
@@ -42,11 +43,20 @@ export function asked(command) {
 export function a_moment() {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
+export function back_home() {
+    window.history.replaceState(null, '', '/');
+}
+export function went_to(path) {
+    window.history.pushState(null, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+}
 ")]
 extern "C" {
     fn answer_commands_with(answers: &JsValue);
     fn asked(command: &str) -> String;
     fn a_moment() -> js_sys::Promise;
+    fn back_home();
+    fn went_to(path: &str);
 }
 
 fn answering(answers: &str) {
@@ -77,6 +87,12 @@ fn found<T: JsCast>(screen: &Element, selector: &str) -> T {
         .unchecked_into()
 }
 
+/// The whole app, from Home whatever page an earlier test left the browser on.
+fn the_app(screen: &Element) -> impl Drop {
+    back_home();
+    leptos::mount::mount_to(screen.clone().unchecked_into(), App)
+}
+
 async fn settled() {
     JsFuture::from(a_moment()).await.expect("a moment passes");
 }
@@ -86,7 +102,7 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
     answering(r#"{ "profile_on": null }"#);
     let screen = screen();
 
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    let _mounted = the_app(&screen);
     settled().await;
 
     let welcome = screen.text_content().unwrap_or_default();
@@ -699,6 +715,7 @@ async fn the_days_expenditures_list_its_workouts_newest_first_then_off_the_clock
 
 fn the_catalog(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        provide_context(MealInProgress::default());
         view! {
             <Router>
                 <Catalog />
@@ -1147,6 +1164,49 @@ async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_w
 }
 
 #[wasm_bindgen_test]
+async fn a_meal_in_progress_waits_in_the_lab_while_the_cook_checks_the_tracker() {
+    answering(&format!(
+        r#"{{ "profile_on": null, "foods": {PASTA_AND_CREAM}, "meals": [] }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    went_to("/catalog");
+    settled().await;
+    clicked(&screen, "button.form-Meal");
+    settled().await;
+    typed_into(&screen, "meal_name", "Pasta in cream");
+    written_into(&screen, "meal_description", "Boil, reduce, stir.");
+    added_to_the_pot(&screen, "pasta", "100").await;
+    typed_into(&screen, "ratio_0", "2.5");
+    typed_into(&screen, "ingredient", "creme fraiche");
+
+    went_to("/tracker");
+    settled().await;
+    went_to("/catalog");
+    settled().await;
+
+    assert_eq!(
+        [
+            value_of(&screen, "meal_name"),
+            found::<HtmlInputElement>(&screen, "textarea[name=meal_description]").value(),
+            value_of(&screen, "ratio_0"),
+            value_of(&screen, "ingredient"),
+        ],
+        [
+            "Pasta in cream",
+            "Boil, reduce, stir.",
+            "2.5",
+            "creme fraiche"
+        ]
+    );
+    assert_eq!(
+        cells_by_row(&screen, "table.pot tbody tr"),
+        [["100 g Pasta", "", "360", "12", "2", "3", "70", "×"]]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
     answering(&format!(
         r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
@@ -1188,7 +1248,7 @@ async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with
                  "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#,
     );
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), App);
+    let _mounted = the_app(&screen);
     settled().await;
     settled().await;
 
@@ -2123,7 +2183,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     let mut said = Vec::new();
 
     let welcome = screen();
-    let _welcome = leptos::mount::mount_to(welcome.clone().unchecked_into(), App);
+    let _welcome = the_app(&welcome);
     let charts = screen();
     let _charts = the_charts(&charts);
     said.push(spoken_on(&charts));
