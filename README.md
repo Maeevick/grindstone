@@ -29,7 +29,7 @@ Version 0.1, the full scope, on four tabs.
   - **Hydrate:** drinks in millilitres, one serving when none are typed, on a scale from min through optimal to max, the band running 20% either side of the target.
   - **Burn:** a workout or a circuit, on two tabs; blank fields log a minute, one rep, one set and no load. The day off the clock (sitting, standing, moving). The day's expenditures list the workouts newest first, then the day off the clock and fidgeting, the two parts of non-exercise activity.
 - **Catalog:** three shelves, each adding from a form card at its top, chips switching between its forms:
-  - **Fuel:** foods or meals, each list on its chip, their figures per portion in columns. A meal is cooked in the lab, each ingredient with its cooking ratio (the cooked mass over the raw one, 1 when left empty, so the hot pot needs no weighing), then logs in Fuel by the weighed portion, per 100 g cooked; a click on it shows its description and ingredients, each raw quantity × ratio → cooked mass;
+  - **Fuel:** foods or meals, each list on its chip, their figures per portion in columns. A meal is cooked in the lab: each ingredient shows its energy and macros at the quantity typed before it joins the pot, the pot adds up what each brings, and each ingredient takes its cooking ratio (the cooked mass over the raw one, 1 when left empty, so the hot pot needs no weighing), then logs in Fuel by the weighed portion, per 100 g cooked; a click on it shows its description and ingredients, each raw quantity × ratio → cooked mass;
   - **Hydrate:** drinks, water or other;
   - **Burn:** exercises with their MET, or circuits fixed at creation with their energy per set at today's body mass, a click showing a circuit's description and steps.
 - **Profile:**
