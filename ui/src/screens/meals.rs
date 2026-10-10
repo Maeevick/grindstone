@@ -1,5 +1,5 @@
-use grind_core::figures::{Figure, shown, typed_back};
-use grind_core::food::{Food, Unit};
+use grind_core::figures::{Figure, bare, shown, typed_back};
+use grind_core::food::{Food, Nutrients, Unit, nutrients_of, summed};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
 use grind_core::meal::{MASS_KEPT, Meal};
 use leptos::prelude::*;
@@ -16,7 +16,18 @@ struct InThePot {
     food: String,
     unit: Unit,
     quantity: f64,
+    nutrients: Nutrients,
     ratio: RwSignal<String>,
+}
+
+fn nutrient_cells(nutrients: Nutrients) -> impl IntoView {
+    view! {
+        <td>{bare(Figure::Energy(nutrients.energy_kcal))}</td>
+        <td>{bare(Figure::Grams(nutrients.protein_g))}</td>
+        <td>{bare(Figure::Grams(nutrients.fat_g))}</td>
+        <td>{bare(Figure::Grams(nutrients.fibre_g))}</td>
+        <td>{bare(Figure::Grams(nutrients.carbs_g))}</td>
+    }
 }
 
 #[component]
@@ -38,13 +49,17 @@ pub fn NewMeal(
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
+    let chosen_food = move || {
+        chosen(&names.get(), &food.get())
+            .and_then(|named| foods.get().into_iter().find(|known| known.name == named))
+    };
+    let preview = move || {
+        let known = chosen_food()?;
+        let [typed] = figures_typed([&quantity.get()])?;
+        typed.map(|typed| lines::figures_of(&nutrients_of(&known, typed)))
+    };
     let add_ingredient = move |_| {
-        let Some(known) = chosen(&names.get_untracked(), &food.get_untracked()).and_then(|named| {
-            foods
-                .get_untracked()
-                .into_iter()
-                .find(|known| known.name == named)
-        }) else {
+        let Some(known) = chosen_food() else {
             said.set(Some(lines::CHOOSE_FIRST.into()));
             return;
         };
@@ -52,11 +67,13 @@ pub fn NewMeal(
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
+        let quantity_typed = quantity_typed.unwrap_or(0.0);
         pot.update(|added| {
             added.push(InThePot {
+                nutrients: nutrients_of(&known, quantity_typed),
                 food: known.name,
                 unit: known.unit,
-                quantity: quantity_typed.unwrap_or(0.0),
+                quantity: quantity_typed,
                 ratio: RwSignal::new(String::new()),
             })
         });
@@ -132,12 +149,19 @@ pub fn NewMeal(
                     "Add"
                 </button>
             </div>
+            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
             <Show when=move || !pot.get().is_empty()>
+            <div class="scroll">
             <table class="pot">
                 <thead>
                     <tr>
                         <th>"Ingredient"</th>
                         <th>"Ratio"</th>
+                        <th>"kcal"</th>
+                        <th>"Prot (g)"</th>
+                        <th>"Fat (g)"</th>
+                        <th>"Fib (g)"</th>
+                        <th>"Carbs (g)"</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -168,6 +192,7 @@ pub fn NewMeal(
                                                 on:input=move |event| ratio.set(event_target_value(&event))
                                             />
                                         </td>
+                                        {nutrient_cells(added.nutrients)}
                                         <td>
                                             <button
                                                 class="remove"
@@ -186,7 +211,16 @@ pub fn NewMeal(
                             .collect_view()
                     }}
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td>"Total"</td>
+                        <td></td>
+                        {move || nutrient_cells(summed(pot.get().into_iter().map(|added| added.nutrients)))}
+                        <td></td>
+                    </tr>
+                </tfoot>
             </table>
+            </div>
             </Show>
             <p class="hint">{lines::COOKING_RATIO_HOW}</p>
             <button class="cta" type="submit">

@@ -255,12 +255,12 @@ pub fn fuel_targets_kept(from: &str) -> String {
 
 pub fn figures_of(nutrients: &Nutrients) -> String {
     format!(
-        "{} · P {} · C {} · F {} · Fib {}",
+        "{} · P {} · F {} · Fib {} · C {}",
         shown(Figure::Energy(nutrients.energy_kcal)),
         shown(Figure::Grams(nutrients.protein_g)),
-        shown(Figure::Grams(nutrients.carbs_g)),
         shown(Figure::Grams(nutrients.fat_g)),
         shown(Figure::Grams(nutrients.fibre_g)),
+        shown(Figure::Grams(nutrients.carbs_g)),
     )
 }
 

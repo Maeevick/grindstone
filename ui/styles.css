@@ -689,6 +689,19 @@ a.references {
 	line-height: 1.55;
 }
 
+table.pot {
+	min-width: 32rem;
+}
+
+.pot th {
+	white-space: nowrap;
+}
+
+.pot tfoot td {
+	border-top: 2px solid var(--line);
+	font-weight: 600;
+}
+
 .pot input.ratio {
 	width: 5.5rem;
 	height: 36px;
