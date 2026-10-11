@@ -21,6 +21,8 @@ pub struct Burn {
     pub burnt_kcal: Option<f64>,
     pub off_the_clock: Option<Volitional>,
     pub off_the_clock_is_usual: bool,
+    /// The body mass in force on the day, the one its workouts are priced on.
+    pub body_mass_kg: Option<f64>,
 }
 
 pub(crate) fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]) -> Option<f64> {
@@ -57,6 +59,7 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
         workouts,
         off_the_clock: own_day.or_else(|| version_in_force_on(&records.usual_days, day).copied()),
         off_the_clock_is_usual: own_day.is_none(),
+        body_mass_kg: None,
     }
 }
 
@@ -152,6 +155,19 @@ mod tests {
         assert_eq!(
             burn.workouts.first().map(|done| done.burnt_kcal),
             Some(None)
+        );
+    }
+
+    #[test]
+    fn a_day_carries_the_body_mass_its_workouts_are_priced_on_and_none_without_a_weigh_in() {
+        let weighed_in = [weighed("2026-10-01", 80.0), weighed("2026-10-11", 79.0)];
+
+        let priced = burn_on(day("2026-10-10"), &BurnRecords::default(), &weighed_in);
+        let unweighed = burn_on(day("2026-10-10"), &BurnRecords::default(), &[]);
+
+        assert_eq!(
+            (priced.body_mass_kg, unweighed.body_mass_kg),
+            (Some(80.0), None)
         );
     }
 
