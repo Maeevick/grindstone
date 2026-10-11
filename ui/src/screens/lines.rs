@@ -380,6 +380,10 @@ pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Stack a few exercises f
 
 pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is in Catalog.";
 
+pub fn a_set(kcal: f64) -> String {
+    format!("{} a set", shown(Figure::Energy(kcal)))
+}
+
 pub fn circuit_crafted(name: &str) -> String {
     format!("{name} is crafted, its steps welded in place.")
 }

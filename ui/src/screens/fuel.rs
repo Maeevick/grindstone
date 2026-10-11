@@ -1,5 +1,5 @@
 use grind_core::figures::{Figure, bare, shown, signed};
-use grind_core::food::{Food, Nutrients, Unit};
+use grind_core::food::{Food, Nutrients, Unit, nutrients_of};
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::fuel::{EnergyShares, Fuel, MacroRow, Macros, energy_shares};
 use grind_core::intake::Intake;
@@ -123,6 +123,12 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
         chosen(&names.get(), &food.get())
             .and_then(|name| catalog.get().into_iter().find(|known| known.name == name))
     };
+    let preview = move || {
+        let known = chosen_food()?;
+        let [typed] = figures_typed([&quantity.get()])?;
+        let eaten = typed.unwrap_or(known.portion);
+        Some(lines::figures_of(&nutrients_of(&known, eaten)))
+    };
     spawn_local(async move {
         match tauri::foods().await {
             Ok(known) => catalog.set(known),
@@ -189,6 +195,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                         }
                     }}
                 </div>
+                {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
                 <button class="cta" type="submit">
                     "Fuel"
                 </button>

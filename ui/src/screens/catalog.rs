@@ -477,6 +477,7 @@ fn HydrateShelf() -> impl IntoView {
 fn BurnShelf() -> impl IntoView {
     let exercises = RwSignal::new(Vec::<Exercise>::new());
     let priced = RwSignal::new(Vec::<PricedCircuit>::new());
+    let body_mass = RwSignal::new(None::<f64>);
     let form = RwSignal::new(Form::Exercise);
     let said = RwSignal::new(None::<String>);
     let price = move || {
@@ -493,6 +494,11 @@ fn BurnShelf() -> impl IntoView {
         }
     });
     price();
+    spawn_local(async move {
+        if let Ok(burn) = tauri::burn_day(&today()).await {
+            body_mass.set(burn.body_mass_kg);
+        }
+    });
     let done = Callback::new(move |line: String| {
         said.set(Some(line));
         price();
@@ -502,7 +508,7 @@ fn BurnShelf() -> impl IntoView {
             <h2>"Add to the catalog"</h2>
             {form_pills(form, [(Form::Exercise, "Exercise"), (Form::Circuit, "Circuit")])}
             {move || match form.get() {
-                Form::Circuit => view! { <NewCircuit exercises=exercises done=done /> }.into_any(),
+                Form::Circuit => view! { <NewCircuit exercises=exercises body_mass=body_mass.into() done=done /> }.into_any(),
                 _ => view! { <NewExercise exercises=exercises done=done /> }.into_any(),
             }}
             {said_on_the_shelf(said)}

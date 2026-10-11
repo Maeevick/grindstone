@@ -2,11 +2,12 @@ use std::cmp::Reverse;
 
 use grind_core::burn::{Burn, BurntWorkout};
 use grind_core::exercise::Exercise;
-use grind_core::figures::{Figure, bare, typed_back};
+use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_burning::{
     DEFAULT_LOAD_KG, DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS, OffTheClockForm, WorkoutForm,
 };
 use grind_core::nutrition::Budget;
+use grind_core::workout::{burnt_by, workout};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -112,6 +113,25 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         }
         burn.set(Some(answer));
     });
+    let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
+    let preview = move || {
+        let named = chosen(&names.get(), &exercise.get())?;
+        let known = catalog
+            .get()
+            .into_iter()
+            .find(|known| known.name == named)?;
+        let [minutes_typed, load_typed] = figures_typed([&minutes.get(), &load.get()])?;
+        let done = workout(
+            &day.get(),
+            &known,
+            minutes_typed.unwrap_or(DEFAULT_MINUTES),
+            count_typed(&reps.get()),
+            count_typed(&sets.get()).unwrap_or(DEFAULT_SETS),
+            load_typed.unwrap_or(DEFAULT_LOAD_KG),
+        )
+        .ok()?;
+        Some(shown(Figure::Energy(burnt_by(&done, body_mass.get()?))))
+    };
     let budget_of = move |date: String| {
         spawn_local(async move {
             if let Ok(fuel) = tauri::fuel_day(&date).await {
@@ -248,6 +268,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                     placeholder=typed_back(DEFAULT_LOAD_KG)
                                 />
                             </div>
+                            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
                             <button class="cta" type="submit">
                                 "Burn"
                             </button>
@@ -255,7 +276,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     }
                         .into_any()
                 }
-                Logging::Circuit => view! { <CircuitLog day=day on_logged=shown_burn /> }.into_any(),
+                Logging::Circuit => view! { <CircuitLog day=day on_logged=shown_burn body_mass=body_mass /> }.into_any(),
             }}
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             {move || {

@@ -1638,6 +1638,7 @@ async fn logging_a_circuit_hands_over_the_days_burn_with_a_workout_per_step() {
             <Router>
                 <CircuitLog
                     day=day
+                    body_mass=Signal::stored(None)
                     on_logged=Callback::new(move |burn: Burn| handed_over.set(Some(burn)))
                 />
                 <p class="handed-over">

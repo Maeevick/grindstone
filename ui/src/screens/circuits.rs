@@ -1,9 +1,10 @@
 use grind_core::burn::Burn;
-use grind_core::circuit::{Circuit, CircuitStep, StepForm};
+use grind_core::circuit::{Circuit, CircuitStep, StepForm, burnt_per_set};
 use grind_core::exercise::Exercise;
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_burning::{CircuitSessionForm, DEFAULT_SETS};
 use grind_core::for_cataloguing::{CircuitForm, PricedCircuit};
+use grind_core::workout::activity_induced_energy_expenditure_from_compendium;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -40,6 +41,20 @@ fn frozen_step(step: &CircuitStep) -> String {
         step.met,
         how_a_step_goes(step.reps, step.minutes, step.load_kg)
     )
+}
+
+fn step_kcal(step: &StepForm, exercises: &[Exercise], body_mass_kg: f64) -> Option<f64> {
+    exercises
+        .iter()
+        .find(|known| known.name == step.exercise)
+        .map(|known| {
+            activity_induced_energy_expenditure_from_compendium(
+                body_mass_kg,
+                known.met,
+                step.minutes,
+                step.load_kg,
+            )
+        })
 }
 
 fn said_line(said: RwSignal<Option<Result<String, String>>>) -> impl IntoView {
@@ -117,7 +132,11 @@ fn PricedRow(
 }
 
 #[component]
-pub fn NewCircuit(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> impl IntoView {
+pub fn NewCircuit(
+    exercises: RwSignal<Vec<Exercise>>,
+    body_mass: Signal<Option<f64>>,
+    done: Callback<String>,
+) -> impl IntoView {
     let name = RwSignal::new(String::new());
     let description = RwSignal::new(String::new());
     let exercise = RwSignal::new(String::new());
@@ -133,6 +152,33 @@ pub fn NewCircuit(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) ->
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
+    let typed_step = move || {
+        let chosen_exercise = chosen(&names.get(), &exercise.get())?;
+        let [minutes_typed, load_typed] = figures_typed([&minutes.get(), &load.get()])?;
+        Some(StepForm {
+            exercise: chosen_exercise,
+            reps: count_typed(&reps.get()),
+            minutes: minutes_typed.unwrap_or(0.0),
+            load_kg: load_typed.unwrap_or(0.0),
+        })
+    };
+    let preview = move || {
+        let kcal = step_kcal(&typed_step()?, &exercises.get(), body_mass.get()?)?;
+        Some(shown(Figure::Energy(kcal)))
+    };
+    let per_set = move || {
+        let body_mass_kg = body_mass.get()?;
+        let known = exercises.get();
+        let stacked = steps.get();
+        (!stacked.is_empty()).then(|| {
+            lines::a_set(
+                stacked
+                    .iter()
+                    .filter_map(|step| step_kcal(step, &known, body_mass_kg))
+                    .sum(),
+            )
+        })
+    };
     let add_step = move |_| {
         let Some(chosen_exercise) = chosen(&names.get_untracked(), &exercise.get_untracked())
         else {
@@ -215,6 +261,7 @@ pub fn NewCircuit(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) ->
                 <FigureField label="Minutes" name="step_minutes" value=minutes />
                 <FigureField label="Load (kg)" name="step_load" value=load />
             </div>
+            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
             <button class="cta ghost add-step" type="button" on:click=add_step>
                 "Add this step"
             </button>
@@ -223,9 +270,19 @@ pub fn NewCircuit(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) ->
                     each=steps_in_order
                     key=|(position, step)| format!("{position} {step:?}")
                     children=move |(position, step)| {
+                        let priced = body_mass
+                            .get()
+                            .and_then(|body_mass_kg| step_kcal(&step, &exercises.get(), body_mass_kg));
                         view! {
                             <li>
                                 {asked_step(&step)}
+                                {priced
+                                    .map(|kcal| {
+                                        view! {
+                                            " · "
+                                            <span class="kcal">{shown(Figure::Energy(kcal))}</span>
+                                        }
+                                    })}
                                 <button
                                     class="remove"
                                     type="button"
@@ -244,6 +301,7 @@ pub fn NewCircuit(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) ->
                     }
                 />
             </ol>
+            {move || per_set().map(|line| view! { <p class="hint per-set">{line}</p> })}
             <button class="cta" type="submit">
                 "Craft the circuit"
             </button>
@@ -300,7 +358,11 @@ pub fn CircuitsList(
 }
 
 #[component]
-pub fn CircuitLog(day: RwSignal<String>, on_logged: Callback<Burn>) -> impl IntoView {
+pub fn CircuitLog(
+    day: RwSignal<String>,
+    body_mass: Signal<Option<f64>>,
+    on_logged: Callback<Burn>,
+) -> impl IntoView {
     let crafted = RwSignal::new(Vec::<Circuit>::new());
     let circuit = RwSignal::new(String::new());
     let sets = RwSignal::new(String::new());
@@ -318,6 +380,16 @@ pub fn CircuitLog(day: RwSignal<String>, on_logged: Callback<Burn>) -> impl Into
             Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
         }
     });
+    let preview = move || {
+        let named = chosen(&names.get(), &circuit.get())?;
+        let known = crafted
+            .get()
+            .into_iter()
+            .find(|known| known.name == named)?;
+        let times = count_typed(&sets.get()).unwrap_or(DEFAULT_SETS);
+        let kcal = burnt_per_set(&known, body_mass.get()?) * f64::from(times);
+        Some(shown(Figure::Energy(kcal)))
+    };
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some(name) = chosen(&names.get_untracked(), &circuit.get_untracked()) else {
@@ -361,6 +433,7 @@ pub fn CircuitLog(day: RwSignal<String>, on_logged: Callback<Burn>) -> impl Into
                     placeholder=DEFAULT_SETS.to_string()
                 />
             </div>
+            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
             <button class="cta" type="submit">
                 "Run the circuit"
             </button>
