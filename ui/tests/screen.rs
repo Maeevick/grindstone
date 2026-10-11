@@ -595,6 +595,75 @@ fn the_burn_day(screen: &Element) -> impl Drop {
     })
 }
 
+const A_BURN_PRICED_AT_80_KG: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0,
+    "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true,
+    "body_mass_kg": 80.0 }"#;
+
+#[wasm_bindgen_test]
+async fn the_workout_form_previews_what_the_workout_will_burn_on_the_days_body_mass() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [],
+             "burn_day": {A_BURN_PRICED_AT_80_KG}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "exercise", "walking");
+    settled().await;
+    let left_blank = text_of(&screen, "form.workout p.preview");
+    typed_into(&screen, "minutes", "60");
+    typed_into(&screen, "sets", "2");
+    typed_into(&screen, "load", "10");
+    settled().await;
+
+    assert_eq!(
+        [left_blank, text_of(&screen, "form.workout p.preview")],
+        ["4 kcal", "567 kcal"]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn without_a_weigh_in_the_workout_form_previews_nothing() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [],
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "exercise", "walking");
+    typed_into(&screen, "minutes", "60");
+    settled().await;
+
+    assert!(screen.query_selector("p.preview").ok().flatten().is_none());
+}
+
+#[wasm_bindgen_test]
+async fn the_circuit_log_previews_what_its_sets_will_burn() {
+    answering(&format!(
+        r#"{{ "exercises": [], "circuits": [{MORNING_RUST}],
+             "burn_day": {A_BURN_PRICED_AT_80_KG}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    clicked(&screen, "button.burn-Circuit");
+    settled().await;
+
+    typed_into(&screen, "circuit", "morning rust");
+    settled().await;
+    let one_set = text_of(&screen, "form.circuit-log p.preview");
+    typed_into(&screen, "circuit_sets", "3");
+    settled().await;
+
+    assert_eq!(
+        [one_set, text_of(&screen, "form.circuit-log p.preview")],
+        ["12 kcal", "37 kcal"]
+    );
+}
+
 #[wasm_bindgen_test]
 async fn logging_a_workout_lists_it_with_what_it_burnt() {
     answering(&format!(
@@ -916,6 +985,30 @@ async fn a_quantity_left_empty_logs_one_portion_of_the_food_its_placeholder_show
         "{sent}"
     );
     assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
+}
+
+#[wasm_bindgen_test]
+async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_quantity_is_typed() {
+    answering(&format!(
+        r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "food", "skyr");
+    settled().await;
+    let a_portion = text_of(&screen, "form.intake p.preview");
+    typed_into(&screen, "quantity", "200");
+    settled().await;
+
+    assert_eq!(
+        [a_portion, text_of(&screen, "form.intake p.preview")],
+        [
+            "54 kcal · P 10 g · F 0 g · Fib 0 g · C 4 g",
+            "108 kcal · P 19 g · F 0 g · Fib 0 g · C 8 g"
+        ]
+    );
 }
 
 #[wasm_bindgen_test]
@@ -1438,6 +1531,47 @@ async fn the_crafter_crafts_a_circuit_the_lab_lists_priced_per_set_its_steps_on_
             && details.contains("Burpee"),
         "{details}"
     );
+}
+
+#[wasm_bindgen_test]
+async fn the_crafter_prices_each_step_and_the_set_they_add_up_to() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
+             "circuits": [], "priced_circuits": [], "burn_day": {A_BURN_PRICED_AT_80_KG} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_catalog(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Burn");
+    settled().await;
+    clicked(&screen, "button.form-Circuit");
+    settled().await;
+
+    typed_into(&screen, "step_exercise", "burpee");
+    typed_into(&screen, "step_minutes", "1");
+    typed_into(&screen, "step_load", "5");
+    settled().await;
+    let burpee = text_of(&screen, "form.circuit p.preview");
+    clicked(&screen, "button.add-step");
+    settled().await;
+    typed_into(&screen, "step_exercise", "push up");
+    typed_into(&screen, "step_reps", "12");
+    typed_into(&screen, "step_minutes", "0.5");
+    clicked(&screen, "button.add-step");
+    settled().await;
+
+    let priced: Vec<String> = screen
+        .query_selector_all("ol.steps li .kcal")
+        .map(|found| {
+            (0..found.length())
+                .filter_map(|at| found.item(at))
+                .filter_map(|step| step.text_content())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(burpee, "10 kcal");
+    assert_eq!(priced, ["10 kcal", "2 kcal"]);
+    assert_eq!(text_of(&screen, "form.circuit p.per-set"), "12 kcal a set");
 }
 
 #[wasm_bindgen_test]
