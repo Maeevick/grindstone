@@ -814,6 +814,8 @@ textarea:focus {
 }
 
 .tile {
+	color: inherit;
+	text-decoration: none;
 	display: flex;
 	flex-direction: column;
 	align-items: center;

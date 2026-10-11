@@ -72,17 +72,18 @@ fn StreakCard() -> impl IntoView {
 
 #[component]
 fn Tile(
+    href: &'static str,
     icon: &'static str,
     #[prop(into)] figure: Signal<String>,
     unit: &'static str,
     #[prop(into)] class: Signal<&'static str>,
 ) -> impl IntoView {
     view! {
-        <div class=move || format!("tile {}", class.get())>
+        <A href=href attr:class=move || format!("tile {}", class.get())>
             <span class="icon">{icon}</span>
             <span class="big">{move || figure.get()}</span>
             <span class="unit">{unit}</span>
-        </div>
+        </A>
     }
 }
 
@@ -98,6 +99,7 @@ fn TodayCard() -> impl IntoView {
             <h2>"Today"</h2>
             <div class="tiles">
                 <Tile
+                    href="/tracker?segment=Gather"
                     icon="⚖️"
                     figure=Signal::derive(move || {
                         week.get()
@@ -109,6 +111,7 @@ fn TodayCard() -> impl IntoView {
                     class=Signal::derive(|| "weighed")
                 />
                 <Tile
+                    href="/tracker?segment=Fuel"
                     icon="⚡"
                     figure=Signal::derive(move || {
                         fuel.get()
@@ -124,6 +127,7 @@ fn TodayCard() -> impl IntoView {
                     })
                 />
                 <Tile
+                    href="/tracker?segment=Hydrate"
                     icon="💧"
                     figure=Signal::derive(move || {
                         hydrate
@@ -140,6 +144,7 @@ fn TodayCard() -> impl IntoView {
                     })
                 />
                 <Tile
+                    href="/tracker?segment=Burn"
                     icon="🔥"
                     figure=Signal::derive(move || {
                         burn.get()

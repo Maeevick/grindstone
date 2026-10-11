@@ -5,6 +5,7 @@ use grind_core::tendency::{Change, Heading};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
+use leptos_router::hooks::use_query_map;
 
 use crate::screens::burn::BurnDay;
 use crate::screens::fields::{DateField, FigureField};
@@ -199,7 +200,13 @@ const SEGMENTS: [(Segment, &str); 4] = [
 #[component]
 pub fn Tracker() -> impl IntoView {
     let day = RwSignal::new(today());
-    let segment = RwSignal::new(Segment::Gather);
+    let named = use_query_map().get_untracked().get("segment");
+    let segment = RwSignal::new(
+        SEGMENTS
+            .into_iter()
+            .find(|(_, label)| named.as_deref() == Some(*label))
+            .map_or(Segment::Gather, |(segment, _)| segment),
+    );
     view! {
         <section class="card day">
             <DateField label="Day" name="day" value=day />
