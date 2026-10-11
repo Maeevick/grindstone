@@ -14,9 +14,34 @@ use crate::typed::figures_typed;
 
 /// The meal on the lab's bench, kept while the app runs, so the cook can check the day's gaps in
 /// Tracker and come back to it.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 pub struct MealInProgress {
-    _bench: (),
+    name: RwSignal<String>,
+    description: RwSignal<String>,
+    food: RwSignal<String>,
+    quantity: RwSignal<String>,
+    pot: RwSignal<Vec<InThePot>>,
+}
+
+impl Default for MealInProgress {
+    fn default() -> Self {
+        Self {
+            name: RwSignal::new(String::new()),
+            description: RwSignal::new(String::new()),
+            food: RwSignal::new(String::new()),
+            quantity: RwSignal::new(String::new()),
+            pot: RwSignal::new(Vec::new()),
+        }
+    }
+}
+
+impl MealInProgress {
+    pub fn started(&self) -> bool {
+        [self.name, self.description, self.food, self.quantity]
+            .iter()
+            .any(|typed| !typed.get_untracked().is_empty())
+            || !self.pot.get_untracked().is_empty()
+    }
 }
 
 #[derive(Clone)]
@@ -25,7 +50,7 @@ struct InThePot {
     unit: Unit,
     quantity: f64,
     nutrients: Nutrients,
-    ratio: RwSignal<String>,
+    ratio: ArcRwSignal<String>,
 }
 
 #[component]
@@ -34,11 +59,13 @@ pub fn NewMeal(
     meals: RwSignal<Vec<Meal>>,
     done: Callback<String>,
 ) -> impl IntoView {
-    let name = RwSignal::new(String::new());
-    let description = RwSignal::new(String::new());
-    let food = RwSignal::new(String::new());
-    let quantity = RwSignal::new(String::new());
-    let pot = RwSignal::new(Vec::<InThePot>::new());
+    let MealInProgress {
+        name,
+        description,
+        food,
+        quantity,
+        pot,
+    } = expect_context();
     let said = RwSignal::new(None::<String>);
     let names = Signal::derive(move || {
         foods
@@ -72,7 +99,7 @@ pub fn NewMeal(
                 food: known.name,
                 unit: known.unit,
                 quantity: quantity_typed,
-                ratio: RwSignal::new(String::new()),
+                ratio: ArcRwSignal::new(String::new()),
             })
         });
         food.set(String::new());
@@ -169,7 +196,7 @@ pub fn NewMeal(
                             .into_iter()
                             .enumerate()
                             .map(|(at, added)| {
-                                let ratio = added.ratio;
+                                let (ratio, typed) = (added.ratio.clone(), added.ratio);
                                 view! {
                                     <tr>
                                         <td>
@@ -187,7 +214,7 @@ pub fn NewMeal(
                                                 autocomplete="off"
                                                 placeholder=typed_back(MASS_KEPT)
                                                 prop:value=move || ratio.get()
-                                                on:input=move |event| ratio.set(event_target_value(&event))
+                                                on:input=move |event| typed.set(event_target_value(&event))
                                             />
                                         </td>
                                         {nutrient_cells(added.nutrients)}

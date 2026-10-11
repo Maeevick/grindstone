@@ -5,6 +5,7 @@ use leptos_router::path;
 use crate::screens::catalog::Catalog;
 use crate::screens::home::Home;
 use crate::screens::lines;
+use crate::screens::meals::MealInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;
 use crate::screens::settings::Settings;
@@ -13,6 +14,7 @@ use crate::screens::tracker::Tracker;
 
 #[component]
 pub fn App() -> impl IntoView {
+    provide_context(MealInProgress::default());
     view! {
         <Router>
             <main class="wrap">

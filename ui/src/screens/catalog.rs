@@ -11,7 +11,7 @@ use crate::screens::cells::nutrient_cells;
 use crate::screens::circuits::{CircuitsList, NewCircuit};
 use crate::screens::fields::FigureField;
 use crate::screens::hydrate::{DrinksList, NewDrink};
-use crate::screens::meals::{MealDetails, NewMeal};
+use crate::screens::meals::{MealDetails, MealInProgress, NewMeal};
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -419,7 +419,11 @@ fn form_pills(chosen: RwSignal<Form>, forms: [(Form, &'static str); 2]) -> impl 
 fn FuelShelf() -> impl IntoView {
     let foods = RwSignal::new(Vec::<Food>::new());
     let meals = RwSignal::new(Vec::<Meal>::new());
-    let form = RwSignal::new(Form::Food);
+    let form = RwSignal::new(if expect_context::<MealInProgress>().started() {
+        Form::Meal
+    } else {
+        Form::Food
+    });
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::foods().await {
