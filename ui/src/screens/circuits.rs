@@ -9,7 +9,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::chosen;
-use crate::screens::fields::{Chooser, FigureField};
+use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::lines;
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
@@ -261,7 +261,7 @@ pub fn NewCircuit(
                 <FigureField label="Minutes" name="step_minutes" value=minutes />
                 <FigureField label="Load (kg)" name="step_load" value=load />
             </div>
-            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
+            {preview_line(preview)}
             <button class="cta ghost add-step" type="button" on:click=add_step>
                 "Add this step"
             </button>
@@ -433,7 +433,7 @@ pub fn CircuitLog(
                     placeholder=DEFAULT_SETS.to_string()
                 />
             </div>
-            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
+            {preview_line(preview)}
             <button class="cta" type="submit">
                 "Run the circuit"
             </button>

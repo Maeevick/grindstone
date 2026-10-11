@@ -8,7 +8,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::chosen;
 use crate::screens::cells::nutrient_cells;
-use crate::screens::fields::{Chooser, FigureField};
+use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::lines;
 use crate::tauri;
@@ -195,7 +195,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                         }
                     }}
                 </div>
-                {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
+                {preview_line(preview)}
                 <button class="cta" type="submit">
                     "Fuel"
                 </button>

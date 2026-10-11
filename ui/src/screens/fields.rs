@@ -112,3 +112,8 @@ pub fn Chooser(
         </div>
     }
 }
+
+/// What a form will record, under its fields.
+pub fn preview_line(line: impl Fn() -> Option<String> + Send + Sync + 'static) -> impl IntoView {
+    move || line().map(|line| view! { <p class="hint preview">{line}</p> })
+}

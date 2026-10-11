@@ -7,7 +7,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::chosen;
 use crate::screens::cells::nutrient_cells;
-use crate::screens::fields::{Chooser, FigureField};
+use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::lines;
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -174,7 +174,7 @@ pub fn NewMeal(
                     "Add"
                 </button>
             </div>
-            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
+            {preview_line(preview)}
             <Show when=move || !pot.get().is_empty()>
             <div class="scroll">
             <table class="pot">

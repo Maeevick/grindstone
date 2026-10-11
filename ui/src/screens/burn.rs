@@ -13,7 +13,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::chosen;
 use crate::screens::circuits::CircuitLog;
-use crate::screens::fields::{Chooser, FigureField};
+use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::lines;
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
@@ -268,7 +268,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                     placeholder=typed_back(DEFAULT_LOAD_KG)
                                 />
                             </div>
-                            {move || preview().map(|line| view! { <p class="hint preview">{line}</p> })}
+                            {preview_line(preview)}
                             <button class="cta" type="submit">
                                 "Burn"
                             </button>
