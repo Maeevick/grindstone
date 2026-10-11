@@ -353,7 +353,9 @@ fn a_gathered_week() -> String {
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
     "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } }"#;
 
+/// The Tracker, from a bare address whatever segment an earlier test left the browser on.
 fn the_tracker(screen: &Element) -> impl Drop {
+    back_home();
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
@@ -1233,11 +1235,7 @@ async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
     );
 }
 
-#[wasm_bindgen_test]
-async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with_stats_at_the_bottom()
- {
-    answering(
-        r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
+const A_HOME: &str = r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
              "gather_card": { "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
              "streak": { "days": 2, "longest": 5, "at_risk": true, "history": [
                  { "day": "2026-10-08", "status": "Success", "ticks": { "weighed": true, "fuelled": true, "worked_out": true, "hydrated": null } },
@@ -1247,8 +1245,47 @@ async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with
                  "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } },
              "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null, "off_the_clock_is_usual": true },
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
-                 "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#,
+                 "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#;
+
+#[wasm_bindgen_test]
+async fn each_of_todays_tiles_opens_its_segment_of_the_tracker() {
+    answering(A_HOME);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    settled().await;
+
+    let tiles = screen
+        .query_selector_all(".today a.tile")
+        .expect("the tiles");
+    let links: Vec<String> = (0..tiles.length())
+        .filter_map(|at| tiles.item(at))
+        .filter_map(|tile| tile.unchecked_into::<Element>().get_attribute("href"))
+        .collect();
+    assert_eq!(
+        links,
+        [
+            "/tracker?segment=Gather",
+            "/tracker?segment=Fuel",
+            "/tracker?segment=Hydrate",
+            "/tracker?segment=Burn"
+        ]
     );
+    let mut opened = Vec::new();
+    for link in &links {
+        went_to("/");
+        settled().await;
+        went_to(link);
+        settled().await;
+        opened.push(text_of(&screen, ".day .pill.chosen"));
+    }
+    assert_eq!(opened, ["Gather", "Fuel", "Hydrate", "Burn"]);
+}
+
+#[wasm_bindgen_test]
+async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with_stats_at_the_bottom()
+ {
+    answering(A_HOME);
     let screen = screen();
     let _mounted = the_app(&screen);
     settled().await;
@@ -2008,13 +2045,7 @@ async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_betw
 async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_app() {
     answering(r#"{ "recent_days": [] }"#);
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <Tracker />
-            </Router>
-        }
-    });
+    let _mounted = the_tracker(&screen);
     settled().await;
 
     typed_into(&screen, "mass", "eighty");
