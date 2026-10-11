@@ -59,7 +59,7 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
         workouts,
         off_the_clock: own_day.or_else(|| version_in_force_on(&records.usual_days, day).copied()),
         off_the_clock_is_usual: own_day.is_none(),
-        body_mass_kg: None,
+        body_mass_kg,
     }
 }
 
