@@ -56,6 +56,8 @@ extern "C" {
     fn asked(command: &str) -> String;
     fn a_moment() -> js_sys::Promise;
     fn back_home();
+    /// Moves to another tab through the history: a click on a tab is cancelled by the link
+    /// handlers the routers of earlier tests leave behind.
     fn went_to(path: &str);
 }
 
