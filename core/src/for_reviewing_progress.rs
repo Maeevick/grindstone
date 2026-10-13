@@ -689,7 +689,7 @@ mod tests {
         }
 
         #[test]
-        fn once_imported_each_tick_counts_from_its_oldest_record() {
+        fn from_the_profiles_first_day_every_tick_counts_a_tracker_without_a_log_failing_it() {
             let records = a_man_at_his_desk();
             log_measurement(&records.gather, "2026-10-05", 80.0, Some(80.0))
                 .expect("a measurement logs");
@@ -699,29 +699,50 @@ mod tests {
                 .save_switch_over(day("2026-10-10"))
                 .expect("a switch-over saves");
 
+            let streaked = streak_on(&records, "2026-10-10");
+
+            assert_eq!(
+                streaked.history.first().map(|first| first.day),
+                Some(day("2026-03-01"))
+            );
             assert_eq!(
                 ticks_on(&records, "2026-10-10", "2026-10-06"),
                 Some(Ticks {
                     weighed: Some(false),
-                    fuelled: None,
-                    worked_out: None,
-                    hydrated: None,
+                    fuelled: Some(false),
+                    worked_out: Some(false),
+                    hydrated: Some(false),
                 })
             );
         }
 
         #[test]
-        fn no_record_at_all_is_no_streak_yet_and_a_broken_switch_over_gives_none() {
+        fn without_a_profile_there_is_no_streak_yet() {
+            let records = Records {
+                gather: GatherRecordsInMemory::default(),
+                burn: BurnRecordsInMemory::default(),
+                fuel: FuelRecordsInMemory::default(),
+                hydrate: HydrateRecordsInMemory::default(),
+                switch_over: SwitchOverInMemory::default(),
+            };
+            log_measurement(&records.gather, "2026-10-10", 80.0, Some(80.0))
+                .expect("a measurement logs");
+
+            assert_eq!(streak_on(&records, "2026-10-10").history, vec![]);
+        }
+
+        #[test]
+        fn no_record_at_all_is_no_streak_yet_and_broken_records_give_none() {
             let records = a_man_at_his_desk();
 
             assert_eq!(streak_on(&records, "2026-10-10").days, 0);
             assert_eq!(
                 streak(
-                    &records.gather,
+                    &crate::testing::BrokenGatherRecords,
                     &records.burn,
                     &records.fuel,
                     &records.hydrate,
-                    &crate::testing::BrokenSwitchOver,
+                    &records.switch_over,
                     "2026-10-10"
                 ),
                 Err(Failure::Broken("the disk is full".into()))
@@ -754,7 +775,7 @@ mod tests {
         }
 
         #[test]
-        fn from_the_switch_over_a_day_must_also_drink_inside_its_hydrate_band() {
+        fn a_day_must_drink_inside_its_hydrate_band_whatever_day_the_draft_came_in() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
             a_full_day(&records, "2026-10-10", "Plate");
@@ -766,7 +787,7 @@ mod tests {
             let hydrated_on =
                 |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
 
-            assert_eq!(hydrated_on("2026-10-09"), None);
+            assert_eq!(hydrated_on("2026-10-09"), Some(true));
             assert_eq!(hydrated_on("2026-10-10"), Some(true));
         }
     }
