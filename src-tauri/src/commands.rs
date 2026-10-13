@@ -914,6 +914,13 @@ mod tests {
         let (_app, screen) = launched();
         invoke(
             &screen,
+            "set_profile",
+            json!({ "form": { "from": "2026-10-10", "birthday": "1985-04-12", "gender": "Male",
+                "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null } }),
+        )
+        .expect("a profile sets");
+        invoke(
+            &screen,
             "log_measurement",
             json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
         )

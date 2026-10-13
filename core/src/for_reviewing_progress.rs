@@ -83,65 +83,35 @@ pub fn streak(
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
-    switch_over: &impl ForStoringSwitchOver,
+    _switch_over: &impl ForStoringSwitchOver,
     today: &str,
 ) -> Result<Streak, Failure> {
     let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
         .map_err(|_| Failure::Refused(Refusal::NotADate))?;
-    let switched_on = switch_over.switch_over()?;
     let gathered = gather.gather_records()?;
     let burnt = burn.burn_records()?;
     let fuelled = fuel.fuel_records()?;
     let hydrated = hydrate.hydrate_records()?;
-    let first_weighed = gathered
-        .measurements
-        .iter()
-        .map(|measured| measured.day)
-        .min();
-    let first_fuelled = fuelled.intakes.iter().map(|(_, eaten)| eaten.day).min();
-    let first_worked_out = burnt.workouts.iter().map(|(_, done)| done.day).min();
-    let first_drunk = hydrated.drinkings.iter().map(|(_, drunk)| drunk.day).min();
-    let Some(start) = [first_weighed, first_fuelled, first_worked_out, first_drunk]
-        .into_iter()
-        .flatten()
-        .min()
-    else {
+    let Some(start) = gathered.profiles.iter().map(|(from, _)| *from).min() else {
         return Ok(streak_of(&[], today));
     };
-    let counted_from = |first: Option<NaiveDate>| match switched_on {
-        Some(_) => first,
-        None => Some(start),
-    };
-    let (weighed_from, fuelled_from, worked_out_from) = (
-        counted_from(first_weighed),
-        counted_from(first_fuelled),
-        counted_from(first_worked_out),
-    );
-    let checked_from = switched_on.unwrap_or(start);
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
         .zip(fuel_over(&days, &gathered, &burnt, &fuelled))
         .map(|(day, fuelled_day)| {
-            let ticked_from =
-                |from: Option<NaiveDate>, held: bool| from.filter(|from| from <= day).map(|_| held);
             (
                 *day,
                 Ticks {
-                    weighed: ticked_from(
-                        weighed_from,
+                    weighed: Some(
                         gathered
                             .measurements
                             .iter()
                             .any(|measured| measured.day == *day),
                     ),
-                    fuelled: ticked_from(fuelled_from, in_band(&fuelled_day)),
-                    worked_out: ticked_from(
-                        worked_out_from,
-                        burnt.workouts.iter().any(|(_, done)| done.day == *day),
-                    ),
-                    hydrated: ticked_from(
-                        Some(checked_from),
+                    fuelled: Some(in_band(&fuelled_day)),
+                    worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
+                    hydrated: Some(
                         hydrate_on(*day, &hydrated, &gathered, &burnt).verdict == Verdict::InBand,
                     ),
                 },
