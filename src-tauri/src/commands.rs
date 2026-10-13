@@ -251,9 +251,7 @@ pub fn remove_meal(records: State<Records>, name: String) -> Result<Vec<Meal>, F
 #[tauri::command(rename_all = "snake_case")]
 pub fn streak(records: State<Records>, today: String) -> Result<Streak, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_reviewing_progress::streak(
-        &*records, &*records, &*records, &*records, &*records, &today,
-    )
+    for_reviewing_progress::streak(&*records, &*records, &*records, &*records, &today)
 }
 
 #[tauri::command(rename_all = "snake_case")]

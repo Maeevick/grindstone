@@ -8,7 +8,6 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel::{Fuel, Verdict, fuel_over};
 use crate::hydrate::hydrate_on;
 use crate::ledger::Day;
@@ -83,7 +82,6 @@ pub fn streak(
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
-    _switch_over: &impl ForStoringSwitchOver,
     today: &str,
 ) -> Result<Streak, Failure> {
     let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
@@ -460,16 +458,13 @@ mod tests {
             FuelTargetsForm, UsualDayForm, set_fuel_targets, set_usual_day,
         };
         use crate::streak::Ticks;
-        use crate::testing::{
-            BurnRecordsInMemory, FuelRecordsInMemory, HydrateRecordsInMemory, SwitchOverInMemory,
-        };
+        use crate::testing::{BurnRecordsInMemory, FuelRecordsInMemory, HydrateRecordsInMemory};
 
         struct Records {
             gather: GatherRecordsInMemory,
             burn: BurnRecordsInMemory,
             fuel: FuelRecordsInMemory,
             hydrate: HydrateRecordsInMemory,
-            switch_over: SwitchOverInMemory,
         }
 
         fn plate(name: &str, fibre_g: f64) -> FoodForm {
@@ -499,7 +494,6 @@ mod tests {
                 burn: BurnRecordsInMemory::default(),
                 fuel: FuelRecordsInMemory::default(),
                 hydrate: HydrateRecordsInMemory::default(),
-                switch_over: SwitchOverInMemory::default(),
             };
             set_profile(
                 &records.gather,
@@ -591,7 +585,6 @@ mod tests {
                 &records.burn,
                 &records.fuel,
                 &records.hydrate,
-                &records.switch_over,
                 today,
             )
             .expect("a streak")
@@ -616,24 +609,16 @@ mod tests {
         }
 
         #[test]
-        fn a_day_is_fuelled_on_its_energy_alone_its_macros_aside_switch_over_or_not() {
+        fn a_day_is_fuelled_on_its_energy_alone_its_macros_aside() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-08", "Plate");
             a_full_day(&records, "2026-10-09", "Fibreless plate");
             a_full_day(&records, "2026-10-10", "Plate");
 
-            let without_switch_over = ticks_on(&records, "2026-10-10", "2026-10-09");
-            records
-                .switch_over
-                .save_switch_over(day("2026-10-08"))
-                .expect("a switch-over saves");
-            let after_the_import = ticks_on(&records, "2026-10-10", "2026-10-09");
-
             assert_eq!(
-                without_switch_over.and_then(|ticks| ticks.fuelled),
+                ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.fuelled),
                 Some(true)
             );
-            assert_eq!(after_the_import.and_then(|ticks| ticks.fuelled), Some(true));
         }
 
         #[test]
@@ -664,10 +649,6 @@ mod tests {
             log_measurement(&records.gather, "2026-10-05", 80.0, Some(80.0))
                 .expect("a measurement logs");
             a_full_day(&records, "2026-10-10", "Plate");
-            records
-                .switch_over
-                .save_switch_over(day("2026-10-10"))
-                .expect("a switch-over saves");
 
             let streaked = streak_on(&records, "2026-10-10");
 
@@ -693,7 +674,6 @@ mod tests {
                 burn: BurnRecordsInMemory::default(),
                 fuel: FuelRecordsInMemory::default(),
                 hydrate: HydrateRecordsInMemory::default(),
-                switch_over: SwitchOverInMemory::default(),
             };
             log_measurement(&records.gather, "2026-10-10", 80.0, Some(80.0))
                 .expect("a measurement logs");
@@ -712,7 +692,6 @@ mod tests {
                     &records.burn,
                     &records.fuel,
                     &records.hydrate,
-                    &records.switch_over,
                     "2026-10-10"
                 ),
                 Err(Failure::Broken("the disk is full".into()))
@@ -723,7 +702,6 @@ mod tests {
                     &records.burn,
                     &records.fuel,
                     &records.hydrate,
-                    &records.switch_over,
                     "2026-02-30"
                 ),
                 Err(Failure::Refused(Refusal::NotADate))
@@ -745,14 +723,10 @@ mod tests {
         }
 
         #[test]
-        fn a_day_must_drink_inside_its_hydrate_band_whatever_day_the_draft_came_in() {
+        fn a_day_must_drink_inside_its_hydrate_band() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
             a_full_day(&records, "2026-10-10", "Plate");
-            records
-                .switch_over
-                .save_switch_over(day("2026-10-10"))
-                .expect("a switch-over saves");
 
             let hydrated_on =
                 |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
