@@ -58,5 +58,4 @@ The screen calls the app's commands through Tauri. Each command hands over to on
 | Document | Use it to |
 | --- | --- |
 | [GETTING_STARTED.md](GETTING_STARTED.md) | run and test the app on the Mac |
-| [ANDROID_TOOLCHAIN.md](ANDROID_TOOLCHAIN.md) | install what an Android build needs, and connect the phone over USB |
-| [RUNBOOK.md](RUNBOOK.md) | go from nothing to the app installed on the phone, and update it |
+| [RUNBOOK.md](RUNBOOK.md) | go from nothing to the app installed on the phone, toolchain and USB connection included, and update it |

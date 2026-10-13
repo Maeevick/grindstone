@@ -66,5 +66,5 @@ It copies the backup to `~/Documents/grindstone-draft.json`. Then, in the app, g
 
 ## Next
 
-- The phone: [ANDROID_TOOLCHAIN.md](ANDROID_TOOLCHAIN.md), then [RUNBOOK.md](RUNBOOK.md).
+- The phone: [RUNBOOK.md](RUNBOOK.md), from its toolchain to the app installed.
 - The commands: `make help`.
