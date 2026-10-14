@@ -30,7 +30,7 @@ pub fn goals_kept(from: &str) -> String {
 }
 
 pub const IMPORT_HOW: &str = "Bring the draft's latest backup from the Mac with make import-draft-android, \
-    the phone plugged in, or make import-draft-mac for the Mac app, then import it here. It replaces every record the draft had. \
+    the phone plugged in, then import it here. It replaces every record the draft had. \
     Run it again with a newer backup until you switch for good.";
 
 fn counted(count: usize, one: &str, many: &str) -> String {
@@ -91,7 +91,7 @@ pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only.";
 pub fn import_failure(refused: &ImportFailure) -> String {
     match refused {
         ImportFailure::NoBackupFound(where_expected) => format!(
-            "No backup in the tunnels. Bring one with make import-draft-android or make import-draft-mac first; I looked in {where_expected}."
+            "No backup in the tunnels. Bring one with make import-draft-android first; I looked in {where_expected}."
         ),
         ImportFailure::Draft(DraftRefusal::Unreadable(where_it_stopped)) => {
             format!(
