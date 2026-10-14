@@ -1376,7 +1376,7 @@ async fn each_of_todays_tiles_opens_its_segment_of_the_tracker() {
 }
 
 #[wasm_bindgen_test]
-async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with_stats_at_the_bottom()
+async fn home_shows_the_streak_and_today_in_one_card_the_tiles_green_or_red_by_their_ticks_stats_at_the_bottom()
  {
     answering(A_HOME);
     let screen = screen();
@@ -1384,18 +1384,49 @@ async fn home_shows_the_streak_count_its_longest_run_todays_ticks_and_tiles_with
     settled().await;
     settled().await;
 
+    found::<Element>(&screen, "header.top img.logo");
+    assert_eq!(
+        texts_of(&screen, "section.card.streak h2"),
+        ["Streak", "Today"]
+    );
+    assert!(
+        screen
+            .query_selector("section.card.today")
+            .ok()
+            .flatten()
+            .is_none()
+    );
     assert_eq!(text_of(&screen, ".streak .current"), "2 days");
-    assert!(text_of(&screen, ".streak .longest").contains("5 days"));
-    let tiles = texts_of(&screen, ".today .tile .icon");
-    assert_eq!(tiles, ["⚖️", "⚡", "💧", "🔥"]);
+    assert_eq!(text_of(&screen, ".streak .longest"), "(longest: 5 days)");
+    assert!(
+        screen
+            .query_selector(".streak .ticks")
+            .ok()
+            .flatten()
+            .is_none()
+    );
+    assert_eq!(
+        texts_of(&screen, ".streak .today .tile .icon"),
+        ["⚖️", "⚡", "💧", "🔥"]
+    );
     assert!(text_of(&screen, ".today .tile.weighed").contains("71.7"));
+    let coloured: Vec<bool> = [
+        ".weighed.good",
+        ".fuelled.bad",
+        ".hydrated.good",
+        ".worked-out.bad",
+    ]
+    .into_iter()
+    .map(|tile| {
+        screen
+            .query_selector(&format!(".today .tile{tile}"))
+            .ok()
+            .flatten()
+            .is_some()
+    })
+    .collect();
+    assert_eq!(coloured, [true, true, true, true]);
     found::<Element>(&screen, "main.wrap > a.explore:last-child");
-    let ticks = screen
-        .query_selector_all(".streak .ticks li")
-        .map(|found| found.length())
-        .unwrap_or_default();
-    assert_eq!(ticks, 4);
-    found::<Element>(&screen, ".streak .ticks .held");
     assert!(
         screen
             .query_selector(".streak .dot")
