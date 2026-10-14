@@ -19,6 +19,7 @@ pub fn App() -> impl IntoView {
         <Router>
             <main class="wrap">
                 <header class="top">
+                    <img class="logo" src="/icon.svg" alt="" />
                     <h1>"GRINDSTONE"</h1>
                     <span class="tag">"sharpen this rusty you!"</span>
                 </header>

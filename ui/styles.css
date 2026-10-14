@@ -39,21 +39,26 @@ body {
 
 .top {
 	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 8px;
+	align-items: center;
+	gap: 10px;
+}
+
+.top .logo {
+	width: 34px;
+	height: 34px;
 }
 
 h1 {
 	margin: 0;
-	font: 700 1.1rem/1.2 var(--mono);
+	font: 700 1.4rem/1.2 var(--mono);
 	letter-spacing: 0.12em;
 }
 
 .tag {
+	margin-left: auto;
 	color: var(--mut);
 	font-style: italic;
-	font-size: 0.78rem;
+	font-size: 0.9rem;
 }
 
 .card {
@@ -347,22 +352,6 @@ select {
 .dot.Pending {
     border: 1px solid #e8b04b;
     background: transparent;
-}
-
-.ticks {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-}
-
-.ticks .held {
-    color: #5fd99f;
-}
-
-.ticks .open {
-    color: #9aa0a6;
 }
 
 .timeline .one {
@@ -795,16 +784,25 @@ textarea:focus {
 	color: #7aa2f7;
 }
 
+.streak .count {
+	margin: 0 0 4px;
+}
+
 .streak .current {
-	margin: 0;
 	color: var(--acc);
 	font: 700 1.7rem/1.2 var(--mono);
 }
 
 .streak .longest {
-	margin: 2px 0 8px;
 	color: var(--mut);
-	font-size: 0.85rem;
+	font-style: italic;
+	font-size: 0.9rem;
+}
+
+.streak .today {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--line);
 }
 
 .tiles {
@@ -844,8 +842,7 @@ textarea:focus {
 	color: var(--ok);
 }
 
-.tile.low .big,
-.tile.high .big {
+.tile.bad .big {
 	color: var(--bad);
 }
 

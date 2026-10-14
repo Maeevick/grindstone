@@ -11,7 +11,7 @@ use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
 use grind_core::stats::{Measure, Summary, figure_of};
-use grind_core::streak::{Status, Streak, Ticks};
+use grind_core::streak::{Status, Streak};
 use grind_draft::{DraftRefusal, ImportFailure};
 
 pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
@@ -296,7 +296,7 @@ pub fn streak_count(days: u32) -> String {
 }
 
 pub fn longest_streak(longest: u32) -> String {
-    format!("Longest: {}", days_counted(longest))
+    format!("(longest: {})", days_counted(longest))
 }
 
 pub fn streak_remark(streak: &Streak) -> &'static str {
@@ -314,18 +314,6 @@ pub fn status_word(status: Status) -> &'static str {
         Status::Break => "a break",
         Status::Pending => "under way",
     }
-}
-
-pub fn ticks_of(ticks: &Ticks) -> Vec<(&'static str, bool)> {
-    [
-        ("Weigh-in", ticks.weighed),
-        ("Fuel in band", ticks.fuelled),
-        ("Workout", ticks.worked_out),
-        ("Hydrate", ticks.hydrated),
-    ]
-    .into_iter()
-    .filter_map(|(name, held)| held.map(|held| (name, held)))
-    .collect()
 }
 
 pub fn measure_name(measure: Measure) -> &'static str {
