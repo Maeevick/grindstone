@@ -1902,6 +1902,31 @@ async fn with_no_base_set_the_card_fills_in_the_efsa_default_and_points_to_its_r
 }
 
 #[wasm_bindgen_test]
+async fn a_base_left_empty_is_refused_and_a_base_of_nothing_is_kept_as_nothing() {
+    answering(
+        r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true }, "set_hydrate_base": 0.0 }"#,
+    );
+    let screen = screen();
+    let _mounted = the_base_card_in(&screen);
+    settled().await;
+    let form: HtmlFormElement = found(&screen, "form.hydrate-base");
+
+    typed_into(&screen, "hydrate_base", "");
+    form.request_submit().expect("the empty base is submitted");
+    settled().await;
+    let refused = asked("set_hydrate_base");
+    let said = text_of(&screen, "form.hydrate-base .said");
+    typed_into(&screen, "hydrate_base", "0");
+    form.request_submit()
+        .expect("the base of nothing is submitted");
+    settled().await;
+
+    assert_eq!(refused, "");
+    assert!(said.contains("0 to leave Hydrate out"), "{said}");
+    assert!(asked("set_hydrate_base").contains(r#""base_ml":0"#));
+}
+
+#[wasm_bindgen_test]
 async fn a_saved_base_says_from_which_day_it_is_kept_and_the_default_steps_aside() {
     answering(
         r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true }, "set_hydrate_base": 2400.0 }"#,

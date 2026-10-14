@@ -733,16 +733,18 @@ mod tests {
         }
 
         #[test]
-        fn hydrate_counts_from_the_first_hydrate_base_the_days_before_on_the_other_three_ticks() {
+        fn a_day_whose_hydrate_base_is_nothing_counts_on_the_other_three_ticks() {
             let records = a_man_at_his_desk();
-            crate::for_setting_up_the_profile::set_hydrate_base(
-                &records.hydrate,
-                &crate::for_setting_up_the_profile::HydrateBaseForm {
-                    from: "2026-10-10".into(),
-                    base_ml: 2000.0,
-                },
-            )
-            .expect("a base sets");
+            for (from, base_ml) in [("2026-03-01", 0.0), ("2026-10-10", 2000.0)] {
+                crate::for_setting_up_the_profile::set_hydrate_base(
+                    &records.hydrate,
+                    &crate::for_setting_up_the_profile::HydrateBaseForm {
+                        from: from.into(),
+                        base_ml,
+                    },
+                )
+                .expect("a base sets");
+            }
             a_dry_day(&records, "2026-10-08", "Plate");
             a_dry_day(&records, "2026-10-09", "Plate");
             a_full_day(&records, "2026-10-10", "Plate");

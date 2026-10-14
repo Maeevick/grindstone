@@ -429,12 +429,30 @@ mod tests {
     }
 
     #[test]
-    fn a_hydrate_base_of_nothing_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
+    fn a_hydrate_base_of_nothing_is_kept_a_target_of_none_from_its_day() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
         let gather = GatherRecordsInMemory::default();
 
         assert_eq!(
             set_hydrate_base(&hydrate, &a_base_from("2026-03-01", 0.0)),
+            Ok(0.0)
+        );
+        assert_eq!(
+            hydrate_base_on(&gather, &hydrate, "2026-10-10"),
+            Ok(HydrateBase {
+                base_ml: 0.0,
+                is_default: false
+            })
+        );
+    }
+
+    #[test]
+    fn a_negative_hydrate_base_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        let gather = GatherRecordsInMemory::default();
+
+        assert_eq!(
+            set_hydrate_base(&hydrate, &a_base_from("2026-03-01", -100.0)),
             Err(Failure::Refused(Refusal::NotAVolume))
         );
         assert_eq!(
