@@ -15,7 +15,7 @@ Version 0.1, the full scope, on four tabs.
 
 - **Home:** a welcome until a profile exists. After that:
   - the streak:
-    - from the profile's first day, four ticks every day: a weigh-in; Fuel, meaning the day's energy inside its band; Hydrate inside its band, from the first Hydrate base's From date, the days before it counting on the other three; a workout. A tracker without a log fails its tick;
+    - from the profile's first day, four ticks every day: a weigh-in; Fuel, meaning the day's energy inside its band; Hydrate inside its band, except from a Hydrate base of 0 mL, whose days count on the other three; a workout. A tracker without a log fails its tick;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
     - one card: its count in gold beside its longest run, then today in four tiles, ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each green when its tick holds and red when it does not, and a shortcut to its segment of the Tracker;
     - each day's dot in the history beneath the chart;
