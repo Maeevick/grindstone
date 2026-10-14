@@ -42,13 +42,12 @@ make mutants   # mutation testing of the core, at the end of a slice
 ## Install
 
 ```sh
-make mac     # the Mac app, in /Applications
 make android   # the phone over USB, once the Android toolchain is in place
 ```
 
 ## Data
 
-The app keeps its SQLite file at:
+`make dev` keeps the app's SQLite file at:
 
 ```
 ~/Library/Application Support/com.maeevick.grindstone/grindstone.sqlite
@@ -56,13 +55,7 @@ The app keeps its SQLite file at:
 
 To start from empty, quit the app and delete that file.
 
-To import the draft's records:
-
-```sh
-make import-draft-mac BACKUP=../grindstone_draft/data/backups/<latest backup>.json
-```
-
-It copies the backup to `~/Documents/grindstone-draft.json`. Then, in the app, go to Profile, the gear, **Import the draft**. macOS may first ask to let Grindstone read the Documents folder. The import replaces every record the draft had: measurements, profiles, goals, exercises, workouts, foods, intakes and drinks.
+The draft's records are imported on the phone: [RUNBOOK.md](RUNBOOK.md), step 11.
 
 ## Next
 

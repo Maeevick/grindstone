@@ -300,11 +300,3 @@ make check android
 | `init` or `build` cannot find the SDK or NDK | Open a new terminal after editing `~/.zshrc`, then `echo $ANDROID_HOME $NDK_HOME`. |
 | Gradle refuses the Java version | `java -version` must report 21: check `JAVA_HOME`. |
 | The app opens on a blank screen | `cd ui && trunk build --release` must succeed, then build and install again. |
-
-## Mac app (optional)
-
-```sh
-make mac
-```
-
-It builds the app and replaces `/Applications/Grindstone.app`. The data stays in `~/Library/Application Support/com.maeevick.grindstone`.

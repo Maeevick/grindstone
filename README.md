@@ -46,7 +46,7 @@ Next, together: daily challenges, then the Stats rework, export and import optio
 | Part | Technology | Role |
 | --- | --- | --- |
 | `ui` | Leptos 0.8, client-side, compiled to WebAssembly by Trunk | the screen |
-| `src-tauri` | Tauri 2 | the app shell on Android and macOS: its commands and the configurator that wires everything at start |
+| `src-tauri` | Tauri 2 | the app shell on Android, and on the Mac under `make dev`: its commands and the configurator that wires everything at start |
 | `core` | plain Rust | the application: its rules, what it offers (driving ports) and what it needs (driven ports) |
 | `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage port |
 | `adapters/draft` | serde_json | reads the draft's backup into the core's records |
