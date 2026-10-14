@@ -10,6 +10,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, Verdict, fuel_over};
 use crate::hydrate::hydrate_on;
+use crate::hydrate_base::base_on;
 use crate::ledger::Day;
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
@@ -93,12 +94,6 @@ pub fn streak(
     let Some(start) = gathered.profiles.iter().map(|(from, _)| *from).min() else {
         return Ok(streak_of(&[], today));
     };
-    let hydrated_from = hydrated
-        .bases
-        .iter()
-        .map(|(from, _)| *from)
-        .min()
-        .unwrap_or(start);
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
@@ -115,9 +110,11 @@ pub fn streak(
                     ),
                     fuelled: Some(in_band(&fuelled_day)),
                     worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
-                    hydrated: (*day >= hydrated_from).then(|| {
-                        hydrate_on(*day, &hydrated, &gathered, &burnt).verdict == Verdict::InBand
-                    }),
+                    hydrated: (base_on(*day, &hydrated.bases, &gathered.profiles).base_ml > 0.0)
+                        .then(|| {
+                            hydrate_on(*day, &hydrated, &gathered, &burnt).verdict
+                                == Verdict::InBand
+                        }),
                 },
             )
         })

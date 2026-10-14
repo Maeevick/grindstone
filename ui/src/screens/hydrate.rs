@@ -319,13 +319,17 @@ pub fn HydrateBaseCard() -> impl IntoView {
     });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some([base_ml]) = figures_typed([&base.get_untracked()]) else {
+        let Some([typed]) = figures_typed([&base.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let Some(base_ml) = typed else {
+            said.set(Some(lines::NO_BASE_TYPED.into()));
             return;
         };
         let form = HydrateBaseForm {
             from: from.get_untracked(),
-            base_ml: base_ml.unwrap_or(0.0),
+            base_ml,
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_hydrate_base(&form).await {

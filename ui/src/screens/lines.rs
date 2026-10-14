@@ -396,6 +396,9 @@ pub const TARGET_DRUNK: &str = "Target reached.";
 pub const NO_DRINKING: &str =
     "Not a drop filed on this day yet. The archive is drier than its oldest scroll.";
 
+pub const NO_BASE_TYPED: &str =
+    "A base in millilitres, please, or 0 to leave Hydrate out of the streak from that day.";
+
 pub fn hydrate_base_kept(from: &str) -> String {
     format!("Filed. This base is kept from {from}.")
 }

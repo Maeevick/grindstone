@@ -15,7 +15,6 @@ use crate::recommendations::{Recommendations, recommended};
 use crate::refusal::Refusal;
 use crate::version::version_in_force_on;
 use crate::volitional::{Volitional, volitional};
-use crate::volume::volume;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProfileForm {
@@ -154,7 +153,10 @@ pub fn set_hydrate_base(
     form: &HydrateBaseForm,
 ) -> Result<f64, Failure> {
     let from = day(&form.from)?;
-    let base_ml = volume(form.base_ml).map_err(Failure::Refused)?;
+    let base_ml = form.base_ml;
+    if !(base_ml.is_finite() && base_ml >= 0.0) {
+        return Err(Failure::Refused(Refusal::NotAVolume));
+    }
     hydrate.save_base(from, base_ml)?;
     Ok(base_ml)
 }
