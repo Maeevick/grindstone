@@ -15,10 +15,10 @@ Version 0.1, the full scope, on four tabs.
 
 - **Home:** a welcome until a profile exists. After that:
   - the streak:
-    - four ticks a day: a weigh-in; Fuel, meaning the day's energy inside its band; a workout; Hydrate inside its band;
+    - from the profile's first day, four ticks every day: a weigh-in; Fuel, meaning the day's energy inside its band; Hydrate inside its band; a workout. A tracker without a log fails its tick;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
-    - its count in gold, its longest run and today's four ticks at the top, each day's dot in the history beneath the chart;
-  - today in four tiles: ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each a shortcut to its segment of the Tracker;
+    - one card: its count in gold beside its longest run, then today in four tiles, ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each green when its tick holds and red when it does not, and a shortcut to its segment of the Tracker;
+    - each day's dot in the history beneath the chart;
   - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞, its y axis on round ticks over thin grid lines, its x axis dated from the oldest day to the newest (every day over a week), the current values and a legend;
   - beneath it, the unwanted tips: what is worth sharpening for the chosen chip, the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
   - each chip's history beneath, month by month, its units in the headers and each day's streak dot;

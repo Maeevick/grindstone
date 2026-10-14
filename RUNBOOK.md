@@ -124,6 +124,16 @@ Expected: no formatting change, no lint, every test `ok`.
 
 ```sh
 cargo tauri android init
+```
+
+The project comes with Tauri's template icon. Grindstone's own is in `src-tauri/icons/android`, made by `cargo tauri icon icon.svg`, with the adaptive foreground from `ic_launcher_foreground.svg` on the app's dark background:
+
+```sh
+res=src-tauri/gen/android/app/src/main/res
+for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do cp src-tauri/icons/android/mipmap-$density/*.png $res/mipmap-$density/; done
+mkdir -p $res/mipmap-anydpi-v26 && cp src-tauri/icons/android/mipmap-anydpi-v26/ic_launcher.xml $res/mipmap-anydpi-v26/
+cp src-tauri/icons/android/values/ic_launcher_background.xml $res/values/
+rm $res/drawable/ic_launcher_background.xml $res/drawable-v24/ic_launcher_foreground.xml
 git add src-tauri/gen/android
 git commit -m "build(android): generate the Android project"
 ```
@@ -269,7 +279,7 @@ Then, in the app, go to Profile, the gear, then **Import the draft**. The app te
 - foods and intakes;
 - drinks and drinkings.
 
-The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records and makes its day the switch-over: from that day on, the streak also asks for Hydrate. It can run again with a newer backup until the switch.
+The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records. It can run again with a newer backup until the switch.
 
 ## Update
 
