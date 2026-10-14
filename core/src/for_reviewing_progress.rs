@@ -541,6 +541,21 @@ mod tests {
         }
 
         fn a_full_day(records: &Records, date: &str, plate: &str) {
+            a_dry_day(records, date, plate);
+            crate::for_hydrating::log_drink(
+                &records.gather,
+                &records.burn,
+                &records.hydrate,
+                &crate::for_hydrating::DrinkingForm {
+                    date: date.into(),
+                    drink: "Water".into(),
+                    volume_ml: Some(2000.0),
+                },
+            )
+            .expect("a drink logs");
+        }
+
+        fn a_dry_day(records: &Records, date: &str, plate: &str) {
             log_measurement(&records.gather, date, 80.0, Some(80.0)).expect("a measurement logs");
             log_workout(
                 &records.gather,
@@ -566,17 +581,6 @@ mod tests {
                 },
             )
             .expect("an intake logs");
-            crate::for_hydrating::log_drink(
-                &records.gather,
-                &records.burn,
-                &records.hydrate,
-                &crate::for_hydrating::DrinkingForm {
-                    date: date.into(),
-                    drink: "Water".into(),
-                    volume_ml: Some(2000.0),
-                },
-            )
-            .expect("a drink logs");
         }
 
         fn streak_on(records: &Records, today: &str) -> Streak {
@@ -720,6 +724,31 @@ mod tests {
                 ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.worked_out),
                 Some(false)
             );
+        }
+
+        #[test]
+        fn hydrate_counts_from_the_first_hydrate_base_the_days_before_on_the_other_three_ticks() {
+            let records = a_man_at_his_desk();
+            crate::for_setting_up_the_profile::set_hydrate_base(
+                &records.hydrate,
+                &crate::for_setting_up_the_profile::HydrateBaseForm {
+                    from: "2026-10-10".into(),
+                    base_ml: 2000.0,
+                },
+            )
+            .expect("a base sets");
+            a_dry_day(&records, "2026-10-08", "Plate");
+            a_dry_day(&records, "2026-10-09", "Plate");
+            a_full_day(&records, "2026-10-10", "Plate");
+
+            let hydrated_on =
+                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
+
+            assert_eq!(
+                (hydrated_on("2026-10-09"), hydrated_on("2026-10-10")),
+                (None, Some(true))
+            );
+            assert_eq!(streak_on(&records, "2026-10-10").days, 3);
         }
 
         #[test]
