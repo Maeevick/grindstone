@@ -93,6 +93,12 @@ pub fn streak(
     let Some(start) = gathered.profiles.iter().map(|(from, _)| *from).min() else {
         return Ok(streak_of(&[], today));
     };
+    let hydrated_from = hydrated
+        .bases
+        .iter()
+        .map(|(from, _)| *from)
+        .min()
+        .unwrap_or(start);
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
@@ -109,9 +115,9 @@ pub fn streak(
                     ),
                     fuelled: Some(in_band(&fuelled_day)),
                     worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
-                    hydrated: Some(
-                        hydrate_on(*day, &hydrated, &gathered, &burnt).verdict == Verdict::InBand,
-                    ),
+                    hydrated: (*day >= hydrated_from).then(|| {
+                        hydrate_on(*day, &hydrated, &gathered, &burnt).verdict == Verdict::InBand
+                    }),
                 },
             )
         })
