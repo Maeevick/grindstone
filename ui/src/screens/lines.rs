@@ -56,8 +56,8 @@ pub fn added(name: &str) -> String {
     format!("{name} joins the catalog.")
 }
 
-pub const NO_WORKOUT: &str = "No workout on this day. A rest day counts as work: \
-    the point is to have decided, not to have moved.";
+pub const NO_WORKOUT: &str = "No workout on this day. A half-hour walk will do: fitness culture calls it \
+    active rest, and the streak cannot tell a stroll from a sprint.";
 
 pub const NO_EXERCISE: &str = "The catalog is empty. Add an exercise and its MET \
     (the 2024 Compendium of Physical Activities lists them), or import the draft's.";
@@ -539,9 +539,11 @@ pub fn hydrate_note(note: &BandNote) -> String {
 
 pub fn burn_note(note: &BurnNote) -> String {
     match note {
-        BurnNote::Idle => "No workout in this window. A rest day counts as work; a rest month is \
-            a different hunt altogether."
-            .into(),
+        BurnNote::Idle => {
+            "No workout in this window. The joker forgives one idle day, not a window full of them; \
+            one walk gets the grindstone turning again."
+                .into()
+        }
         BurnNote::Sparse { per_week } => format!(
             "{} active days a week. The WHO asks for strength on two; the grindstone turns either way, \
              but it turns better with a hand on it.",
