@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+if [ "$(uname -s)" = Darwin ]; then
+  chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  platform=$([ "$(uname -m)" = arm64 ] && echo mac-arm64 || echo mac-x64)
+  caches="$HOME/Library/Caches"
+else
+  chrome=$(command -v google-chrome || command -v google-chrome-stable)
+  platform=linux64
+  caches="${XDG_CACHE_HOME:-$HOME/.cache}"
+fi
 major=$("$chrome" --version | awk '{ split($3, version, "."); print version[1] }')
-platform=$([ "$(uname -m)" = arm64 ] && echo mac-arm64 || echo mac-x64)
-folder="$HOME/Library/Caches/grindstone/chromedriver-$major"
+folder="$caches/grindstone/chromedriver-$major"
 driver="$folder/chromedriver-$platform/chromedriver"
 
 if [ ! -x "$driver" ]; then
