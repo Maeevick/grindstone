@@ -39,6 +39,8 @@ make test-ui   # the screen mounted in a headless Chrome, its commands answered 
 make mutants   # mutation testing of the core, at the end of a slice
 ```
 
+On GitHub, every push to `main` and every pull request runs `make check`, `make test-ui` and a build of the APK signed with a key made for the run ([ci.yml](.github/workflows/ci.yml)).
+
 ## Install
 
 ```sh
