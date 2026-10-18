@@ -176,7 +176,11 @@ pub fn set_burn_target(
     burn: &impl ForStoringBurnRecords,
     form: &BurnTargetForm,
 ) -> Result<f64, Failure> {
-    burn.save_burn_target(day(&form.from)?, form.kcal)?;
+    let from = day(&form.from)?;
+    if !(form.kcal.is_finite() && form.kcal >= 0.0) {
+        return Err(Failure::Refused(Refusal::NotAnEnergy));
+    }
+    burn.save_burn_target(from, form.kcal)?;
     Ok(form.kcal)
 }
 
