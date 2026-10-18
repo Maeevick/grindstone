@@ -63,8 +63,8 @@ pub fn hydrate_over(
 
 /// The day's drinks against its band. Once a lean mass is known, the target is the water that mass
 /// turns over in a day plus 1.25 mL per kcal burnt, and the floor a millilitre per kcal the day spends
-/// (its budget and burn), each nine tenths from drinks, food bringing the rest; before, EFSA's base
-/// plus a millilitre per kcal burnt, the floor a fifth under it.
+/// (its budget and burn) but never above the target, each nine tenths from drinks, food bringing the
+/// rest; before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth under it.
 ///
 /// - Lean mass is 73.2% water: Wang Z. et al. (1999), *Hydration of fat-free body mass: new
 ///   physiological modeling approach*, Am J Physiol Endocrinol Metab 276(6):E995-E1003.
@@ -96,12 +96,13 @@ fn hydrated(
     )
     .map(|body| body.lean_kg);
     let (target_ml, floor_ml) = match (lean_kg, fuelled.band) {
-        (Some(lean_kg), Some(band)) => (
-            SHARE_LEFT_TO_DRINKS
+        (Some(lean_kg), Some(band)) => {
+            let target_ml = SHARE_LEFT_TO_DRINKS
                 * (lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
-                    + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST),
-            SHARE_LEFT_TO_DRINKS * band.cap_kcal * ML_PER_KCAL_SPENT,
-        ),
+                    + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
+            let floor_ml = SHARE_LEFT_TO_DRINKS * band.cap_kcal * ML_PER_KCAL_SPENT;
+            (target_ml, floor_ml.min(target_ml))
+        }
         _ => {
             let target_ml = base_on(day, &records.bases, &gather.profiles).base_ml
                 + burnt_kcal * ML_PER_KCAL_SPENT;
