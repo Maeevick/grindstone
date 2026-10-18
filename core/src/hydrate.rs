@@ -126,6 +126,7 @@ mod tests {
     use crate::gender::Gender;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
+    use crate::volitional::Volitional;
     use crate::workout::Workout;
 
     fn day(date: &str) -> NaiveDate {
@@ -250,6 +251,31 @@ mod tests {
             .map(|band| band.cap_kcal)
             .expect("a band for a measured body");
         assert!(about(hydrate.floor_ml, 0.9 * spent_kcal));
+    }
+
+    #[test]
+    fn the_floor_never_rises_above_the_optimal() {
+        let walking_thirty_km_a_day = BurnRecords {
+            usual_days: vec![(
+                day("2026-03-01"),
+                Volitional {
+                    sitting_min: 480.0,
+                    standing_min: 120.0,
+                    moving_km: 30.0,
+                },
+            )],
+            ..BurnRecords::default()
+        };
+
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &a_man_measured_with_his_waist(),
+            &walking_thirty_km_a_day,
+            &FuelRecords::default(),
+        );
+
+        assert!(about(hydrate.floor_ml, hydrate.target_ml));
     }
 
     #[test]
