@@ -89,6 +89,9 @@ const MIGRATIONS: &[&str] = &[
      update drinkings set kind = 'Other' where kind in ('Coffee', 'Tea');",
     "create table circuits (name text primary key, description text not null default '');
      insert into circuits (name) select distinct circuit from circuit_steps;",
+    "create table hydrate_counted (effective_from text primary key, counted integer not null);
+     insert into hydrate_counted (effective_from, counted)
+         select effective_from, base_ml > 0 from hydrate_bases;",
 ];
 
 pub struct Sqlite(Connection);
@@ -793,6 +796,8 @@ fn kind_read(word: &str) -> rusqlite::Result<DrinkKind> {
 }
 const HYDRATE_BASES: &str =
     "select effective_from, base_ml from hydrate_bases order by effective_from";
+const HYDRATE_COUNTED: &str =
+    "select effective_from, counted from hydrate_counted order by effective_from";
 
 fn drink_read(row: &rusqlite::Row) -> rusqlite::Result<Drink> {
     Ok(Drink {
@@ -816,6 +821,10 @@ fn drinking_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Drinking)> {
 }
 
 fn base_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, f64)> {
+    Ok((row.get(0)?, row.get(1)?))
+}
+
+fn counted_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, bool)> {
     Ok((row.get(0)?, row.get(1)?))
 }
 
@@ -857,10 +866,21 @@ impl ForStoringHydrateRecords for Sqlite {
         )
     }
 
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        self.run(
+            "insert into hydrate_counted (effective_from, counted) values (?1, ?2)
+             on conflict (effective_from) do update set counted = excluded.counted",
+            params![from, counted],
+        )
+    }
+
     fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
-            .execute_batch("delete from drinks; delete from drinkings; delete from hydrate_bases;")
+            .execute_batch(
+                "delete from drinks; delete from drinkings; delete from hydrate_bases;
+                 delete from hydrate_counted;",
+            )
             .map_err(broken)?;
         for drink in &records.drinks {
             self.save_drink(drink)?;
@@ -871,6 +891,9 @@ impl ForStoringHydrateRecords for Sqlite {
         for (from, base_ml) in &records.bases {
             self.save_base(*from, *base_ml)?;
         }
+        for (from, counted) in &records.counted_from {
+            self.save_counted(*from, *counted)?;
+        }
         replacing.commit().map_err(broken)
     }
 
@@ -879,6 +902,7 @@ impl ForStoringHydrateRecords for Sqlite {
             drinks: self.rows(DRINKS, drink_read)?,
             drinkings: self.rows(DRINKINGS, drinking_read)?,
             bases: self.rows(HYDRATE_BASES, base_read)?,
+            counted_from: self.rows(HYDRATE_COUNTED, counted_read)?,
         })
     }
 }
@@ -890,6 +914,7 @@ mod tests {
     const BEFORE_THE_DRINK_KINDS: usize = 11;
     const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
     const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
+    const BEFORE_THE_HYDRATE_SWITCHES: usize = 14;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
@@ -1544,6 +1569,41 @@ mod tests {
                 ))
                 .collect::<Vec<_>>(),
             vec![("Morning rust", "", 1)]
+        );
+    }
+
+    #[test]
+    fn the_hydrate_bases_already_on_the_phone_switch_hydrate_off_at_nothing_and_on_otherwise() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-hydrate-switches-{}.sqlite",
+            std::process::id()
+        ));
+        let before = Connection::open(&file).expect("a database before the switches");
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..BEFORE_THE_HYDRATE_SWITCHES]) {
+            before
+                .execute_batch(migration)
+                .expect("an earlier migration");
+            before
+                .pragma_update(None, "user_version", version)
+                .expect("its version");
+        }
+        before
+            .execute_batch(
+                "insert into hydrate_bases (effective_from, base_ml) values ('2026-03-01', 0.0);
+                 insert into hydrate_bases (effective_from, base_ml) values ('2026-10-10', 3000.0);",
+            )
+            .expect("bases set before");
+        drop(before);
+
+        let carried = Sqlite::open(&file).and_then(|database| database.hydrate_records());
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        assert_eq!(
+            carried.expect("the records read").counted_from,
+            vec![
+                (NaiveDate::from_ymd_opt(2026, 3, 1).expect("a day"), false),
+                (NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"), true)
+            ]
         );
     }
 }

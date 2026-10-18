@@ -11,6 +11,7 @@ pub trait ForStoringHydrateRecords {
     fn save_drinking(&self, drinking: &Drinking) -> Result<(), Broken>;
     fn remove_drinking(&self, id: i64) -> Result<(), Broken>;
     fn save_base(&self, from: NaiveDate, base_ml: f64) -> Result<(), Broken>;
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken>;
     fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken>;
     fn hydrate_records(&self) -> Result<HydrateRecords, Broken>;
 }

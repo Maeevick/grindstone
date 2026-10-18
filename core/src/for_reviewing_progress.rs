@@ -10,7 +10,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, Verdict, fuel_over};
 use crate::hydrate::hydrate_over;
-use crate::hydrate_base::base_on;
+use crate::hydrate_counted::counted_on;
 use crate::ledger::Day;
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
@@ -112,7 +112,7 @@ pub fn streak(
                     ),
                     fuelled: Some(in_band(&fuelled_day)),
                     worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
-                    hydrated: (base_on(*day, &hydrated.bases, &gathered.profiles).base_ml > 0.0)
+                    hydrated: counted_on(*day, &hydrated.counted_from)
                         .then(|| hydrated_day.verdict == Verdict::InBand),
                 },
             )
@@ -727,33 +727,6 @@ mod tests {
                 ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.worked_out),
                 Some(false)
             );
-        }
-
-        #[test]
-        fn a_day_whose_hydrate_base_is_nothing_counts_on_the_other_three_ticks() {
-            let records = a_man_at_his_desk();
-            for (from, base_ml) in [("2026-03-01", 0.0), ("2026-10-10", 2000.0)] {
-                crate::for_setting_up_the_profile::set_hydrate_base(
-                    &records.hydrate,
-                    &crate::for_setting_up_the_profile::HydrateBaseForm {
-                        from: from.into(),
-                        base_ml,
-                    },
-                )
-                .expect("a base sets");
-            }
-            a_dry_day(&records, "2026-10-08", "Plate");
-            a_dry_day(&records, "2026-10-09", "Plate");
-            a_full_day(&records, "2026-10-10", "Plate");
-
-            let hydrated_on =
-                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
-
-            assert_eq!(
-                (hydrated_on("2026-10-09"), hydrated_on("2026-10-10")),
-                (None, Some(true))
-            );
-            assert_eq!(streak_on(&records, "2026-10-10").days, 3);
         }
 
         #[test]

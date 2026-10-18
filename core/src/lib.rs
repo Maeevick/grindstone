@@ -33,6 +33,7 @@ pub mod gender;
 pub mod goals;
 pub mod hydrate;
 pub mod hydrate_base;
+pub mod hydrate_counted;
 pub mod hydrate_records;
 pub mod intake;
 pub mod ledger;

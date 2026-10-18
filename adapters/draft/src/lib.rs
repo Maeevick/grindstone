@@ -476,6 +476,7 @@ pub fn hydrate_from_draft(backup: &str) -> Result<HydrateRecords, DraftRefusal> 
         drinks,
         drinkings,
         bases: vec![],
+        counted_from: vec![],
     })
 }
 

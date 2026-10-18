@@ -406,6 +406,7 @@ mod tests {
             ],
             drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],
             bases: vec![],
+            counted_from: vec![],
         }
     }
 

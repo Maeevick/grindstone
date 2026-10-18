@@ -168,9 +168,10 @@ pub struct HydrateCountedForm {
 }
 
 pub fn set_hydrate_counted(
-    _hydrate: &impl ForStoringHydrateRecords,
+    hydrate: &impl ForStoringHydrateRecords,
     form: &HydrateCountedForm,
 ) -> Result<bool, Failure> {
+    hydrate.save_counted(day(&form.from)?, form.counted)?;
     Ok(form.counted)
 }
 
