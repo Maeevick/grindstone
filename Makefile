@@ -28,12 +28,12 @@ check: ## formatting, lints, tests and no uncovered line outside the wiring and 
 test-ui: ## the screen's tests in a headless Chrome, driven by the ChromeDriver of the installed Chrome rather than the newest
 	driver=$$(scripts/chromedriver-for-installed-chrome) && wasm-pack test --headless --chrome --chromedriver "$$driver" ui
 
-mutants: ## mutation testing of the core lines changed since BASE (origin/main: what is not pushed yet), four at a time, at the end of a slice
+mutants: ## mutation testing of the core lines changed since BASE (origin/main: what is not pushed yet), four at a time, after a big change
 	mkdir -p target
 	git diff $(BASE) -- core > target/mutants.diff
 	cargo mutants -p grind-core --in-diff target/mutants.diff --jobs 4
 
-mutants-all: ## mutation testing of the whole core, four at a time, for an occasional sweep
+mutants-all: ## mutation testing of the whole core, four at a time, once a day
 	cargo mutants -p grind-core --jobs 4
 
 android: ## build the release APK and install it on the phone plugged over USB, keeping its data
