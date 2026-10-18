@@ -5,6 +5,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::age::age_on;
+use crate::burn_target::target_on;
 use crate::fuel_records::FuelTargets;
 use crate::gender::Gender;
 use crate::profile::Profile;
@@ -39,6 +40,8 @@ pub struct Recommendations {
 ///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps a day past
 ///   which the risk of dying stops falling, 8000 under 60 and 6000 from 60, Paluch A. E. et al.
 ///   (2022), *Lancet Public Health* 7(3):e219–e228, at about 0.75 m a step.
+/// - The burn target: WHO's 150 minutes a week of moderate activity on the body weighed, Bull F. C. et al.
+///   (2020), *Br J Sports Med* 54(24):1451–1462; none before a weigh-in, when any workout holds the tick.
 pub fn recommended(
     profile: &Profile,
     day: NaiveDate,
@@ -64,7 +67,7 @@ pub fn recommended(
             standing_min: STANDING_MIN,
             moving_km: to_the_tenth(steps_a_day(age) * METRES_A_STEP / 1000.0),
         },
-        burn_target_kcal: None,
+        burn_target_kcal: target_on(day, &[], body_mass_kg),
     }
 }
 
