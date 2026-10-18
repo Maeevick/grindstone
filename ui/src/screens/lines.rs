@@ -56,8 +56,8 @@ pub fn added(name: &str) -> String {
     format!("{name} joins the catalog.")
 }
 
-pub const NO_WORKOUT: &str = "No workout on this day. A half-hour walk will do: fitness culture calls it \
-    active rest, and the streak cannot tell a stroll from a sprint.";
+pub const NO_WORKOUT: &str = "No workout on this day. A brisk half-hour walk will usually do: fitness culture \
+    calls it active rest, the streak counts it as the day's burn.";
 
 pub const NO_EXERCISE: &str = "The catalog is empty. Add an exercise and its MET \
     (the 2024 Compendium of Physical Activities lists them), or import the draft's.";
