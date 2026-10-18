@@ -1177,6 +1177,32 @@ mod tests {
     }
 
     #[test]
+    fn hydrate_left_out_from_the_screen_is_left_out_from_its_day() {
+        let (_app, screen) = launched();
+        let before = invoke(
+            &screen,
+            "hydrate_counted_on",
+            json!({ "date": "2026-10-12" }),
+        );
+
+        let set = invoke(
+            &screen,
+            "set_hydrate_counted",
+            json!({ "form": { "from": "2026-10-10", "counted": false } }),
+        );
+        let in_force = invoke(
+            &screen,
+            "hydrate_counted_on",
+            json!({ "date": "2026-10-12" }),
+        );
+
+        assert_eq!(
+            (before, set, in_force),
+            (Ok(json!(true)), Ok(json!(false)), Ok(json!(false)))
+        );
+    }
+
+    #[test]
     fn the_four_charts_cross_to_the_screen_over_their_window() {
         let (_app, screen) = launched();
         invoke(
