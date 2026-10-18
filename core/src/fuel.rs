@@ -12,7 +12,7 @@ use crate::intake::Intake;
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
 pub use crate::verdict::Verdict;
-use crate::verdict::verdict_of;
+use crate::verdict::{verdict_of, within_grace};
 use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
 
@@ -277,7 +277,12 @@ impl Ledgers<'_> {
                 .map(|(band, _, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
             macros: banded.map(|(_, macros, _)| macros),
             budget: banded.map(|(_, _, budget)| budget),
-            within_grace: false,
+            within_grace: banded.is_some_and(|(band, macros, _)| {
+                within_grace(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)
+                    && [macros.protein, macros.fat, macros.fibre, macros.carbs]
+                        .iter()
+                        .all(|row| within_grace(row.eaten_g, row.floor_g, row.ceiling_g))
+            }),
         }
     }
 }
