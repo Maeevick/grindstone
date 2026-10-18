@@ -791,6 +791,29 @@ mod tests {
         }
 
         #[test]
+        fn before_any_weigh_in_a_single_workout_holds_the_workout_tick() {
+            let records = a_man_at_his_desk();
+            log_workout(
+                &records.gather,
+                &records.burn,
+                &WorkoutForm {
+                    date: "2026-10-10".into(),
+                    exercise: "Walking".into(),
+                    minutes: Some(1.0),
+                    reps: None,
+                    sets: Some(1),
+                    load_kg: Some(0.0),
+                },
+            )
+            .expect("a workout logs");
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-10").and_then(|ticks| ticks.worked_out),
+                Some(true)
+            );
+        }
+
+        #[test]
         fn a_day_without_a_workout_reads_its_workout_tick_open() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-08", "Plate");
