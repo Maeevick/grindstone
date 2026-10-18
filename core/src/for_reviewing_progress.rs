@@ -629,6 +629,19 @@ mod tests {
         }
 
         #[test]
+        fn a_macro_out_of_its_band_leaves_the_fuel_tick_open() {
+            let records = a_man_at_his_desk();
+            a_full_day(&records, "2026-10-08", "Plate");
+            a_full_day(&records, "2026-10-09", "Fibreless plate");
+            a_full_day(&records, "2026-10-10", "Plate");
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.fuelled),
+                Some(false)
+            );
+        }
+
+        #[test]
         fn a_day_eaten_below_its_energy_band_leaves_the_fuel_tick_open() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
