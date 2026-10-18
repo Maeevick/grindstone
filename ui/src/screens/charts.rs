@@ -11,6 +11,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
+use crate::screens::home::tick_class;
 use crate::screens::lines;
 use crate::tauri;
 
@@ -441,54 +442,94 @@ fn bare_or_blank(value: Option<f64>, figure: fn(f64) -> Figure) -> String {
     value.map(|value| bare(figure(value))).unwrap_or_default()
 }
 
-fn gather_row(row: GatherRow, status: Option<Status>) -> impl IntoView {
+fn gather_cells(row: GatherRow) -> impl IntoView {
     view! {
-        <tr>
             <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Mass(row.body_mass_kg))}</td>
             <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
-            {streak_cell(status)}
-        </tr>
     }
 }
 
-fn fuel_row(row: FuelRow, status: Option<Status>) -> impl IntoView {
+fn fuel_cells(row: FuelRow) -> impl IntoView {
     view! {
-        <tr>
             <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Energy(row.eaten.energy_kcal))}</td>
             <td>{bare(Figure::Grams(row.eaten.protein_g))}</td>
             <td>{bare(Figure::Grams(row.eaten.fat_g))}</td>
             <td>{bare(Figure::Grams(row.eaten.carbs_g))}</td>
             <td>{bare(Figure::Grams(row.eaten.fibre_g))}</td>
-            {streak_cell(status)}
-        </tr>
     }
 }
 
-fn hydrate_row(row: HydrateRow, status: Option<Status>) -> impl IntoView {
+fn hydrate_cells(row: HydrateRow) -> impl IntoView {
     view! {
-        <tr>
             <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Volume(row.drunk_ml))}</td>
             <td>{bare(Figure::Ratio(row.water_ratio))}</td>
-            {streak_cell(status)}
-        </tr>
     }
 }
 
-fn burn_row(row: BurnRow, status: Option<Status>) -> impl IntoView {
+fn burn_cells(row: BurnRow) -> impl IntoView {
     view! {
-        <tr>
             <td>{row.day.to_string()}</td>
             <td>{bare_or_blank(row.burnt_kcal, Figure::Energy)}</td>
             <td>{bare(Figure::Duration(row.minutes))}</td>
             <td>{bare(Figure::Count(row.reps))}</td>
             <td>{row.top_exercise.unwrap_or_default()}</td>
-            {streak_cell(status)}
+    }
+}
+
+fn ticks_of(streaked: StreakDay) -> impl IntoView {
+    let ticks = streaked.ticks;
+    view! {
+        <span class="status">{lines::status_word(streaked.status)}</span>
+        {[
+            ("⚖️", "weigh-in", ticks.weighed),
+            ("⚡", "fuel", ticks.fuelled),
+            ("💧", "hydrate", ticks.hydrated),
+            ("🔥", "burn", ticks.worked_out),
+        ]
+            .into_iter()
+            .map(|(icon, name, held)| {
+                view! {
+                    <span class=format!("tick {}", tick_class(held)) title=lines::tick_said(name, held)>
+                        {format!("{icon} {}", lines::tick_mark(held))}
+                    </span>
+                }
+            })
+            .collect_view()}
+    }
+}
+
+#[component]
+fn HistoryRow(streaked: Option<StreakDay>, columns: usize, children: Children) -> impl IntoView {
+    let open = RwSignal::new(false);
+    view! {
+        <tr
+            class:streaked=streaked.is_some()
+            on:click=move |_| {
+                if streaked.is_some() {
+                    open.update(|open| *open = !*open);
+                }
+            }
+        >
+            {children()}
+            {streak_cell(streaked.map(|day| day.status))}
         </tr>
+        {move || {
+            open.get()
+                .then_some(streaked)
+                .flatten()
+                .map(|day| {
+                    view! {
+                        <tr class="ticks">
+                            <td colspan=columns.to_string()>{ticks_of(day)}</td>
+                        </tr>
+                    }
+                })
+        }}
     }
 }
 
@@ -496,6 +537,7 @@ macro_rules! history {
     ($name:ident, $row:ty, $load:path, $render:ident, [$(($head:literal, $unit:literal)),*]) => {
         #[component]
         fn $name(today: String, streaked: Signal<Vec<StreakDay>>) -> impl IntoView {
+            let columns = [$($head),*].len() + 1;
             let months = RwSignal::new(Vec::<Month<$row>>::new());
             let said = RwSignal::new(None::<String>);
             let load = Callback::new(move |month: String| {
@@ -522,11 +564,15 @@ macro_rules! history {
                                 months_of(months)
                                     .into_iter()
                                     .map(|row| {
-                                        let status = days
+                                        let streaked = days
                                             .iter()
                                             .find(|streaked| streaked.day == row.day)
-                                            .map(|streaked| streaked.status);
-                                        $render(row, status)
+                                            .copied();
+                                        view! {
+                                            <HistoryRow streaked=streaked columns=columns>
+                                                {$render(row)}
+                                            </HistoryRow>
+                                        }
                                     })
                                     .collect_view()
                             }}
@@ -552,7 +598,7 @@ history!(
     GatherHistory,
     GatherRow,
     tauri::gather_month,
-    gather_row,
+    gather_cells,
     [
         ("Day", ""),
         ("BM", "kg"),
@@ -565,7 +611,7 @@ history!(
     FuelHistory,
     FuelRow,
     tauri::fuel_month,
-    fuel_row,
+    fuel_cells,
     [
         ("Day", ""),
         ("Energy", "kcal"),
@@ -579,14 +625,14 @@ history!(
     HydrateHistory,
     HydrateRow,
     tauri::hydrate_month,
-    hydrate_row,
+    hydrate_cells,
     [("Day", ""), ("Drunk", "mL"), ("Water %", "")]
 );
 history!(
     BurnHistory,
     BurnRow,
     tauri::burn_month,
-    burn_row,
+    burn_cells,
     [
         ("Day", ""),
         ("Burnt", "kcal"),

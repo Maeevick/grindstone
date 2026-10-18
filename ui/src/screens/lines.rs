@@ -325,6 +325,22 @@ pub fn streak_remark(streak: &Streak) -> &'static str {
     }
 }
 
+pub fn tick_mark(held: Option<bool>) -> &'static str {
+    match held {
+        Some(true) => "✓",
+        Some(false) => "✗",
+        None => "–",
+    }
+}
+
+pub fn tick_said(name: &str, held: Option<bool>) -> String {
+    match held {
+        Some(true) => format!("{name} held"),
+        Some(false) => format!("{name} missed"),
+        None => format!("{name} left out"),
+    }
+}
+
 pub fn status_word(status: Status) -> &'static str {
     match status {
         Status::Success => "every tick",

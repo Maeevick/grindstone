@@ -730,6 +730,32 @@ textarea:focus {
 	display: inline-block;
 }
 
+.history-table tr.streaked {
+	cursor: pointer;
+}
+
+.history-table tr.ticks td {
+	padding-bottom: 0.5rem;
+}
+
+.ticks .status {
+	color: var(--mut);
+	margin-right: 0.6rem;
+}
+
+.ticks .tick {
+	margin-right: 0.6rem;
+	white-space: nowrap;
+}
+
+.ticks .tick.good {
+	color: var(--ok);
+}
+
+.ticks .tick.bad {
+	color: var(--bad);
+}
+
 .plot .grid {
 	stroke: #2a2a30;
 	stroke-width: 1;

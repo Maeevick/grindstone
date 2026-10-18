@@ -23,7 +23,7 @@ fn Welcome() -> impl IntoView {
     }
 }
 
-fn tick_class(held: Option<bool>) -> &'static str {
+pub(crate) fn tick_class(held: Option<bool>) -> &'static str {
     match held {
         Some(true) => "good",
         Some(false) => "bad",
