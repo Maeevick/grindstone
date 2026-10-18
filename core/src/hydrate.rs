@@ -229,6 +229,27 @@ mod tests {
     }
 
     #[test]
+    fn a_day_floors_at_ninety_percent_of_a_millilitre_per_kcal_of_its_budget_and_burn() {
+        let gather = a_man_measured_with_his_waist();
+        let burn = walked_an_hour("2026-10-10");
+        let fuel = FuelRecords::default();
+
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &gather,
+            &burn,
+            &fuel,
+        );
+
+        let spent_kcal = fuel_on(day("2026-10-10"), &gather, &burn, &fuel)
+            .band
+            .map(|band| band.cap_kcal)
+            .expect("a band for a measured body");
+        assert!(about(hydrate.floor_ml, 0.9 * spent_kcal));
+    }
+
+    #[test]
     fn a_day_drinks_the_sum_of_its_own_drinkings() {
         let records = based_on(
             2000.0,
