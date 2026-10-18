@@ -305,4 +305,21 @@ mod tests {
             assert!(cited(Topic::Activity).contains(&source), "{source:?}");
         }
     }
+
+    #[test]
+    fn the_sources_of_the_hydrate_band_and_its_cap_are_cited() {
+        let cited: Vec<(&str, u16)> = references_about(Topic::Water)
+            .iter()
+            .map(|reference| (reference.authors, reference.year))
+            .collect();
+
+        for source in [
+            ("Wang Z., Deurenberg P., Wang W., et al.", 1999),
+            ("Yamada Y., Zhang X., Henderson M. E. T., et al.", 2022),
+            ("Westerterp K. R., Plasqui G., Goris A. H. C.", 2005),
+            ("Joo M. A., Kim E. Y.", 2013),
+        ] {
+            assert!(cited.contains(&source), "{source:?}");
+        }
+    }
 }
