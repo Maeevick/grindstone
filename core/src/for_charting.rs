@@ -500,7 +500,7 @@ mod tests {
     use crate::for_burning::{WorkoutForm, log_workout};
     use crate::for_cataloguing::{FoodForm, add_drink, add_exercise, add_food};
     use crate::for_fuelling::{IntakeForm, log_intake};
-    use crate::for_hydrating::{DrinkingForm, log_drink};
+    use crate::for_hydrating::{DrinkingForm, hydrate_day, log_drink};
     use crate::for_setting_up_the_profile::{GoalsForm, ProfileForm, set_goals, set_profile};
     use crate::for_tracking::log_measurement;
     use crate::gender::Gender;
@@ -661,7 +661,7 @@ mod tests {
     }
 
     #[test]
-    fn the_hydrate_chart_draws_each_days_drinks_twenty_percent_either_side_of_its_target() {
+    fn the_hydrate_chart_draws_each_days_drinks_against_its_own_floor_and_cap() {
         let logged = a_logged_man();
 
         let chart = hydrate_chart(
@@ -681,13 +681,17 @@ mod tests {
                 .iter()
                 .all(|(_, ml)| (*ml - 1500.0).abs() < 1e-9)
         );
-        assert!(
-            chart
-                .floors
-                .iter()
-                .zip(&chart.caps)
-                .all(|((_, floor), (_, cap))| (cap / floor - 1.2 / 0.8).abs() < 1e-9)
-        );
+        for ((day, floor), (_, cap)) in chart.floors.iter().zip(&chart.caps) {
+            let of_the_day = hydrate_day(
+                &logged.gather,
+                &logged.burn,
+                &logged.fuel,
+                &logged.hydrate,
+                &day.to_string(),
+            )
+            .expect("a hydrate");
+            assert_eq!((*floor, *cap), (of_the_day.floor_ml, of_the_day.cap_ml));
+        }
     }
 
     #[test]

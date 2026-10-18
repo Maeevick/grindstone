@@ -24,7 +24,7 @@ pub struct Hydrate {
     pub verdict: Verdict,
 }
 
-const ML_PER_KCAL_BURNT: f64 = 1.0;
+const ML_PER_KCAL_SPENT: f64 = 1.0;
 const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
 const WATER_SHARE_OF_LEAN_MASS: f64 = 0.732;
 const BODY_WATER_TURNED_OVER_A_DAY: f64 = 0.07;
@@ -62,8 +62,9 @@ pub fn hydrate_over(
 }
 
 /// The day's drinks against its band. Once a lean mass is known, the target is the water that mass
-/// turns over in a day, plus 1.25 mL per kcal burnt, nine tenths of it from drinks, food bringing the
-/// rest; before, EFSA's base plus a millilitre per kcal burnt.
+/// turns over in a day plus 1.25 mL per kcal burnt, and the floor a millilitre per kcal the day spends
+/// (its budget and burn), each nine tenths from drinks, food bringing the rest; before, EFSA's base
+/// plus a millilitre per kcal burnt, the floor a fifth under it.
 ///
 /// - Lean mass is 73.2% water: Wang Z. et al. (1999), *Hydration of fat-free body mass: new
 ///   physiological modeling approach*, Am J Physiol Endocrinol Metab 276(6):E995-E1003.
@@ -76,7 +77,7 @@ fn hydrated(
     records: &HydrateRecords,
     gather: &GatherRecords,
     burn: &BurnRecords,
-    _fuelled: &Fuel,
+    fuelled: &Fuel,
 ) -> Hydrate {
     let drinkings: Vec<(i64, Drinking)> = records
         .drinkings
@@ -94,17 +95,19 @@ fn hydrated(
         &gather.profiles,
     )
     .map(|body| body.lean_kg);
-    let target_ml = match lean_kg {
-        Some(lean_kg) => {
+    let (target_ml, floor_ml) = match (lean_kg, fuelled.band) {
+        (Some(lean_kg), Some(band)) => (
             SHARE_LEFT_TO_DRINKS
                 * (lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
-                    + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST)
-        }
-        None => {
-            base_on(day, &records.bases, &gather.profiles).base_ml + burnt_kcal * ML_PER_KCAL_BURNT
+                    + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST),
+            SHARE_LEFT_TO_DRINKS * band.cap_kcal * ML_PER_KCAL_SPENT,
+        ),
+        _ => {
+            let target_ml = base_on(day, &records.bases, &gather.profiles).base_ml
+                + burnt_kcal * ML_PER_KCAL_SPENT;
+            (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
     };
-    let floor_ml = target_ml * (1.0 - BAND_SHARE_EITHER_SIDE);
     let cap_ml = target_ml * (1.0 + BAND_SHARE_EITHER_SIDE);
     Hydrate {
         day,
