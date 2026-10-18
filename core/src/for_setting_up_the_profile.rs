@@ -175,6 +175,13 @@ pub fn set_hydrate_counted(
     Ok(form.counted)
 }
 
+pub fn hydrate_counted_on(
+    _hydrate: &impl ForStoringHydrateRecords,
+    _date: &str,
+) -> Result<bool, Failure> {
+    Ok(true)
+}
+
 pub fn hydrate_base_on(
     gather: &impl ForStoringGatherRecords,
     hydrate: &impl ForStoringHydrateRecords,
@@ -394,6 +401,27 @@ mod tests {
         );
 
         assert_eq!(refused, Err(Failure::Refused(Refusal::NotANutrient)));
+    }
+
+    #[test]
+    fn hydrate_counts_until_left_out_from_a_date() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        set_hydrate_counted(
+            &hydrate,
+            &HydrateCountedForm {
+                from: "2026-10-12".into(),
+                counted: false,
+            },
+        )
+        .expect("a switch sets");
+
+        assert_eq!(
+            (
+                hydrate_counted_on(&hydrate, "2026-10-11"),
+                hydrate_counted_on(&hydrate, "2026-10-12")
+            ),
+            (Ok(true), Ok(false))
+        );
     }
 
     fn a_base_from(from: &str, base_ml: f64) -> HydrateBaseForm {
