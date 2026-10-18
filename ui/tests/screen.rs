@@ -1385,6 +1385,18 @@ async fn each_of_todays_tiles_opens_its_segment_of_the_tracker() {
 }
 
 #[wasm_bindgen_test]
+async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_trackers_strict_bands() {
+    answering(A_HOME);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    settled().await;
+
+    let card = text_of(&screen, "section.card.streak");
+    assert!(card.contains("within 5% of its band"), "{card}");
+}
+
+#[wasm_bindgen_test]
 async fn home_shows_the_streak_and_today_in_one_card_the_tiles_green_or_red_by_their_ticks_stats_at_the_bottom()
  {
     answering(A_HOME);
