@@ -1704,6 +1704,10 @@ const A_DAY_WITH_TWO_DRINKS: &str = r#"{ "day": "2026-10-10",
 
 const A_DRY_DAY: &str = r#"{ "day": "2026-10-11", "drinkings": [], "drunk_ml": 0.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }"#;
 
+const A_DAY_PAST_THE_CAP: &str = r#"{ "day": "2026-10-12",
+    "drinkings": [[1, { "day": "2026-10-12", "drink": "Tea", "kind": "Other", "servings": 20.0, "volume_ml": 4000.0 }]],
+    "drunk_ml": 4000.0, "target_ml": 3000.0, "floor_ml": 2400.0, "cap_ml": 3600.0, "verdict": "High" }"#;
+
 fn the_day_of(screen: &Element, day: RwSignal<String>) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
         view! {
@@ -1950,6 +1954,20 @@ async fn a_saved_base_says_from_which_day_it_is_kept_and_the_default_steps_aside
         screen.query_selector("a.source").ok().flatten().is_none(),
         "a base set is no default"
     );
+}
+
+#[wasm_bindgen_test]
+async fn drinking_past_the_cap_says_to_spread_the_cups_out() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_PAST_THE_CAP} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-12".to_string()));
+    settled().await;
+
+    let day = screen.text_content().unwrap_or_default();
+    assert!(day.contains("about a litre an hour"), "{day}");
 }
 
 #[wasm_bindgen_test]
