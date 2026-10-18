@@ -759,6 +759,37 @@ mod tests {
         }
 
         #[test]
+        fn a_burn_within_five_percent_of_its_target_still_holds_the_tick() {
+            let records = a_man_at_his_desk();
+            let target_kcal = target_on(
+                NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
+                &[],
+                Some(80.0),
+            )
+            .expect("a target on a weighed body");
+            let walking = crate::exercise::Exercise {
+                name: "Walking".into(),
+                met: 4.0,
+            };
+            let a_minute = crate::workout::burnt_by(
+                &crate::workout::workout("2026-10-10", &walking, 1.0, None, 1, 0.0)
+                    .expect("a workout"),
+                80.0,
+            );
+            a_full_day_walking(
+                &records,
+                "2026-10-10",
+                "Plate",
+                0.97 * target_kcal / a_minute,
+            );
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-10").and_then(|ticks| ticks.worked_out),
+                Some(true)
+            );
+        }
+
+        #[test]
         fn a_day_without_a_workout_reads_its_workout_tick_open() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-08", "Plate");
