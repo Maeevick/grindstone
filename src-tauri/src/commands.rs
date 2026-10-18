@@ -309,19 +309,19 @@ pub fn log_circuit(records: State<Records>, form: CircuitSessionForm) -> Result<
 #[tauri::command(rename_all = "snake_case")]
 pub fn hydrate_day(records: State<Records>, date: String) -> Result<Hydrate, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_hydrating::hydrate_day(&*records, &*records, &*records, &date)
+    for_hydrating::hydrate_day(&*records, &*records, &*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_drink(records: State<Records>, form: DrinkingForm) -> Result<Hydrate, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_hydrating::log_drink(&*records, &*records, &*records, &form)
+    for_hydrating::log_drink(&*records, &*records, &*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_drinking(records: State<Records>, date: String, id: i64) -> Result<Hydrate, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_hydrating::remove_drinking(&*records, &*records, &*records, &date, id)
+    for_hydrating::remove_drinking(&*records, &*records, &*records, &*records, &date, id)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -386,7 +386,7 @@ pub fn hydrate_chart(
     window: Window,
 ) -> Result<BandChart, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_charting::hydrate_chart(&*records, &*records, &*records, &today, window)
+    for_charting::hydrate_chart(&*records, &*records, &*records, &*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]

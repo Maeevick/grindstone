@@ -9,7 +9,7 @@ use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, Verdict, fuel_over};
-use crate::hydrate::hydrate_on;
+use crate::hydrate::hydrate_over;
 use crate::hydrate_base::base_on;
 use crate::ledger::Day;
 use crate::ledger::ledger;
@@ -95,10 +95,12 @@ pub fn streak(
         return Ok(streak_of(&[], today));
     };
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
+    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
         .zip(fuel_over(&days, &gathered, &burnt, &fuelled))
-        .map(|(day, fuelled_day)| {
+        .zip(&hydrated_days)
+        .map(|((day, fuelled_day), hydrated_day)| {
             (
                 *day,
                 Ticks {
@@ -111,10 +113,7 @@ pub fn streak(
                     fuelled: Some(in_band(&fuelled_day)),
                     worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
                     hydrated: (base_on(*day, &hydrated.bases, &gathered.profiles).base_ml > 0.0)
-                        .then(|| {
-                            hydrate_on(*day, &hydrated, &gathered, &burnt).verdict
-                                == Verdict::InBand
-                        }),
+                        .then(|| hydrated_day.verdict == Verdict::InBand),
                 },
             )
         })
@@ -548,6 +547,7 @@ mod tests {
             crate::for_hydrating::log_drink(
                 &records.gather,
                 &records.burn,
+                &records.fuel,
                 &records.hydrate,
                 &crate::for_hydrating::DrinkingForm {
                     date: date.into(),

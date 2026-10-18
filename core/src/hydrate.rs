@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::drinking::Drinking;
+use crate::fuel::{Fuel, fuel_on, fuel_over};
+use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 use crate::hydrate_base::base_on;
 use crate::hydrate_records::HydrateRecords;
@@ -28,6 +30,36 @@ pub fn hydrate_on(
     records: &HydrateRecords,
     gather: &GatherRecords,
     burn: &BurnRecords,
+    fuel: &FuelRecords,
+) -> Hydrate {
+    hydrated(
+        day,
+        records,
+        gather,
+        burn,
+        &fuel_on(day, gather, burn, fuel),
+    )
+}
+
+pub fn hydrate_over(
+    days: &[NaiveDate],
+    records: &HydrateRecords,
+    gather: &GatherRecords,
+    burn: &BurnRecords,
+    fuel: &FuelRecords,
+) -> Vec<Hydrate> {
+    days.iter()
+        .zip(fuel_over(days, gather, burn, fuel))
+        .map(|(day, fuelled)| hydrated(*day, records, gather, burn, &fuelled))
+        .collect()
+}
+
+fn hydrated(
+    day: NaiveDate,
+    records: &HydrateRecords,
+    gather: &GatherRecords,
+    burn: &BurnRecords,
+    _fuelled: &Fuel,
 ) -> Hydrate {
     let drinkings: Vec<(i64, Drinking)> = records
         .drinkings
@@ -132,6 +164,7 @@ mod tests {
             &records,
             &GatherRecords::default(),
             &BurnRecords::default(),
+            &FuelRecords::default(),
         );
 
         assert_eq!(
@@ -151,6 +184,7 @@ mod tests {
             &based_on(2000.0, vec![]),
             &weighed("2026-10-01", 80.0),
             &walked_an_hour("2026-10-10"),
+            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.target_ml, 2000.0 + 252.0));
@@ -163,6 +197,7 @@ mod tests {
             &based_on(2000.0, vec![]),
             &GatherRecords::default(),
             &walked_an_hour("2026-10-10"),
+            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.target_ml, 2000.0));
@@ -175,6 +210,7 @@ mod tests {
             &HydrateRecords::default(),
             &GatherRecords::default(),
             &BurnRecords::default(),
+            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.target_ml, 2000.0));
@@ -187,6 +223,7 @@ mod tests {
             &based_on(2000.0, vec![]),
             &GatherRecords::default(),
             &BurnRecords::default(),
+            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.floor_ml, 1600.0));
@@ -210,6 +247,7 @@ mod tests {
                 &records,
                 &GatherRecords::default(),
                 &BurnRecords::default(),
+                &FuelRecords::default(),
             )
             .verdict
         };

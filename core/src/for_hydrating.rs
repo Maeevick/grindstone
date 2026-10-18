@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::drinking::drinking;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
+use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::hydrate::{Hydrate, hydrate_on};
@@ -23,6 +24,7 @@ fn day(date: &str) -> Result<NaiveDate, Failure> {
 fn hydrate_of_the_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     day: NaiveDate,
 ) -> Result<Hydrate, Failure> {
@@ -31,21 +33,24 @@ fn hydrate_of_the_day(
         &hydrate.hydrate_records()?,
         &gather.gather_records()?,
         &burn.burn_records()?,
+        &fuel.fuel_records()?,
     ))
 }
 
 pub fn hydrate_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
 ) -> Result<Hydrate, Failure> {
-    hydrate_of_the_day(gather, burn, hydrate, day(date)?)
+    hydrate_of_the_day(gather, burn, fuel, hydrate, day(date)?)
 }
 
 pub fn log_drink(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     form: &DrinkingForm,
 ) -> Result<Hydrate, Failure> {
@@ -62,19 +67,20 @@ pub fn log_drink(
     )
     .map_err(Failure::Refused)?;
     hydrate.save_drinking(&drunk)?;
-    hydrate_of_the_day(gather, burn, hydrate, drunk.day)
+    hydrate_of_the_day(gather, burn, fuel, hydrate, drunk.day)
 }
 
 pub fn remove_drinking(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
     id: i64,
 ) -> Result<Hydrate, Failure> {
     let day = day(date)?;
     hydrate.remove_drinking(id)?;
-    hydrate_of_the_day(gather, burn, hydrate, day)
+    hydrate_of_the_day(gather, burn, fuel, hydrate, day)
 }
 
 #[cfg(test)]
@@ -86,8 +92,8 @@ mod tests {
     use crate::for_tracking::log_measurement;
     use crate::refusal::Refusal;
     use crate::testing::{
-        BrokenBurnRecords, BrokenGatherRecords, BrokenHydrateRecords, BurnRecordsInMemory,
-        GatherRecordsInMemory, HydrateRecordsInMemory,
+        BrokenBurnRecords, BrokenFuelRecords, BrokenGatherRecords, BrokenHydrateRecords,
+        BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory, HydrateRecordsInMemory,
     };
 
     fn a_catalog_with_tea() -> HydrateRecordsInMemory {
@@ -125,6 +131,7 @@ mod tests {
         let hydrated = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
+            &FuelRecordsInMemory::default(),
             &hydrate,
             &tea("2026-10-10", 300.0),
         )
@@ -139,6 +146,7 @@ mod tests {
         let refused = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
+            &FuelRecordsInMemory::default(),
             &HydrateRecordsInMemory::default(),
             &tea("2026-10-10", 200.0),
         );
@@ -151,17 +159,37 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let hydrate = a_catalog_with_tea();
-        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 200.0)).expect("a drink logs");
-        let logged =
-            log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 100.0)).expect("a hydrate");
+        log_drink(
+            &gather,
+            &burn,
+            &FuelRecordsInMemory::default(),
+            &hydrate,
+            &tea("2026-10-10", 200.0),
+        )
+        .expect("a drink logs");
+        let logged = log_drink(
+            &gather,
+            &burn,
+            &FuelRecordsInMemory::default(),
+            &hydrate,
+            &tea("2026-10-10", 100.0),
+        )
+        .expect("a hydrate");
         let first = logged
             .drinkings
             .first()
             .map(|(id, _)| *id)
             .expect("a first drinking");
 
-        let hydrated =
-            remove_drinking(&gather, &burn, &hydrate, "2026-10-10", first).expect("a hydrate");
+        let hydrated = remove_drinking(
+            &gather,
+            &burn,
+            &FuelRecordsInMemory::default(),
+            &hydrate,
+            "2026-10-10",
+            first,
+        )
+        .expect("a hydrate");
 
         assert_eq!(volumes(&hydrated), vec![100.0]);
     }
@@ -171,9 +199,23 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let hydrate = a_catalog_with_tea();
-        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 400.0)).expect("a drink logs");
+        log_drink(
+            &gather,
+            &burn,
+            &FuelRecordsInMemory::default(),
+            &hydrate,
+            &tea("2026-10-10", 400.0),
+        )
+        .expect("a drink logs");
 
-        let hydrated = hydrate_day(&gather, &burn, &hydrate, "2026-10-10").expect("a hydrate");
+        let hydrated = hydrate_day(
+            &gather,
+            &burn,
+            &FuelRecordsInMemory::default(),
+            &hydrate,
+            "2026-10-10",
+        )
+        .expect("a hydrate");
 
         assert_eq!(volumes(&hydrated), vec![400.0]);
     }
@@ -205,6 +247,7 @@ mod tests {
         let hydrated = hydrate_day(
             &gather,
             &burn,
+            &FuelRecordsInMemory::default(),
             &HydrateRecordsInMemory::default(),
             "2026-10-10",
         )
@@ -220,26 +263,40 @@ mod tests {
         let broken = Failure::Broken("the disk is full".into());
 
         assert_eq!(
-            hydrate_day(&gather, &burn, &a_catalog_with_tea(), "2026-02-30"),
+            hydrate_day(
+                &gather,
+                &burn,
+                &FuelRecordsInMemory::default(),
+                &a_catalog_with_tea(),
+                "2026-02-30"
+            ),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
             log_drink(
                 &gather,
                 &burn,
+                &FuelRecordsInMemory::default(),
                 &a_catalog_with_tea(),
                 &tea("2026-10-10", 0.0)
             ),
             Err(Failure::Refused(Refusal::NotAVolume))
         );
         assert_eq!(
-            hydrate_day(&gather, &burn, &BrokenHydrateRecords, "2026-10-10"),
+            hydrate_day(
+                &gather,
+                &burn,
+                &FuelRecordsInMemory::default(),
+                &BrokenHydrateRecords,
+                "2026-10-10"
+            ),
             Err(broken.clone())
         );
         assert_eq!(
             hydrate_day(
                 &BrokenGatherRecords,
                 &burn,
+                &FuelRecordsInMemory::default(),
                 &a_catalog_with_tea(),
                 "2026-10-10"
             ),
@@ -249,13 +306,31 @@ mod tests {
             hydrate_day(
                 &gather,
                 &BrokenBurnRecords,
+                &FuelRecordsInMemory::default(),
                 &a_catalog_with_tea(),
                 "2026-10-10"
             ),
             Err(broken.clone())
         );
         assert_eq!(
-            remove_drinking(&gather, &burn, &BrokenHydrateRecords, "2026-10-10", 1),
+            hydrate_day(
+                &gather,
+                &burn,
+                &BrokenFuelRecords,
+                &a_catalog_with_tea(),
+                "2026-10-10"
+            ),
+            Err(broken.clone())
+        );
+        assert_eq!(
+            remove_drinking(
+                &gather,
+                &burn,
+                &FuelRecordsInMemory::default(),
+                &BrokenHydrateRecords,
+                "2026-10-10",
+                1
+            ),
             Err(broken)
         );
     }
@@ -270,6 +345,7 @@ mod tests {
         let hydrated = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
+            &FuelRecordsInMemory::default(),
             &a_catalog_with_tea(),
             &unmeasured,
         )

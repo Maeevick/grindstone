@@ -12,7 +12,7 @@ use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{MacroRow, Macros, fuel_over};
-use crate::hydrate::{Hydrate, hydrate_on};
+use crate::hydrate::{Hydrate, hydrate_over};
 use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
 use crate::verdict::Verdict;
@@ -120,21 +120,20 @@ pub fn fuel_chart(
 pub fn hydrate_chart(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
     let span = span_of(today, window)?;
-    let (gathered, burnt, hydrated) = (
+    let (gathered, burnt, fuelled, hydrated) = (
         gather.gather_records()?,
         burn.burn_records()?,
+        fuel.fuel_records()?,
         hydrate.hydrate_records()?,
     );
     let days = days_within(hydrated.drinkings.iter().map(|(_, drunk)| drunk.day), span);
-    let hydrated_days: Vec<Hydrate> = days
-        .iter()
-        .map(|day| hydrate_on(*day, &hydrated, &gathered, &burnt))
-        .collect();
+    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
     Ok(BandChart {
         amounts: hydrated_days
             .iter()
@@ -239,10 +238,13 @@ pub fn insights(
         .unwrap_or(last);
     let span = (opening.max(first_record), last);
     let fuelled_days = fuel_over(&days_within(eaten, span), &gathered, &burnt, &fuelled);
-    let hydrated_days: Vec<Hydrate> = days_within(drunk, span)
-        .iter()
-        .map(|day| hydrate_on(*day, &hydrated, &gathered, &burnt))
-        .collect();
+    let hydrated_days: Vec<Hydrate> = hydrate_over(
+        &days_within(drunk, span),
+        &hydrated,
+        &gathered,
+        &burnt,
+        &fuelled,
+    );
     let burns: Vec<f64> = days_within(worked_out, span)
         .iter()
         .filter_map(|day| burn_on(*day, &burnt, &gathered.measurements).burnt_kcal)
@@ -586,6 +588,7 @@ mod tests {
             log_drink(
                 &logged.gather,
                 &logged.burn,
+                &logged.fuel,
                 &logged.hydrate,
                 &DrinkingForm {
                     date: date.into(),
@@ -664,6 +667,7 @@ mod tests {
         let chart = hydrate_chart(
             &logged.gather,
             &logged.burn,
+            &logged.fuel,
             &logged.hydrate,
             "2026-10-10",
             Window::Everything,
@@ -770,6 +774,7 @@ mod tests {
         log_drink(
             &logged.gather,
             &logged.burn,
+            &logged.fuel,
             &logged.hydrate,
             &DrinkingForm {
                 date: "2026-10-10".into(),
