@@ -3,13 +3,14 @@ exclude_globs = ["core/src/testing.rs"]
 # A Navy reading lands exactly on 0 or 1 only for a denominator of exactly 1.1 or 0.9, which no tape produces:
 # moving the guard's boundaries changes nothing a body can measure.
 # A week whose days average a gap of exactly 0 kcal cannot be eaten: counting it in deficit or not changes nothing.
-# One mL per kcal burnt multiplies and divides alike.
+# One mL per kcal spent or burnt multiplies and divides alike: the hydrate floor and the band before a
+# lean mass, named by their place so that the other products of the band stay tested.
 # The waist's heading reads the sign of two changes; their product and their quotient share it, and a waist
 # that did not change is steady before its heading counts.
 exclude_re = [
     "replace > with >= in fat_ratio_from_navy_formula",
     "replace < with <= in fat_ratio_from_navy_formula",
     "replace > with >= in deficit_before",
-    "replace \\* with / in hydrate_on",
+    "hydrate\\.rs:(104:65|109:66): replace \\* with / in hydrated",
     "replace \\* with / in tendency_of",
 ]
