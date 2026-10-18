@@ -75,6 +75,8 @@ pub fn run() {
             commands::remove_drink,
             commands::set_hydrate_counted,
             commands::hydrate_counted_on,
+            commands::set_burn_target,
+            commands::burn_target_on,
         ])
         .run(tauri::generate_context!())
         .expect("grindstone failed to start");

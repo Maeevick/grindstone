@@ -20,7 +20,7 @@ use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
+    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -347,6 +347,18 @@ pub fn remove_drink(records: State<Records>, name: String) -> Result<Vec<Drink>,
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn set_burn_target(records: State<Records>, form: BurnTargetForm) -> Result<f64, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::set_burn_target(&*records, &form)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn burn_target_on(records: State<Records>, date: String) -> Result<Option<f64>, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::burn_target_on(&*records, &*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn set_hydrate_counted(
     records: State<Records>,
     form: HydrateCountedForm,
@@ -508,6 +520,8 @@ mod tests {
                 remove_drink,
                 set_hydrate_counted,
                 hydrate_counted_on,
+                set_burn_target,
+                burn_target_on,
                 gather_chart,
                 fuel_chart,
                 hydrate_chart,
