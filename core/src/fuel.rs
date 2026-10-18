@@ -1,7 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use crate::age::age_on;
+use crate::body::{Body, body_on};
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::food::{Nutrients, summed};
@@ -11,7 +11,6 @@ use crate::gender::Gender;
 use crate::intake::Intake;
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
-use crate::profile::Profile;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
 use crate::version::version_in_force_on;
@@ -96,32 +95,6 @@ const FIBRE_BEFORE_EATING_G: f64 = 28.0;
 const CARBS_FLOOR_G: f64 = 130.0;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
-
-struct Body {
-    mass_kg: f64,
-    lean_kg: f64,
-    fat_kg: f64,
-    age: u32,
-    gender: Gender,
-}
-
-fn body_on(day: NaiveDate, ledger: &[Day], profiles: &[(NaiveDate, Profile)]) -> Option<Body> {
-    let profile = version_in_force_on(profiles, day)?;
-    let so_far = || ledger.iter().filter(move |measured| measured.day <= day);
-    let weighed = so_far().next_back().or(ledger.first())?;
-    let lean_kg = so_far()
-        .filter_map(|measured| measured.composition)
-        .next_back()
-        .or_else(|| ledger.iter().find_map(|measured| measured.composition))?
-        .lean_mass_kg;
-    Some(Body {
-        mass_kg: weighed.body_mass_kg,
-        lean_kg,
-        fat_kg: (weighed.body_mass_kg - lean_kg).max(0.0),
-        age: age_on(profile.birthday, day),
-        gender: profile.gender,
-    })
-}
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
     summed(intakes.iter().map(|(_, eaten)| eaten.nutrients))
@@ -368,6 +341,7 @@ mod tests {
     use crate::food::{Food, Unit};
     use crate::intake::intake;
     use crate::measurement::Measurement;
+    use crate::profile::Profile;
     use crate::workout::{burnt_by, workout};
 
     fn day(date: &str) -> NaiveDate {
