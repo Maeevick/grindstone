@@ -15,9 +15,10 @@ Version 0.1, the full scope, on four tabs.
 
 - **Home:** a welcome until a profile exists. After that:
   - the streak:
-    - from the profile's first day, four ticks every day: a weigh-in; Fuel, meaning the day's energy inside its band; Hydrate inside its band, except on days Hydrate is left out of the streak in Profile, which count on the other three; a workout. A tracker without a log fails its tick;
+    - from the profile's first day, four ticks every day: a weigh-in; Fuel, meaning the day's energy and its four macros each inside its band; Hydrate inside its band, except on days Hydrate is left out of the streak in Profile, which count on the other three; Burn, meaning the day's workouts reach its burn target, any workout before a first weigh-in prices them. A tracker without a log fails its tick;
+    - a 5% grace for the ticks: each bound of a band gives way by 5% of itself, the carbs filling the energy band given way alike, and a burn holds at 95% of its target; the Tracker's gauges keep the strict bands;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
-    - one card: its count in gold beside its longest run, then today in four tiles, ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each green when its tick holds and red when it does not, and a shortcut to its segment of the Tracker;
+    - one card: its count in gold beside its longest run, then today in four tiles, ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each green when its tick holds and red when it does not, and a shortcut to its segment of the Tracker, with a line on the 5% grace beneath;
     - each day's dot in the history beneath the chart;
   - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞, its y axis on round ticks over thin grid lines, its x axis dated from the oldest day to the newest (every day over a week), the current values and a legend;
   - beneath it, the unwanted tips: what is worth sharpening for the chosen chip, the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
@@ -33,8 +34,8 @@ Version 0.1, the full scope, on four tabs.
   - **Hydrate:** drinks, water or other;
   - **Burn:** exercises with their MET, or circuits fixed at creation with their energy per set at today's body mass, the crafter pricing the step being typed, each step stacked and the set they add up to; a click shows a circuit's description and steps.
 - **Profile:**
-  - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only), goals, fuel targets in g/kg, whether Hydrate counts in the streak, and the usual day off the clock, each kept from a chosen day;
-  - on the goals, fuel targets and usual day, "Use the recommendation" above "Keep", filling the card from health recommendations to check and adjust: WHO's normal body mass index, Gallagher's healthy fat, Morton's 1.6 g of protein per kilo, EFSA's fat and fibre, and a usual day of 8 hours sitting at most (Ekelund), 2 standing (Buckley) and the steps that pay off at the age (Paluch);
+  - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only), goals, fuel targets in g/kg, whether Hydrate counts in the streak, the usual day off the clock and the day's burn target, each kept from a chosen day;
+  - on the goals, fuel targets, usual day and burn target, "Use the recommendation" above "Keep", filling the card from health recommendations to check and adjust: WHO's normal body mass index, Gallagher's healthy fat, Morton's 1.6 g of protein per kilo, EFSA's fat and fibre, a usual day of 8 hours sitting at most (Ekelund), 2 standing (Buckley) and the steps that pay off at the age (Paluch), and WHO's 150 minutes a week of moderate activity as the burn target on the body weighed, any workout holding the tick before a weigh-in;
   - from each card, a link to the scientific references, cited in full with their public pages; the disclaimer closes the screen;
   - the gear opens Settings: the draft's import, and a danger zone that erases everything.
 - **Stats:** any two measures over a window, as timelines, summaries and a scatter of the days they share with their correlation.

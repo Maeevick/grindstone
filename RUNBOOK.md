@@ -260,7 +260,7 @@ Expected: `Success`.
 ## 10. Smoke test, on the phone
 
 1. Open **Grindstone**: the welcome shows until a profile exists.
-2. **Profile:** save a profile, goals, fuel targets, whether Hydrate counts in the streak, and the usual day. Each says from which day it is kept.
+2. **Profile:** save a profile, goals, fuel targets, whether Hydrate counts in the streak, the usual day and the burn target. Each says from which day it is kept.
 3. **Catalog:** add a food, a drink and an exercise.
 4. **Tracker:** log the day's mass and waist, an intake, a drink and a workout, each in its segment.
 5. Close the app from the recent apps, then open it again: Home shows the streak, today's figures and the Gather card, and the day is still in Tracker.
