@@ -42,4 +42,15 @@ mod tests {
         ));
         assert_eq!(target_on(day("2026-10-20"), &[], None), None);
     }
+
+    #[test]
+    fn a_target_kept_from_a_day_stands_from_that_day_and_the_default_before_it() {
+        let kept = [(day("2026-10-15"), 150.0)];
+
+        assert_eq!(target_on(day("2026-10-20"), &kept, None), Some(150.0));
+        assert!(about(
+            target_on(day("2026-10-10"), &kept, Some(72.0)),
+            3.0 * 72.0 * 150.0 / 7.0 / 60.0
+        ));
+    }
 }
