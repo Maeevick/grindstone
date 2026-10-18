@@ -37,7 +37,7 @@ make test         # the Rust tests
 make check        # formatting, lints, tests and no uncovered line outside the wiring, as before a commit
 make test-ui      # the screen mounted in a headless Chrome, its commands answered by a stub
 make mutants      # mutation testing of the core lines not pushed yet, after a big change: minutes
-make mutants-all  # mutation testing of the whole core, once a day: about a quarter of an hour
+make mutants-all  # mutation testing of the whole core, once a day: about ten minutes
 ```
 
 On GitHub, every push to `main` and every pull request runs `make check`, `make test-ui` and a build of the APK signed with a key made for the run ([ci.yml](.github/workflows/ci.yml)).
