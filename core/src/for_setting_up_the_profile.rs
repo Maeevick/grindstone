@@ -10,6 +10,7 @@ use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate_base::{HydrateBase, base_on};
+use crate::hydrate_counted::counted_on;
 use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
 use crate::refusal::Refusal;
@@ -176,10 +177,11 @@ pub fn set_hydrate_counted(
 }
 
 pub fn hydrate_counted_on(
-    _hydrate: &impl ForStoringHydrateRecords,
-    _date: &str,
+    hydrate: &impl ForStoringHydrateRecords,
+    date: &str,
 ) -> Result<bool, Failure> {
-    Ok(true)
+    let day = day(date)?;
+    Ok(counted_on(day, &hydrate.hydrate_records()?.counted_from))
 }
 
 pub fn hydrate_base_on(
