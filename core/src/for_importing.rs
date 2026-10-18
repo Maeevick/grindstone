@@ -405,7 +405,6 @@ mod tests {
                 },
             ],
             drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],
-            bases: vec![],
             counted_from: vec![],
         }
     }
@@ -414,8 +413,8 @@ mod tests {
     fn importing_hydrate_records_replaces_what_was_drunk() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
         hydrate
-            .save_base(day("2026-03-01"), 2400.0)
-            .expect("a base saves");
+            .save_counted(day("2026-03-01"), false)
+            .expect("a switch saves");
 
         import_hydrate(&hydrate, &drafted_drinks()).expect("an import");
 

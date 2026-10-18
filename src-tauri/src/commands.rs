@@ -20,8 +20,7 @@ use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, FuelTargetsForm, GoalsForm, HydrateBaseForm, HydrateCountedForm, ProfileForm,
-    UsualDayForm,
+    self, FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -30,7 +29,6 @@ use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
-use grind_core::hydrate_base::HydrateBase;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
@@ -349,12 +347,6 @@ pub fn remove_drink(records: State<Records>, name: String) -> Result<Vec<Drink>,
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_hydrate_base(records: State<Records>, form: HydrateBaseForm) -> Result<f64, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_hydrate_base(&*records, &form)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn set_hydrate_counted(
     records: State<Records>,
     form: HydrateCountedForm,
@@ -367,12 +359,6 @@ pub fn set_hydrate_counted(
 pub fn hydrate_counted_on(records: State<Records>, date: String) -> Result<bool, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::hydrate_counted_on(&*records, &date)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn hydrate_base_on(records: State<Records>, date: String) -> Result<HydrateBase, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::hydrate_base_on(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -520,8 +506,6 @@ mod tests {
                 drinks,
                 add_drink,
                 remove_drink,
-                set_hydrate_base,
-                hydrate_base_on,
                 set_hydrate_counted,
                 hydrate_counted_on,
                 gather_chart,
@@ -1175,26 +1159,6 @@ mod tests {
     }
 
     #[test]
-    fn a_hydrate_base_set_from_the_screen_replaces_the_default_from_its_day() {
-        let (_app, screen) = launched();
-        let before = invoke(&screen, "hydrate_base_on", json!({ "date": "2026-10-12" }));
-
-        let set = invoke(
-            &screen,
-            "set_hydrate_base",
-            json!({ "form": { "from": "2026-10-10", "base_ml": 2400.0 } }),
-        );
-        let in_force = invoke(&screen, "hydrate_base_on", json!({ "date": "2026-10-12" }));
-
-        assert_eq!(before, Ok(json!({ "base_ml": 2000.0, "is_default": true })));
-        assert_eq!(set, Ok(json!(2400.0)));
-        assert_eq!(
-            in_force,
-            Ok(json!({ "base_ml": 2400.0, "is_default": false }))
-        );
-    }
-
-    #[test]
     fn hydrate_left_out_from_the_screen_is_left_out_from_its_day() {
         let (_app, screen) = launched();
         let before = invoke(
@@ -1345,7 +1309,6 @@ mod tests {
             .expect("recommendations");
 
         assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(1.6));
-        assert_eq!(advised["hydrate_base_ml"], json!(2000.0));
         assert_eq!(
             advised["usual_day"],
             json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 })

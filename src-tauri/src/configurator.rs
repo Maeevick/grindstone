@@ -73,8 +73,6 @@ pub fn run() {
             commands::drinks,
             commands::add_drink,
             commands::remove_drink,
-            commands::set_hydrate_base,
-            commands::hydrate_base_on,
             commands::set_hydrate_counted,
             commands::hydrate_counted_on,
         ])

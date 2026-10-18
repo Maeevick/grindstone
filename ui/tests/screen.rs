@@ -7,7 +7,7 @@ use grind_ui::screens::catalog::Catalog;
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
-use grind_ui::screens::hydrate::{HydrateBaseCard, HydrateCountedCard, HydrateDay};
+use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
 use grind_ui::screens::meals::MealInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
@@ -1912,84 +1912,6 @@ async fn the_profile_card_switches_hydrate_on_or_off_from_a_date() {
     assert!(said.contains("out of the streak from 2026-03-01"), "{said}");
 }
 
-fn the_base_card_in(screen: &Element) -> impl Drop {
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <HydrateBaseCard />
-            </Router>
-        }
-    })
-}
-
-#[wasm_bindgen_test]
-async fn with_no_base_set_the_card_fills_in_the_efsa_default_and_points_to_its_references() {
-    answering(r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#);
-    let screen = screen();
-    let _mounted = the_base_card_in(&screen);
-    settled().await;
-
-    assert_eq!(value_of(&screen, "hydrate_base"), "2000");
-    let references: Element = found(&screen, "a.references");
-    assert_eq!(
-        references.get_attribute("href").as_deref(),
-        Some("/references#water")
-    );
-    let card = screen.text_content().unwrap_or_default();
-    assert!(card.contains("EFSA's default holds: 2000 mL"), "{card}");
-}
-
-#[wasm_bindgen_test]
-async fn a_base_left_empty_is_refused_and_a_base_of_nothing_is_kept_as_nothing() {
-    answering(
-        r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true }, "set_hydrate_base": 0.0 }"#,
-    );
-    let screen = screen();
-    let _mounted = the_base_card_in(&screen);
-    settled().await;
-    let form: HtmlFormElement = found(&screen, "form.hydrate-base");
-
-    typed_into(&screen, "hydrate_base", "");
-    form.request_submit().expect("the empty base is submitted");
-    settled().await;
-    let refused = asked("set_hydrate_base");
-    let said = text_of(&screen, "form.hydrate-base .said");
-    typed_into(&screen, "hydrate_base", "0");
-    form.request_submit()
-        .expect("the base of nothing is submitted");
-    settled().await;
-
-    assert_eq!(refused, "");
-    assert!(said.contains("0 to leave Hydrate out"), "{said}");
-    assert!(asked("set_hydrate_base").contains(r#""base_ml":0"#));
-}
-
-#[wasm_bindgen_test]
-async fn a_saved_base_says_from_which_day_it_is_kept_and_the_default_steps_aside() {
-    answering(
-        r#"{ "hydrate_base_on": { "base_ml": 2000.0, "is_default": true }, "set_hydrate_base": 2400.0 }"#,
-    );
-    let screen = screen();
-    let _mounted = the_base_card_in(&screen);
-    settled().await;
-
-    typed_into(&screen, "hydrate_base", "2400");
-    found::<HtmlFormElement>(&screen, "form.hydrate-base")
-        .request_submit()
-        .expect("the base is saved");
-    settled().await;
-
-    let said: Element = found(&screen, "form.hydrate-base .said");
-    assert!(
-        said.text_content()
-            .is_some_and(|line| line.contains("kept from"))
-    );
-    assert!(
-        screen.query_selector("a.source").ok().flatten().is_none(),
-        "a base set is no default"
-    );
-}
-
 #[wasm_bindgen_test]
 async fn drinking_past_the_cap_says_to_spread_the_cups_out() {
     answering(&format!(
@@ -2329,7 +2251,7 @@ async fn the_danger_zone_erases_everything_once_erase_is_typed() {
 const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg": 70.308,
     "healthy_fat_ratio": [0.11, 0.22], "goal_fat_ratio": 0.165,
     "fuel": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.35 },
-    "hydrate_base_ml": 2000.0, "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 } }"#;
+    "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 } }"#;
 
 #[wasm_bindgen_test]
 async fn the_recommendation_fills_each_card_on_demand() {

@@ -399,9 +399,6 @@ pub const PAST_THE_CAP: &str = "Past the cap. Under normal activity, kidneys cle
 pub const NO_DRINKING: &str =
     "Not a drop filed on this day yet. The archive is drier than its oldest scroll.";
 
-pub const NO_BASE_TYPED: &str =
-    "A base in millilitres, please, or 0 to leave Hydrate out of the streak from that day.";
-
 pub const HYDRATE_COUNTED_HINT: &str = "The band follows your lean mass and the day's burn, food \
     bringing a tenth of the water. Leave Hydrate out of the streak from a day your drinks went unfiled.";
 
@@ -411,18 +408,6 @@ pub fn hydrate_counted_from(from: &str) -> String {
 
 pub fn hydrate_left_out_from(from: &str) -> String {
     format!("Filed. Hydrate stays out of the streak from {from}.")
-}
-
-pub fn hydrate_base_kept(from: &str) -> String {
-    format!("Filed. This base is kept from {from}.")
-}
-
-pub fn default_hydrate_base(base_ml: f64) -> String {
-    format!(
-        "No base set yet, so EFSA's default holds: {} from drinks, four fifths of the adequate \
-         intake of total water, food bringing the rest.",
-        shown(Figure::Volume(base_ml))
-    )
 }
 
 pub fn month_name(month: &str) -> String {

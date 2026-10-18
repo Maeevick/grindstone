@@ -475,7 +475,6 @@ pub fn hydrate_from_draft(backup: &str) -> Result<HydrateRecords, DraftRefusal> 
     Ok(HydrateRecords {
         drinks,
         drinkings,
-        bases: vec![],
         counted_from: vec![],
     })
 }
@@ -919,7 +918,7 @@ mod tests {
                 },
             ]
         );
-        assert_eq!(records.bases, vec![]);
+        assert_eq!(records.counted_from, vec![]);
     }
 
     #[test]

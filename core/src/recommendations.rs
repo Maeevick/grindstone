@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use crate::age::age_on;
 use crate::fuel_records::FuelTargets;
 use crate::gender::Gender;
-use crate::hydrate_base::default_base_ml;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
 
@@ -18,7 +17,6 @@ pub struct Recommendations {
     pub healthy_fat_ratio: (f64, f64),
     pub goal_fat_ratio: f64,
     pub fuel: FuelTargets,
-    pub hydrate_base_ml: f64,
     pub usual_day: Volitional,
 }
 
@@ -35,7 +33,6 @@ pub struct Recommendations {
 /// - Fat: 0.8 g/kg as a practical floor; the day's band also asks 20 to 33.3% of the energy eaten,
 ///   within EFSA's 20 to 35% (2010) and near WHO's 30% at most (2023).
 /// - Fibre: 25 g a day, WHO (2023), *Carbohydrate intake for adults and children*, spread per kilo.
-/// - Water from drinks: EFSA's adequate intake of total water (2010), four fifths of it from drinks.
 /// - The usual day: sitting 8 hours at most, past which the least active die sooner, Ekelund U.
 ///   et al. (2016), *Lancet* 388(10051):1302–1310; standing 2 hours, the first step of
 ///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps a day past
@@ -61,7 +58,6 @@ pub fn recommended(
             fat_g_per_kg: FAT_FLOOR_G_PER_KG,
             fibre_g_per_kg: to_the_hundredth(FIBRE_G_A_DAY / body_mass_kg.unwrap_or(goal_mass_kg)),
         },
-        hydrate_base_ml: default_base_ml(Some(profile.gender)),
         usual_day: Volitional {
             sitting_min: SITTING_MIN,
             standing_min: STANDING_MIN,
@@ -184,18 +180,6 @@ mod tests {
         assert_eq!(advised.fuel.fat_g_per_kg, 0.8);
         assert_eq!(advised.fuel.fibre_g_per_kg, 0.31);
         assert_eq!(unweighed.fuel.fibre_g_per_kg, 0.36);
-    }
-
-    #[test]
-    fn drinks_follow_efsa_for_the_gender() {
-        let drinks_of = |gender| {
-            recommended(&born("1985-04-12", gender, 170.0), day("2026-10-11"), None).hydrate_base_ml
-        };
-
-        assert_eq!(
-            (drinks_of(Gender::Male), drinks_of(Gender::Female)),
-            (2000.0, 1600.0)
-        );
     }
 
     #[test]

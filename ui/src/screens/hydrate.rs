@@ -1,11 +1,10 @@
 use grind_core::bibliography::Topic;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
-use grind_core::figures::{Figure, bare, shown, typed_back};
+use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_hydrating::DrinkingForm;
-use grind_core::for_setting_up_the_profile::{HydrateBaseForm, HydrateCountedForm};
+use grind_core::for_setting_up_the_profile::HydrateCountedForm;
 use grind_core::hydrate::Hydrate;
-use grind_core::recommendations::Recommendations;
 use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -13,7 +12,6 @@ use leptos::task::spawn_local;
 use crate::choice::chosen;
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
-use crate::screens::profile::Recommend;
 use crate::screens::references::ReferencesLink;
 use crate::screens::{lines, today};
 use crate::tauri;
@@ -360,69 +358,6 @@ pub fn HydrateCountedCard() -> impl IntoView {
                 </div>
                 <button class="cta" type="submit">
                     "Keep from this day"
-                </button>
-                <ReferencesLink topic=Topic::Water />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
-    }
-}
-
-#[component]
-pub fn HydrateBaseCard() -> impl IntoView {
-    let from = RwSignal::new(today());
-    let base = RwSignal::new(String::new());
-    let default_ml = RwSignal::new(None::<f64>);
-    let said = RwSignal::new(None::<String>);
-    let fill = Callback::new(move |advised: Recommendations| {
-        base.set(typed_back(advised.hydrate_base_ml));
-    });
-    spawn_local(async move {
-        if let Ok(in_force) = tauri::hydrate_base_on(&today()).await {
-            base.set(in_force.base_ml.to_string());
-            default_ml.set(in_force.is_default.then_some(in_force.base_ml));
-        }
-    });
-    let save = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        let Some([typed]) = figures_typed([&base.get_untracked()]) else {
-            said.set(Some(lines::UNREADABLE.into()));
-            return;
-        };
-        let Some(base_ml) = typed else {
-            said.set(Some(lines::NO_BASE_TYPED.into()));
-            return;
-        };
-        let form = HydrateBaseForm {
-            from: from.get_untracked(),
-            base_ml,
-        };
-        spawn_local(async move {
-            said.set(Some(match tauri::set_hydrate_base(&form).await {
-                Ok(_) => {
-                    default_ml.set(None);
-                    lines::hydrate_base_kept(&form.from)
-                }
-                Err(failure) => lines::failure(&failure),
-            }));
-        });
-    };
-    view! {
-        <section class="card">
-            <h2>"Hydrate the material"</h2>
-            <form class="hydrate-base" on:submit=save>
-                <div class="row">
-                    <DateField label="From" name="hydrate_base_from" value=from />
-                    <FigureField label="Base (mL)" name="hydrate_base" value=base />
-                </div>
-                {move || {
-                    default_ml
-                        .get()
-                        .map(|ml| view! { <p class="hint">{lines::default_hydrate_base(ml)}</p> })
-                }}
-                <Recommend fill=fill said=said />
-                <button class="cta" type="submit">
-                    "Keep this base"
                 </button>
                 <ReferencesLink topic=Topic::Water />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}

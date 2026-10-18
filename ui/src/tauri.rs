@@ -16,14 +16,13 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    FuelTargetsForm, GoalsForm, HydrateBaseForm, HydrateCountedForm, ProfileForm, UsualDayForm,
+    FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
-use grind_core::hydrate_base::HydrateBase;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
@@ -385,14 +384,6 @@ pub async fn add_drink(name: &str, volume_ml: f64, kind: DrinkKind) -> Result<Ve
 
 pub async fn remove_drink(name: &str) -> Result<Vec<Drink>, Failure> {
     call("remove_drink", Naming { name }, broken).await
-}
-
-pub async fn set_hydrate_base(form: &HydrateBaseForm) -> Result<f64, Failure> {
-    call("set_hydrate_base", Form { form }, broken).await
-}
-
-pub async fn hydrate_base_on(date: &str) -> Result<HydrateBase, Failure> {
-    call("hydrate_base_on", OnDay { date }, broken).await
 }
 
 pub async fn set_hydrate_counted(form: &HydrateCountedForm) -> Result<bool, Failure> {

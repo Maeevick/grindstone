@@ -92,6 +92,7 @@ const MIGRATIONS: &[&str] = &[
     "create table hydrate_counted (effective_from text primary key, counted integer not null);
      insert into hydrate_counted (effective_from, counted)
          select effective_from, base_ml > 0 from hydrate_bases;",
+    "drop table hydrate_bases",
 ];
 
 pub struct Sqlite(Connection);
@@ -794,8 +795,6 @@ fn kind_read(word: &str) -> rusqlite::Result<DrinkKind> {
         ))),
     }
 }
-const HYDRATE_BASES: &str =
-    "select effective_from, base_ml from hydrate_bases order by effective_from";
 const HYDRATE_COUNTED: &str =
     "select effective_from, counted from hydrate_counted order by effective_from";
 
@@ -818,10 +817,6 @@ fn drinking_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Drinking)> {
             servings: row.get(5)?,
         },
     ))
-}
-
-fn base_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, f64)> {
-    Ok((row.get(0)?, row.get(1)?))
 }
 
 fn counted_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, bool)> {
@@ -858,14 +853,6 @@ impl ForStoringHydrateRecords for Sqlite {
         self.run("delete from drinkings where id = ?1", params![id])
     }
 
-    fn save_base(&self, from: NaiveDate, base_ml: f64) -> Result<(), Broken> {
-        self.run(
-            "insert into hydrate_bases (effective_from, base_ml) values (?1, ?2)
-             on conflict (effective_from) do update set base_ml = excluded.base_ml",
-            params![from, base_ml],
-        )
-    }
-
     fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
         self.run(
             "insert into hydrate_counted (effective_from, counted) values (?1, ?2)
@@ -878,8 +865,7 @@ impl ForStoringHydrateRecords for Sqlite {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
-                "delete from drinks; delete from drinkings; delete from hydrate_bases;
-                 delete from hydrate_counted;",
+                "delete from drinks; delete from drinkings; delete from hydrate_counted;",
             )
             .map_err(broken)?;
         for drink in &records.drinks {
@@ -887,9 +873,6 @@ impl ForStoringHydrateRecords for Sqlite {
         }
         for (_, drinking) in &records.drinkings {
             self.save_drinking(drinking)?;
-        }
-        for (from, base_ml) in &records.bases {
-            self.save_base(*from, *base_ml)?;
         }
         for (from, counted) in &records.counted_from {
             self.save_counted(*from, *counted)?;
@@ -901,7 +884,6 @@ impl ForStoringHydrateRecords for Sqlite {
         Ok(HydrateRecords {
             drinks: self.rows(DRINKS, drink_read)?,
             drinkings: self.rows(DRINKINGS, drinking_read)?,
-            bases: self.rows(HYDRATE_BASES, base_read)?,
             counted_from: self.rows(HYDRATE_COUNTED, counted_read)?,
         })
     }
@@ -1275,8 +1257,8 @@ mod tests {
     }
 
     #[test]
-    fn a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
-        honouring_for_storing_hydrate_records::a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+    fn a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
+        honouring_for_storing_hydrate_records::a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one(
             &database(),
         );
     }

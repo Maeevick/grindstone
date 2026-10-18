@@ -7,6 +7,5 @@ use crate::drinking::Drinking;
 pub struct HydrateRecords {
     pub drinks: Vec<Drink>,
     pub drinkings: Vec<(i64, Drinking)>,
-    pub bases: Vec<(NaiveDate, f64)>,
     pub counted_from: Vec<(NaiveDate, bool)>,
 }

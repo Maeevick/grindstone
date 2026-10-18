@@ -8,10 +8,11 @@ use crate::drinking::Drinking;
 use crate::fuel::{Fuel, fuel_on, fuel_over};
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
-use crate::hydrate_base::base_on;
+use crate::hydrate_base::default_base_ml;
 use crate::hydrate_records::HydrateRecords;
 use crate::ledger::ledger;
 use crate::verdict::{Verdict, verdict_of};
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Hydrate {
@@ -104,8 +105,8 @@ fn hydrated(
             (target_ml, floor_ml.min(target_ml))
         }
         _ => {
-            let target_ml = base_on(day, &records.bases, &gather.profiles).base_ml
-                + burnt_kcal * ML_PER_KCAL_SPENT;
+            let gender = version_in_force_on(&gather.profiles, day).map(|profile| profile.gender);
+            let target_ml = default_base_ml(gender) + burnt_kcal * ML_PER_KCAL_SPENT;
             (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
     };
@@ -148,9 +149,8 @@ mod tests {
         }
     }
 
-    fn based_on(base_ml: f64, drinkings: Vec<(i64, Drinking)>) -> HydrateRecords {
+    fn having_drunk(drinkings: Vec<(i64, Drinking)>) -> HydrateRecords {
         HydrateRecords {
-            bases: vec![(day("2026-03-01"), base_ml)],
             drinkings,
             ..HydrateRecords::default()
         }
@@ -281,14 +281,11 @@ mod tests {
 
     #[test]
     fn a_day_drinks_the_sum_of_its_own_drinkings() {
-        let records = based_on(
-            2000.0,
-            vec![
-                (1, drunk("2026-10-10", "Expresso", 80.0)),
-                (2, drunk("2026-10-10", "Tea", 200.0)),
-                (3, drunk("2026-10-11", "Tea", 400.0)),
-            ],
-        );
+        let records = having_drunk(vec![
+            (1, drunk("2026-10-10", "Expresso", 80.0)),
+            (2, drunk("2026-10-10", "Tea", 200.0)),
+            (3, drunk("2026-10-11", "Tea", 400.0)),
+        ]);
 
         let hydrate = hydrate_on(
             day("2026-10-10"),
@@ -309,10 +306,10 @@ mod tests {
     }
 
     #[test]
-    fn a_day_aims_for_its_base_and_a_millilitre_more_per_kcal_its_workouts_burnt() {
+    fn a_day_before_any_lean_mass_aims_for_efsas_base_and_a_millilitre_more_per_kcal_burnt() {
         let hydrate = hydrate_on(
             day("2026-10-10"),
-            &based_on(2000.0, vec![]),
+            &HydrateRecords::default(),
             &weighed("2026-10-01", 80.0),
             &walked_an_hour("2026-10-10"),
             &FuelRecords::default(),
@@ -325,7 +322,7 @@ mod tests {
     fn a_burn_of_unknown_size_without_any_weigh_in_adds_nothing_to_the_target() {
         let hydrate = hydrate_on(
             day("2026-10-10"),
-            &based_on(2000.0, vec![]),
+            &HydrateRecords::default(),
             &GatherRecords::default(),
             &walked_an_hour("2026-10-10"),
             &FuelRecords::default(),
@@ -335,23 +332,10 @@ mod tests {
     }
 
     #[test]
-    fn with_no_base_set_a_day_aims_for_the_default_base() {
+    fn a_day_before_any_lean_mass_keeps_efsa_twenty_percent_either_side() {
         let hydrate = hydrate_on(
             day("2026-10-10"),
             &HydrateRecords::default(),
-            &GatherRecords::default(),
-            &BurnRecords::default(),
-            &FuelRecords::default(),
-        );
-
-        assert!(about(hydrate.target_ml, 2000.0));
-    }
-
-    #[test]
-    fn a_day_reads_its_band_from_twenty_percent_under_to_twenty_percent_over_its_target() {
-        let hydrate = hydrate_on(
-            day("2026-10-10"),
-            &based_on(2000.0, vec![]),
             &GatherRecords::default(),
             &BurnRecords::default(),
             &FuelRecords::default(),
@@ -363,15 +347,12 @@ mod tests {
 
     #[test]
     fn a_day_drunk_under_its_band_reads_low_inside_it_in_band_and_over_it_high() {
-        let records = based_on(
-            500.0,
-            vec![
-                (1, drunk("2026-10-09", "Tea", 350.0)),
-                (2, drunk("2026-10-10", "Tea", 300.0)),
-                (3, drunk("2026-10-10", "Tea", 200.0)),
-                (4, drunk("2026-10-11", "Tea", 650.0)),
-            ],
-        );
+        let records = having_drunk(vec![
+            (1, drunk("2026-10-09", "Tea", 350.0)),
+            (2, drunk("2026-10-10", "Tea", 1200.0)),
+            (3, drunk("2026-10-10", "Tea", 800.0)),
+            (4, drunk("2026-10-11", "Tea", 2650.0)),
+        ]);
         let verdict_on = |date| {
             hydrate_on(
                 day(date),

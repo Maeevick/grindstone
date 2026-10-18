@@ -9,7 +9,6 @@ use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
-use crate::hydrate_base::{HydrateBase, base_on};
 use crate::hydrate_counted::counted_on;
 use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
@@ -144,25 +143,6 @@ pub fn fuel_targets_on(
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct HydrateBaseForm {
-    pub from: String,
-    pub base_ml: f64,
-}
-
-pub fn set_hydrate_base(
-    hydrate: &impl ForStoringHydrateRecords,
-    form: &HydrateBaseForm,
-) -> Result<f64, Failure> {
-    let from = day(&form.from)?;
-    let base_ml = form.base_ml;
-    if !(base_ml.is_finite() && base_ml >= 0.0) {
-        return Err(Failure::Refused(Refusal::NotAVolume));
-    }
-    hydrate.save_base(from, base_ml)?;
-    Ok(base_ml)
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct HydrateCountedForm {
     pub from: String,
     pub counted: bool,
@@ -182,19 +162,6 @@ pub fn hydrate_counted_on(
 ) -> Result<bool, Failure> {
     let day = day(date)?;
     Ok(counted_on(day, &hydrate.hydrate_records()?.counted_from))
-}
-
-pub fn hydrate_base_on(
-    gather: &impl ForStoringGatherRecords,
-    hydrate: &impl ForStoringHydrateRecords,
-    date: &str,
-) -> Result<HydrateBase, Failure> {
-    let day = day(date)?;
-    Ok(base_on(
-        day,
-        &hydrate.hydrate_records()?.bases,
-        &gather.gather_records()?.profiles,
-    ))
 }
 
 pub fn recommended_on(
@@ -426,102 +393,36 @@ mod tests {
         );
     }
 
-    fn a_base_from(from: &str, base_ml: f64) -> HydrateBaseForm {
-        HydrateBaseForm {
+    #[test]
+    fn a_hydrate_switch_on_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
+        let left_out_on = |from: &str| HydrateCountedForm {
             from: from.into(),
-            base_ml,
-        }
-    }
-
-    #[test]
-    fn a_hydrate_base_set_from_a_date_is_the_one_in_force_from_that_date() {
-        let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        set_hydrate_base(&hydrate, &a_base_from("2026-03-01", 2400.0)).expect("a base sets");
+            counted: false,
+        };
 
         assert_eq!(
-            hydrate_base_on(&GatherRecordsInMemory::default(), &hydrate, "2026-10-10"),
-            Ok(HydrateBase {
-                base_ml: 2400.0,
-                is_default: false,
-            })
-        );
-    }
-
-    #[test]
-    fn with_no_hydrate_base_set_the_default_for_the_profile_in_force_says_it_is_one() {
-        let gather = GatherRecordsInMemory::default();
-        set_profile(
-            &gather,
-            &ProfileForm {
-                birthday: "1990-06-01".into(),
-                gender: Gender::Female,
-                hip_cm: Some(98.0),
-                ..a_mans_form("2026-03-01")
-            },
-        )
-        .expect("a profile sets");
-
-        assert_eq!(
-            hydrate_base_on(
-                &gather,
+            set_hydrate_counted(
                 &crate::testing::HydrateRecordsInMemory::default(),
-                "2026-10-10"
+                &left_out_on("2026-02-30")
             ),
-            Ok(HydrateBase {
-                base_ml: 1600.0,
-                is_default: true,
-            })
-        );
-    }
-
-    #[test]
-    fn a_hydrate_base_of_nothing_is_kept_a_target_of_none_from_its_day() {
-        let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        let gather = GatherRecordsInMemory::default();
-
-        assert_eq!(
-            set_hydrate_base(&hydrate, &a_base_from("2026-03-01", 0.0)),
-            Ok(0.0)
-        );
-        assert_eq!(
-            hydrate_base_on(&gather, &hydrate, "2026-10-10"),
-            Ok(HydrateBase {
-                base_ml: 0.0,
-                is_default: false
-            })
-        );
-    }
-
-    #[test]
-    fn a_negative_hydrate_base_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
-        let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        let gather = GatherRecordsInMemory::default();
-
-        assert_eq!(
-            set_hydrate_base(&hydrate, &a_base_from("2026-03-01", -100.0)),
-            Err(Failure::Refused(Refusal::NotAVolume))
-        );
-        assert_eq!(
-            set_hydrate_base(&hydrate, &a_base_from("2026-02-30", 2400.0)),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
-            hydrate_base_on(&gather, &hydrate, "2026-02-30"),
+            hydrate_counted_on(
+                &crate::testing::HydrateRecordsInMemory::default(),
+                "2026-02-30"
+            ),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
-            hydrate_base_on(&gather, &hydrate, "2026-10-10").map(|base| base.is_default),
-            Ok(true)
-        );
-        assert_eq!(
-            set_hydrate_base(
+            set_hydrate_counted(
                 &crate::testing::BrokenHydrateRecords,
-                &a_base_from("2026-03-01", 2400.0)
+                &left_out_on("2026-03-01")
             ),
             Err(Failure::Broken("the disk is full".into()))
         );
         assert_eq!(
-            hydrate_base_on(&BrokenGatherRecords, &hydrate, "2026-10-10"),
+            hydrate_counted_on(&crate::testing::BrokenHydrateRecords, "2026-10-10"),
             Err(Failure::Broken("the disk is full".into()))
         );
     }

@@ -1166,13 +1166,6 @@ impl ForStoringHydrateRecords for HydrateRecordsInMemory {
         Ok(())
     }
 
-    fn save_base(&self, from: NaiveDate, base_ml: f64) -> Result<(), Broken> {
-        let mut records = self.0.borrow_mut();
-        records.bases.retain(|(kept_from, _)| *kept_from != from);
-        records.bases.push((from, base_ml));
-        Ok(())
-    }
-
     fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
         records
@@ -1197,7 +1190,6 @@ impl ForStoringHydrateRecords for HydrateRecordsInMemory {
         drunk
             .drinkings
             .sort_by_key(|(id, drinking)| (drinking.day, *id));
-        drunk.bases.sort_by_key(|(from, _)| *from);
         drunk.counted_from.sort_by_key(|(from, _)| *from);
         Ok(drunk)
     }
@@ -1219,10 +1211,6 @@ impl ForStoringHydrateRecords for BrokenHydrateRecords {
     }
 
     fn remove_drinking(&self, _: i64) -> Result<(), Broken> {
-        Err(Broken("the disk is full".into()))
-    }
-
-    fn save_base(&self, _: NaiveDate, _: f64) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -1289,12 +1277,6 @@ pub mod honouring_for_storing_hydrate_records {
             records.save_drinking(&drinking).expect("a drinking saves");
         }
         records
-            .save_base(day("2026-09-01"), 2200.0)
-            .expect("a base saves");
-        records
-            .save_base(day("2026-03-01"), 2000.0)
-            .expect("a base saves");
-        records
             .save_counted(day("2026-10-10"), true)
             .expect("a switch saves");
         records
@@ -1316,31 +1298,21 @@ pub mod honouring_for_storing_hydrate_records {
             ]
         );
         assert_eq!(
-            drunk_so_far.bases,
-            vec![(day("2026-03-01"), 2000.0), (day("2026-09-01"), 2200.0)]
-        );
-        assert_eq!(
             drunk_so_far.counted_from,
             vec![(day("2026-03-01"), false), (day("2026-10-10"), true)]
         );
     }
 
-    pub fn a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+    pub fn a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one(
         records: &impl ForStoringHydrateRecords,
     ) {
         records
             .save_drink(&served("Tea", 200.0))
             .expect("a drink saves");
-        records
-            .save_base(day("2026-03-01"), 2000.0)
-            .expect("a base saves");
 
         records
             .save_drink(&served("Tea", 250.0))
             .expect("a drink saves");
-        records
-            .save_base(day("2026-03-01"), 2400.0)
-            .expect("a base saves");
         records
             .save_counted(day("2026-03-01"), false)
             .expect("a switch saves");
@@ -1350,7 +1322,6 @@ pub mod honouring_for_storing_hydrate_records {
 
         let drunk_so_far = records.hydrate_records().expect("the records read");
         assert_eq!(drunk_so_far.drinks, vec![served("Tea", 250.0)]);
-        assert_eq!(drunk_so_far.bases, vec![(day("2026-03-01"), 2400.0)]);
         assert_eq!(drunk_so_far.counted_from, vec![(day("2026-03-01"), true)]);
     }
 
@@ -1402,7 +1373,6 @@ pub mod honouring_for_storing_hydrate_records {
         let replacement = HydrateRecords {
             drinks: vec![served("Expresso", 80.0)],
             drinkings: vec![(0, drunk("2026-06-22", "Expresso", 80.0))],
-            bases: vec![(day("2026-03-01"), 2000.0)],
             counted_from: vec![(day("2026-03-01"), false)],
         };
 
@@ -1413,7 +1383,6 @@ pub mod honouring_for_storing_hydrate_records {
         let drunk_so_far = records.hydrate_records().expect("the records read");
         assert_eq!(drunk_so_far.drinks, replacement.drinks);
         assert_eq!(without_ids(&drunk_so_far), without_ids(&replacement));
-        assert_eq!(drunk_so_far.bases, replacement.bases);
         assert_eq!(drunk_so_far.counted_from, replacement.counted_from);
     }
 }
@@ -1570,8 +1539,8 @@ mod tests {
     }
 
     #[test]
-    fn a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
-        honouring_for_storing_hydrate_records::a_drink_or_a_base_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+    fn a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
+        honouring_for_storing_hydrate_records::a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one(
             &HydrateRecordsInMemory::default(),
         );
     }
