@@ -7,7 +7,7 @@ use grind_ui::screens::catalog::Catalog;
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
-use grind_ui::screens::hydrate::{HydrateBaseCard, HydrateDay};
+use grind_ui::screens::hydrate::{HydrateBaseCard, HydrateCountedCard, HydrateDay};
 use grind_ui::screens::meals::MealInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
@@ -1876,6 +1876,37 @@ async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
 
     let rows = text_of(&screen, "table.drinks tbody");
     assert!(!rows.contains("Expresso") && rows.contains("Tea"), "{rows}");
+}
+
+fn the_hydrate_card_in(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <HydrateCountedCard />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn the_profile_card_switches_hydrate_on_or_off_from_a_date() {
+    answering(r#"{ "hydrate_counted_on": true, "set_hydrate_counted": false }"#);
+    let screen = screen();
+    let _mounted = the_hydrate_card_in(&screen);
+    settled().await;
+    let in_force = text_of(&screen, "form.hydrate-counted .pill.chosen");
+
+    clicked(&screen, "form.hydrate-counted .pill.left-out");
+    typed_into(&screen, "hydrate_counted_from", "2026-03-01");
+    found::<HtmlFormElement>(&screen, "form.hydrate-counted")
+        .request_submit()
+        .expect("the switch is kept");
+    settled().await;
+
+    assert_eq!(in_force, "Counted");
+    assert!(asked("set_hydrate_counted").contains(r#""counted":false"#));
+    let said = text_of(&screen, "form.hydrate-counted .said");
+    assert!(said.contains("out of the streak from 2026-03-01"), "{said}");
 }
 
 fn the_base_card_in(screen: &Element) -> impl Drop {

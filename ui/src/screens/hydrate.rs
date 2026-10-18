@@ -305,6 +305,11 @@ pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) 
 }
 
 #[component]
+pub fn HydrateCountedCard() -> impl IntoView {
+    view! { <section class="card"></section> }
+}
+
+#[component]
 pub fn HydrateBaseCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let base = RwSignal::new(String::new());
