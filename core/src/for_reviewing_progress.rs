@@ -762,6 +762,70 @@ mod tests {
         }
 
         #[test]
+        fn a_band_missed_by_no_more_than_five_percent_still_holds_its_tick() {
+            let records = a_man_at_his_desk();
+            a_full_day(&records, "2026-10-09", "Plate");
+            a_dry_day(&records, "2026-10-10", "Plate");
+            let fuelled = crate::for_fuelling::fuel_day(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                "2026-10-10",
+            )
+            .expect("a fuelled day");
+            let cap_kcal = fuelled.band.map(|band| band.cap_kcal).expect("a band");
+            let mut richer = plate("Richer plate", 35.0);
+            richer.nutrients.energy_kcal = 1.03 * cap_kcal;
+            add_food(&records.fuel, &richer).expect("a food adds");
+            for (id, _) in fuelled.intakes {
+                crate::for_fuelling::remove_intake(
+                    &records.gather,
+                    &records.burn,
+                    &records.fuel,
+                    "2026-10-10",
+                    id,
+                )
+                .expect("an intake removed");
+            }
+            log_intake(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                &IntakeForm {
+                    date: "2026-10-10".into(),
+                    food: "Richer plate".into(),
+                    quantity: Some(1.0),
+                },
+            )
+            .expect("an intake logs");
+            let floor_ml = crate::for_hydrating::hydrate_day(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                &records.hydrate,
+                "2026-10-10",
+            )
+            .expect("a hydrate")
+            .floor_ml;
+            crate::for_hydrating::log_drink(
+                &records.gather,
+                &records.burn,
+                &records.fuel,
+                &records.hydrate,
+                &crate::for_hydrating::DrinkingForm {
+                    date: "2026-10-10".into(),
+                    drink: "Water".into(),
+                    volume_ml: Some(0.97 * floor_ml),
+                },
+            )
+            .expect("a drink logs");
+
+            let ticks = ticks_on(&records, "2026-10-10", "2026-10-10").expect("the day's ticks");
+
+            assert_eq!((ticks.fuelled, ticks.hydrated), (Some(true), Some(true)));
+        }
+
+        #[test]
         fn a_day_must_drink_inside_its_hydrate_band() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
