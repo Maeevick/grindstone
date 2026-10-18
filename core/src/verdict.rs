@@ -31,4 +31,10 @@ mod tests {
         assert!(within_grace(1520.0, 1600.0, 2400.0));
         assert!(within_grace(2520.0, 1600.0, 2400.0));
     }
+
+    #[test]
+    fn an_amount_further_than_five_percent_beyond_a_bound_is_not_within_grace() {
+        assert!(!within_grace(1519.0, 1600.0, 2400.0));
+        assert!(!within_grace(2521.0, 1600.0, 2400.0));
+    }
 }
