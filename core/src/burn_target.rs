@@ -5,20 +5,28 @@ const MODERATE_MET: f64 = 4.0;
 const DAYS_A_WEEK: f64 = 7.0;
 const MINUTES_AN_HOUR: f64 = 60.0;
 
-/// The net kcal a day's workouts aim to burn. Without a target kept, the World Health Organization's
-/// 150 minutes a week of moderate activity, spread over the days at 4 METs, less the rest it replaces,
-/// on the body mass in force; without a body mass either, nothing to price a workout on.
+/// The net kcal a day's workouts aim to burn: the target kept from the latest day up to it. Before any,
+/// the World Health Organization's 150 minutes a week of moderate activity, spread over the days at 4 METs,
+/// less the rest it replaces, on the body mass in force; without a body mass either, nothing to price a
+/// workout on.
 ///
 /// Bull F. C. et al. (2020), *World Health Organization 2020 guidelines on physical activity and sedentary
 /// behaviour*, Br J Sports Med 54(24):1451-1462.
 pub fn target_on(
-    _day: NaiveDate,
-    _targets: &[(NaiveDate, f64)],
+    day: NaiveDate,
+    targets: &[(NaiveDate, f64)],
     body_mass_kg: Option<f64>,
 ) -> Option<f64> {
-    body_mass_kg.map(|kg| {
-        (MODERATE_MET - 1.0) * kg * MODERATE_MINUTES_A_WEEK / DAYS_A_WEEK / MINUTES_AN_HOUR
-    })
+    targets
+        .iter()
+        .filter(|(from, _)| *from <= day)
+        .max_by_key(|(from, _)| *from)
+        .map(|(_, kcal)| *kcal)
+        .or_else(|| {
+            body_mass_kg.map(|kg| {
+                (MODERATE_MET - 1.0) * kg * MODERATE_MINUTES_A_WEEK / DAYS_A_WEEK / MINUTES_AN_HOUR
+            })
+        })
 }
 
 #[cfg(test)]
