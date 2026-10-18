@@ -331,6 +331,7 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
             .into_iter()
             .collect(),
         circuits: Vec::new(),
+        targets: Vec::new(),
     })
 }
 

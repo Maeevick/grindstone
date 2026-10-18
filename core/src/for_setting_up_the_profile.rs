@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::burn::body_mass_in_force_on;
+use crate::burn_target::target_on;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
@@ -171,18 +173,25 @@ pub struct BurnTargetForm {
 }
 
 pub fn set_burn_target(
-    _burn: &impl ForStoringBurnRecords,
+    burn: &impl ForStoringBurnRecords,
     form: &BurnTargetForm,
 ) -> Result<f64, Failure> {
+    burn.save_burn_target(day(&form.from)?, form.kcal)?;
     Ok(form.kcal)
 }
 
 pub fn burn_target_on(
-    _gather: &impl ForStoringGatherRecords,
-    _burn: &impl ForStoringBurnRecords,
-    _date: &str,
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    date: &str,
 ) -> Result<Option<f64>, Failure> {
-    Ok(None)
+    let day = day(date)?;
+    let measurements = gather.gather_records()?.measurements;
+    Ok(target_on(
+        day,
+        &burn.burn_records()?.targets,
+        body_mass_in_force_on(day, &measurements),
+    ))
 }
 
 pub fn recommended_on(

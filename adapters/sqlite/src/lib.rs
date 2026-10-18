@@ -93,6 +93,7 @@ const MIGRATIONS: &[&str] = &[
      insert into hydrate_counted (effective_from, counted)
          select effective_from, base_ml > 0 from hydrate_bases;",
     "drop table hydrate_bases",
+    "create table burn_targets (effective_from text primary key, kcal real not null)",
 ];
 
 pub struct Sqlite(Connection);
@@ -349,6 +350,7 @@ const WORKOUTS: &str = "select id, day, exercise, met, minutes, reps, sets, load
 const DAYS_OFF_THE_CLOCK: &str =
     "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day";
 const USUAL_DAYS: &str = "select effective_from, sitting_min, standing_min, moving_km from usual_days order by effective_from";
+const BURN_TARGETS: &str = "select effective_from, kcal from burn_targets order by effective_from";
 
 fn exercise_read(row: &rusqlite::Row) -> rusqlite::Result<Exercise> {
     Ok(Exercise {
@@ -473,13 +475,21 @@ impl ForStoringBurnRecords for Sqlite {
         )
     }
 
+    fn save_burn_target(&self, from: NaiveDate, kcal: f64) -> Result<(), Broken> {
+        self.run(
+            "insert into burn_targets (effective_from, kcal) values (?1, ?2)
+             on conflict (effective_from) do update set kcal = excluded.kcal",
+            params![from, kcal],
+        )
+    }
+
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
                 "delete from exercises; delete from workouts;
                  delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;
-                 delete from circuits;",
+                 delete from circuits; delete from burn_targets;",
             )
             .map_err(broken)?;
         for exercise in &records.exercises {
@@ -497,6 +507,9 @@ impl ForStoringBurnRecords for Sqlite {
         for circuit in &records.circuits {
             self.circuit_inserted(circuit)?;
         }
+        for (from, kcal) in &records.targets {
+            self.save_burn_target(*from, *kcal)?;
+        }
         replacing.commit().map_err(broken)
     }
 
@@ -507,6 +520,7 @@ impl ForStoringBurnRecords for Sqlite {
             days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
             usual_days: self.rows(USUAL_DAYS, volitional_read)?,
             circuits: self.circuits()?,
+            targets: self.rows(BURN_TARGETS, |row| Ok((row.get(0)?, row.get(1)?)))?,
         })
     }
 

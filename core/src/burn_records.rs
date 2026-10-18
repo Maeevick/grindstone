@@ -12,4 +12,5 @@ pub struct BurnRecords {
     pub days_off_the_clock: Vec<(NaiveDate, Volitional)>,
     pub usual_days: Vec<(NaiveDate, Volitional)>,
     pub circuits: Vec<Circuit>,
+    pub targets: Vec<(NaiveDate, f64)>,
 }

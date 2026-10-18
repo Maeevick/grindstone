@@ -15,6 +15,7 @@ pub trait ForStoringBurnRecords {
     fn save_day_off_the_clock(&self, day: NaiveDate, volitional: &Volitional)
     -> Result<(), Broken>;
     fn save_usual_day(&self, from: NaiveDate, volitional: &Volitional) -> Result<(), Broken>;
+    fn save_burn_target(&self, from: NaiveDate, kcal: f64) -> Result<(), Broken>;
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken>;
     fn burn_records(&self) -> Result<BurnRecords, Broken>;
     fn save_circuit(&self, circuit: &Circuit) -> Result<(), Broken>;

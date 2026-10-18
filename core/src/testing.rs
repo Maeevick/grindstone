@@ -161,6 +161,13 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         Ok(())
     }
 
+    fn save_burn_target(&self, from: NaiveDate, kcal: f64) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.targets.retain(|(kept_from, _)| *kept_from != from);
+        records.targets.push((from, kcal));
+        Ok(())
+    }
+
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
         let mut replaced = records.clone();
         for (id, (kept_id, _)) in (1..).zip(replaced.workouts.iter_mut()) {
@@ -178,6 +185,7 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         burnt.workouts.sort_by_key(|(id, done)| (done.day, *id));
         burnt.days_off_the_clock.sort_by_key(|(day, _)| *day);
         burnt.usual_days.sort_by_key(|(from, _)| *from);
+        burnt.targets.sort_by_key(|(from, _)| *from);
         burnt
             .circuits
             .sort_by(|one, other| one.name.cmp(&other.name));
@@ -224,6 +232,10 @@ impl ForStoringBurnRecords for BrokenBurnRecords {
     }
 
     fn save_usual_day(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_burn_target(&self, _: NaiveDate, _: f64) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -313,6 +325,12 @@ pub mod honouring_for_storing_burn_records {
         records
             .save_usual_day(day("2026-03-01"), &sitting(480.0))
             .expect("a usual day saves");
+        records
+            .save_burn_target(day("2026-10-15"), 150.0)
+            .expect("a target saves");
+        records
+            .save_burn_target(day("2026-03-01"), 80.0)
+            .expect("a target saves");
 
         let burnt = records.burn_records().expect("the records read");
 
@@ -342,6 +360,10 @@ pub mod honouring_for_storing_burn_records {
                 (day("2026-09-01"), sitting(420.0))
             ]
         );
+        assert_eq!(
+            burnt.targets,
+            vec![(day("2026-03-01"), 80.0), (day("2026-10-15"), 150.0)]
+        );
     }
 
     pub fn what_is_saved_again_under_its_name_or_day_replaces_the_earlier_one(
@@ -366,9 +388,16 @@ pub mod honouring_for_storing_burn_records {
         records
             .save_usual_day(day("2026-03-01"), &sitting(420.0))
             .expect("a usual day saves");
+        records
+            .save_burn_target(day("2026-03-01"), 80.0)
+            .expect("a target saves");
+        records
+            .save_burn_target(day("2026-03-01"), 150.0)
+            .expect("a target saves");
 
         let burnt = records.burn_records().expect("the records read");
         assert_eq!(burnt.exercises, vec![named("Walking", 4.0)]);
+        assert_eq!(burnt.targets, vec![(day("2026-03-01"), 150.0)]);
         assert_eq!(
             burnt.days_off_the_clock,
             vec![(day("2026-10-10"), sitting(300.0))]
@@ -428,6 +457,7 @@ pub mod honouring_for_storing_burn_records {
             days_off_the_clock: vec![(day("2026-06-22"), sitting(500.0))],
             usual_days: vec![(day("2026-03-01"), sitting(480.0))],
             circuits: vec![morning_rust()],
+            targets: vec![(day("2026-03-01"), 120.0)],
         };
 
         records
@@ -440,6 +470,7 @@ pub mod honouring_for_storing_burn_records {
         assert_eq!(burnt.days_off_the_clock, replacement.days_off_the_clock);
         assert_eq!(burnt.usual_days, replacement.usual_days);
         assert_eq!(burnt.circuits, replacement.circuits);
+        assert_eq!(burnt.targets, replacement.targets);
     }
 
     fn step(
