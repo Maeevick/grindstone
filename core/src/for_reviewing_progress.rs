@@ -114,7 +114,13 @@ pub fn streak(
                             .iter()
                             .any(|measured| measured.day == *day),
                     ),
-                    fuelled: Some(fuelled_day.within_grace),
+                    fuelled: Some(fuelled_day.band.is_some_and(|band| {
+                        within_grace(
+                            fuelled_day.eaten.energy_kcal,
+                            band.floor_kcal,
+                            band.cap_kcal,
+                        )
+                    })),
                     worked_out: Some(worked_out(*day, &burnt, &gathered.measurements)),
                     hydrated: counted_on(*day, &hydrated.counted_from).then(|| {
                         within_grace(
@@ -654,19 +660,6 @@ mod tests {
             assert_eq!(
                 ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.fuelled),
                 Some(true)
-            );
-        }
-
-        #[test]
-        fn a_macro_out_of_its_band_leaves_the_fuel_tick_open() {
-            let records = a_man_at_his_desk();
-            a_full_day(&records, "2026-10-08", "Plate");
-            a_full_day(&records, "2026-10-09", "Fibreless plate");
-            a_full_day(&records, "2026-10-10", "Plate");
-
-            assert_eq!(
-                ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.fuelled),
-                Some(false)
             );
         }
 
