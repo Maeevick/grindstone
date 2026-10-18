@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::body::body_on;
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::drinking::Drinking;
@@ -9,6 +10,7 @@ use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 use crate::hydrate_base::base_on;
 use crate::hydrate_records::HydrateRecords;
+use crate::ledger::ledger;
 use crate::verdict::{Verdict, verdict_of};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -24,6 +26,11 @@ pub struct Hydrate {
 
 const ML_PER_KCAL_BURNT: f64 = 1.0;
 const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
+const WATER_SHARE_OF_LEAN_MASS: f64 = 0.732;
+const BODY_WATER_TURNED_OVER_A_DAY: f64 = 0.07;
+const ML_PER_KCAL_BURNT_AT_BEST: f64 = 1.25;
+const SHARE_LEFT_TO_DRINKS: f64 = 0.9;
+const ML_PER_L: f64 = 1000.0;
 
 pub fn hydrate_on(
     day: NaiveDate,
@@ -54,6 +61,16 @@ pub fn hydrate_over(
         .collect()
 }
 
+/// The day's drinks against its band. Once a lean mass is known, the target is the water that mass
+/// turns over in a day, plus 1.25 mL per kcal burnt, nine tenths of it from drinks, food bringing the
+/// rest; before, EFSA's base plus a millilitre per kcal burnt.
+///
+/// - Lean mass is 73.2% water: Wang Z. et al. (1999), *Hydration of fat-free body mass: new
+///   physiological modeling approach*, Am J Physiol Endocrinol Metab 276(6):E995-E1003.
+/// - About 7% of the body's water turned over a day: Yamada Y. et al. (2022), *Variation in human
+///   water turnover associated with environmental and lifestyle factors*, Science 378(6622):909-915.
+/// - Water lost per kcal spent, 0.84 to 1.46 mL: Westerterp K. R., Plasqui G., Goris A. H. C. (2005),
+///   *Water loss as a function of energy intake, physical activity and season*, Br J Nutr 93(2):199-203.
 fn hydrated(
     day: NaiveDate,
     records: &HydrateRecords,
@@ -71,8 +88,22 @@ fn hydrated(
     let burnt_kcal = burn_on(day, burn, &gather.measurements)
         .burnt_kcal
         .unwrap_or(0.0);
-    let target_ml =
-        base_on(day, &records.bases, &gather.profiles).base_ml + burnt_kcal * ML_PER_KCAL_BURNT;
+    let lean_kg = body_on(
+        day,
+        &ledger(&gather.measurements, &gather.profiles),
+        &gather.profiles,
+    )
+    .map(|body| body.lean_kg);
+    let target_ml = match lean_kg {
+        Some(lean_kg) => {
+            SHARE_LEFT_TO_DRINKS
+                * (lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
+                    + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST)
+        }
+        None => {
+            base_on(day, &records.bases, &gather.profiles).base_ml + burnt_kcal * ML_PER_KCAL_BURNT
+        }
+    };
     let floor_ml = target_ml * (1.0 - BAND_SHARE_EITHER_SIDE);
     let cap_ml = target_ml * (1.0 + BAND_SHARE_EITHER_SIDE);
     Hydrate {

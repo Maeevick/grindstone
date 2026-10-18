@@ -552,7 +552,7 @@ mod tests {
                 &crate::for_hydrating::DrinkingForm {
                     date: date.into(),
                     drink: "Water".into(),
-                    volume_ml: Some(2000.0),
+                    volume_ml: Some(3000.0),
                 },
             )
             .expect("a drink logs");
