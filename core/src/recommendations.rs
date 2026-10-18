@@ -18,6 +18,7 @@ pub struct Recommendations {
     pub goal_fat_ratio: f64,
     pub fuel: FuelTargets,
     pub usual_day: Volitional,
+    pub burn_target_kcal: Option<f64>,
 }
 
 /// The recommendations for a profile on a day.
@@ -63,6 +64,7 @@ pub fn recommended(
             standing_min: STANDING_MIN,
             moving_km: to_the_tenth(steps_a_day(age) * METRES_A_STEP / 1000.0),
         },
+        burn_target_kcal: None,
     }
 }
 
@@ -223,6 +225,27 @@ mod tests {
         assert_eq!(
             (moving_on("2026-10-10"), moving_on("2026-10-11")),
             (6.0, 4.5)
+        );
+    }
+
+    #[test]
+    fn the_burn_target_follows_whos_150_minutes_a_week_on_the_body_weighed_and_waits_for_a_weigh_in()
+     {
+        let burn_target_on = |body_mass_kg| {
+            recommended(
+                &born("1985-04-12", Gender::Male, 170.0),
+                day("2026-10-11"),
+                body_mass_kg,
+            )
+            .burn_target_kcal
+        };
+
+        assert_eq!(
+            (burn_target_on(Some(72.0)), burn_target_on(None)),
+            (
+                crate::burn_target::target_on(day("2026-10-11"), &[], Some(72.0)),
+                None
+            )
         );
     }
 }
