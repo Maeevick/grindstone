@@ -19,7 +19,7 @@ pub fn verdict_of(amount: f64, floor: f64, ceiling: f64) -> Verdict {
 }
 
 pub fn within_grace(_amount: f64, _floor: f64, _ceiling: f64) -> bool {
-    false
+    true
 }
 
 #[cfg(test)]
