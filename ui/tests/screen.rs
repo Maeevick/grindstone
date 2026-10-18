@@ -2333,6 +2333,27 @@ async fn the_burn_target_card_fills_from_the_recommendation_and_keeps_from_a_dat
 }
 
 #[wasm_bindgen_test]
+async fn before_any_weigh_in_the_burn_target_card_says_a_single_workout_holds_the_tick() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null, "hydrate_counted_on": true,
+             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "burn_target_on": null }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let card = text_of(&screen, "form.burn-target");
+    assert!(card.contains("a single workout holds the tick"), "{card}");
+}
+
+#[wasm_bindgen_test]
 async fn the_scientific_references_cite_each_source_under_its_topic_with_its_public_page() {
     answering(r#"{ "plugin:opener|open_url": null }"#);
     let screen = screen();
