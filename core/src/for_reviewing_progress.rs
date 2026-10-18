@@ -757,6 +757,33 @@ mod tests {
         }
 
         #[test]
+        fn hydrate_left_out_from_a_date_leaves_its_days_on_the_other_three_ticks() {
+            let records = a_man_at_his_desk();
+            for (from, counted) in [("2026-03-01", false), ("2026-10-10", true)] {
+                crate::for_setting_up_the_profile::set_hydrate_counted(
+                    &records.hydrate,
+                    &crate::for_setting_up_the_profile::HydrateCountedForm {
+                        from: from.into(),
+                        counted,
+                    },
+                )
+                .expect("a switch sets");
+            }
+            a_dry_day(&records, "2026-10-08", "Plate");
+            a_dry_day(&records, "2026-10-09", "Plate");
+            a_full_day(&records, "2026-10-10", "Plate");
+
+            let hydrated_on =
+                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
+
+            assert_eq!(
+                (hydrated_on("2026-10-09"), hydrated_on("2026-10-10")),
+                (None, Some(true))
+            );
+            assert_eq!(streak_on(&records, "2026-10-10").days, 3);
+        }
+
+        #[test]
         fn a_day_must_drink_inside_its_hydrate_band() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");

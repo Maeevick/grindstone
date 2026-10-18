@@ -161,6 +161,19 @@ pub fn set_hydrate_base(
     Ok(base_ml)
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HydrateCountedForm {
+    pub from: String,
+    pub counted: bool,
+}
+
+pub fn set_hydrate_counted(
+    _hydrate: &impl ForStoringHydrateRecords,
+    form: &HydrateCountedForm,
+) -> Result<bool, Failure> {
+    Ok(form.counted)
+}
+
 pub fn hydrate_base_on(
     gather: &impl ForStoringGatherRecords,
     hydrate: &impl ForStoringHydrateRecords,
