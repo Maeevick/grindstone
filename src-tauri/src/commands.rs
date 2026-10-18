@@ -1159,6 +1159,24 @@ mod tests {
     }
 
     #[test]
+    fn a_burn_target_kept_from_the_screen_stands_from_its_day_and_none_before_a_weigh_in() {
+        let (_app, screen) = launched();
+
+        let set = invoke(
+            &screen,
+            "set_burn_target",
+            json!({ "form": { "from": "2026-10-15", "kcal": 150.0 } }),
+        );
+        let in_force = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-20" }));
+        let before = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-10" }));
+
+        assert_eq!(
+            (set, in_force, before),
+            (Ok(json!(150.0)), Ok(json!(150.0)), Ok(json!(null)))
+        );
+    }
+
+    #[test]
     fn hydrate_left_out_from_the_screen_is_left_out_from_its_day() {
         let (_app, screen) = launched();
         let before = invoke(
