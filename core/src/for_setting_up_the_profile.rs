@@ -164,6 +164,27 @@ pub fn hydrate_counted_on(
     Ok(counted_on(day, &hydrate.hydrate_records()?.counted_from))
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BurnTargetForm {
+    pub from: String,
+    pub kcal: f64,
+}
+
+pub fn set_burn_target(
+    _burn: &impl ForStoringBurnRecords,
+    form: &BurnTargetForm,
+) -> Result<f64, Failure> {
+    Ok(form.kcal)
+}
+
+pub fn burn_target_on(
+    _gather: &impl ForStoringGatherRecords,
+    _burn: &impl ForStoringBurnRecords,
+    _date: &str,
+) -> Result<Option<f64>, Failure> {
+    Ok(None)
+}
+
 pub fn recommended_on(
     gather: &impl ForStoringGatherRecords,
     date: &str,
@@ -390,6 +411,39 @@ mod tests {
                 hydrate_counted_on(&hydrate, "2026-10-12")
             ),
             (Ok(true), Ok(false))
+        );
+    }
+
+    #[test]
+    fn a_burn_target_set_from_a_date_is_the_one_in_force_from_that_date() {
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 72.0, None)
+            .expect("a measurement logs");
+        set_burn_target(
+            &burn,
+            &BurnTargetForm {
+                from: "2026-10-15".into(),
+                kcal: 150.0,
+            },
+        )
+        .expect("a target sets");
+
+        assert_eq!(
+            (
+                burn_target_on(&gather, &burn, "2026-10-10"),
+                burn_target_on(&gather, &burn, "2026-10-20")
+            ),
+            (
+                Ok(crate::burn_target::target_on(
+                    NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
+                    &[],
+                    Some(72.0)
+                )),
+                Ok(Some(150.0))
+            )
         );
     }
 
