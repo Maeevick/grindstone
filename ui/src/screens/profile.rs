@@ -170,6 +170,7 @@ fn UsualDayCard() -> impl IntoView {
 fn BurnTargetCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let kcal = RwSignal::new(String::new());
+    let unweighed = RwSignal::new(false);
     let said = RwSignal::new(None::<String>);
     let fill = Callback::new(move |advised: Recommendations| {
         if let Some(target) = advised.burn_target_kcal {
@@ -177,8 +178,10 @@ fn BurnTargetCard() -> impl IntoView {
         }
     });
     spawn_local(async move {
-        if let Ok(Some(target)) = tauri::burn_target_on(&today()).await {
-            kcal.set(typed_back(target));
+        match tauri::burn_target_on(&today()).await {
+            Ok(Some(target)) => kcal.set(typed_back(target)),
+            Ok(None) => unweighed.set(true),
+            Err(_) => {}
         }
     });
     let save = move |event: leptos::ev::SubmitEvent| {
@@ -207,6 +210,11 @@ fn BurnTargetCard() -> impl IntoView {
             <h2>"The sweat the day owes"</h2>
             <p class="hint">{lines::BURN_TARGET_HINT}</p>
             <form class="burn-target" on:submit=save>
+                {move || {
+                    unweighed
+                        .get()
+                        .then(|| view! { <p class="hint">{lines::NO_WEIGH_IN_TO_PRICE_A_WORKOUT}</p> })
+                }}
                 <div class="row">
                     <DateField label="From" name="burn_target_from" value=from />
                     <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />

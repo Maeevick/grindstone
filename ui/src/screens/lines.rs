@@ -85,6 +85,9 @@ pub fn off_the_clock(burn: &Burn) -> &'static str {
 pub const BURN_TARGET_HINT: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. \
     Until you keep your own, WHO's 150 minutes a week of moderate activity, priced on your body.";
 
+pub const NO_WEIGH_IN_TO_PRICE_A_WORKOUT: &str = "No weigh-in yet, so no kcal to price a workout on: \
+    until then, a single workout holds the tick, a kcal will do.";
+
 pub const NO_TARGET_TYPED: &str = "A target in kilocalories, please, or 0 for any workout at all.";
 
 pub fn burn_target_kept(from: &str) -> String {
