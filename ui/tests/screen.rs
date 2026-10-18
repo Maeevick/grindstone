@@ -2251,7 +2251,7 @@ async fn the_danger_zone_erases_everything_once_erase_is_typed() {
 const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg": 70.308,
     "healthy_fat_ratio": [0.11, 0.22], "goal_fat_ratio": 0.165,
     "fuel": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.35 },
-    "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 } }"#;
+    "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "burn_target_kcal": 77.14 }"#;
 
 #[wasm_bindgen_test]
 async fn the_recommendation_fills_each_card_on_demand() {
@@ -2292,6 +2292,38 @@ async fn the_recommendation_fills_each_card_on_demand() {
         "{said}"
     );
     assert!(said.contains("not medical advice"), "{said}");
+}
+
+#[wasm_bindgen_test]
+async fn the_burn_target_card_fills_from_the_recommendation_and_keeps_from_a_date() {
+    answering(&format!(
+        r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null, "hydrate_counted_on": true,
+             "fuel_targets_on": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
+             "burn_target_on": null, "recommended_on": {RECOMMENDED}, "set_burn_target": 77.14 }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    clicked(&screen, ".burn-target button.recommend");
+    settled().await;
+    let filled = value_of(&screen, "burn_target");
+    typed_into(&screen, "burn_target_from", "2026-10-15");
+    found::<HtmlFormElement>(&screen, "form.burn-target")
+        .request_submit()
+        .expect("the target is kept");
+    settled().await;
+
+    assert_eq!(filled, "77.14");
+    assert!(asked("set_burn_target").contains(r#""kcal":77.14"#));
+    let said = text_of(&screen, "form.burn-target .said");
+    assert!(said.contains("kept from 2026-10-15"), "{said}");
 }
 
 #[wasm_bindgen_test]
