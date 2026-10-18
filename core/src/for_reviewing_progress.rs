@@ -544,8 +544,14 @@ mod tests {
             records
         }
 
+        const A_WALK_MINUTES: f64 = 1.0;
+
         fn a_full_day(records: &Records, date: &str, plate: &str) {
-            a_dry_day(records, date, plate);
+            a_full_day_walking(records, date, plate, A_WALK_MINUTES);
+        }
+
+        fn a_full_day_walking(records: &Records, date: &str, plate: &str, minutes: f64) {
+            a_dry_day_walking(records, date, plate, minutes);
             crate::for_hydrating::log_drink(
                 &records.gather,
                 &records.burn,
@@ -561,6 +567,10 @@ mod tests {
         }
 
         fn a_dry_day(records: &Records, date: &str, plate: &str) {
+            a_dry_day_walking(records, date, plate, A_WALK_MINUTES);
+        }
+
+        fn a_dry_day_walking(records: &Records, date: &str, plate: &str, minutes: f64) {
             log_measurement(&records.gather, date, 80.0, Some(80.0)).expect("a measurement logs");
             log_workout(
                 &records.gather,
@@ -568,7 +578,7 @@ mod tests {
                 &WorkoutForm {
                     date: date.into(),
                     exercise: "Walking".into(),
-                    minutes: Some(1.0),
+                    minutes: Some(minutes),
                     reps: None,
                     sets: Some(1),
                     load_kg: Some(0.0),
@@ -714,6 +724,21 @@ mod tests {
                     "2026-02-30"
                 ),
                 Err(Failure::Refused(Refusal::NotADate))
+            );
+        }
+
+        #[test]
+        fn a_day_burning_its_target_holds_the_workout_tick_and_a_stroll_short_of_it_does_not() {
+            let records = a_man_at_his_desk();
+            a_full_day_walking(&records, "2026-10-09", "Plate", 1.0);
+            a_full_day_walking(&records, "2026-10-10", "Plate", 30.0);
+
+            let worked_out_on =
+                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.worked_out);
+
+            assert_eq!(
+                (worked_out_on("2026-10-09"), worked_out_on("2026-10-10")),
+                (Some(false), Some(true))
             );
         }
 
