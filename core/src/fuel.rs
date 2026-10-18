@@ -84,6 +84,8 @@ pub struct Fuel {
     pub energy: Option<Verdict>,
     pub macros: Option<Macros>,
     pub budget: Option<Budget>,
+    #[serde(default)]
+    pub within_grace: bool,
 }
 
 const PROTEIN_KCAL_PER_G: f64 = 4.0;
@@ -275,6 +277,7 @@ impl Ledgers<'_> {
                 .map(|(band, _, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
             macros: banded.map(|(_, macros, _)| macros),
             budget: banded.map(|(_, _, budget)| budget),
+            within_grace: false,
         }
     }
 }
@@ -485,6 +488,35 @@ mod tests {
             (budget.kcal() + burnt - 48.5 * fat_kg).max(25.0 * lean_kg + burnt)
         )));
         assert_eq!(fuelled.budget, Some(budget));
+    }
+
+    #[test]
+    fn a_day_eaten_within_five_percent_over_its_cap_with_each_macro_in_its_band_is_within_grace() {
+        let (gather, burn) = (a_mans_records(80.0), a_desk_job());
+        let plate = a_food(170.0, 230.0, 80.0, 35.0);
+        let mut fuel = aiming();
+        eating(&mut fuel, "2026-10-10", &plate);
+        let cap_kcal = fuel_on("2026-10-10", &gather, &burn, &fuel)
+            .band
+            .map(|band| band.cap_kcal)
+            .expect("a band");
+        let mut richer = aiming();
+        eating(
+            &mut richer,
+            "2026-10-10",
+            &Food {
+                nutrients: Nutrients {
+                    energy_kcal: 1.03 * cap_kcal,
+                    ..plate.nutrients
+                },
+                ..plate
+            },
+        );
+
+        let fuelled = fuel_on("2026-10-10", &gather, &burn, &richer);
+
+        assert_eq!(fuelled.energy, Some(Verdict::High));
+        assert!(fuelled.within_grace);
     }
 
     #[test]
