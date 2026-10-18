@@ -212,7 +212,7 @@ fn FuelTargetsCard() -> impl IntoView {
         <section class="card">
             <h2>"How to feed the forge"</h2>
             <p class="hint">
-                "Grams per kilo of body mass a day: each is the floor of its band, which also asks for 20 to 33.3% of the day's energy (4% for fibre)."
+                "Grams per kilo of body mass a day: each is the floor of its band, which also asks for 20 to 33.3% of the day's energy (2.4 to 4% for fibre)."
             </p>
             <form class="fuel-targets" on:submit=save>
                 <div class="row">
