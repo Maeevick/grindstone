@@ -57,6 +57,7 @@ fn DrinkingsOfTheDay(
 ) -> impl IntoView {
     let total = lines::drunk_against_target(&of_the_day);
     let reached = of_the_day.verdict == Verdict::InBand;
+    let past_the_cap = of_the_day.verdict == Verdict::High;
     let dry = of_the_day.drinkings.is_empty();
     view! {
         <p class="figures" class:good=reached>
@@ -70,6 +71,7 @@ fn DrinkingsOfTheDay(
             shown_as=Figure::Volume
         />
         {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
+        {past_the_cap.then(|| view! { <p class="said">{lines::PAST_THE_CAP}</p> })}
         {dry.then(|| view! { <p class="empty">{lines::NO_DRINKING}</p> })}
         <table>
             <tbody>
