@@ -69,7 +69,7 @@ fn DrinkingsOfTheDay(
             shown_as=Figure::Volume
         />
         {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
-        {past_the_cap.then(|| view! { <p class="said">{lines::PAST_THE_CAP}</p> })}
+        {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
         {dry.then(|| view! { <p class="empty">{lines::NO_DRINKING}</p> })}
         <table>
             <tbody>
