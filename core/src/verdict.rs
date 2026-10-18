@@ -18,8 +18,12 @@ pub fn verdict_of(amount: f64, floor: f64, ceiling: f64) -> Verdict {
     }
 }
 
-pub fn within_grace(_amount: f64, _floor: f64, _ceiling: f64) -> bool {
-    true
+const GRACE: f64 = 0.05;
+
+/// Whether an amount holds its band once each bound gives way by 5% of itself: the streak's tolerance,
+/// the gauges keeping the strict band.
+pub fn within_grace(amount: f64, floor: f64, ceiling: f64) -> bool {
+    verdict_of(amount, floor * (1.0 - GRACE), ceiling * (1.0 + GRACE)) == Verdict::InBand
 }
 
 #[cfg(test)]
