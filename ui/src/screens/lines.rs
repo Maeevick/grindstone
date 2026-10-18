@@ -204,6 +204,9 @@ pub fn failure(failure: &Failure) -> String {
              that boils down, 1 for what keeps its mass."
                 .into()
         }
+        Failure::Refused(Refusal::NotAnEnergy) => {
+            "That is no amount of sweat I can file: kilocalories, from nothing up.".into()
+        }
         Failure::Refused(Refusal::NotWeighed) => {
             "That ingredient is counted in pieces, and the lab cooks by mass: add it in grams or \
              millilitres for now."

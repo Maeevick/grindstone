@@ -457,6 +457,47 @@ mod tests {
     }
 
     #[test]
+    fn a_burn_target_below_nothing_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
+        let target = |from: &str, kcal: f64| BurnTargetForm {
+            from: from.into(),
+            kcal,
+        };
+        let burn = crate::testing::BurnRecordsInMemory::default();
+
+        assert_eq!(
+            set_burn_target(&burn, &target("2026-10-15", -10.0)),
+            Err(Failure::Refused(Refusal::NotAnEnergy))
+        );
+        assert_eq!(
+            set_burn_target(&burn, &target("2026-02-30", 150.0)),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            burn_target_on(&GatherRecordsInMemory::default(), &burn, "2026-02-30"),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
+        assert_eq!(
+            set_burn_target(
+                &crate::testing::BrokenBurnRecords,
+                &target("2026-10-15", 150.0)
+            ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+        assert_eq!(
+            burn_target_on(&BrokenGatherRecords, &burn, "2026-10-15"),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+        assert_eq!(
+            burn_target_on(
+                &GatherRecordsInMemory::default(),
+                &crate::testing::BrokenBurnRecords,
+                "2026-10-15"
+            ),
+            Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
     fn a_hydrate_switch_on_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
         let left_out_on = |from: &str| HydrateCountedForm {
             from: from.into(),

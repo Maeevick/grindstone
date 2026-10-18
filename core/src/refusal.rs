@@ -27,4 +27,5 @@ pub enum Refusal {
     NotAProfile,
     NotACookingRatio,
     NotWeighed,
+    NotAnEnergy,
 }
