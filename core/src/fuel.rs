@@ -12,7 +12,7 @@ use crate::intake::Intake;
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
 pub use crate::verdict::Verdict;
-use crate::verdict::{verdict_of, within_grace};
+use crate::verdict::{GRACE, verdict_of, within_grace};
 use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
 
@@ -204,28 +204,39 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: f64) -> MacroRow {
 /// - The fibre floor from its target per kilo, at least 2.4% of the energy eaten and at most 4%, after the
 ///   Institute of Medicine's 14 g per 1000 kcal (2005).
 /// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g (2005).
-fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
+///
+/// Each bound gives way by `give` of itself: nothing for the gauges, the streak's grace for its tick, the carbs
+/// filling the energy band given way alike.
+fn macros_for(
+    eaten: Nutrients,
+    body: &Body,
+    targets: FuelTargets,
+    band: Band,
+    give: f64,
+) -> Macros {
     let energy = eaten.energy_kcal;
+    let (under, over) = (1.0 - give, 1.0 + give);
     let protein = row(
         eaten.protein_g,
-        (targets.protein_g_per_kg * body.mass_kg).max(0.20 * energy / PROTEIN_KCAL_PER_G),
-        0.333 * energy / PROTEIN_KCAL_PER_G,
+        under * (targets.protein_g_per_kg * body.mass_kg).max(0.20 * energy / PROTEIN_KCAL_PER_G),
+        over * 0.333 * energy / PROTEIN_KCAL_PER_G,
     );
     let fat = row(
         eaten.fat_g,
-        (targets.fat_g_per_kg * body.mass_kg).max(0.20 * energy / FAT_KCAL_PER_G),
-        0.333 * energy / FAT_KCAL_PER_G,
+        under * (targets.fat_g_per_kg * body.mass_kg).max(0.20 * energy / FAT_KCAL_PER_G),
+        over * 0.333 * energy / FAT_KCAL_PER_G,
     );
     let fibre = row(
         eaten.fibre_g,
-        (targets.fibre_g_per_kg * body.mass_kg).max(0.024 * energy / FIBRE_KCAL_PER_G),
-        0.04 * energy / FIBRE_KCAL_PER_G,
+        under * (targets.fibre_g_per_kg * body.mass_kg).max(0.024 * energy / FIBRE_KCAL_PER_G),
+        over * 0.04 * energy / FIBRE_KCAL_PER_G,
     );
     let spent_kcal = protein.floor_g.max(eaten.protein_g) * PROTEIN_KCAL_PER_G
         + fat.floor_g.max(eaten.fat_g) * FAT_KCAL_PER_G
         + fibre.floor_g.max(eaten.fibre_g) * FIBRE_KCAL_PER_G;
-    let carbs_floor = ((band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor_g(body));
-    let carbs_ceiling = ((band.cap_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor);
+    let carbs_floor = ((under * band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G)
+        .max(under * carbs_floor_g(body));
+    let carbs_ceiling = ((over * band.cap_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor);
     Macros {
         protein,
         fat,
@@ -266,22 +277,29 @@ impl Ledgers<'_> {
                 deficit_before(day, gaps),
                 digested((!intakes.is_empty()).then_some(eaten), &body, targets),
             );
-            (band, macros_for(eaten, &body, targets, band), budget)
+            let graced = macros_for(eaten, &body, targets, band, GRACE);
+            (
+                band,
+                macros_for(eaten, &body, targets, band, 0.0),
+                budget,
+                graced,
+            )
         });
         Fuel {
             day,
             intakes,
             eaten,
-            band: banded.map(|(band, _, _)| band),
-            energy: banded
-                .map(|(band, _, _)| verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)),
-            macros: banded.map(|(_, macros, _)| macros),
-            budget: banded.map(|(_, _, budget)| budget),
-            within_grace: banded.is_some_and(|(band, macros, _)| {
+            band: banded.map(|(band, _, _, _)| band),
+            energy: banded.map(|(band, _, _, _)| {
+                verdict_of(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)
+            }),
+            macros: banded.map(|(_, macros, _, _)| macros),
+            budget: banded.map(|(_, _, budget, _)| budget),
+            within_grace: banded.is_some_and(|(band, _, _, graced)| {
                 within_grace(eaten.energy_kcal, band.floor_kcal, band.cap_kcal)
-                    && [macros.protein, macros.fat, macros.fibre, macros.carbs]
+                    && [graced.protein, graced.fat, graced.fibre, graced.carbs]
                         .iter()
-                        .all(|row| within_grace(row.eaten_g, row.floor_g, row.ceiling_g))
+                        .all(|row| row.verdict == Verdict::InBand)
             }),
         }
     }
