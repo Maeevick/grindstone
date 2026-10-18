@@ -8,7 +8,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::{Fuel, Verdict, fuel_over};
+use crate::fuel::{Fuel, fuel_over};
 use crate::hydrate::hydrate_over;
 use crate::hydrate_counted::counted_on;
 use crate::ledger::Day;
@@ -18,6 +18,7 @@ use crate::refusal::Refusal;
 use crate::stats::{Measure, Summary, correlation, paired, summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
+use crate::verdict::within_grace;
 use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,24 +111,20 @@ pub fn streak(
                             .iter()
                             .any(|measured| measured.day == *day),
                     ),
-                    fuelled: Some(in_band(&fuelled_day)),
+                    fuelled: Some(fuelled_day.within_grace),
                     worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
-                    hydrated: counted_on(*day, &hydrated.counted_from)
-                        .then(|| hydrated_day.verdict == Verdict::InBand),
+                    hydrated: counted_on(*day, &hydrated.counted_from).then(|| {
+                        within_grace(
+                            hydrated_day.drunk_ml,
+                            hydrated_day.floor_ml,
+                            hydrated_day.cap_ml,
+                        )
+                    }),
                 },
             )
         })
         .collect();
     Ok(streak_of(&ticked, today))
-}
-
-fn in_band(fuelled: &Fuel) -> bool {
-    fuelled.energy == Some(Verdict::InBand)
-        && fuelled.macros.is_some_and(|macros| {
-            [macros.protein, macros.fat, macros.fibre, macros.carbs]
-                .iter()
-                .all(|row| row.verdict == Verdict::InBand)
-        })
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
