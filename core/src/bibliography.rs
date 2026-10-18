@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 23] = [
+pub const REFERENCES: [Reference; 27] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -246,7 +246,45 @@ pub const REFERENCES: [Reference; 23] = [
         title: "Scientific Opinion on Dietary Reference Values for water",
         published_in: "EFSA Journal 8(3):1459",
         page: Some("https://doi.org/10.2903/j.efsa.2010.1459"),
-        used_for: "Water of 2.5 L a day for men and 2.0 L for women, four fifths of it from drinks",
+        used_for: "Before a lean mass is known, water of 2.5 L a day for men and 2.0 L for women, four fifths of it from drinks",
+    },
+    Reference {
+        topic: Topic::Water,
+        authors: "Wang Z., Deurenberg P., Wang W., et al.",
+        year: 1999,
+        title: "Hydration of fat-free body mass: new physiological modeling approach",
+        published_in: "American Journal of Physiology, Endocrinology and Metabolism 276(6):E995-E1003",
+        page: Some("https://doi.org/10.1152/ajpendo.1999.276.6.E995"),
+        used_for: "Lean mass holding 73.2% water, the water a body turns over being drawn from it",
+    },
+    Reference {
+        topic: Topic::Water,
+        authors: "Yamada Y., Zhang X., Henderson M. E. T., et al.",
+        year: 2022,
+        title: "Variation in human water turnover associated with environmental and lifestyle factors",
+        published_in: "Science 378(6622):909-915",
+        page: Some("https://doi.org/10.1126/science.abm8668"),
+        used_for: "The day's target: about 7% of the body's water turned over a day, nine tenths of it from drinks",
+    },
+    Reference {
+        topic: Topic::Water,
+        authors: "Westerterp K. R., Plasqui G., Goris A. H. C.",
+        year: 2005,
+        title: "Water loss as a function of energy intake, physical activity and season",
+        published_in: "British Journal of Nutrition 93(2):199-203",
+        page: Some(
+            "https://www.cambridge.org/core/journals/british-journal-of-nutrition/article/water-loss-as-a-function-of-energy-intake-physical-activity-and-season/51D08EEA77F1019DD393667429046510",
+        ),
+        used_for: "The floor of a millilitre per kcal spent, and 1.25 mL per kcal burnt in the target",
+    },
+    Reference {
+        topic: Topic::Water,
+        authors: "Joo M. A., Kim E. Y.",
+        year: 2013,
+        title: "Hyponatremia caused by excessive intake of water as a form of child abuse",
+        published_in: "Annals of Pediatric Endocrinology & Metabolism 18(2):95-98",
+        page: Some("https://doi.org/10.6065/apem.2013.18.2.95"),
+        used_for: "Kidneys clearing no more than 0.8 to 1 L of water an hour, the reason to spread the cups out",
     },
 ];
 
@@ -262,7 +300,7 @@ mod tests {
             .map(|topic| references_about(*topic).len())
             .sum();
 
-        assert_eq!(water.len(), 1);
+        assert_eq!(water.len(), 5);
         assert!(
             water
                 .iter()

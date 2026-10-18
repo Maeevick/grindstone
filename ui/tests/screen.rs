@@ -2317,7 +2317,7 @@ async fn the_scientific_references_cite_each_source_under_its_topic_with_its_pub
         .unwrap_or_default();
     let ranges: Element = found(&screen, "section#healthy-ranges");
     let cited = ranges.text_content().unwrap_or_default();
-    assert_eq!((topics, pages), (6, 21));
+    assert_eq!((topics, pages), (6, 25));
     assert!(
         cited.contains("Gallagher D.")
             && cited.contains("American Journal of Clinical Nutrition 72(3):694-701"),
