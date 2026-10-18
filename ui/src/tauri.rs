@@ -16,7 +16,7 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
@@ -184,6 +184,14 @@ pub async fn set_usual_day(form: &UsualDayForm) -> Result<Volitional, Failure> {
 
 pub async fn usual_day_on(date: &str) -> Result<Option<Volitional>, Failure> {
     call("usual_day_on", OnDay { date }, broken).await
+}
+
+pub async fn set_burn_target(form: &BurnTargetForm) -> Result<f64, Failure> {
+    call("set_burn_target", Form { form }, broken).await
+}
+
+pub async fn burn_target_on(date: &str) -> Result<Option<f64>, Failure> {
+    call("burn_target_on", OnDay { date }, broken).await
 }
 
 pub async fn fuel_day(date: &str) -> Result<Fuel, Failure> {

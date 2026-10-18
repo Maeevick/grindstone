@@ -1,7 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
-    FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
 };
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
@@ -158,6 +158,62 @@ fn UsualDayCard() -> impl IntoView {
                 <Recommend fill=fill said=said />
                 <button class="cta" type="submit">
                     "Keep this usual day"
+                </button>
+                <ReferencesLink topic=Topic::Activity />
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
+        </section>
+    }
+}
+
+#[component]
+fn BurnTargetCard() -> impl IntoView {
+    let from = RwSignal::new(today());
+    let kcal = RwSignal::new(String::new());
+    let said = RwSignal::new(None::<String>);
+    let fill = Callback::new(move |advised: Recommendations| {
+        if let Some(target) = advised.burn_target_kcal {
+            kcal.set(typed_back(target));
+        }
+    });
+    spawn_local(async move {
+        if let Ok(Some(target)) = tauri::burn_target_on(&today()).await {
+            kcal.set(typed_back(target));
+        }
+    });
+    let save = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let Some([typed]) = figures_typed([&kcal.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let Some(kcal) = typed else {
+            said.set(Some(lines::NO_TARGET_TYPED.into()));
+            return;
+        };
+        let form = BurnTargetForm {
+            from: from.get_untracked(),
+            kcal,
+        };
+        spawn_local(async move {
+            said.set(Some(match tauri::set_burn_target(&form).await {
+                Ok(_) => lines::burn_target_kept(&form.from),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card">
+            <h2>"The sweat the day owes"</h2>
+            <p class="hint">{lines::BURN_TARGET_HINT}</p>
+            <form class="burn-target" on:submit=save>
+                <div class="row">
+                    <DateField label="From" name="burn_target_from" value=from />
+                    <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />
+                </div>
+                <Recommend fill=fill said=said />
+                <button class="cta" type="submit">
+                    "Keep this target"
                 </button>
                 <ReferencesLink topic=Topic::Activity />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
@@ -334,6 +390,7 @@ pub fn ProfileScreen() -> impl IntoView {
         <FuelTargetsCard />
         <HydrateCountedCard />
         <UsualDayCard />
+        <BurnTargetCard />
         <p class="hint disclaimer">{lines::RECOMMENDATIONS_DISCLAIMER}</p>
     }
 }

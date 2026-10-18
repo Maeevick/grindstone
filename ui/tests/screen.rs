@@ -204,13 +204,19 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_it
     });
     settled().await;
 
-    for card in [".goals", ".fuel-targets", ".usual-day"] {
+    for card in [".goals", ".fuel-targets", ".usual-day", ".burn-target"] {
         found::<Element>(
             &screen,
             &format!("{card} button.recommend ~ button[type=submit]"),
         );
     }
-    for card in [".goals", ".fuel-targets", ".hydrate-counted", ".usual-day"] {
+    for card in [
+        ".goals",
+        ".fuel-targets",
+        ".hydrate-counted",
+        ".usual-day",
+        ".burn-target",
+    ] {
         found::<Element>(
             &screen,
             &format!("{card} button[type=submit] ~ a.references"),

@@ -82,6 +82,15 @@ pub fn off_the_clock(burn: &Burn) -> &'static str {
     }
 }
 
+pub const BURN_TARGET_HINT: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. \
+    Until you keep your own, WHO's 150 minutes a week of moderate activity, priced on your body.";
+
+pub const NO_TARGET_TYPED: &str = "A target in kilocalories, please, or 0 for any workout at all.";
+
+pub fn burn_target_kept(from: &str) -> String {
+    format!("Filed: the day's burn target is kept from {from}.")
+}
+
 pub fn usual_day_kept(from: &str) -> String {
     format!("Filed: the usual day off the clock is kept from {from}.")
 }
