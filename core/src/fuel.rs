@@ -199,7 +199,8 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: f64) -> MacroRow {
 /// - Protein and fat floors from the targets per kilo, each at least 20% of the energy eaten and at most 33.3%,
 ///   within EFSA's 20 to 35% for fat (2010) and the ISSN's 1.4 to 2.0 g/kg for protein: Jäger R. et al. (2017),
 ///   J Int Soc Sports Nutr 14:20.
-/// - Fibre between 2.4% and 4% of the energy eaten, after the Institute of Medicine's 14 g per 1000 kcal (2005).
+/// - The fibre floor from its target per kilo, at least 2.4% of the energy eaten and at most 4%, after the
+///   Institute of Medicine's 14 g per 1000 kcal (2005).
 /// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g (2005).
 fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
     let energy = eaten.energy_kcal;
