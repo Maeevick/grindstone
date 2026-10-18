@@ -2,9 +2,10 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check test-ui mutants android import-draft-android
+.PHONY: help dev test check test-ui mutants mutants-all android import-draft-android
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+BASE ?= origin/main
 DRAFT_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-draft.json
 TEST_SUPPORT := core/src/testing\.rs
 WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri|screens)|ui/src/screens/[a-z_]+)\.rs
@@ -27,8 +28,13 @@ check: ## formatting, lints, tests and no uncovered line outside the wiring and 
 test-ui: ## the screen's tests in a headless Chrome, driven by the ChromeDriver of the installed Chrome rather than the newest
 	driver=$$(scripts/chromedriver-for-installed-chrome) && wasm-pack test --headless --chrome --chromedriver "$$driver" ui
 
-mutants: ## mutation testing of the core, at the end of a slice
-	cargo mutants -p grind-core
+mutants: ## mutation testing of the core lines changed since BASE (origin/main: what is not pushed yet), four at a time, at the end of a slice
+	mkdir -p target
+	git diff $(BASE) -- core > target/mutants.diff
+	cargo mutants -p grind-core --in-diff target/mutants.diff --jobs 4
+
+mutants-all: ## mutation testing of the whole core, four at a time, for an occasional sweep
+	cargo mutants -p grind-core --jobs 4
 
 android: ## build the release APK and install it on the phone plugged over USB, keeping its data
 	cargo tauri android build --apk --target aarch64
