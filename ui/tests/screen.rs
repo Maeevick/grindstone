@@ -1994,6 +1994,27 @@ async fn the_history_marks_each_day_with_its_streak_dot_under_headers_holding_th
     found::<Element>(&screen, ".history .legend .dot.Success");
 }
 
+#[wasm_bindgen_test]
+async fn a_history_row_tapped_shows_its_days_four_ticks() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
+                {{ "day": "2026-10-10", "body_mass_kg": 80.0, "lean_mass_kg": 70.7, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }},
+                {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    clicked(&screen, ".history tbody tr:nth-child(2)");
+    settled().await;
+
+    let detail = text_of(&screen, ".history tbody tr.ticks");
+    assert!(detail.contains("a joker"), "{detail}");
+    for tick in ["⚖️ ✓", "⚡ ✗", "💧 ✓", "🔥 ✓"] {
+        assert!(detail.contains(tick), "{tick} in {detail}");
+    }
+}
+
 const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_kg": 70.0, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
     "gather_chart": { "masses": [["2026-10-09", 80.2], ["2026-10-10", 80.0]], "lean_masses": [["2026-10-09", 70.9], ["2026-10-10", 70.7]],
                       "goal_kg": 70.0, "goal_lean_kg": 63.0 },
