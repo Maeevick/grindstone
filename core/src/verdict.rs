@@ -18,7 +18,7 @@ pub fn verdict_of(amount: f64, floor: f64, ceiling: f64) -> Verdict {
     }
 }
 
-pub const GRACE: f64 = 0.05;
+const GRACE: f64 = 0.05;
 
 /// Whether an amount holds its band once each bound gives way by 5% of itself: the streak's tolerance,
 /// the gauges keeping the strict band.
