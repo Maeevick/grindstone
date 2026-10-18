@@ -2,6 +2,8 @@ use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::burn::burn_on;
+use crate::burn_records::BurnRecords;
+use crate::burn_target::target_on;
 use crate::composition::Composition;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
@@ -13,6 +15,7 @@ use crate::hydrate::hydrate_over;
 use crate::hydrate_counted::counted_on;
 use crate::ledger::Day;
 use crate::ledger::ledger;
+use crate::measurement::Measurement;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
 use crate::stats::{Measure, Summary, correlation, paired, summary};
@@ -112,7 +115,7 @@ pub fn streak(
                             .any(|measured| measured.day == *day),
                     ),
                     fuelled: Some(fuelled_day.within_grace),
-                    worked_out: Some(burnt.workouts.iter().any(|(_, done)| done.day == *day)),
+                    worked_out: Some(worked_out(*day, &burnt, &gathered.measurements)),
                     hydrated: counted_on(*day, &hydrated.counted_from).then(|| {
                         within_grace(
                             hydrated_day.drunk_ml,
@@ -125,6 +128,19 @@ pub fn streak(
         })
         .collect();
     Ok(streak_of(&ticked, today))
+}
+
+/// A day's workouts reach its burn target; before any weigh-in prices them, a single workout will do.
+fn worked_out(day: NaiveDate, burnt: &BurnRecords, measurements: &[Measurement]) -> bool {
+    let burn = burn_on(day, burnt, measurements);
+    !burn.workouts.is_empty()
+        && match (
+            burn.burnt_kcal,
+            target_on(day, &burnt.targets, burn.body_mass_kg),
+        ) {
+            (Some(kcal), Some(target)) => kcal >= target,
+            _ => true,
+        }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -544,7 +560,7 @@ mod tests {
             records
         }
 
-        const A_WALK_MINUTES: f64 = 1.0;
+        const A_WALK_MINUTES: f64 = 30.0;
 
         fn a_full_day(records: &Records, date: &str, plate: &str) {
             a_full_day_walking(records, date, plate, A_WALK_MINUTES);
