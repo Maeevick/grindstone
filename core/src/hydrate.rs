@@ -89,7 +89,9 @@ fn hydrated(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gender::Gender;
     use crate::measurement::Measurement;
+    use crate::profile::Profile;
     use crate::workout::Workout;
 
     fn day(date: &str) -> NaiveDate {
@@ -146,6 +148,53 @@ mod tests {
             }],
             ..GatherRecords::default()
         }
+    }
+
+    fn a_man_measured_with_his_waist() -> GatherRecords {
+        GatherRecords {
+            measurements: vec![Measurement {
+                day: day("2026-10-01"),
+                body_mass_kg: 80.0,
+                waist_cm: Some(85.0),
+            }],
+            profiles: vec![(
+                day("2026-03-01"),
+                Profile {
+                    birthday: day("1985-04-12"),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )],
+            goals: vec![],
+        }
+    }
+
+    fn lean_mass_kg_of(gather: &GatherRecords) -> f64 {
+        crate::ledger::ledger(&gather.measurements, &gather.profiles)
+            .iter()
+            .find_map(|measured| measured.composition)
+            .map(|composition| composition.lean_mass_kg)
+            .expect("a lean mass read from the tapes")
+    }
+
+    #[test]
+    fn a_day_aims_for_ninety_percent_of_its_lean_mass_water_turnover_and_a_millilitre_and_a_quarter_per_kcal_burnt()
+     {
+        let gather = a_man_measured_with_his_waist();
+
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &gather,
+            &walked_an_hour("2026-10-10"),
+            &FuelRecords::default(),
+        );
+
+        let optimal_ml = 0.9 * (lean_mass_kg_of(&gather) * 0.732 * 0.07 * 1000.0 + 1.25 * 252.0);
+        assert!(about(hydrate.target_ml, optimal_ml));
+        assert!(about(hydrate.cap_ml, 1.2 * optimal_ml));
     }
 
     #[test]
