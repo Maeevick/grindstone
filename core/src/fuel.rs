@@ -525,6 +525,40 @@ mod tests {
     }
 
     #[test]
+    fn carbs_take_their_grace_from_the_energy_band_they_fill() {
+        let (gather, burn) = (a_mans_records(80.0), a_desk_job());
+        let plate = a_food(170.0, 230.0, 80.0, 35.0);
+        let mut fuel = aiming();
+        eating(&mut fuel, "2026-10-10", &plate);
+        let cap_kcal = fuel_on("2026-10-10", &gather, &burn, &fuel)
+            .band
+            .map(|band| band.cap_kcal)
+            .expect("a band");
+        let spent_kcal = 4.0 * 170.0 + 9.0 * 80.0 + 2.0 * 35.0;
+        let past_their_own_grace = 1.05 * (cap_kcal - spent_kcal) / 4.0;
+        let within_the_graced_band = (1.05 * cap_kcal - spent_kcal) / 4.0;
+        let mut carbier = aiming();
+        eating(
+            &mut carbier,
+            "2026-10-10",
+            &Food {
+                nutrients: Nutrients {
+                    energy_kcal: cap_kcal,
+                    carbs_g: (past_their_own_grace + within_the_graced_band) / 2.0,
+                    ..plate.nutrients
+                },
+                ..plate
+            },
+        );
+
+        let fuelled = fuel_on("2026-10-10", &gather, &burn, &carbier);
+
+        let carbs = fuelled.macros.map(|macros| macros.carbs).expect("macros");
+        assert!(carbs.eaten_g > 1.05 * carbs.ceiling_g);
+        assert!(fuelled.within_grace);
+    }
+
+    #[test]
     fn once_eaten_digestion_is_priced_on_the_grams_eaten() {
         let mut fuel = aiming();
         let before = fuel_on("2026-10-10", &a_mans_records(80.0), &a_desk_job(), &fuel);
