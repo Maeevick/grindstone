@@ -16,7 +16,7 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    FuelTargetsForm, GoalsForm, HydrateBaseForm, ProfileForm, UsualDayForm,
+    FuelTargetsForm, GoalsForm, HydrateBaseForm, HydrateCountedForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
@@ -393,4 +393,12 @@ pub async fn set_hydrate_base(form: &HydrateBaseForm) -> Result<f64, Failure> {
 
 pub async fn hydrate_base_on(date: &str) -> Result<HydrateBase, Failure> {
     call("hydrate_base_on", OnDay { date }, broken).await
+}
+
+pub async fn set_hydrate_counted(form: &HydrateCountedForm) -> Result<bool, Failure> {
+    call("set_hydrate_counted", Form { form }, broken).await
+}
+
+pub async fn hydrate_counted_on(date: &str) -> Result<bool, Failure> {
+    call("hydrate_counted_on", OnDay { date }, broken).await
 }

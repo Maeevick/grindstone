@@ -3,7 +3,7 @@ use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
-use grind_core::for_setting_up_the_profile::HydrateBaseForm;
+use grind_core::for_setting_up_the_profile::{HydrateBaseForm, HydrateCountedForm};
 use grind_core::hydrate::Hydrate;
 use grind_core::recommendations::Recommendations;
 use grind_core::verdict::Verdict;
@@ -304,9 +304,68 @@ pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) 
     }
 }
 
+const SWITCHES: [(bool, &str, &str); 2] = [
+    (true, "Counted", "counted"),
+    (false, "Left out", "left-out"),
+];
+
 #[component]
 pub fn HydrateCountedCard() -> impl IntoView {
-    view! { <section class="card"></section> }
+    let from = RwSignal::new(today());
+    let counted = RwSignal::new(true);
+    let said = RwSignal::new(None::<String>);
+    spawn_local(async move {
+        if let Ok(in_force) = tauri::hydrate_counted_on(&today()).await {
+            counted.set(in_force);
+        }
+    });
+    let save = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let form = HydrateCountedForm {
+            from: from.get_untracked(),
+            counted: counted.get_untracked(),
+        };
+        spawn_local(async move {
+            said.set(Some(match tauri::set_hydrate_counted(&form).await {
+                Ok(true) => lines::hydrate_counted_from(&form.from),
+                Ok(false) => lines::hydrate_left_out_from(&form.from),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card">
+            <h2>"Hydrate the material"</h2>
+            <form class="hydrate-counted" on:submit=save>
+                <p class="hint">{lines::HYDRATE_COUNTED_HINT}</p>
+                <div class="row">
+                    <DateField label="From" name="hydrate_counted_from" value=from />
+                </div>
+                <div class="pills">
+                    {SWITCHES
+                        .into_iter()
+                        .map(|(on, label, named)| {
+                            view! {
+                                <button
+                                    type="button"
+                                    class=format!("pill {named}")
+                                    class:chosen=move || counted.get() == on
+                                    on:click=move |_| counted.set(on)
+                                >
+                                    {label}
+                                </button>
+                            }
+                        })
+                        .collect_view()}
+                </div>
+                <button class="cta" type="submit">
+                    "Keep from this day"
+                </button>
+                <ReferencesLink topic=Topic::Water />
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
+        </section>
+    }
 }
 
 #[component]

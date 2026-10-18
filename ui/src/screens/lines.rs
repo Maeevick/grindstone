@@ -402,6 +402,17 @@ pub const NO_DRINKING: &str =
 pub const NO_BASE_TYPED: &str =
     "A base in millilitres, please, or 0 to leave Hydrate out of the streak from that day.";
 
+pub const HYDRATE_COUNTED_HINT: &str = "The band follows your lean mass and the day's burn, food \
+    bringing a tenth of the water. Leave Hydrate out of the streak from a day your drinks went unfiled.";
+
+pub fn hydrate_counted_from(from: &str) -> String {
+    format!("Filed. Hydrate counts in the streak from {from}.")
+}
+
+pub fn hydrate_left_out_from(from: &str) -> String {
+    format!("Filed. Hydrate stays out of the streak from {from}.")
+}
+
 pub fn hydrate_base_kept(from: &str) -> String {
     format!("Filed. This base is kept from {from}.")
 }

@@ -128,7 +128,7 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
-             "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#,
+             "hydrate_counted_on": true }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -187,11 +187,12 @@ async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
 }
 
 #[wasm_bindgen_test]
-async fn each_card_offers_its_recommendation_above_its_keeping_and_its_references_below() {
+async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_its_references_below()
+{
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
-             "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#,
+             "hydrate_counted_on": true }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -203,11 +204,13 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_its_reference
     });
     settled().await;
 
-    for card in [".goals", ".fuel-targets", ".hydrate-base", ".usual-day"] {
+    for card in [".goals", ".fuel-targets", ".usual-day"] {
         found::<Element>(
             &screen,
             &format!("{card} button.recommend ~ button[type=submit]"),
         );
+    }
+    for card in [".goals", ".fuel-targets", ".hydrate-counted", ".usual-day"] {
         found::<Element>(
             &screen,
             &format!("{card} button[type=submit] ~ a.references"),
@@ -2333,7 +2336,7 @@ async fn the_recommendation_fills_each_card_on_demand() {
     answering(&format!(
         r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
              "goals_on": null, "fuel_targets_on": {{ "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
-             "usual_day_on": null, "hydrate_base_on": {{ "base_ml": 2000.0, "is_default": true }},
+             "usual_day_on": null, "hydrate_counted_on": true,
              "recommended_on": {RECOMMENDED} }}"#
     ));
     let screen = screen();
@@ -2346,7 +2349,7 @@ async fn the_recommendation_fills_each_card_on_demand() {
     });
     settled().await;
 
-    for card in [".goals", ".fuel-targets", ".hydrate-base", ".usual-day"] {
+    for card in [".goals", ".fuel-targets", ".usual-day"] {
         found::<web_sys::HtmlElement>(&screen, &format!("{card} button.recommend")).click();
     }
     settled().await;
@@ -2405,7 +2408,7 @@ async fn each_profile_card_points_to_its_scientific_references() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
-             "hydrate_base_on": { "base_ml": 2000.0, "is_default": true } }"#,
+             "hydrate_counted_on": true }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -2448,7 +2451,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     answering(&format!(
         r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
-             "hydrate_base_on": {{ "base_ml": 2000.0, "is_default": true }},
+             "hydrate_counted_on": true,
              "foods": [], "meals": [], "exercises": [], "circuits": [], "priced_circuits": [],
              "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
              "plugin:opener|open_url": null, "explore": {TWO_MEASURES_EXPLORED} }}"#
