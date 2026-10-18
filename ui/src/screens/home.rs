@@ -143,6 +143,7 @@ fn StreakCard() -> impl IntoView {
                         held=Signal::derive(move || ticks.get().and_then(|ticks| ticks.worked_out))
                     />
                 </div>
+                <p class="hint">{lines::STREAK_GRACE}</p>
             </div>
         </section>
     }

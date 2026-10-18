@@ -314,6 +314,9 @@ pub fn longest_streak(longest: u32) -> String {
     format!("(longest: {})", days_counted(longest))
 }
 
+pub const STREAK_GRACE: &str = "Each tick holds within 5% of its band, a mercy the Tracker's gauges \
+    never show. Aim for the gauges: the 5% is for the days that wobble.";
+
 pub fn streak_remark(streak: &Streak) -> &'static str {
     if streak.at_risk {
         "Yesterday was a joker: today must be complete, or the streak goes back to the archive."
