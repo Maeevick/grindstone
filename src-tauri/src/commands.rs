@@ -892,6 +892,25 @@ mod tests {
     }
 
     #[test]
+    fn a_plate_logged_from_the_screen_answers_the_days_fuel_with_an_intake_per_ingredient() {
+        let (_app, screen) = launched();
+        with_skyr_in_the_catalog(&screen).expect("a food adds");
+
+        let fuel = invoke(
+            &screen,
+            "log_plate",
+            json!({ "form": { "date": "2026-10-10", "ingredients": [
+                { "food": "Skyr", "quantity": 200.0, "cooked_per_raw": null },
+                { "food": "Skyr", "quantity": 50.0, "cooked_per_raw": null } ] } }),
+        );
+
+        assert_eq!(
+            fuel.map(|fuel| fuel["eaten"]["energy_kcal"].clone()),
+            Ok(json!(135.0))
+        );
+    }
+
+    #[test]
     fn foods_added_and_removed_from_the_screen_answer_the_catalog() {
         let (_app, screen) = launched();
 
