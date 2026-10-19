@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::fuel::Fuel;
+use crate::fuel::{Band, Fuel, MacroRow, Macros};
 use crate::sharpening::Habit;
-use crate::week::Averaged;
+use crate::week::{Averaged, Banded, averaged};
 
 /// What the week ate, a day, over the days a band judged: the energy and each of the four macros against
 /// their bands.
@@ -26,31 +26,66 @@ pub struct Gap {
 impl FuelWeek {
     /// What runs short of its band, furthest first by the share of its floor it misses.
     pub fn short(&self) -> Vec<Gap> {
-        vec![]
+        self.off_band(|gap| gap < 0.0, |row| row.floor)
     }
 
     /// What runs over its band, furthest first by the share of its ceiling it passes.
     pub fn over(&self) -> Vec<Gap> {
-        vec![]
+        self.off_band(|gap| gap > 0.0, |row| row.ceiling)
+    }
+
+    fn off_band(&self, side: fn(f64) -> bool, bound: fn(&Averaged) -> f64) -> Vec<Gap> {
+        let mut off: Vec<(Gap, f64)> = [
+            (Habit::Energy, self.energy),
+            (Habit::Protein, self.protein),
+            (Habit::Fat, self.fat),
+            (Habit::Fibre, self.fibre),
+            (Habit::Carbs, self.carbs),
+        ]
+        .into_iter()
+        .filter_map(|(habit, row)| {
+            let per_day = row.gap().filter(|gap| side(*gap))?;
+            Some((Gap { habit, per_day }, per_day.abs() / bound(&row)))
+        })
+        .collect();
+        off.sort_by(|(_, one), (_, other)| other.total_cmp(one));
+        off.into_iter().map(|(gap, _)| gap).collect()
+    }
+}
+
+fn banded(row: MacroRow) -> Banded {
+    Banded {
+        amount: row.eaten_g,
+        floor: row.floor_g,
+        ceiling: row.ceiling_g,
     }
 }
 
 /// The week's fuel, from its logged days; nothing when no band judged any of them.
 pub fn fuel_week_of(days: &[Fuel]) -> Option<FuelWeek> {
-    let _ = days;
-    let nothing = Averaged {
-        per_day: 0.0,
-        floor: 0.0,
-        ceiling: 0.0,
-        in_band: 0,
+    let judged: Vec<(&Fuel, Band, Macros)> = days
+        .iter()
+        .filter_map(|day| Some((day, day.band?, day.macros?)))
+        .collect();
+    let row = |of: fn(&Fuel, &Band, &Macros) -> Banded| {
+        averaged(
+            &judged
+                .iter()
+                .map(|(day, band, macros)| of(day, band, macros))
+                .collect::<Vec<_>>(),
+        )
     };
     Some(FuelWeek {
-        logged_days: 0,
-        energy: nothing,
-        protein: nothing,
-        fat: nothing,
-        fibre: nothing,
-        carbs: nothing,
+        logged_days: judged.len(),
+        energy: row(|day, band, _| Banded {
+            amount: day.eaten.energy_kcal,
+            floor: band.floor_kcal,
+            ceiling: band.cap_kcal,
+        })?,
+        protein: row(|_, _, macros| banded(macros.protein))?,
+        fat: row(|_, _, macros| banded(macros.fat))?,
+        fibre: row(|_, _, macros| banded(macros.fibre))?,
+        carbs: row(|_, _, macros| banded(macros.carbs))?,
     })
 }
 
