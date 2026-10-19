@@ -1473,6 +1473,48 @@ fn cells_by_row(screen: &Element, rows: &str) -> Vec<Vec<String>> {
         .collect()
 }
 
+async fn added_to_the_plate(screen: &Element, food: &str, quantity: &str) {
+    typed_into(screen, "food", food);
+    typed_into(screen, "quantity", quantity);
+    clicked(screen, "button.to-the-plate");
+    settled().await;
+}
+
+#[wasm_bindgen_test]
+async fn foods_added_to_the_plate_wait_there_adding_up_and_ghosting_the_band_and_the_macros() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    added_to_the_plate(&screen, "pasta", "100").await;
+    added_to_the_plate(&screen, "creme fraiche", "200").await;
+
+    assert_eq!(
+        cells_by_row(&screen, "table.pot tbody tr"),
+        [
+            ["100 g Pasta", "", "360", "12", "2", "3", "70", "×"],
+            ["200 g Crème fraîche", "", "600", "4", "60", "0", "6", "×"]
+        ]
+    );
+    assert_eq!(
+        cells_by_row(&screen, "table.pot tfoot tr"),
+        [["Total", "", "960", "16", "62", "3", "76", ""]]
+    );
+    assert_eq!(
+        texts_in_order(&screen, "form.intake button[type=submit]"),
+        ["Add to the plate"]
+    );
+    assert_eq!(
+        text_of(&screen, ".bands .with-the-plate"),
+        "With the plate: 1068 kcal"
+    );
+    found::<Element>(&screen, ".fuel-gauge circle.ghost");
+    assert_eq!(text_of(&screen, "table.macros tr.protein .ghost"), "+16");
+}
+
 #[wasm_bindgen_test]
 async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_what_each_brings() {
     answering(&format!(r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [] }}"#));
