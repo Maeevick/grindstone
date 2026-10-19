@@ -244,6 +244,17 @@ mod tests {
     }
 
     #[test]
+    fn a_target_or_a_burn_past_200_kcal_stretches_the_gauge_a_fifth_beyond_rounded_up_to_50() {
+        assert_eq!(
+            (
+                burn_gauge_of(300.0, 150.0, 400.0).up_to_kcal,
+                burn_gauge_of(20.0, 180.0, 400.0).up_to_kcal
+            ),
+            (400.0, 250.0)
+        );
+    }
+
+    #[test]
     fn an_amount_beyond_the_scale_stretches_it_to_stay_in_sight() {
         let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), 400.0);
 
