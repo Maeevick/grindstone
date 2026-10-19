@@ -24,7 +24,7 @@ pub struct Pace {
     pub safe_loss_kg: f64,
 }
 
-const DAYS_OF_THE_SLOPE: u64 = 13;
+const DAYS_BEFORE_THE_DAY_IN_A_WEEK: u64 = 6;
 const FEWEST_WEIGH_INS: usize = 4;
 const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
@@ -49,16 +49,16 @@ fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
         .min(spared)
 }
 
-/// The slope, per week, of the seven-day average of a measure over the fourteen days ending on a day,
-/// with the latest of those averages.
+/// The slope, per week, of the seven-day average of a measure over the week ending on a day, as Home's
+/// chart reads it over its seven days, with the latest of those averages.
 fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
-    let in_the_fortnight =
-        |read: NaiveDate| read <= day && read + Days::new(DAYS_OF_THE_SLOPE) >= day;
-    let weighed_in_the_fortnight = readings
+    let in_the_week =
+        |read: NaiveDate| read <= day && read + Days::new(DAYS_BEFORE_THE_DAY_IN_A_WEEK) >= day;
+    let weighed_in_the_week = readings
         .iter()
-        .filter(|(read, _)| in_the_fortnight(*read))
+        .filter(|(read, _)| in_the_week(*read))
         .count();
-    if weighed_in_the_fortnight < FEWEST_WEIGH_INS {
+    if weighed_in_the_week < FEWEST_WEIGH_INS {
         return None;
     }
     let up_to_the_day: Vec<(NaiveDate, f64)> = readings
@@ -68,7 +68,7 @@ fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
         .collect();
     let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&up_to_the_day)
         .into_iter()
-        .filter(|(averaged, _)| in_the_fortnight(*averaged))
+        .filter(|(averaged, _)| in_the_week(*averaged))
         .collect();
     let progress = progress_towards(None, &trend)?;
     Some((progress.per_week, trend.last()?.1))
@@ -384,9 +384,9 @@ mod tests {
     }
 
     #[test]
-    fn weigh_ins_older_than_the_fortnight_do_not_make_up_for_those_missing_in_it() {
+    fn weigh_ins_older_than_the_week_do_not_make_up_for_those_missing_in_it() {
         let weighed = a_man_weighed(80.0, -0.05);
-        let three_in_the_fortnight = GatherRecords {
+        let three_in_the_week = GatherRecords {
             measurements: weighed.measurements[..6]
                 .iter()
                 .chain(&weighed.measurements[18..])
@@ -395,7 +395,7 @@ mod tests {
             ..weighed
         };
 
-        assert_eq!(pace_on(day("2026-10-10"), &three_in_the_fortnight), None);
+        assert_eq!(pace_on(day("2026-10-10"), &three_in_the_week), None);
     }
 
     #[test]
@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn fewer_than_four_weigh_ins_in_the_fortnight_give_no_pace() {
+    fn fewer_than_four_weigh_ins_in_the_week_give_no_pace() {
         let weighed = a_man_weighed(80.0, -0.05);
         let three_weigh_ins = GatherRecords {
             measurements: weighed.measurements[18..].to_vec(),

@@ -235,12 +235,12 @@ mod tests {
     fn a_week_carries_the_pace_of_its_day() {
         let records = a_september_of_weigh_ins();
 
-        let week = gather_week(&records, "2026-09-30").expect("a week");
+        let week = gather_week(&records, "2026-09-20").expect("a week");
 
         assert_eq!(
             week.pace,
             crate::pace::pace_on(
-                day("2026-09-30"),
+                day("2026-09-20"),
                 &records.gather_records().expect("records")
             )
         );
