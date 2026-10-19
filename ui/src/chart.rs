@@ -109,12 +109,16 @@ pub struct AimGauge {
     pub amount_at: f64,
 }
 
-pub fn aim_gauge_of(_amount: f64, _aim: f64, _width: f64) -> AimGauge {
+const AIM_GAUGE_SPAN: f64 = 0.10;
+const AIM_GRACE: f64 = 0.05;
+
+pub fn aim_gauge_of(amount: f64, aim: f64, width: f64) -> AimGauge {
+    let scale = ((1.0 - AIM_GAUGE_SPAN) * aim, (1.0 + AIM_GAUGE_SPAN) * aim);
     AimGauge {
-        band_from: 0.0,
-        band_to: 0.0,
-        aim_at: 0.0,
-        amount_at: 0.0,
+        band_from: placed((1.0 - AIM_GRACE) * aim, scale, width),
+        band_to: placed((1.0 + AIM_GRACE) * aim, scale, width),
+        aim_at: placed(aim, scale, width),
+        amount_at: placed(amount, scale, width),
     }
 }
 
