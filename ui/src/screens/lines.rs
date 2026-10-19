@@ -416,10 +416,11 @@ pub const NOTHING_TO_EXPLORE: &str = "Nothing logged for this measure in the win
 pub const CIRCUIT_HOW: &str = "Name it, stack its steps one by one, then craft. Once crafted it is \
     welded shut, like my last cauldron: to change it, remove it and craft another.";
 
-pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Stack a few exercises from the catalog \
-    and craft one.";
+pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Put a few exercises in a session, then \
+    keep it as a circuit.";
 
-pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is at the bottom of this tab.";
+pub const NO_CIRCUIT_TO_RUN: &str =
+    "No circuit to run yet: put a session together, then keep it as a circuit.";
 
 pub fn a_set(kcal: f64) -> String {
     format!("{} a set", shown(Figure::Energy(kcal)))

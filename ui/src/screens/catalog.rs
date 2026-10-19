@@ -8,7 +8,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::screens::cells::nutrient_cells;
-use crate::screens::circuits::{CircuitsList, NewCircuit};
+use crate::screens::circuits::CircuitsList;
 use crate::screens::entries::{
     ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
 };
@@ -79,8 +79,6 @@ fn ExercisesList(
         });
     };
     view! {
-        <section class="card">
-            <h2>"Exercises"</h2>
             {move || exercises.get().is_empty().then(|| view! { <p class="empty">{lines::NO_EXERCISE}</p> })}
             <table class="exercises">
                 <tbody>
@@ -109,7 +107,6 @@ fn ExercisesList(
                     />
                 </tbody>
             </table>
-        </section>
     }
 }
 
@@ -304,49 +301,23 @@ fn MealsList(meals: RwSignal<Vec<Meal>>, said: RwSignal<Option<String>>) -> impl
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Form {
-    Exercise,
-    Circuit,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
 enum Listed {
     Foods,
     Meals,
+    Exercises,
+    Circuits,
 }
 
-fn shelf_pills(chosen: RwSignal<Listed>) -> impl IntoView {
+fn shelf_pills(chosen: RwSignal<Listed>, shelves: [(Listed, &'static str); 2]) -> impl IntoView {
     view! {
         <div class="pills">
-            {[(Listed::Foods, "Foods"), (Listed::Meals, "Meals")]
+            {shelves
                 .into_iter()
                 .map(|(named, label)| {
                     view! {
                         <button
                             type="button"
                             class=format!("pill shelf-{named:?}")
-                            class:chosen=move || chosen.get() == named
-                            on:click=move |_| chosen.set(named)
-                        >
-                            {label}
-                        </button>
-                    }
-                })
-                .collect_view()}
-        </div>
-    }
-}
-
-fn form_pills(chosen: RwSignal<Form>, forms: [(Form, &'static str); 2]) -> impl IntoView {
-    view! {
-        <div class="pills">
-            {forms
-                .into_iter()
-                .map(|(named, label)| {
-                    view! {
-                        <button
-                            type="button"
-                            class=format!("pill form-{named:?}")
                             class:chosen=move || chosen.get() == named
                             on:click=move |_| chosen.set(named)
                         >
@@ -390,10 +361,10 @@ pub fn FuelShelf() -> impl IntoView {
         </section>
         <section class="card">
             <h2>"On the shelf"</h2>
-            {shelf_pills(listed)}
+            {shelf_pills(listed, [(Listed::Foods, "Foods"), (Listed::Meals, "Meals")])}
             {move || match listed.get() {
                 Listed::Meals => view! { <MealsList meals=meals said=said /> }.into_any(),
-                Listed::Foods => view! { <FoodsList foods=foods meals=meals said=said /> }.into_any(),
+                _ => view! { <FoodsList foods=foods meals=meals said=said /> }.into_any(),
             }}
         </section>
     }
@@ -434,8 +405,7 @@ pub fn HydrateShelf() -> impl IntoView {
 pub fn BurnShelf() -> impl IntoView {
     let exercises = RwSignal::new(Vec::<Exercise>::new());
     let priced = RwSignal::new(Vec::<PricedCircuit>::new());
-    let body_mass = RwSignal::new(None::<f64>);
-    let form = RwSignal::new(Form::Exercise);
+    let listed = RwSignal::new(Listed::Exercises);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     Effect::new(move |_| {
@@ -450,11 +420,6 @@ pub fn BurnShelf() -> impl IntoView {
             }
         });
     });
-    spawn_local(async move {
-        if let Ok(burn) = tauri::burn_day(&today()).await {
-            body_mass.set(burn.body_mass_kg);
-        }
-    });
     let done = Callback::new(move |line: String| {
         said.set(Some(line));
         recorded.told();
@@ -462,17 +427,17 @@ pub fn BurnShelf() -> impl IntoView {
     view! {
         <section class="card">
             <h2>"Add to the catalog"</h2>
-            {form_pills(form, [(Form::Exercise, "Exercise"), (Form::Circuit, "Circuit")])}
-            {move || match form.get() {
-                Form::Circuit => view! { <NewCircuit exercises=exercises body_mass=body_mass.into() done=done /> }.into_any(),
-                _ => view! { <NewExercise exercises=exercises done=done /> }.into_any(),
-            }}
+            <NewExercise exercises=exercises done=done />
             {said_on_the_shelf(said)}
         </section>
-        {move || match form.get() {
-            Form::Circuit => view! { <CircuitsList priced=priced said=said /> }.into_any(),
-            _ => view! { <ExercisesList exercises=exercises said=said /> }.into_any(),
-        }}
+        <section class="card">
+            <h2>"On the shelf"</h2>
+            {shelf_pills(listed, [(Listed::Exercises, "Exercises"), (Listed::Circuits, "Circuits")])}
+            {move || match listed.get() {
+                Listed::Circuits => view! { <CircuitsList priced=priced said=said /> }.into_any(),
+                _ => view! { <ExercisesList exercises=exercises said=said /> }.into_any(),
+            }}
+        </section>
     }
 }
 

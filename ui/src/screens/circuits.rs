@@ -3,7 +3,7 @@ use grind_core::circuit::{Circuit, CircuitStep, StepForm, burnt_per_set};
 use grind_core::exercise::Exercise;
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_burning::{CircuitSessionForm, DEFAULT_SETS};
-use grind_core::for_cataloguing::{CircuitForm, PricedCircuit};
+use grind_core::for_cataloguing::PricedCircuit;
 use grind_core::workout::activity_induced_energy_expenditure_from_compendium;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -12,7 +12,7 @@ use crate::choice::chosen;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::{Recorded, lines};
 use crate::tauri;
-use crate::typed::{count_typed, figures_typed};
+use crate::typed::count_typed;
 
 fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {
     let goal = reps
@@ -132,185 +132,6 @@ fn PricedRow(
 }
 
 #[component]
-pub fn NewCircuit(
-    exercises: RwSignal<Vec<Exercise>>,
-    body_mass: Signal<Option<f64>>,
-    done: Callback<String>,
-) -> impl IntoView {
-    let name = RwSignal::new(String::new());
-    let description = RwSignal::new(String::new());
-    let exercise = RwSignal::new(String::new());
-    let reps = RwSignal::new(String::new());
-    let minutes = RwSignal::new(String::new());
-    let load = RwSignal::new(String::new());
-    let steps = RwSignal::new(Vec::<StepForm>::new());
-    let said = RwSignal::new(None::<Result<String, String>>);
-    let names = Signal::derive(move || {
-        exercises
-            .get()
-            .into_iter()
-            .map(|known| known.name)
-            .collect::<Vec<_>>()
-    });
-    let typed_step = move || {
-        let chosen_exercise = chosen(&names.get(), &exercise.get())?;
-        let [minutes_typed, load_typed] = figures_typed([&minutes.get(), &load.get()])?;
-        Some(StepForm {
-            exercise: chosen_exercise,
-            reps: count_typed(&reps.get()),
-            minutes: minutes_typed.unwrap_or(0.0),
-            load_kg: load_typed.unwrap_or(0.0),
-        })
-    };
-    let preview = move || {
-        let kcal = step_kcal(&typed_step()?, &exercises.get(), body_mass.get()?)?;
-        Some(shown(Figure::Energy(kcal)))
-    };
-    let per_set = move || {
-        let body_mass_kg = body_mass.get()?;
-        let known = exercises.get();
-        let stacked = steps.get();
-        (!stacked.is_empty()).then(|| {
-            lines::a_set(
-                stacked
-                    .iter()
-                    .filter_map(|step| step_kcal(step, &known, body_mass_kg))
-                    .sum(),
-            )
-        })
-    };
-    let add_step = move |_| {
-        let Some(chosen_exercise) = chosen(&names.get_untracked(), &exercise.get_untracked())
-        else {
-            said.set(Some(Err(lines::CHOOSE_FIRST.into())));
-            return;
-        };
-        let Some([minutes_typed, load_typed]) =
-            figures_typed([&minutes.get_untracked(), &load.get_untracked()])
-        else {
-            said.set(Some(Err(lines::UNREADABLE.into())));
-            return;
-        };
-        let step = StepForm {
-            exercise: chosen_exercise,
-            reps: count_typed(&reps.get_untracked()),
-            minutes: minutes_typed.unwrap_or(0.0),
-            load_kg: load_typed.unwrap_or(0.0),
-        };
-        steps.update(|added| added.push(step));
-        for typed in [exercise, reps, minutes, load] {
-            typed.set(String::new());
-        }
-        said.set(None);
-    };
-    let craft = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        let form = CircuitForm {
-            name: name.get_untracked(),
-            description: description.get_untracked(),
-            steps: steps.get_untracked(),
-        };
-        spawn_local(async move {
-            match tauri::craft_circuit(&form).await {
-                Ok(_) => {
-                    name.set(String::new());
-                    description.set(String::new());
-                    steps.set(Vec::new());
-                    done.run(lines::circuit_crafted(form.name.trim()));
-                }
-                Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
-            }
-        });
-    };
-    let steps_in_order = move || {
-        steps
-            .get()
-            .into_iter()
-            .enumerate()
-            .collect::<Vec<(usize, StepForm)>>()
-    };
-    view! {
-        <p class="hint">{lines::CIRCUIT_HOW}</p>
-        <form class="circuit" on:submit=craft>
-            <div class="row">
-                <label class="field grow2">
-                    "Name"
-                    <input
-                        name="circuit_name"
-                        autocomplete="off"
-                        prop:value=move || name.get()
-                        on:input=move |event| name.set(event_target_value(&event))
-                    />
-                </label>
-            </div>
-            <label class="field grow2">
-                "Description"
-                <textarea
-                    name="circuit_description"
-                    rows="2"
-                    placeholder="Where it comes from, what to mind"
-                    prop:value=move || description.get()
-                    on:input=move |event| description.set(event_target_value(&event))
-                ></textarea>
-            </label>
-            <div class="row">
-                <Chooser label="Exercise" name="step_exercise" options=names typed=exercise />
-                <FigureField label="Reps goal" name="step_reps" value=reps />
-            </div>
-            <div class="row">
-                <FigureField label="Minutes" name="step_minutes" value=minutes />
-                <FigureField label="Load (kg)" name="step_load" value=load />
-            </div>
-            {preview_line(preview)}
-            <button class="cta ghost add-step" type="button" on:click=add_step>
-                "Add this step"
-            </button>
-            <ol class="figures steps">
-                <For
-                    each=steps_in_order
-                    key=|(position, step)| format!("{position} {step:?}")
-                    children=move |(position, step)| {
-                        let priced = body_mass
-                            .get()
-                            .and_then(|body_mass_kg| step_kcal(&step, &exercises.get(), body_mass_kg));
-                        view! {
-                            <li>
-                                {asked_step(&step)}
-                                {priced
-                                    .map(|kcal| {
-                                        view! {
-                                            " · "
-                                            <span class="kcal">{shown(Figure::Energy(kcal))}</span>
-                                        }
-                                    })}
-                                <button
-                                    class="remove"
-                                    type="button"
-                                    aria-label="Remove this step"
-                                    on:click=move |_| {
-                                        steps
-                                            .update(|added| {
-                                                added.remove(position);
-                                            })
-                                    }
-                                >
-                                    "×"
-                                </button>
-                            </li>
-                        }
-                    }
-                />
-            </ol>
-            {move || per_set().map(|line| view! { <p class="hint per-set">{line}</p> })}
-            <button class="cta" type="submit">
-                "Craft the circuit"
-            </button>
-        </form>
-        {said_line(said)}
-    }
-}
-
-#[component]
 pub fn CircuitsList(
     priced: RwSignal<Vec<PricedCircuit>>,
     said: RwSignal<Option<String>>,
@@ -334,8 +155,7 @@ pub fn CircuitsList(
         });
     });
     view! {
-        <section class="card">
-            <h2>"Circuits"</h2>
+
             {move || {
                 priced.get().is_empty().then(|| view! { <p class="empty">{lines::NO_CIRCUIT}</p> })
             }}
@@ -357,7 +177,6 @@ pub fn CircuitsList(
                     }}
                 </tbody>
             </table>
-        </section>
     }
 }
 
