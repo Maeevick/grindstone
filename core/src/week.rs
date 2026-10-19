@@ -28,18 +28,26 @@ impl Averaged {
     /// How far the average runs from its band, a day: under its floor short, past its ceiling over, nothing
     /// within it.
     pub fn gap(&self) -> Option<f64> {
-        None
+        match self.verdict() {
+            Verdict::Low => Some(self.per_day - self.floor),
+            Verdict::High => Some(self.per_day - self.ceiling),
+            Verdict::InBand => None,
+        }
     }
 }
 
 /// The logged days' amounts and bands, averaged; nothing without a day.
 pub fn averaged(days: &[Banded]) -> Option<Averaged> {
-    let _ = days;
-    Some(Averaged {
-        per_day: 0.0,
-        floor: 0.0,
-        ceiling: 0.0,
-        in_band: 0,
+    let logged = days.len() as f64;
+    let mean = |of: fn(&Banded) -> f64| days.iter().map(of).sum::<f64>() / logged;
+    (!days.is_empty()).then(|| Averaged {
+        per_day: mean(|day| day.amount),
+        floor: mean(|day| day.floor),
+        ceiling: mean(|day| day.ceiling),
+        in_band: days
+            .iter()
+            .filter(|day| verdict_of(day.amount, day.floor, day.ceiling) == Verdict::InBand)
+            .count(),
     })
 }
 
