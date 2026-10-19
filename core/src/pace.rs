@@ -25,7 +25,6 @@ pub struct Pace {
 }
 
 const DAYS_OF_THE_SLOPE: u64 = 13;
-const DAYS_OF_THE_AVERAGE: u64 = 6;
 const FEWEST_WEIGH_INS: usize = 4;
 const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
@@ -53,23 +52,23 @@ fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
 /// The slope, per week, of the seven-day average of a measure over the fourteen days ending on a day,
 /// with the latest of those averages.
 fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
-    let in_reach: Vec<(NaiveDate, f64)> = readings
+    let in_the_fortnight =
+        |read: NaiveDate| read <= day && read + Days::new(DAYS_OF_THE_SLOPE) >= day;
+    let weighed_in_the_fortnight = readings
         .iter()
-        .filter(|(read, _)| {
-            *read <= day && *read + Days::new(DAYS_OF_THE_SLOPE + DAYS_OF_THE_AVERAGE) >= day
-        })
-        .copied()
-        .collect();
-    let in_the_fortnight = in_reach
-        .iter()
-        .filter(|(read, _)| *read + Days::new(DAYS_OF_THE_SLOPE) >= day)
+        .filter(|(read, _)| in_the_fortnight(*read))
         .count();
-    if in_the_fortnight < FEWEST_WEIGH_INS {
+    if weighed_in_the_fortnight < FEWEST_WEIGH_INS {
         return None;
     }
-    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&in_reach)
+    let up_to_the_day: Vec<(NaiveDate, f64)> = readings
+        .iter()
+        .filter(|(read, _)| *read <= day)
+        .copied()
+        .collect();
+    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&up_to_the_day)
         .into_iter()
-        .filter(|(averaged, _)| *averaged + Days::new(DAYS_OF_THE_SLOPE) >= day)
+        .filter(|(averaged, _)| in_the_fortnight(*averaged))
         .collect();
     let progress = progress_towards(None, &trend)?;
     Some((progress.per_week, trend.last()?.1))
