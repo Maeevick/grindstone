@@ -1,7 +1,7 @@
 use grind_core::drink::Drink;
 use grind_core::exercise::Exercise;
 use grind_core::figures::{Figure, shown};
-use grind_core::food::{Food, Nutrients, Unit};
+use grind_core::food::{Food, Nutrients};
 use grind_core::for_cataloguing::{FoodForm, PricedCircuit};
 use grind_core::meal::{Meal, food_of};
 use leptos::prelude::*;
@@ -9,6 +9,7 @@ use leptos::task::spawn_local;
 
 use crate::screens::cells::nutrient_cells;
 use crate::screens::circuits::{CircuitsList, NewCircuit};
+use crate::screens::entries::unit_named;
 use crate::screens::fields::FigureField;
 use crate::screens::hydrate::{DrinksList, NewDrink};
 use crate::screens::meals::{MealDetails, MealInProgress, NewMeal};
@@ -112,14 +113,6 @@ fn ExercisesList(
                 </tbody>
             </table>
         </section>
-    }
-}
-
-pub(crate) fn unit_named(word: &str) -> Unit {
-    match word {
-        "Millilitre" => Unit::Millilitre,
-        "Piece" => Unit::Piece,
-        _ => Unit::Gram,
     }
 }
 

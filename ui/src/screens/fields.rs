@@ -5,7 +5,7 @@ use crate::choice::matching;
 #[component]
 pub fn FigureField(
     label: &'static str,
-    name: &'static str,
+    #[prop(into)] name: String,
     value: RwSignal<String>,
     #[prop(into, optional)] placeholder: MaybeProp<String>,
     #[prop(into, optional)] required: MaybeProp<bool>,

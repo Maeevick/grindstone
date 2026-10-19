@@ -3,6 +3,7 @@ pub mod catalog;
 pub mod cells;
 pub mod charts;
 pub mod circuits;
+pub mod entries;
 pub mod fields;
 pub mod fuel;
 pub mod gather;

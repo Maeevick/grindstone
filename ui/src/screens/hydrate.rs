@@ -12,6 +12,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::{chosen, nothing_matches};
 use crate::screens::catalog::HydrateShelf;
+use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NewEntry, kind_named};
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::references::ReferencesLink;
@@ -98,65 +99,6 @@ fn DrinkingsOfTheDay(
     }
 }
 
-/// What a drink new to the catalog is typed with, its name aside.
-#[derive(Clone, Copy)]
-struct NewDrinkFigures {
-    description: RwSignal<String>,
-    serving: RwSignal<String>,
-    kind: RwSignal<DrinkKind>,
-}
-
-impl NewDrinkFigures {
-    fn new() -> Self {
-        Self {
-            description: RwSignal::new(String::new()),
-            serving: RwSignal::new(String::new()),
-            kind: RwSignal::new(DrinkKind::Water),
-        }
-    }
-
-    fn cleared(self) {
-        self.description.set(String::new());
-        self.serving.set(String::new());
-        self.kind.set(DrinkKind::Water);
-    }
-}
-
-#[component]
-fn NewDrinkFields(name: RwSignal<String>, figures: NewDrinkFigures) -> impl IntoView {
-    view! {
-        <p class="new">{move || format!("New {}", name.get().trim())}</p>
-        <div class="row">
-            <label class="field grow2">
-                "Description"
-                <input
-                    name="new_drink_description"
-                    autocomplete="off"
-                    placeholder="Optional"
-                    prop:value=move || figures.description.get()
-                    on:input=move |event| figures.description.set(event_target_value(&event))
-                />
-            </label>
-            <FigureField label="Serving (mL)" name="new_drink_serving" value=figures.serving />
-            <label class="field">
-                "Kind"
-                <select
-                    name="new_drink_kind"
-                    prop:value=move || format!("{:?}", figures.kind.get())
-                    on:change=move |event| figures.kind.set(kind_named(&event_target_value(&event)))
-                >
-                    {KINDS
-                        .into_iter()
-                        .map(|(named, label)| {
-                            view! { <option value=format!("{named:?}")>{label}</option> }
-                        })
-                        .collect_view()}
-                </select>
-            </label>
-        </div>
-    }
-}
-
 #[component]
 pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     let hydrate = RwSignal::new(None::<Hydrate>);
@@ -172,7 +114,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
-    let figures = NewDrinkFigures::new();
+    let figures = DrinkFigures::default();
     let creating = Memo::new(move |_| nothing_matches(&names.get(), &drink.get()));
     let chosen_drink = move || {
         chosen(&names.get(), &drink.get())
@@ -266,7 +208,14 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
                     />
                 </div>
                 {move || {
-                    creating.get().then(|| view! { <NewDrinkFields name=drink figures=figures /> })
+                    creating
+                        .get()
+                        .then(|| {
+                            view! {
+                                <NewEntry name=drink />
+                                <DrinkFields prefix="new_drink" figures=figures />
+                            }
+                        })
                 }}
                 <button class="cta" type="submit">
                     {move || if creating.get() { "Add and log" } else { "Hydrate" }}
@@ -317,15 +266,6 @@ fn DrinkRow(
             </td>
         </tr>
     }
-}
-
-const KINDS: [(DrinkKind, &str); 2] = [(DrinkKind::Water, "water"), (DrinkKind::Other, "other")];
-
-fn kind_named(word: &str) -> DrinkKind {
-    KINDS
-        .into_iter()
-        .find(|(named, _)| format!("{named:?}") == word)
-        .map_or(DrinkKind::Other, |(named, _)| named)
 }
 
 #[component]

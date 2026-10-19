@@ -15,6 +15,7 @@ use leptos::task::spawn_local;
 use crate::choice::{chosen, nothing_matches};
 use crate::screens::catalog::BurnShelf;
 use crate::screens::circuits::CircuitLog;
+use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::tab::{DayCard, ExploreInStats};
@@ -91,47 +92,6 @@ fn neat_row(activity: &'static str, kcal: f64) -> impl IntoView {
     }
 }
 
-/// What an exercise new to the catalog is typed with, its name aside.
-#[derive(Clone, Copy)]
-struct NewExerciseFigures {
-    description: RwSignal<String>,
-    met: RwSignal<String>,
-}
-
-impl NewExerciseFigures {
-    fn new() -> Self {
-        Self {
-            description: RwSignal::new(String::new()),
-            met: RwSignal::new(String::new()),
-        }
-    }
-
-    fn cleared(self) {
-        self.description.set(String::new());
-        self.met.set(String::new());
-    }
-}
-
-#[component]
-fn NewExerciseFields(name: RwSignal<String>, figures: NewExerciseFigures) -> impl IntoView {
-    view! {
-        <p class="new">{move || format!("New {}", name.get().trim())}</p>
-        <div class="row">
-            <label class="field grow2">
-                "Description"
-                <input
-                    name="new_exercise_description"
-                    autocomplete="off"
-                    placeholder="Optional"
-                    prop:value=move || figures.description.get()
-                    on:input=move |event| figures.description.set(event_target_value(&event))
-                />
-            </label>
-            <FigureField label="MET" name="new_exercise_met" value=figures.met />
-        </div>
-    }
-}
-
 #[component]
 pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let burn = RwSignal::new(None::<Burn>);
@@ -168,7 +128,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         recorded.told();
     });
     let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
-    let figures = NewExerciseFigures::new();
+    let figures = ExerciseFigures::default();
     let creating = Memo::new(move |_| nothing_matches(&names.get(), &exercise.get()));
     let new_exercise = move || {
         let [met] = figures_typed([&figures.met.get()])?;
@@ -338,7 +298,12 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                             {move || {
                                 creating
                                     .get()
-                                    .then(|| view! { <NewExerciseFields name=exercise figures=figures /> })
+                                    .then(|| {
+                                        view! {
+                                            <NewEntry name=exercise />
+                                            <ExerciseFields prefix="new_exercise" figures=figures />
+                                        }
+                                    })
                             }}
                             <div class="row">
                                 <FigureField
