@@ -30,6 +30,7 @@ pub mod for_storing_switch_over;
 pub mod for_tracking;
 pub mod fuel;
 pub mod fuel_records;
+pub mod fuel_week;
 pub mod gather_records;
 pub mod gender;
 pub mod goals;
