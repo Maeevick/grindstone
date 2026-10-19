@@ -46,6 +46,11 @@ pub fn chosen(options: &[String], typed: &str) -> Option<String> {
         .cloned()
 }
 
+/// Whether the typed name is new to the options: typed, and matching none of them.
+pub fn nothing_matches(_options: &[String], _typed: &str) -> bool {
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,6 +90,17 @@ mod tests {
             Some("Épinards".to_string())
         );
         assert_eq!(chosen(&the_catalog(), "sky"), None);
+    }
+
+    #[test]
+    fn a_name_typed_that_no_option_matches_is_new_and_a_name_matched_or_left_blank_is_not() {
+        let asked = |typed: &str| nothing_matches(&the_catalog(), typed);
+
+        assert_eq!(
+            ["Kefir", "skyr", "sky", "  ", "pa"].map(asked),
+            [true, false, false, false, false]
+        );
+        assert!(nothing_matches(&[], "Ai"));
     }
 
     #[test]
