@@ -33,6 +33,22 @@ pub struct Pace {
     pub safe_loss_by: SafeLoss,
 }
 
+/// What the measured lean mass did over the week: left, by so much a week; held; or went unmeasured,
+/// no waist ever taken.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Lean {
+    Leaving(f64),
+    Holding,
+    Unmeasured,
+}
+
+impl Pace {
+    /// Leaving once it falls past steady, holding otherwise.
+    pub fn lean(&self) -> Lean {
+        Lean::Unmeasured
+    }
+}
+
 const DAYS_BEFORE_THE_DAY_IN_A_WEEK: u64 = 6;
 const FEWEST_WEIGH_INS: usize = 4;
 const DAYS_A_WEEK: f64 = 7.0;
@@ -478,6 +494,42 @@ mod tests {
 
         assert!((pace.body_mass.by - homes.per_week).abs() < 1e-9);
         assert!((pace.body_mass.by - -0.257).abs() < 1e-3);
+    }
+
+    fn a_pace_with(lean_mass: Option<Change>) -> Pace {
+        Pace {
+            body_mass: Change {
+                by: -0.62,
+                heading: Heading::Toward,
+            },
+            lean_mass,
+            fat_mass: None,
+            fat_ratio: None,
+            judgement: Judgement::LosingTooFast,
+            safe_loss_kg: 0.5,
+            safe_loss_by: SafeLoss::FatStore,
+        }
+    }
+
+    #[test]
+    fn the_lean_mass_leaves_when_it_falls_past_steady_holds_otherwise_and_goes_unmeasured_without_a_waist()
+     {
+        let moving = |by: f64, heading: Heading| a_pace_with(Some(Change { by, heading })).lean();
+
+        assert_eq!(
+            [
+                moving(-0.2, Heading::Away),
+                moving(-0.05, Heading::Steady),
+                moving(0.2, Heading::Toward),
+                a_pace_with(None).lean(),
+            ],
+            [
+                Lean::Leaving(-0.2),
+                Lean::Holding,
+                Lean::Holding,
+                Lean::Unmeasured
+            ]
+        );
     }
 
     #[test]
