@@ -1924,7 +1924,7 @@ async fn the_icon_bar_leads_home_and_to_each_tab() {
 }
 
 /// What a screen shows, top to bottom: each part by its title, else by its words for a link, else
-/// by its class.
+/// by the words of the links it sets side by side, else by its class.
 fn shown_in_order(screen: &Element) -> Vec<String> {
     let parts = screen
         .query_selector_all("main.wrap > *")
@@ -1942,13 +1942,18 @@ fn shown_in_order(screen: &Element) -> Vec<String> {
                         .then(|| part.text_content())
                         .flatten()
                 })
+                .or_else(|| {
+                    part.class_list()
+                        .contains("side-by-side")
+                        .then(|| texts_in_order(&part, "a").join(" | "))
+                })
                 .unwrap_or_else(|| part.class_name())
         })
         .collect()
 }
 
 #[wasm_bindgen_test]
-async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_its_grimoire_then_the_numbers()
+async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_its_grimoire_beside_the_numbers()
  {
     let a_day_in_each_tab = format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
@@ -1980,7 +1985,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where you stand",
                 "The week's pace",
                 "The last days",
-                "Explore the numbers"
+                "🎱 Explore the numbers"
             ],
             vec![
                 "Today",
@@ -1990,8 +1995,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The four macros",
                 "The day's intakes",
                 "The last days",
-                "Open the grimoire",
-                "Explore the numbers"
+                "📚 Open the grimoire | 🎱 Explore the numbers"
             ],
             vec![
                 "Today",
@@ -2000,8 +2004,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The day's drinks",
                 "The last days",
-                "Open the grimoire",
-                "Explore the numbers"
+                "📚 Open the grimoire | 🎱 Explore the numbers"
             ],
             vec![
                 "Today",
@@ -2010,8 +2013,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The day's expenditures",
                 "The last days",
-                "Open the grimoire",
-                "Explore the numbers"
+                "📚 Open the grimoire | 🎱 Explore the numbers"
             ],
         ]
     );
@@ -2029,7 +2031,7 @@ async fn each_grimoire_opens_from_its_tab_on_a_page_of_its_own_holding_the_shelf
     for tab in ["/fuel", "/hydrate", "/burn"] {
         went_to(tab);
         settled().await;
-        let grimoire = attributes_of(&screen, "main.wrap > a.grimoire", "href").concat();
+        let grimoire = attributes_of(&screen, "main.wrap a.grimoire", "href").concat();
         went_to(&grimoire);
         settled().await;
         opened.push(grimoire);
@@ -2218,7 +2220,7 @@ async fn home_holds_the_streak_alone_in_its_card_and_ends_on_the_numbers() {
     }
     assert_eq!(
         text_of(&screen, "main.wrap > a.explore:last-child"),
-        "Explore the numbers"
+        "🎱 Explore the numbers"
     );
 }
 
