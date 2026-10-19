@@ -84,9 +84,15 @@ pub struct BurnGauge {
 
 const BURN_GAUGE_KCAL: f64 = 200.0;
 const GRACE_UNDER_THE_TARGET: f64 = 0.95;
+const ROOM_PAST_THE_LARGER: f64 = 1.2;
+const ROUNDED_UP_TO_KCAL: f64 = 50.0;
 
+/// A burn on a line from nothing: 200 kcal by default, stretched a fifth past the larger of the target and the
+/// burn, rounded up to 50; green from 95% of the target on, with no end to it.
 pub fn burn_gauge_of(burnt: f64, target: f64, width: f64) -> BurnGauge {
-    let scale = (0.0, BURN_GAUGE_KCAL);
+    let stretched =
+        (ROOM_PAST_THE_LARGER * target.max(burnt) / ROUNDED_UP_TO_KCAL).ceil() * ROUNDED_UP_TO_KCAL;
+    let scale = (0.0, stretched.max(BURN_GAUGE_KCAL));
     BurnGauge {
         grace_from: placed(GRACE_UNDER_THE_TARGET * target, scale, width),
         target_at: placed(target, scale, width),
