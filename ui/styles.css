@@ -711,12 +711,24 @@ table.pot {
 	height: 36px;
 }
 
-.cta.grimoire {
-	margin-bottom: 12px;
-}
-
 .cta.explore {
 	margin: 4px 0 12px;
+}
+
+.side-by-side {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 12px;
+	margin: 12px 0;
+}
+
+.side-by-side .cta {
+	height: auto;
+	min-height: 46px;
+	margin: 0;
+	padding: 6px 8px;
+	line-height: 1.25;
+	text-align: center;
 }
 
 textarea {
