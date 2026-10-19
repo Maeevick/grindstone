@@ -94,6 +94,7 @@ const MIGRATIONS: &[&str] = &[
          select effective_from, base_ml > 0 from hydrate_bases;",
     "drop table hydrate_bases",
     "create table burn_targets (effective_from text primary key, kcal real not null)",
+    "alter table foods add column description text not null default ''",
 ];
 
 pub struct Sqlite(Connection);
@@ -559,7 +560,9 @@ fn unit_read(word: &str) -> rusqlite::Result<Unit> {
     }
 }
 
-const FOODS: &str = "select name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g from foods order by name";
+const FOODS: &str =
+    "select name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g, description
+     from foods order by name";
 const INTAKES: &str =
     "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
      from intakes order by day, id";
@@ -573,7 +576,7 @@ fn food_read(row: &rusqlite::Row) -> rusqlite::Result<Food> {
         unit: unit_read(&row.get::<_, String>(1)?)?,
         portion: row.get(2)?,
         nutrients: nutrients_read(row, 3)?,
-        description: String::new(),
+        description: row.get(8)?,
     })
 }
 
@@ -664,11 +667,12 @@ impl ForStoringFuelRecords for Sqlite {
     fn save_food(&self, food: &Food) -> Result<(), Broken> {
         let figures = food.nutrients;
         self.run(
-            "insert into foods (name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g)
-             values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            "insert into foods (name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g, description)
+             values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
              on conflict (name) do update set unit = excluded.unit, portion = excluded.portion,
                  energy_kcal = excluded.energy_kcal, protein_g = excluded.protein_g,
-                 carbs_g = excluded.carbs_g, fat_g = excluded.fat_g, fibre_g = excluded.fibre_g",
+                 carbs_g = excluded.carbs_g, fat_g = excluded.fat_g, fibre_g = excluded.fibre_g,
+                 description = excluded.description",
             params![
                 food.name,
                 unit_word(food.unit),
@@ -677,7 +681,8 @@ impl ForStoringFuelRecords for Sqlite {
                 figures.protein_g,
                 figures.carbs_g,
                 figures.fat_g,
-                figures.fibre_g
+                figures.fibre_g,
+                food.description
             ],
         )
     }
@@ -1178,7 +1183,8 @@ mod tests {
         records
             .0
             .execute(
-                "insert into foods values ('Skyr', 'spoon', 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)",
+                "insert into foods (name, unit, portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g)
+                 values ('Skyr', 'spoon', 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)",
                 [],
             )
             .expect("a food no app wrote");
