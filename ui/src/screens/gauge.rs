@@ -2,7 +2,7 @@ use grind_core::figures::{Figure, bare, shown};
 use grind_core::fuel::Band;
 use leptos::prelude::*;
 
-use crate::chart::{energy_gauge_of, gauge_of};
+use crate::chart::{burn_gauge_of, energy_gauge_of, gauge_of};
 
 #[component]
 pub fn Gauge(
@@ -25,6 +25,26 @@ pub fn Gauge(
                 <span class="low">{format!("min {}", shown(shown_as(floor)))}</span>
                 <span>{format!("optimal {}", shown(shown_as(optimal)))}</span>
                 <span class="high">{format!("max {}", shown(shown_as(cap)))}</span>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn BurnGauge(burnt: f64, target: f64) -> impl IntoView {
+    let placed = burn_gauge_of(burnt, target, 360.0);
+    view! {
+        <div class="gauge burn-gauge">
+            <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+                <rect class="track" x="0" y="9" width="360" height="6" />
+                <rect class="band" x=placed.grace_from y="9" width=360.0 - placed.grace_from height="6" />
+                <line class="optimal" x1=placed.target_at x2=placed.target_at y1="4" y2="20" />
+                <circle class="amount" cx=placed.burnt_at cy="12" r="5" />
+            </svg>
+            <div class="gauge-labels">
+                <span>{shown(Figure::Energy(0.0))}</span>
+                <span>{format!("target {}", shown(Figure::Energy(target)))}</span>
+                <span>{shown(Figure::Energy(placed.up_to_kcal))}</span>
             </div>
         </div>
     }

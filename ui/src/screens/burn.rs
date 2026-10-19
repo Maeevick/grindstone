@@ -14,6 +14,7 @@ use leptos::task::spawn_local;
 use crate::choice::chosen;
 use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
+use crate::screens::gauge::BurnGauge;
 use crate::screens::lines;
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
@@ -283,8 +284,12 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 burn.get()
                     .map(|answer| {
                         let rested = answer.workouts.is_empty();
+                        let burnt = answer.burnt_kcal.unwrap_or(0.0);
                         view! {
                             <p class="figures">{lines::burnt(&answer)}</p>
+                            {answer
+                                .target_kcal
+                                .map(|target| view! { <BurnGauge burnt=burnt target=target /> })}
                             {rested.then(|| view! { <p class="empty">{lines::NO_WORKOUT}</p> })}
                         }
                     })
