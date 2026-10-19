@@ -1,6 +1,8 @@
 use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::food::{Food, Nutrients, Unit, nutrients_of, summed};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
+use grind_core::for_fuelling::PlateForm;
+use grind_core::fuel::Fuel;
 use grind_core::meal::{MASS_KEPT, Meal};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -8,7 +10,7 @@ use leptos::task::spawn_local;
 use crate::choice::chosen;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
-use crate::screens::lines;
+use crate::screens::{Recorded, lines};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -144,14 +146,58 @@ fn PotTable(pot: RwSignal<Vec<InThePot>>) -> impl IntoView {
     }
 }
 
+/// Each ingredient in the pot as the core takes it, none when a ratio is no number.
+fn ingredients_of(in_the_pot: &[InThePot]) -> Option<Vec<IngredientForm>> {
+    in_the_pot
+        .iter()
+        .map(|added| {
+            figures_typed([&added.ratio.get_untracked()]).map(|[cooked_per_raw]| IngredientForm {
+                food: added.food.clone(),
+                quantity: added.quantity,
+                cooked_per_raw,
+            })
+        })
+        .collect()
+}
+
 /// The foods put aside in Fuel before they are logged, on the meal in progress's pot.
 #[component]
-pub fn Plate(plate: MealInProgress) -> impl IntoView {
+pub fn Plate(
+    plate: MealInProgress,
+    day: RwSignal<String>,
+    shown_fuel: Callback<Fuel>,
+    said: RwSignal<Option<String>>,
+) -> impl IntoView {
     let pot = plate.pot;
+    let recorded = Recorded::here();
+    let log_the_plate = move |_| {
+        let Some(ingredients) = ingredients_of(&pot.get_untracked()) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let form = PlateForm {
+            date: day.get_untracked(),
+            ingredients,
+        };
+        spawn_local(async move {
+            match tauri::log_plate(&form).await {
+                Ok(fuel) => {
+                    shown_fuel.run(fuel);
+                    pot.set(Vec::new());
+                    said.set(None);
+                    recorded.told();
+                }
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
     view! {
         <div class="plate">
             <p class="new">"On the plate"</p>
             <PotTable pot=pot />
+            <button class="cta log-the-plate" type="button" on:click=log_the_plate>
+                "Log the plate"
+            </button>
         </div>
     }
 }

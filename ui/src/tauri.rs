@@ -11,7 +11,7 @@ use grind_core::for_cataloguing::{FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
     BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights, Month,
 };
-use grind_core::for_fuelling::IntakeForm;
+use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
@@ -214,6 +214,10 @@ pub async fn fuel_day(date: &str) -> Result<Fuel, Failure> {
 
 pub async fn log_intake(form: &IntakeForm) -> Result<Fuel, Failure> {
     call("log_intake", Form { form }, broken).await
+}
+
+pub async fn log_plate(form: &PlateForm) -> Result<Fuel, Failure> {
+    call("log_plate", Form { form }, broken).await
 }
 
 pub async fn remove_intake(date: &str, id: i64) -> Result<Fuel, Failure> {

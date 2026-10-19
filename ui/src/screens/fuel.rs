@@ -353,7 +353,11 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                         })
                 }}
             </form>
-            {move || on_the_plate.get().then(|| view! { <Plate plate=plate /> })}
+            {move || {
+                on_the_plate
+                    .get()
+                    .then(|| view! { <Plate plate=plate day=day shown_fuel=shown_fuel said=said /> })
+            }}
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
         </section>
         {move || {
