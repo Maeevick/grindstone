@@ -259,6 +259,28 @@ mod tests {
     }
 
     #[test]
+    fn a_plate_with_a_food_missing_from_the_catalog_logs_none_of_its_ingredients() {
+        let fuel = a_catalog_with_skyr();
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+        );
+
+        let refused = log_plate(
+            &gather,
+            &burn,
+            &fuel,
+            &a_plate("2026-10-10", &[("Skyr", 200.0), ("Caviar", 30.0)]),
+        );
+
+        assert_eq!(refused, Err(Failure::Refused(Refusal::NotAFood)));
+        assert_eq!(
+            fuel_day(&gather, &burn, &fuel, "2026-10-10").map(|fuelled| fuelled.intakes.len()),
+            Ok(0)
+        );
+    }
+
+    #[test]
     fn an_intake_without_a_quantity_is_one_portion_of_its_food() {
         let fuel = a_catalog_with_skyr();
         let unweighed = IntakeForm {
