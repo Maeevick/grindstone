@@ -1,6 +1,6 @@
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, signed};
-use grind_core::food::{Food, Nutrients, Unit, food as food_of, nutrients_of};
+use grind_core::food::{Food, Nutrients, Unit, food as food_of, nutrients_of, summed};
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::fuel::{EnergyShares, Fuel, MacroRow, Macros, energy_shares};
 use grind_core::intake::Intake;
@@ -13,6 +13,7 @@ use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
+use crate::screens::meals::{InThePot, MealInProgress, Plate};
 use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -24,21 +25,38 @@ fn MacroLine(
     key: &'static str,
     row: MacroRow,
     share: Option<f64>,
+    plated_g: Option<f64>,
 ) -> impl IntoView {
     let verdict = lines::verdict_class(row.verdict);
     view! {
         <tr class=key>
             <td>{name}</td>
             <td>{bare(Figure::Grams(row.floor_g))}</td>
-            <td class=verdict>{bare(Figure::Grams(row.eaten_g))}</td>
-            <td class=verdict>{signed(Figure::Grams(row.gap_g()))}</td>
+            <td class=verdict>
+                {bare(Figure::Grams(row.eaten_g))}
+                {plated_g
+                    .map(|grams| view! { <span class="ghost">{format!("+{}", bare(Figure::Grams(grams)))}</span> })}
+            </td>
+            <td class=verdict>
+                {match plated_g {
+                    Some(grams) => {
+                        let with_the_plate = MacroRow {
+                            eaten_g: row.eaten_g + grams,
+                            ..row
+                        };
+                        view! { <span class="ghost">{signed(Figure::Grams(with_the_plate.gap_g()))}</span> }
+                            .into_any()
+                    }
+                    None => signed(Figure::Grams(row.gap_g())).into_any(),
+                }}
+            </td>
             <td class="hint">{share.map_or_else(|| "-".to_string(), |share| bare(Figure::Ratio(share)))}</td>
         </tr>
     }
 }
 
 #[component]
-fn MacrosCard(macros: Macros, eaten: Nutrients) -> impl IntoView {
+fn MacrosCard(macros: Macros, eaten: Nutrients, plated: Option<Nutrients>) -> impl IntoView {
     let shares = energy_shares(&eaten);
     let share = move |of: fn(&EnergyShares) -> f64| shares.as_ref().map(of);
     view! {
@@ -55,10 +73,34 @@ fn MacrosCard(macros: Macros, eaten: Nutrients) -> impl IntoView {
                     </tr>
                 </thead>
                 <tbody>
-                    <MacroLine name="Protein" key="protein" row=macros.protein share=share(|of| of.protein) />
-                    <MacroLine name="Fat" key="fat" row=macros.fat share=share(|of| of.fat) />
-                    <MacroLine name="Fibre" key="fibre" row=macros.fibre share=share(|of| of.fibre) />
-                    <MacroLine name="Carbs" key="carbs" row=macros.carbs share=share(|of| of.carbs) />
+                    <MacroLine
+                        name="Protein"
+                        key="protein"
+                        row=macros.protein
+                        share=share(|of| of.protein)
+                        plated_g=plated.map(|plated| plated.protein_g)
+                    />
+                    <MacroLine
+                        name="Fat"
+                        key="fat"
+                        row=macros.fat
+                        share=share(|of| of.fat)
+                        plated_g=plated.map(|plated| plated.fat_g)
+                    />
+                    <MacroLine
+                        name="Fibre"
+                        key="fibre"
+                        row=macros.fibre
+                        share=share(|of| of.fibre)
+                        plated_g=plated.map(|plated| plated.fibre_g)
+                    />
+                    <MacroLine
+                        name="Carbs"
+                        key="carbs"
+                        row=macros.carbs
+                        share=share(|of| of.carbs)
+                        plated_g=plated.map(|plated| plated.carbs_g)
+                    />
                 </tbody>
                 <tfoot>
                     <tr>
@@ -129,6 +171,12 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             .collect::<Vec<_>>()
     });
     let figures = FoodFigures::default();
+    let plate = use_context::<MealInProgress>().unwrap_or_default();
+    let on_the_plate = Memo::new(move |_| !plate.pot.get().is_empty());
+    let plated = Signal::derive(move || {
+        let pot = plate.pot.get();
+        (!pot.is_empty()).then(|| summed(pot.iter().map(|added| added.nutrients)))
+    });
     let creating = Memo::new(move |_| nothing_matches(&names.get(), &food.get()));
     let chosen_food = move || {
         chosen(&names.get(), &food.get())
@@ -178,44 +226,68 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
         }
         Err(failure) => said.set(Some(lines::failure(&failure))),
     };
-    let log = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
+    let plated_now = move |served: &Food, quantity_typed: Option<f64>| {
+        let on_it = InThePot::of(served, quantity_typed.unwrap_or(served.portion));
+        plate.pot.update(|pot| pot.push(on_it));
+        food.set(String::new());
+        quantity.set(String::new());
+        figures.cleared();
+        said.set(None);
+    };
+    // The food typed, added to the catalog first when new, then logged or put on the plate.
+    let served = move |onto_the_plate: bool| {
         let Some([quantity_typed]) = figures_typed([&quantity.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
         let date = day.get_untracked();
-        if creating.get_untracked() {
-            let Some(added) = untrack(|| figures.typed(&food.get())) else {
+        let added = if creating.get_untracked() {
+            let Some(form) = untrack(|| figures.typed(&food.get())) else {
                 said.set(Some(lines::UNREADABLE.into()));
                 return;
             };
-            spawn_local(async move {
-                match tauri::add_food(&added).await {
-                    Ok(known) => {
-                        catalog.set(known);
-                        let form = IntakeForm {
-                            date,
-                            food: added.name,
-                            quantity: quantity_typed,
-                        };
-                        logged(tauri::log_intake(&form).await);
-                    }
-                    Err(failure) => said.set(Some(lines::failure(&failure))),
-                }
-            });
-            return;
-        }
-        let Some(eaten) = untrack(chosen_food) else {
+            Some(form)
+        } else {
+            None
+        };
+        let known = untrack(chosen_food);
+        if added.is_none() && known.is_none() {
             said.set(Some(lines::CHOOSE_FIRST.into()));
             return;
-        };
-        let form = IntakeForm {
-            date,
-            food: eaten.name,
-            quantity: quantity_typed,
-        };
-        spawn_local(async move { logged(tauri::log_intake(&form).await) });
+        }
+        spawn_local(async move {
+            let served = match added {
+                Some(form) => match tauri::add_food(&form).await {
+                    Ok(listed) => {
+                        let found = listed.iter().find(|known| known.name == form.name).cloned();
+                        catalog.set(listed);
+                        found
+                    }
+                    Err(failure) => {
+                        said.set(Some(lines::failure(&failure)));
+                        return;
+                    }
+                },
+                None => known,
+            };
+            let Some(served) = served else {
+                return;
+            };
+            if onto_the_plate {
+                plated_now(&served, quantity_typed);
+                return;
+            }
+            let form = IntakeForm {
+                date,
+                food: served.name,
+                quantity: quantity_typed,
+            };
+            logged(tauri::log_intake(&form).await);
+        });
+    };
+    let log = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        served(on_the_plate.get_untracked());
     };
     view! {
         <section class="card">
@@ -252,23 +324,55 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                         })
                 }}
                 {preview_line(preview)}
-                <button class="cta" type="submit">
-                    {move || if creating.get() { "Add and log" } else { "Fuel" }}
+                <button
+                    class=move || if on_the_plate.get() { "cta to-the-plate" } else { "cta" }
+                    type="submit"
+                >
+                    {move || {
+                        if on_the_plate.get() {
+                            "Add to the plate"
+                        } else if creating.get() {
+                            "Add and log"
+                        } else {
+                            "Fuel"
+                        }
+                    }}
                 </button>
+                {move || {
+                    (!on_the_plate.get())
+                        .then(|| {
+                            view! {
+                                <button
+                                    class="cta ghost to-the-plate"
+                                    type="button"
+                                    on:click=move |_| served(true)
+                                >
+                                    "Add to the plate"
+                                </button>
+                            }
+                        })
+                }}
             </form>
+            {move || on_the_plate.get().then(|| view! { <Plate plate=plate /> })}
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
         </section>
         {move || {
             fuel.get()
                 .map(|answer| {
                     let energy_class = answer.energy.map(lines::verdict_class).unwrap_or("hint");
+                    let eaten = answer.eaten.energy_kcal;
+                    let with_the_plate = plated.get().map(|plated| eaten + plated.energy_kcal);
                     view! {
                         <section class="card bands">
                             <h2>"Where the day stands"</h2>
                             <p class=format!("figures {energy_class}")>{lines::energy_line(&answer)}</p>
+                            {with_the_plate
+                                .map(|kcal| {
+                                    view! { <p class="hint with-the-plate">{lines::with_the_plate(kcal)}</p> }
+                                })}
                             {match answer.band {
                                 Some(band) => {
-                                    view! { <FuelGauge eaten=answer.eaten.energy_kcal band=band /> }
+                                    view! { <FuelGauge eaten=eaten band=band ghost=with_the_plate /> }
                                         .into_any()
                                 }
                                 None => view! { <p class="hint">{lines::NO_BAND}</p> }.into_any(),
@@ -280,7 +384,11 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
         {move || {
             fuel.get()
                 .and_then(|answer| {
-                    answer.macros.map(|macros| view! { <MacrosCard macros=macros eaten=answer.eaten /> })
+                    answer
+                        .macros
+                        .map(|macros| {
+                            view! { <MacrosCard macros=macros eaten=answer.eaten plated=plated.get() /> }
+                        })
                 })
         }}
         <section class="card">

@@ -956,3 +956,22 @@ td .description {
 	font-size: 0.75rem;
 	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
+
+.gauge .ghost {
+	fill: none;
+	stroke: #7aa2f7;
+	stroke-width: 2;
+	stroke-dasharray: 2 2;
+	vector-effect: non-scaling-stroke;
+}
+
+td .ghost,
+.with-the-plate {
+	color: var(--mut);
+	font-style: italic;
+}
+
+td .ghost {
+	margin-left: 4px;
+	font-size: 0.8rem;
+}

@@ -20,7 +20,7 @@ pub struct MealInProgress {
     description: RwSignal<String>,
     food: RwSignal<String>,
     quantity: RwSignal<String>,
-    pot: RwSignal<Vec<InThePot>>,
+    pub(crate) pot: RwSignal<Vec<InThePot>>,
 }
 
 impl Default for MealInProgress {
@@ -45,12 +45,115 @@ impl MealInProgress {
 }
 
 #[derive(Clone)]
-struct InThePot {
+pub(crate) struct InThePot {
     food: String,
     unit: Unit,
     quantity: f64,
-    nutrients: Nutrients,
+    pub(crate) nutrients: Nutrients,
     ratio: ArcRwSignal<String>,
+}
+
+impl InThePot {
+    pub(crate) fn of(known: &Food, quantity: f64) -> Self {
+        Self {
+            food: known.name.clone(),
+            unit: known.unit,
+            quantity,
+            nutrients: nutrients_of(known, quantity),
+            ratio: ArcRwSignal::new(String::new()),
+        }
+    }
+}
+
+/// What the pot holds, each ingredient with its cooking ratio, and their total.
+#[component]
+fn PotTable(pot: RwSignal<Vec<InThePot>>) -> impl IntoView {
+    view! {
+        <Show when=move || !pot.get().is_empty()>
+            <div class="scroll">
+                <table class="pot">
+                    <thead>
+                        <tr>
+                            <th>"Ingredient"</th>
+                            <th>"Ratio"</th>
+                            <th>"kcal"</th>
+                            <th>"Prot (g)"</th>
+                            <th>"Fat (g)"</th>
+                            <th>"Fib (g)"</th>
+                            <th>"Carbs (g)"</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {move || {
+                            pot.get()
+                                .into_iter()
+                                .enumerate()
+                                .map(|(at, added)| {
+                                    let (ratio, typed) = (added.ratio.clone(), added.ratio);
+                                    view! {
+                                        <tr>
+                                            <td>
+                                                {format!(
+                                                    "{} {}",
+                                                    shown(Figure::Amount(added.quantity, added.unit)),
+                                                    added.food,
+                                                )}
+                                            </td>
+                                            <td>
+                                                <input
+                                                    class="ratio"
+                                                    name=format!("ratio_{at}")
+                                                    inputmode="decimal"
+                                                    autocomplete="off"
+                                                    placeholder=typed_back(MASS_KEPT)
+                                                    prop:value=move || ratio.get()
+                                                    on:input=move |event| typed.set(event_target_value(&event))
+                                                />
+                                            </td>
+                                            {nutrient_cells(added.nutrients)}
+                                            <td>
+                                                <button
+                                                    class="remove"
+                                                    type="button"
+                                                    aria-label="Remove this ingredient"
+                                                    on:click=move |_| pot.update(|added| {
+                                                        added.remove(at);
+                                                    })
+                                                >
+                                                    "×"
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                })
+                                .collect_view()
+                        }}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>"Total"</td>
+                            <td></td>
+                            {move || nutrient_cells(summed(pot.get().into_iter().map(|added| added.nutrients)))}
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </Show>
+    }
+}
+
+/// The foods put aside in Fuel before they are logged, on the meal in progress's pot.
+#[component]
+pub fn Plate(plate: MealInProgress) -> impl IntoView {
+    let pot = plate.pot;
+    view! {
+        <div class="plate">
+            <p class="new">"On the plate"</p>
+            <PotTable pot=pot />
+        </div>
+    }
 }
 
 #[component]
@@ -93,15 +196,7 @@ pub fn NewMeal(
             return;
         };
         let quantity_typed = quantity_typed.unwrap_or(0.0);
-        pot.update(|added| {
-            added.push(InThePot {
-                nutrients: nutrients_of(&known, quantity_typed),
-                food: known.name,
-                unit: known.unit,
-                quantity: quantity_typed,
-                ratio: ArcRwSignal::new(String::new()),
-            })
-        });
+        pot.update(|added| added.push(InThePot::of(&known, quantity_typed)));
         food.set(String::new());
         quantity.set(String::new());
         said.set(None);
@@ -175,78 +270,7 @@ pub fn NewMeal(
                 </button>
             </div>
             {preview_line(preview)}
-            <Show when=move || !pot.get().is_empty()>
-            <div class="scroll">
-            <table class="pot">
-                <thead>
-                    <tr>
-                        <th>"Ingredient"</th>
-                        <th>"Ratio"</th>
-                        <th>"kcal"</th>
-                        <th>"Prot (g)"</th>
-                        <th>"Fat (g)"</th>
-                        <th>"Fib (g)"</th>
-                        <th>"Carbs (g)"</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {move || {
-                        pot.get()
-                            .into_iter()
-                            .enumerate()
-                            .map(|(at, added)| {
-                                let (ratio, typed) = (added.ratio.clone(), added.ratio);
-                                view! {
-                                    <tr>
-                                        <td>
-                                            {format!(
-                                                "{} {}",
-                                                shown(Figure::Amount(added.quantity, added.unit)),
-                                                added.food,
-                                            )}
-                                        </td>
-                                        <td>
-                                            <input
-                                                class="ratio"
-                                                name=format!("ratio_{at}")
-                                                inputmode="decimal"
-                                                autocomplete="off"
-                                                placeholder=typed_back(MASS_KEPT)
-                                                prop:value=move || ratio.get()
-                                                on:input=move |event| typed.set(event_target_value(&event))
-                                            />
-                                        </td>
-                                        {nutrient_cells(added.nutrients)}
-                                        <td>
-                                            <button
-                                                class="remove"
-                                                type="button"
-                                                aria-label="Remove this ingredient"
-                                                on:click=move |_| pot.update(|added| {
-                                                    added.remove(at);
-                                                })
-                                            >
-                                                "×"
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            })
-                            .collect_view()
-                    }}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td>"Total"</td>
-                        <td></td>
-                        {move || nutrient_cells(summed(pot.get().into_iter().map(|added| added.nutrients)))}
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
-            </div>
-            </Show>
+            <PotTable pot=pot />
             <p class="hint">{lines::COOKING_RATIO_HOW}</p>
             <button class="cta" type="submit">
                 "Cook"

@@ -73,12 +73,10 @@ pub fn BurnGauge(burnt: f64, target: f64) -> impl IntoView {
 }
 
 #[component]
-pub fn FuelGauge(eaten: f64, band: Band) -> impl IntoView {
-    let placed = energy_gauge_of(
-        eaten,
-        (band.minimum_kcal, band.floor_kcal, band.cap_kcal),
-        360.0,
-    );
+pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
+    let bounds = (band.minimum_kcal, band.floor_kcal, band.cap_kcal);
+    let placed = energy_gauge_of(eaten, bounds, 360.0);
+    let ghost_at = ghost.map(|kcal| energy_gauge_of(kcal, bounds, 360.0).eaten_at);
     view! {
         <div class="gauge fuel-gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">
@@ -87,6 +85,7 @@ pub fn FuelGauge(eaten: f64, band: Band) -> impl IntoView {
                 <line class="minimum" x1=placed.minimum_at x2=placed.minimum_at y1="3" y2="21" />
                 <line class="tick" x1=placed.floor_at x2=placed.floor_at y1="3" y2="21" />
                 <line class="tick" x1=placed.cap_at x2=placed.cap_at y1="3" y2="21" />
+                {ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
             <div class="gauge-labels">

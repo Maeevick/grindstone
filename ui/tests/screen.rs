@@ -1590,7 +1590,7 @@ async fn a_meal_in_progress_waits_on_the_fuel_shelf_while_the_cook_checks_anothe
         ]
     );
     assert_eq!(
-        cells_by_row(&screen, "table.pot tbody tr"),
+        cells_by_row(&screen, "form.meal table.pot tbody tr"),
         [["100 g Pasta", "", "360", "12", "2", "3", "70", "×"]]
     );
 }

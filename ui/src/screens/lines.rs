@@ -315,6 +315,10 @@ pub fn longest_streak(longest: u32) -> String {
     format!("(longest: {})", days_counted(longest))
 }
 
+pub fn with_the_plate(kcal: f64) -> String {
+    format!("With the plate: {}", shown(Figure::Energy(kcal)))
+}
+
 pub const STREAK_GRACE: &str = "Each tick holds within 5% of its band, a mercy the gauges never \
     show. Aim for the gauges: the 5% is for the days that wobble.";
 
