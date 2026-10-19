@@ -1933,6 +1933,34 @@ async fn a_logged_drink_joins_the_day_in_millilitres_and_the_form_empties() {
 }
 
 #[wasm_bindgen_test]
+async fn a_drink_logged_in_its_tab_reaches_todays_tile_at_once() {
+    let drinks = format!(r#"{{ "drinks": {THE_CATALOG} }}"#);
+    answering_all(&[A_HOME, EVERY_TAB, &drinks]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    went_to("/hydrate");
+    settled().await;
+    let before = text_of(&screen, ".today .tile.hydrated .big");
+
+    let drunk = format!(
+        r#"{{ "hydrate_day": {A_DAY_WITH_TWO_DRINKS}, "log_drink": {A_DAY_WITH_TWO_DRINKS} }}"#
+    );
+    answering_all(&[A_HOME, EVERY_TAB, &drinks, &drunk]);
+    typed_into(&screen, "drink", "Tea");
+    found::<HtmlFormElement>(&screen, "form.drinking")
+        .request_submit()
+        .expect("the drink is logged");
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        [before, text_of(&screen, ".today .tile.hydrated .big")],
+        ["0", "280"]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_drink_chooser_starts_on_select_me_and_a_volume_left_empty_logs_one_serving() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY}, "log_drink": {A_DRY_DAY} }}"#
