@@ -595,7 +595,7 @@ mod tests {
             Ok(json!({
                 "day": measured, "days": [measured],
                 "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null },
-                "aims": null
+                "aims": null, "pace": null
             }))
         );
     }
@@ -609,7 +609,7 @@ mod tests {
             Ok(json!({
                 "day": null, "days": [],
                 "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null },
-                "aims": null
+                "aims": null, "pace": null
             }))
         );
     }

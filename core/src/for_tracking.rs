@@ -7,7 +7,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
-use crate::pace::Pace;
+use crate::pace::{Pace, pace_on};
 use crate::refusal::Refusal;
 use crate::tendency::{Tendency, tendency_of};
 use crate::version::version_in_force_on;
@@ -39,7 +39,7 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         tendency: tendency_of(&days, version_in_force_on(&gathered.goals, day)),
         days,
         aims: aims_on(day, gathered),
-        pace: None,
+        pace: pace_on(day, gathered),
     }
 }
 
