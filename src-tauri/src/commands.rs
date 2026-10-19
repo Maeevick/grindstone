@@ -918,6 +918,30 @@ mod tests {
     }
 
     #[test]
+    fn a_session_logged_from_the_screen_answers_the_days_burn_with_a_workout_per_step() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "add_exercise",
+            json!({ "name": "Walking", "met": 4.0 }),
+        )
+        .expect("an exercise adds");
+
+        let burnt = invoke(
+            &screen,
+            "log_session",
+            json!({ "form": { "date": "2026-10-10", "sets": 2, "steps": [
+                { "exercise": "Walking", "reps": null, "minutes": 10.0, "load_kg": 0.0 },
+                { "exercise": "Walking", "reps": null, "minutes": 5.0, "load_kg": 0.0 } ] } }),
+        );
+
+        assert_eq!(
+            burnt.map(|burn| burn["workouts"].as_array().map(Vec::len)),
+            Ok(Some(2))
+        );
+    }
+
+    #[test]
     fn foods_added_and_removed_from_the_screen_answer_the_catalog() {
         let (_app, screen) = launched();
 
