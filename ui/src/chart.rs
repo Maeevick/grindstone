@@ -79,6 +79,7 @@ pub struct BurnGauge {
     pub grace_from: f64,
     pub target_at: f64,
     pub burnt_at: f64,
+    pub ghost_at: Option<f64>,
     pub up_to_kcal: f64,
 }
 
@@ -89,7 +90,7 @@ const ROUNDED_UP_TO_KCAL: f64 = 50.0;
 
 /// A burn on a line from nothing: 200 kcal by default, stretched a fifth past the larger of the target and the
 /// burn, rounded up to 50; green from 95% of the target on, with no end to it.
-pub fn burn_gauge_of(burnt: f64, target: f64, width: f64) -> BurnGauge {
+pub fn burn_gauge_of(burnt: f64, target: f64, _ghost: Option<f64>, width: f64) -> BurnGauge {
     let stretched =
         (ROOM_PAST_THE_LARGER * target.max(burnt) / ROUNDED_UP_TO_KCAL).ceil() * ROUNDED_UP_TO_KCAL;
     let scale = (0.0, stretched.max(BURN_GAUGE_KCAL));
@@ -97,6 +98,7 @@ pub fn burn_gauge_of(burnt: f64, target: f64, width: f64) -> BurnGauge {
         grace_from: placed(GRACE_UNDER_THE_TARGET * target, scale, width),
         target_at: placed(target, scale, width),
         burnt_at: placed(burnt, scale, width),
+        ghost_at: None,
         up_to_kcal: scale.1,
     }
 }
@@ -263,12 +265,27 @@ mod tests {
     #[test]
     fn a_burn_gauge_runs_from_nothing_to_200_kcal_and_turns_green_at_95_percent_of_its_target() {
         assert_eq!(
-            burn_gauge_of(60.0, 80.0, 400.0),
+            burn_gauge_of(60.0, 80.0, None, 400.0),
             BurnGauge {
                 grace_from: 152.0,
                 target_at: 160.0,
                 burnt_at: 120.0,
+                ghost_at: None,
                 up_to_kcal: 200.0,
+            }
+        );
+    }
+
+    #[test]
+    fn a_ghost_sits_on_the_burn_gauge_stretching_it_as_a_burn_would() {
+        assert_eq!(
+            burn_gauge_of(60.0, 80.0, Some(300.0), 400.0),
+            BurnGauge {
+                grace_from: 76.0,
+                target_at: 80.0,
+                burnt_at: 60.0,
+                ghost_at: Some(300.0),
+                up_to_kcal: 400.0,
             }
         );
     }
@@ -277,8 +294,8 @@ mod tests {
     fn a_target_or_a_burn_past_200_kcal_stretches_the_gauge_a_fifth_beyond_rounded_up_to_50() {
         assert_eq!(
             (
-                burn_gauge_of(300.0, 150.0, 400.0).up_to_kcal,
-                burn_gauge_of(20.0, 180.0, 400.0).up_to_kcal
+                burn_gauge_of(300.0, 150.0, None, 400.0).up_to_kcal,
+                burn_gauge_of(20.0, 180.0, None, 400.0).up_to_kcal
             ),
             (400.0, 250.0)
         );

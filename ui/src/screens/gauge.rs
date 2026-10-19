@@ -54,7 +54,7 @@ pub fn AimGauge(label: &'static str, amount: f64, aim: f64, recommended: bool) -
 
 #[component]
 pub fn BurnGauge(burnt: f64, target: f64) -> impl IntoView {
-    let placed = burn_gauge_of(burnt, target, 360.0);
+    let placed = burn_gauge_of(burnt, target, None, 360.0);
     view! {
         <div class="gauge burn-gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">
