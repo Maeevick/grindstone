@@ -180,4 +180,39 @@ mod tests {
                 < 1e-9
         );
     }
+
+    fn judged(gathered: &GatherRecords) -> Judgement {
+        pace_on(day("2026-10-10"), gathered)
+            .expect("a pace")
+            .judgement
+    }
+
+    fn a_man_with_a_waist_weighed(waist_cm: f64, from_kg: f64, kg_a_day: f64) -> GatherRecords {
+        let weighed = a_man_weighed(from_kg, kg_a_day);
+        GatherRecords {
+            measurements: weighed
+                .measurements
+                .iter()
+                .map(|measured| Measurement {
+                    waist_cm: Some(waist_cm),
+                    ..*measured
+                })
+                .collect(),
+            ..weighed
+        }
+    }
+
+    #[test]
+    fn losing_under_the_healthy_mass_or_fat_is_dangerous_whatever_the_aim() {
+        let under_the_healthy_mass = aiming_at(55.0, a_man_with_a_waist_weighed(72.0, 59.0, -0.02));
+        let under_the_healthy_fat = aiming_at(70.0, a_man_with_a_waist_weighed(70.0, 76.0, -0.02));
+
+        assert_eq!(
+            (
+                judged(&under_the_healthy_mass),
+                judged(&under_the_healthy_fat)
+            ),
+            (Judgement::UnderHealthyMass, Judgement::UnderHealthyFat)
+        );
+    }
 }
