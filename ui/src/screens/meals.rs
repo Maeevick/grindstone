@@ -13,7 +13,7 @@ use crate::tauri;
 use crate::typed::figures_typed;
 
 /// The meal on the lab's bench, kept while the app runs, so the cook can check the day's gaps in
-/// Tracker and come back to it.
+/// another tab and come back to it.
 #[derive(Clone, Copy)]
 pub struct MealInProgress {
     name: RwSignal<String>,

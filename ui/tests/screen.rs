@@ -3,17 +3,17 @@
 use grind_core::burn::Burn;
 use grind_ui::app::App;
 use grind_ui::screens::burn::BurnDay;
-use grind_ui::screens::catalog::Catalog;
+use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
+use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
 use grind_ui::screens::meals::MealInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
 use grind_ui::screens::stats::Stats;
-use grind_ui::screens::tracker::Tracker;
 use leptos::prelude::*;
 use leptos_router::components::Router;
 use wasm_bindgen::JsCast;
@@ -424,7 +424,7 @@ async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lea
               "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
 
     let first = text_of(&screen, ".aim-gauge");
@@ -453,7 +453,7 @@ async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
                          "judgement": "VeryGood", "safe_loss_kg": 0.48 }} }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
 
     let pace = text_of(&screen, ".pace");
@@ -470,13 +470,11 @@ async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
     "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } }"#;
 
-/// The Tracker, from a bare address whatever segment an earlier test left the browser on.
-fn the_tracker(screen: &Element) -> impl Drop {
-    back_home();
+fn the_gather_tab(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
-                <Tracker />
+                <GatherTab />
             </Router>
         }
     })
@@ -495,7 +493,7 @@ async fn the_chosen_day_shows_as_year_month_day() {
         r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET} }}"#
     ));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
 
     typed_into(&screen, "day", "2026-10-10");
@@ -512,7 +510,7 @@ async fn a_gathered_day_fills_its_fields_and_a_day_not_gathered_yet_marks_the_bo
         a_gathered_week()
     ));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
 
     typed_into(&screen, "day", "2026-10-10");
@@ -537,7 +535,7 @@ async fn the_week_lists_its_days_under_their_units_the_chosen_one_highlighted_wi
 {
     answering(&format!(r#"{{ "gather_week": {} }}"#, a_gathered_week()));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
 
     typed_into(&screen, "day", "2026-10-10");
@@ -562,38 +560,13 @@ async fn the_week_lists_its_days_under_their_units_the_chosen_one_highlighted_wi
 }
 
 #[wasm_bindgen_test]
-async fn explore_in_stats_closes_every_segment_of_the_tracker() {
-    answering(&format!(
-        r#"{{ "gather_week": {}, "foods": [], "fuel_day": {A_DAY_NOT_FUELLED_YET}, "drinks": [],
-              "hydrate_day": {A_DRY_DAY}, "exercises": [], "circuits": [], "burn_day": {AN_EMPTY_BURN} }}"#,
-        a_gathered_week()
-    ));
-    let screen = screen();
-    let _mounted = the_tracker(&screen);
-    settled().await;
-
-    for segment in ["Gather", "Fuel", "Hydrate", "Burn"] {
-        clicked(&screen, &format!("button.segment-{segment}"));
-        settled().await;
-        let last = screen
-            .last_element_child()
-            .expect("the tracker's last element");
-        assert_eq!(
-            (last.tag_name(), last.get_attribute("href")),
-            ("A".to_string(), Some("/stats".to_string())),
-            "{segment}"
-        );
-    }
-}
-
-#[wasm_bindgen_test]
 async fn after_logging_a_measurement_the_day_stays_and_the_form_shows_what_was_gathered() {
     answering(&format!(
         r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET}, "log_measurement": {} }}"#,
         a_gathered_week()
     ));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
@@ -625,7 +598,7 @@ async fn removing_a_day_takes_it_off_the_week() {
         a_gathered_week()
     ));
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
@@ -924,12 +897,32 @@ async fn the_days_expenditures_list_its_workouts_newest_first_then_off_the_clock
     );
 }
 
-fn the_catalog(screen: &Element) -> impl Drop {
+fn the_fuel_shelf(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         provide_context(MealInProgress::default());
         view! {
             <Router>
-                <Catalog />
+                <FuelShelf />
+            </Router>
+        }
+    })
+}
+
+fn the_hydrate_shelf(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <HydrateShelf />
+            </Router>
+        }
+    })
+}
+
+fn the_burn_shelf(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <BurnShelf />
             </Router>
         }
     })
@@ -972,9 +965,7 @@ async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the
         r#"{ "exercises": [], "circuits": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
     );
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Burn");
+    let _mounted = the_burn_shelf(&screen);
     settled().await;
     assert_eq!(tables_in_order(&screen), ["exercises"]);
     found::<Element>(&screen, "button.form-Exercise.chosen");
@@ -1233,7 +1224,7 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_
             "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } }] }"#,
     );
     let screen = screen();
-    let _mounted = the_catalog(&screen);
+    let _mounted = the_fuel_shelf(&screen);
     settled().await;
     assert_eq!(tables_in_order(&screen), ["foods"]);
     found::<Element>(&screen, "button.form-Food.chosen");
@@ -1293,7 +1284,7 @@ async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_meals_its
         r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
+    let _mounted = the_fuel_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Meal");
     settled().await;
@@ -1367,7 +1358,7 @@ fn cells_by_row(screen: &Element, rows: &str) -> Vec<Vec<String>> {
 async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_what_each_brings() {
     answering(&format!(r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [] }}"#));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
+    let _mounted = the_fuel_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Meal");
     settled().await;
@@ -1449,7 +1440,7 @@ async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
         r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
+    let _mounted = the_fuel_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Meal");
     settled().await;
@@ -1783,9 +1774,7 @@ async fn the_crafter_crafts_a_circuit_the_lab_lists_priced_per_set_its_steps_on_
              "priced_circuits": [{{ "circuit": {MORNING_RUST}, "burnt_per_set_kcal": 12.3 }}] }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Burn");
+    let _mounted = the_burn_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Circuit");
     settled().await;
@@ -1844,9 +1833,7 @@ async fn the_crafter_prices_each_step_and_the_set_they_add_up_to() {
              "circuits": [], "priced_circuits": [], "burn_day": {A_BURN_PRICED_AT_80_KG} }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Burn");
+    let _mounted = the_burn_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Circuit");
     settled().await;
@@ -1884,9 +1871,7 @@ async fn a_step_added_by_mistake_leaves_the_circuit_before_it_is_crafted() {
         r#"{ "exercises": [{ "name": "Burpee", "met": 8.0 }, { "name": "Push up", "met": 3.8 }], "circuits": [] }"#,
     );
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Burn");
+    let _mounted = the_burn_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Circuit");
     settled().await;
@@ -1908,9 +1893,7 @@ async fn removing_a_circuit_takes_it_out_of_the_lab() {
               "priced_circuits": [{{ "circuit": {MORNING_RUST}, "burnt_per_set_kcal": null }}] }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Burn");
+    let _mounted = the_burn_shelf(&screen);
     settled().await;
     clicked(&screen, "button.form-Circuit");
     settled().await;
@@ -2140,9 +2123,7 @@ async fn a_drink_added_from_the_hydrate_shelfs_form_card_joins_its_list_its_kind
         r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }] }"#,
     );
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Hydrate");
+    let _mounted = the_hydrate_shelf(&screen);
     settled().await;
     assert_eq!(
         found::<HtmlSelectElement>(&screen, "select[name=drink_kind]").length(),
@@ -2167,9 +2148,7 @@ async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
         r#"{{ "drinks": {THE_CATALOG}, "remove_drink": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }}] }}"#
     ));
     let screen = screen();
-    let _mounted = the_catalog(&screen);
-    settled().await;
-    clicked(&screen, "button.shelf-Hydrate");
+    let _mounted = the_hydrate_shelf(&screen);
     settled().await;
 
     clicked(&screen, "table.drinks button.remove");
@@ -2527,7 +2506,7 @@ async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_betw
 async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_app() {
     answering(r#"{ "recent_days": [] }"#);
     let screen = screen();
-    let _mounted = the_tracker(&screen);
+    let _mounted = the_gather_tab(&screen);
     settled().await;
 
     typed_into(&screen, "mass", "eighty");
@@ -2758,17 +2737,15 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     settled().await;
     said.extend([spoken_on(&welcome), spoken_on(&charts)]);
 
-    let catalog = screen();
-    let _catalog = the_catalog(&catalog);
+    let fuel_shelf = screen();
+    let _fuel_shelf = the_fuel_shelf(&fuel_shelf);
+    let burn_shelf = screen();
+    let _burn_shelf = the_burn_shelf(&burn_shelf);
     settled().await;
-    clicked(&catalog, "button.form-Meal");
+    clicked(&fuel_shelf, "button.form-Meal");
+    clicked(&burn_shelf, "button.form-Circuit");
     settled().await;
-    said.push(spoken_on(&catalog));
-    clicked(&catalog, "button.shelf-Burn");
-    settled().await;
-    clicked(&catalog, "button.form-Circuit");
-    settled().await;
-    said.push(spoken_on(&catalog));
+    said.extend([spoken_on(&fuel_shelf), spoken_on(&burn_shelf)]);
 
     let burn = screen();
     let _burn = the_burn_day(&burn);

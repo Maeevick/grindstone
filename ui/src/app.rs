@@ -4,8 +4,8 @@ use leptos_router::path;
 
 use crate::screens::Recorded;
 use crate::screens::burn::BurnTab;
-use crate::screens::catalog::Catalog;
 use crate::screens::fuel::FuelTab;
+use crate::screens::gather::GatherTab;
 use crate::screens::header::Header;
 use crate::screens::home::Home;
 use crate::screens::hydrate::HydrateTab;
@@ -14,7 +14,6 @@ use crate::screens::meals::MealInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;
 use crate::screens::stats::Stats;
-use crate::screens::tracker::{GatherTab, Tracker};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -30,8 +29,6 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/fuel") view=FuelTab />
                     <Route path=path!("/hydrate") view=HydrateTab />
                     <Route path=path!("/burn") view=BurnTab />
-                    <Route path=path!("/tracker") view=Tracker />
-                    <Route path=path!("/catalog") view=Catalog />
                     <Route path=path!("/profile") view=ProfileScreen />
                     <Route path=path!("/stats") view=Stats />
                     <Route path=path!("/references") view=ReferencesScreen />

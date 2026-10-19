@@ -5,6 +5,7 @@ pub mod charts;
 pub mod circuits;
 pub mod fields;
 pub mod fuel;
+pub mod gather;
 pub mod gauge;
 pub mod header;
 pub mod home;
@@ -16,7 +17,6 @@ pub mod references;
 pub mod settings;
 pub mod stats;
 pub mod tab;
-pub mod tracker;
 
 use leptos::prelude::{Get, RwSignal, Update, use_context};
 

@@ -564,10 +564,6 @@ select {
 	outline-offset: 1px;
 }
 
-.card.day .pills {
-	margin: 16px 0 4px;
-}
-
 .required {
 	color: var(--acc);
 }
