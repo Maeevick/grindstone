@@ -75,6 +75,23 @@ pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BurnGauge {
+    pub grace_from: f64,
+    pub target_at: f64,
+    pub burnt_at: f64,
+    pub up_to_kcal: f64,
+}
+
+pub fn burn_gauge_of(_burnt: f64, _target: f64, _width: f64) -> BurnGauge {
+    BurnGauge {
+        grace_from: 0.0,
+        target_at: 0.0,
+        burnt_at: 0.0,
+        up_to_kcal: 0.0,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EnergyGauge {
     pub minimum_at: f64,
     pub floor_at: f64,
@@ -205,6 +222,19 @@ mod tests {
                 band_to: 220.0,
                 optimal_at: 200.0,
                 amount_at: 100.0,
+            }
+        );
+    }
+
+    #[test]
+    fn a_burn_gauge_runs_from_nothing_to_200_kcal_and_turns_green_at_95_percent_of_its_target() {
+        assert_eq!(
+            burn_gauge_of(60.0, 80.0, 400.0),
+            BurnGauge {
+                grace_from: 152.0,
+                target_at: 160.0,
+                burnt_at: 120.0,
+                up_to_kcal: 200.0,
             }
         );
     }
