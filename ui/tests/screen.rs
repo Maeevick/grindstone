@@ -2,6 +2,7 @@
 
 use grind_core::burn::Burn;
 use grind_ui::app::App;
+use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
@@ -405,6 +406,12 @@ async fn the_profile_and_goals_in_force_today_fill_their_forms() {
 const A_GATHERED_DAY: &str = r#"{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "age": 41,
     "composition": { "fat_ratio": 0.1162, "fat_mass_kg": 9.3, "lean_mass_kg": 70.7 } }"#;
 
+const A_MONTH_GATHERED: &str = r#"{ "month": "2026-10", "earlier": null, "rows": [
+    { "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 80.0, "lean_mass_kg": 70.7, "fat_mass_kg": 9.3, "fat_ratio": 0.1162 },
+    { "day": "2026-10-07", "body_mass_kg": 80.6, "waist_cm": null, "lean_mass_kg": 71.0, "fat_mass_kg": 9.6, "fat_ratio": 0.1158 } ] }"#;
+
+const A_MONTH_NOT_GATHERED_YET: &str = r#"{ "month": "2026-10", "earlier": null, "rows": [] }"#;
+
 fn a_gathered_week() -> String {
     format!(
         r#"{{ "day": {A_GATHERED_DAY},
@@ -473,6 +480,7 @@ const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
 
 fn the_gather_tab(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        provide_context(Recorded::default());
         view! {
             <Router>
                 <GatherTab />
@@ -532,9 +540,11 @@ async fn a_gathered_day_fills_its_fields_and_a_day_not_gathered_yet_marks_the_bo
 }
 
 #[wasm_bindgen_test]
-async fn the_week_lists_its_days_under_their_units_the_chosen_one_highlighted_with_a_tendency_row()
-{
-    answering(&format!(r#"{{ "gather_week": {} }}"#, a_gathered_week()));
+async fn the_last_days_of_gather_list_each_day_under_its_units_the_chosen_one_highlighted() {
+    answering(&format!(
+        r#"{{ "gather_week": {}, "gather_month": {A_MONTH_GATHERED} }}"#,
+        a_gathered_week()
+    ));
     let screen = screen();
     let _mounted = the_gather_tab(&screen);
     settled().await;
@@ -542,29 +552,22 @@ async fn the_week_lists_its_days_under_their_units_the_chosen_one_highlighted_wi
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
 
-    let text = |selector: &str| {
-        found::<Element>(&screen, selector)
-            .text_content()
-            .unwrap_or_default()
-    };
+    let heads = text_of(&screen, ".last-days thead");
+    for unit in ["Mass (kg)", "Waist (cm)", "Fat (%)", "Lean (kg)"] {
+        assert!(heads.contains(unit), "{unit} in {heads}");
+    }
+    assert!(text_of(&screen, ".last-days tr.chosen").contains("2026-10-10"));
+    let listed = text_of(&screen, ".last-days tbody");
     assert!(
-        text(".last-days thead").contains("Mass (kg)")
-            && text(".last-days thead").contains("Fat (%)"),
-        "{}",
-        text(".last-days thead")
+        listed.contains("80.6") && !listed.contains(" kg"),
+        "{listed}"
     );
-    assert!(text(".last-days tr.chosen").contains("2026-10-10"));
-    assert!(text(".last-days tbody").contains("80.6") && !text(".last-days tbody").contains(" kg"));
-    assert_eq!(text(".last-days tfoot .toward"), "-0.6");
-    assert_eq!(text(".last-days tfoot .steady"), "-");
-    assert_eq!(text(".last-days tfoot .away"), "-0.3");
 }
 
 #[wasm_bindgen_test]
-async fn after_logging_a_measurement_the_day_stays_and_the_form_shows_what_was_gathered() {
+async fn after_logging_a_measurement_the_day_stays_its_form_shows_it_and_it_joins_the_last_days() {
     answering(&format!(
-        r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET}, "log_measurement": {} }}"#,
-        a_gathered_week()
+        r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET}, "gather_month": {A_MONTH_NOT_GATHERED_YET} }}"#
     ));
     let screen = screen();
     let _mounted = the_gather_tab(&screen);
@@ -572,18 +575,23 @@ async fn after_logging_a_measurement_the_day_stays_and_the_form_shows_what_was_g
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
 
+    answering(&format!(
+        r#"{{ "gather_week": {}, "log_measurement": {}, "gather_month": {A_MONTH_GATHERED} }}"#,
+        a_gathered_week(),
+        a_gathered_week()
+    ));
     typed_into(&screen, "mass", "80");
     typed_into(&screen, "waist", "80");
     found::<HtmlFormElement>(&screen, "form.measurement")
         .request_submit()
         .expect("the measurement is logged");
     settled().await;
+    settled().await;
 
-    let listed: Element = found(&screen, ".last-days tbody");
+    let listed = text_of(&screen, ".last-days tbody");
     assert!(
-        listed
-            .text_content()
-            .is_some_and(|days| days.contains("80.0") && days.contains("11.6"))
+        listed.contains("80.0") && listed.contains("11.6"),
+        "{listed}"
     );
     assert_eq!(
         [value_of(&screen, "mass"), value_of(&screen, "waist")],
@@ -593,9 +601,10 @@ async fn after_logging_a_measurement_the_day_stays_and_the_form_shows_what_was_g
 }
 
 #[wasm_bindgen_test]
-async fn removing_a_day_takes_it_off_the_week() {
+async fn the_days_weigh_in_removed_from_its_card_leaves_the_day_ungathered() {
     answering(&format!(
-        r#"{{ "gather_week": {}, "remove_measurement": {A_WEEK_NOT_GATHERED_YET} }}"#,
+        r#"{{ "gather_week": {}, "gather_month": {A_MONTH_GATHERED},
+              "remove_measurement": {A_WEEK_NOT_GATHERED_YET} }}"#,
         a_gathered_week()
     ));
     let screen = screen();
@@ -604,12 +613,21 @@ async fn removing_a_day_takes_it_off_the_week() {
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, ".last-days button.remove").click();
+    clicked(&screen, "button.remove-weigh-in");
     settled().await;
 
-    let listed: Element = found(&screen, ".last-days tbody");
-    assert_eq!(listed.text_content().unwrap_or_default(), "");
     assert!(asked("remove_measurement").contains("2026-10-10"));
+    assert_eq!(
+        [value_of(&screen, "mass"), value_of(&screen, "waist")],
+        ["", ""]
+    );
+    assert!(
+        screen
+            .query_selector("button.remove-weigh-in")
+            .ok()
+            .flatten()
+            .is_none()
+    );
 }
 
 #[wasm_bindgen_test]
@@ -1857,6 +1875,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The four macros",
                 "The day's intakes",
+                "The last days",
                 "Explore in Stats",
                 "Add to the catalog",
                 "On the shelf"
@@ -1867,6 +1886,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Hydrate",
                 "Where the day stands",
                 "The day's drinks",
+                "The last days",
                 "Explore in Stats",
                 "Add to the catalog",
                 "On the shelf"
@@ -1878,6 +1898,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Off the clock",
                 "Where the day stands",
                 "The day's expenditures",
+                "The last days",
                 "Explore in Stats",
                 "Add to the catalog",
                 "On the shelf"
