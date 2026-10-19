@@ -42,6 +42,8 @@ const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
 const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
 const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
 const STABLE_SHARE_A_WEEK: f64 = 0.0015;
+const GAIN_SHARE_A_WEEK_FROM: f64 = 0.0025;
+const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
 
 /// The most a body can lose in a week without eating into its lean mass: 1% of its mass, 1 kg at most, and
 /// no more than its fat store can spare.
@@ -71,10 +73,14 @@ struct Week {
 }
 
 /// Health first: a loss under the healthy mass or fat, or past the safe loss, is dangerous whatever the aim.
+/// Towards a higher aim, a quarter to half a percent of the body mass a week builds more than it stores:
+/// Iraki J. et al. (2019), *Nutrition recommendations for bodybuilders in the off-season*, Sports 7(7):154.
 fn judgement_of(week: &Week) -> Judgement {
     let losing = week.per_week < -STABLE_SHARE_A_WEEK * week.body_mass_kg;
     let gaining = week.per_week > STABLE_SHARE_A_WEEK * week.body_mass_kg;
     let towards_a_lower_aim = week.aim_kg.is_some_and(|aim| aim < week.body_mass_kg);
+    let towards_a_higher_aim = week.aim_kg.is_some_and(|aim| aim > week.body_mass_kg);
+    let gained_share = week.per_week / week.body_mass_kg;
     if losing
         && week
             .healthy
@@ -94,8 +100,14 @@ fn judgement_of(week: &Week) -> Judgement {
         Judgement::VeryGood
     } else if towards_a_lower_aim && losing {
         Judgement::Good
-    } else if towards_a_lower_aim && gaining {
+    } else if towards_a_lower_aim && gaining || towards_a_higher_aim && losing {
         Judgement::WrongWay
+    } else if towards_a_higher_aim && gained_share > GAIN_SHARE_A_WEEK_AT_MOST {
+        Judgement::GainingTooFast
+    } else if towards_a_higher_aim && gained_share >= GAIN_SHARE_A_WEEK_FROM {
+        Judgement::VeryGood
+    } else if towards_a_higher_aim && gaining {
+        Judgement::Good
     } else {
         Judgement::Stable
     }
