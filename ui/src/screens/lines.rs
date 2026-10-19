@@ -318,6 +318,13 @@ pub fn longest_streak(longest: u32) -> String {
     format!("(longest: {})", days_counted(longest))
 }
 
+pub const KEEP_CIRCUIT_HOW: &str = "Once kept, a circuit is welded shut, like my last cauldron: to change \
+    it, remove it and keep another. Sets: left empty, one; 0 keeps it for another day.";
+
+pub fn circuit_kept_for_later(name: &str) -> String {
+    format!("{name} waits in the lab, crafted, for the day you run it.")
+}
+
 pub fn with_the_session(kcal: f64) -> String {
     format!("With the session: {}", shown(Figure::Energy(kcal)))
 }

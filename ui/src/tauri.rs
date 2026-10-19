@@ -5,7 +5,7 @@ use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
 use grind_core::for_burning::CircuitSessionForm;
-use grind_core::for_burning::{OffTheClockForm, WorkoutForm};
+use grind_core::for_burning::{OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
@@ -366,6 +366,10 @@ pub async fn craft_circuit(form: &CircuitForm) -> Result<Vec<Circuit>, Failure> 
 
 pub async fn remove_circuit(name: &str) -> Result<Vec<Circuit>, Failure> {
     call("remove_circuit", Naming { name }, broken).await
+}
+
+pub async fn log_session(form: &SessionForm) -> Result<Burn, Failure> {
+    call("log_session", Form { form }, broken).await
 }
 
 pub async fn log_circuit(form: &CircuitSessionForm) -> Result<Burn, Failure> {

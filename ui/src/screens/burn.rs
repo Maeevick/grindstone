@@ -418,7 +418,16 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                             on_the_session
                                 .get()
                                 .then(|| {
-                                    view! { <Session session=session exercises=exercises body_mass=body_mass /> }
+                                    view! {
+                                        <Session
+                                            session=session
+                                            exercises=exercises
+                                            body_mass=body_mass
+                                            day=day
+                                            shown_burn=shown_burn
+                                            said=said
+                                        />
+                                    }
                                 })
                         }}
                     }
