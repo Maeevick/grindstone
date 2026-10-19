@@ -5,7 +5,7 @@ use crate::aims::aims_on;
 use crate::body::body_on;
 use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
-use crate::ledger::ledger;
+use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
 use crate::recommendations::{Recommendations, recommended};
 use crate::tendency::{Change, Heading};
@@ -119,47 +119,79 @@ fn judgement_of(week: &Week) -> Judgement {
     }
 }
 
-/// The week's pace on a day: the slope, per week, of the seven-day average of the body mass over the
-/// fourteen days ending on it.
-pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
-    let readings: Vec<(NaiveDate, f64)> = gathered
-        .measurements
+/// The slope, per week, of the seven-day average of a measure over the fourteen days ending on a day,
+/// with the latest of those averages.
+fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
+    let in_reach: Vec<(NaiveDate, f64)> = readings
         .iter()
-        .filter(|measured| {
-            measured.day <= day
-                && measured.day + Days::new(DAYS_OF_THE_SLOPE + DAYS_OF_THE_AVERAGE) >= day
+        .filter(|(read, _)| {
+            *read <= day && *read + Days::new(DAYS_OF_THE_SLOPE + DAYS_OF_THE_AVERAGE) >= day
         })
-        .map(|measured| (measured.day, measured.body_mass_kg))
+        .copied()
         .collect();
-    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&readings)
+    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&in_reach)
         .into_iter()
         .filter(|(averaged, _)| *averaged + Days::new(DAYS_OF_THE_SLOPE) >= day)
         .collect();
     let progress = progress_towards(None, &trend)?;
-    let (_, body_mass_kg) = *trend.last()?;
-    let body = body_on(
-        day,
-        &ledger(&gathered.measurements, &gathered.profiles),
-        &gathered.profiles,
-    );
+    Some((progress.per_week, trend.last()?.1))
+}
+
+/// A measure moving less than 0.15% of itself a week holds steady.
+fn heading_of(per_week: f64, now: f64, aim: Option<f64>) -> Heading {
+    match aim {
+        None => Heading::Unaimed,
+        Some(_) if per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => Heading::Steady,
+        Some(aim) if (aim - now).signum() == per_week.signum() => Heading::Toward,
+        Some(_) => Heading::Away,
+    }
+}
+
+/// The week's pace on a day: how each measure moved per week, heading toward its aim or away from it, and a
+/// judgement of the body mass's pace, health first.
+pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
+    let days = ledger(&gathered.measurements, &gathered.profiles);
+    let readings = |measure: fn(&Day) -> Option<f64>| -> Vec<(NaiveDate, f64)> {
+        days.iter()
+            .filter_map(|measured| measure(measured).map(|value| (measured.day, value)))
+            .collect()
+    };
+    let (per_week, body_mass_kg) = weekly(day, &readings(|measured| Some(measured.body_mass_kg)))?;
+    let aims = aims_on(day, gathered);
+    let change = |measure: fn(&Day) -> Option<f64>, aim: Option<f64>| {
+        weekly(day, &readings(measure)).map(|(per_week, now)| Change {
+            by: per_week,
+            heading: heading_of(per_week, now, aim),
+        })
+    };
+    let body = body_on(day, &days, &gathered.profiles);
     let safe_loss_kg = safe_loss_kg(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
     let judgement = judgement_of(&Week {
-        per_week: progress.per_week,
+        per_week,
         body_mass_kg,
         fat_ratio: body.as_ref().map(|body| body.fat_kg / body.mass_kg),
         healthy: version_in_force_on(&gathered.profiles, day)
             .map(|profile| recommended(profile, day, Some(body_mass_kg))),
         safe_loss_kg,
-        aim_kg: aims_on(day, gathered).map(|aims| aims.body_mass_kg),
+        aim_kg: aims.map(|aims| aims.body_mass_kg),
     });
     Some(Pace {
         body_mass: Change {
-            by: progress.per_week,
-            heading: Heading::Unaimed,
+            by: per_week,
+            heading: heading_of(per_week, body_mass_kg, aims.map(|aims| aims.body_mass_kg)),
         },
-        lean_mass: None,
-        fat_mass: None,
-        fat_ratio: None,
+        lean_mass: change(
+            |measured| measured.composition.map(|split| split.lean_mass_kg),
+            aims.map(|aims| aims.lean_mass_kg),
+        ),
+        fat_mass: change(
+            |measured| measured.composition.map(|split| split.fat_mass_kg),
+            aims.map(|aims| aims.body_mass_kg - aims.lean_mass_kg),
+        ),
+        fat_ratio: change(
+            |measured| measured.composition.map(|split| split.fat_ratio),
+            aims.map(|aims| 1.0 - aims.lean_mass_kg / aims.body_mass_kg),
+        ),
         judgement,
         safe_loss_kg,
     })
