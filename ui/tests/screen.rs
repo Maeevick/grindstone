@@ -189,7 +189,7 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
 }
 
 #[wasm_bindgen_test]
-async fn the_profile_ends_on_the_settings_the_drafts_records_then_the_danger_zone() {
+async fn the_profile_ends_past_a_divider_on_the_settings_the_drafts_records_then_the_danger_zone() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
@@ -213,6 +213,10 @@ async fn the_profile_ends_on_the_settings_the_drafts_records_then_the_danger_zon
     );
     found::<Element>(&screen, "section#draft button.import");
     assert!(screen.query_selector(".gear").ok().flatten().is_none());
+    assert_eq!(
+        text_of(&screen, "hr.divider + header.screen-top"),
+        "Settings"
+    );
 }
 
 #[wasm_bindgen_test]
