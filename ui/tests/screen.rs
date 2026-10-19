@@ -2029,6 +2029,52 @@ fn the_day_of(screen: &Element, day: RwSignal<String>) -> impl Drop {
 }
 
 #[wasm_bindgen_test]
+async fn a_drink_nothing_matches_turns_the_hydrate_form_into_a_new_one_added_then_logged_in_one_tap()
+ {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY},
+              "add_drink": [{{ "name": "Kombucha", "volume_ml": 330.0, "kind": "Other", "description": "The ginger one" }}],
+              "log_drink": {A_DAY_WITH_TWO_DRINKS} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
+    settled().await;
+
+    typed_into(&screen, "drink", "Kombucha");
+    settled().await;
+    assert_eq!(
+        texts_in_order(&screen, "form.drinking .new"),
+        ["New Kombucha"]
+    );
+    typed_into(&screen, "new_drink_description", "The ginger one");
+    typed_into(&screen, "new_drink_serving", "330");
+    let kind: HtmlSelectElement = found(&screen, "select[name=new_drink_kind]");
+    kind.set_value("Other");
+    kind.dispatch_event(&Event::new("change").expect("a change event"))
+        .expect("the kind changes");
+    settled().await;
+    let offered = text_of(&screen, "form.drinking button[type=submit]");
+    found::<HtmlFormElement>(&screen, "form.drinking")
+        .request_submit()
+        .expect("the new drink is added, then logged");
+    settled().await;
+    settled().await;
+
+    assert_eq!(offered, "Add and log");
+    let added = asked("add_drink");
+    for sent in [
+        r#""name":"Kombucha""#,
+        r#""volume_ml":330"#,
+        r#""kind":"Other""#,
+        r#""description":"The ginger one""#,
+    ] {
+        assert!(added.contains(sent), "{sent} in {added}");
+    }
+    assert!(asked("log_drink").contains(r#""drink":"Kombucha""#));
+    assert!(texts_in_order(&screen, "form.drinking .new").is_empty());
+}
+
+#[wasm_bindgen_test]
 async fn the_days_drinks_add_up_against_its_target() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS} }}"#
