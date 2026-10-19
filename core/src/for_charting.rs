@@ -296,6 +296,7 @@ pub struct Month<Row> {
 pub struct GatherRow {
     pub day: NaiveDate,
     pub body_mass_kg: f64,
+    pub waist_cm: Option<f64>,
     pub lean_mass_kg: Option<f64>,
     pub fat_mass_kg: Option<f64>,
     pub fat_ratio: Option<f64>,
@@ -362,6 +363,7 @@ pub fn gather_month(
             .map(|measured| GatherRow {
                 day: measured.day,
                 body_mass_kg: measured.body_mass_kg,
+                waist_cm: None,
                 lean_mass_kg: measured.composition.map(|split| split.lean_mass_kg),
                 fat_mass_kg: measured.composition.map(|split| split.fat_mass_kg),
                 fat_ratio: measured.composition.map(|split| split.fat_ratio),
@@ -744,6 +746,22 @@ mod tests {
         );
         assert!(latest.fat_ratio.is_some());
         assert_eq!(october.earlier, Some("2026-08".into()));
+    }
+
+    #[test]
+    fn a_month_of_gather_tells_each_days_waist() {
+        let logged = a_logged_man();
+
+        let october = gather_month(&logged.gather, "2026-10").expect("a month");
+
+        assert_eq!(
+            october
+                .rows
+                .iter()
+                .map(|row| row.waist_cm)
+                .collect::<Vec<_>>(),
+            vec![Some(80.0), Some(80.0)]
+        );
     }
 
     #[test]

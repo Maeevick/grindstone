@@ -1377,7 +1377,7 @@ mod tests {
             gather,
             Ok(
                 json!({ "month": "2026-10", "earlier": "2026-09", "rows": [{ "day": "2026-10-10",
-                "body_mass_kg": 80.0, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }] })
+                "body_mass_kg": 80.0, "waist_cm": null, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }] })
             )
         );
         assert!(
