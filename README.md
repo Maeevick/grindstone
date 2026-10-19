@@ -20,7 +20,7 @@ Version 0.1, the full scope, on five tabs under an icon bar (🏠 Home, ⚖️ G
     - a 5% grace for the ticks: each bound of a band gives way by 5% of itself, and a burn holds at 95% of its target; the gauges keep the strict bands;
     - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
     - one card: its count in gold beside its longest run, a remark, and a line on the 5% grace;
-  - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞: Gather on two y axes, the body mass on the left and the lean mass on the right, each with its goal dashed; Burn with its target as a green dashed line; round ticks over thin grid lines, the x axis dated from the oldest day to the newest, the current values and a legend;
+  - a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞: Gather's body mass and lean mass on one axis, each with its goal dashed; Burn with its target as a green dashed line; round ticks over thin grid lines, the x axis dated from the oldest day to the newest, the current values and a legend;
   - beneath it, the unwanted tips: what is worth sharpening for the chosen chip, the weakest habit against its band, the course of the body mass towards its goal, or the workouts a week;
   - each chip's history, month by month, its units in the headers and each day's streak dot, a tap on a day showing its four ticks;
   - a way into Stats at the bottom.
@@ -39,15 +39,15 @@ Version 0.1, the full scope, on five tabs under an icon bar (🏠 Home, ⚖️ G
 - **Hydrate:** drinks in millilitres, one serving when none are typed.
   - Where the day stands: a scale from min through optimal to max, food bringing a tenth of the water. The optimal is 90% of what the lean mass turns over in a day (7% of its 73.2% of water) plus 1.25 mL per kcal burnt, the min 90% of a millilitre per kcal the day spends (its budget and burn) and never above the optimal, the max a fifth above the optimal; before any lean mass is known, EFSA's base plus a millilitre per kcal burnt, 20% either side. Past the max, a word on the litre an hour kidneys clear.
   - The day's drinks; the shelf lists drinks, water or other.
-- **Burn:** a workout or a circuit, on two pills; blank fields log a minute, one rep, one set and no load, and what either will burn on the day's body mass is previewed under the fields. The day off the clock (sitting, standing, moving).
-  - The session: "Add to the session" puts exercises aside as steps (minutes, reps, load), priced a set at the day's body mass, run as many sets as the session, drawn as a ghost on the burn band. "Log the session" logs a workout per step, all or none; "Keep as a circuit" crafts it, then runs it by the session's sets, one when left empty, none for 0. The session waits while the app runs.
+- **Burn:** two pills, a workout or the day off the clock (sitting, standing, moving). The workout's chooser holds exercises and circuits alike: an exercise's blank fields log a minute, one rep, one set and no load; a circuit asks its sets alone. What either will burn on the day's body mass is previewed under the fields.
+  - The session: "Add to the session" puts exercises aside as steps (minutes, reps, load), a circuit bringing its own, priced a set at the day's body mass, run as many sets as the session, drawn as a ghost on the burn band. "Log the session" logs a workout per step, all or none; "Keep as a circuit" crafts it, then runs it by the session's sets, one when left empty, none for 0. The session waits while the app runs.
   - Where the day stands: the burn on a line from nothing to 200 kcal, stretched past the target, the burn or its ghost, the target ticked, green from 95% of it on.
   - The day's expenditures, the workouts newest first, then the day off the clock and fidgeting; the shelf lists exercises or circuits, a click on a circuit showing its description and steps.
 - **Profile:**
-  - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only), goals, fuel targets in g/kg, whether Hydrate counts in the streak, the usual day off the clock and the day's burn target, each kept from a chosen day;
+  - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only), goals, fuel targets in g/kg, whether Hydrate counts in the streak, the day's burn target and the usual day off the clock, each kept from a chosen day;
   - on the goals, fuel targets, usual day and burn target, "Use the recommendation" above "Keep", filling the card from health recommendations to check and adjust: WHO's normal body mass index, Gallagher's healthy fat, Morton's 1.6 g of protein per kilo, EFSA's fat and fibre, a usual day of 8 hours sitting at most (Ekelund), 2 standing (Buckley) and the steps that pay off at the age (Paluch), and WHO's 150 minutes a week of moderate activity as the burn target on the body weighed, any workout holding the tick before a weigh-in;
   - from each card, a link to the scientific references, cited in full with their public pages, then the disclaimer;
-  - the settings close the screen: the draft's import, and a danger zone that erases everything.
+  - past a divider, the settings close the screen: the draft's import, and a danger zone that erases everything.
 - **Stats:** any two measures over a window, as timelines, summaries and a scatter of the days they share with their correlation.
 
 Next, together: daily challenges, then the Stats rework, export and import options, Health Connect steps, posture analysis.
