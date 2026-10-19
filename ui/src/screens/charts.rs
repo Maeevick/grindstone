@@ -130,55 +130,65 @@ fn clear_of(ticks: Vec<Label>, labels: &[Label]) -> Vec<Label> {
         .collect()
 }
 
+/// Two scales, two axes: the body mass on the left, the lean mass on the right, each with its goal, so that
+/// the two lines fill the height and a small change shows over a short window.
 fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
     let span = span_of(chart.masses.iter().chain(&chart.lean_masses))?;
-    let values = chart
-        .masses
-        .iter()
-        .chain(&chart.lean_masses)
-        .map(|(_, kg)| *kg)
-        .chain(chart.goal_kg)
-        .chain(chart.goal_lean_kg);
-    let axis = axis_of(values)?;
-    let scale = axis.scale();
-    let mut lines = vec![
-        Line {
-            points: line_of(&chart.masses, span, scale, WIDTH, HEIGHT),
-            class: "mass",
-        },
-        Line {
-            points: line_of(&chart.lean_masses, span, scale, WIDTH, HEIGHT),
-            class: "lean",
-        },
-    ];
+    let mass = axis_of(chart.masses.iter().map(|(_, kg)| *kg).chain(chart.goal_kg))?;
+    let lean = axis_of(
+        chart
+            .lean_masses
+            .iter()
+            .map(|(_, kg)| *kg)
+            .chain(chart.goal_lean_kg),
+    );
+    let mut lines = vec![Line {
+        points: line_of(&chart.masses, span, mass.scale(), WIDTH, HEIGHT),
+        class: "mass",
+    }];
     lines.extend(chart.goal_kg.map(|kg| Line {
-        points: level(kg, scale),
+        points: level(kg, mass.scale()),
         class: "goal dashed",
     }));
-    lines.extend(chart.goal_lean_kg.map(|kg| Line {
-        points: level(kg, scale),
-        class: "lean dashed",
-    }));
+    let mut right = vec![];
+    let mut right_ticks = vec![];
+    if let Some(lean) = lean {
+        lines.push(Line {
+            points: line_of(&chart.lean_masses, span, lean.scale(), WIDTH, HEIGHT),
+            class: "lean",
+        });
+        lines.extend(chart.goal_lean_kg.map(|kg| Line {
+            points: level(kg, lean.scale()),
+            class: "lean dashed",
+        }));
+        right = [
+            labelled(chart.goal_lean_kg, lean.scale(), Figure::Mass, "lean"),
+            labelled(
+                current(&chart.lean_masses),
+                lean.scale(),
+                Figure::Mass,
+                "lean",
+            ),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        right_ticks = ticks_on(lean, Figure::Mass, "lean");
+    }
     Some(Plotted {
         lines,
         dots: vec![],
         left: [
-            labelled(chart.goal_kg, scale, Figure::Mass, "goal"),
-            labelled(chart.goal_lean_kg, scale, Figure::Mass, "lean"),
+            labelled(chart.goal_kg, mass.scale(), Figure::Mass, "goal"),
+            labelled(current(&chart.masses), mass.scale(), Figure::Mass, "mass"),
         ]
         .into_iter()
         .flatten()
         .collect(),
-        right: [
-            labelled(current(&chart.masses), scale, Figure::Mass, "mass"),
-            labelled(current(&chart.lean_masses), scale, Figure::Mass, "lean"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect(),
-        ticks: ticks_on(axis, Figure::Mass, ""),
+        right,
+        ticks: ticks_on(mass, Figure::Mass, "mass"),
         days: days_along(span, WIDTH),
-        right_ticks: vec![],
+        right_ticks,
         legend: vec![
             ("mass", "Body mass"),
             ("lean", "Lean mass"),
@@ -235,11 +245,17 @@ fn band_plot(
     })
 }
 
-/// Two scales, two axes: the energy burnt on the left, the minutes on the right, each in its colour.
+/// The energy burnt, and the day's target as a dashed line on the same scale, from nothing up.
 fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
-    let span = span_of(chart.burnt.iter().chain(&chart.minutes))?;
-    let axis_over = |points: &Points| axis_of(points.iter().map(|(_, value)| *value).chain([0.0]));
-    let (burnt, minutes) = (axis_over(&chart.burnt)?, axis_over(&chart.minutes)?);
+    let span = span_of(chart.burnt.iter())?;
+    let burnt = axis_of(
+        chart
+            .burnt
+            .iter()
+            .chain(&chart.targets)
+            .map(|(_, kcal)| *kcal)
+            .chain([0.0]),
+    )?;
     Some(Plotted {
         lines: vec![
             Line {
@@ -247,17 +263,33 @@ fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
                 class: "burnt",
             },
             Line {
-                points: line_of(&chart.minutes, span, minutes.scale(), WIDTH, HEIGHT),
-                class: "minutes",
+                points: line_of(&chart.targets, span, burnt.scale(), WIDTH, HEIGHT),
+                class: "goal dashed",
             },
         ],
         dots: vec![],
         left: vec![],
-        right: vec![],
+        right: [
+            labelled(
+                current(&chart.burnt),
+                burnt.scale(),
+                Figure::Energy,
+                "burnt",
+            ),
+            labelled(
+                current(&chart.targets),
+                burnt.scale(),
+                Figure::Energy,
+                "goal",
+            ),
+        ]
+        .into_iter()
+        .flatten()
+        .collect(),
         ticks: ticks_on(burnt, Figure::Energy, "burnt"),
         days: days_along(span, WIDTH),
-        right_ticks: ticks_on(minutes, Figure::Duration, "minutes"),
-        legend: vec![("burnt", "Burnt (kcal)"), ("minutes", "Minutes")],
+        right_ticks: vec![],
+        legend: vec![("burnt", "Burnt (kcal)"), ("goal dashed", "Target")],
     })
 }
 
