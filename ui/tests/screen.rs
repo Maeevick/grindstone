@@ -1948,7 +1948,7 @@ fn shown_in_order(screen: &Element) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
-async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_its_grimoire_then_stats()
+async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_its_grimoire_then_the_numbers()
  {
     let a_day_in_each_tab = format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
@@ -1980,7 +1980,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where you stand",
                 "The week's pace",
                 "The last days",
-                "Explore in Stats"
+                "Explore the numbers"
             ],
             vec![
                 "Today",
@@ -1991,7 +1991,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's intakes",
                 "The last days",
                 "Open the grimoire",
-                "Explore in Stats"
+                "Explore the numbers"
             ],
             vec![
                 "Today",
@@ -2001,7 +2001,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's drinks",
                 "The last days",
                 "Open the grimoire",
-                "Explore in Stats"
+                "Explore the numbers"
             ],
             vec![
                 "Today",
@@ -2011,7 +2011,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's expenditures",
                 "The last days",
                 "Open the grimoire",
-                "Explore in Stats"
+                "Explore the numbers"
             ],
         ]
     );
@@ -2200,7 +2200,7 @@ async fn todays_tiles_show_each_figure_green_or_red_by_its_tick_and_open_its_tab
 }
 
 #[wasm_bindgen_test]
-async fn home_holds_the_streak_alone_in_its_card_and_ends_on_stats() {
+async fn home_holds_the_streak_alone_in_its_card_and_ends_on_the_numbers() {
     answering(A_HOME);
     let screen = screen();
     let _mounted = the_app(&screen);
@@ -2216,7 +2216,10 @@ async fn home_holds_the_streak_alone_in_its_card_and_ends_on_stats() {
             "{elsewhere}"
         );
     }
-    found::<Element>(&screen, "main.wrap > a.explore:last-child");
+    assert_eq!(
+        text_of(&screen, "main.wrap > a.explore:last-child"),
+        "Explore the numbers"
+    );
 }
 
 const TWO_MEASURES_EXPLORED: &str = r#"{ "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
