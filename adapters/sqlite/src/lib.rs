@@ -573,6 +573,7 @@ fn food_read(row: &rusqlite::Row) -> rusqlite::Result<Food> {
         unit: unit_read(&row.get::<_, String>(1)?)?,
         portion: row.get(2)?,
         nutrients: nutrients_read(row, 3)?,
+        description: String::new(),
     })
 }
 
@@ -1155,6 +1156,7 @@ mod tests {
                     unit,
                     portion: 1.0,
                     nutrients: Nutrients::default(),
+                    description: String::new(),
                 })
                 .expect("a food saves");
         }

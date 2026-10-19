@@ -710,6 +710,7 @@ pub mod honouring_for_storing_fuel_records {
                 fat_g: 0.2,
                 fibre_g: 0.0,
             },
+            description: String::new(),
         }
     }
 

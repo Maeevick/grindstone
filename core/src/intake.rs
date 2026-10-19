@@ -43,6 +43,7 @@ mod tests {
                 fat_g: 0.0,
                 fibre_g: 0.0,
             },
+            description: String::new(),
         }
     }
 

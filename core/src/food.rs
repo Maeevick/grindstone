@@ -24,13 +24,21 @@ pub struct Food {
     pub unit: Unit,
     pub portion: f64,
     pub nutrients: Nutrients,
+    #[serde(default)]
+    pub description: String,
 }
 
 fn is_nothing_or_more(figure: f64) -> bool {
     figure.is_finite() && figure >= 0.0
 }
 
-pub fn food(name: &str, unit: Unit, portion: f64, nutrients: Nutrients) -> Result<Food, Refusal> {
+pub fn food(
+    name: &str,
+    unit: Unit,
+    portion: f64,
+    nutrients: Nutrients,
+    _description: &str,
+) -> Result<Food, Refusal> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Refusal::NotAName);
@@ -56,6 +64,7 @@ pub fn food(name: &str, unit: Unit, portion: f64, nutrients: Nutrients) -> Resul
         unit,
         portion,
         nutrients,
+        description: String::new(),
     })
 }
 
@@ -103,21 +112,25 @@ mod tests {
     #[test]
     fn a_food_keeps_its_trimmed_name_and_its_nutrients_per_portion() {
         assert_eq!(
-            food(" Skyr ", Unit::Gram, 100.0, SKYR),
+            food(" Skyr ", Unit::Gram, 100.0, SKYR, ""),
             Ok(Food {
                 name: "Skyr".into(),
                 unit: Unit::Gram,
                 portion: 100.0,
                 nutrients: SKYR,
+                description: String::new(),
             })
         );
     }
 
     #[test]
     fn a_food_without_a_name_a_portion_or_readable_nutrients_is_refused() {
-        assert_eq!(food(" ", Unit::Gram, 100.0, SKYR), Err(Refusal::NotAName));
         assert_eq!(
-            food("Skyr", Unit::Gram, 0.0, SKYR),
+            food(" ", Unit::Gram, 100.0, SKYR, ""),
+            Err(Refusal::NotAName)
+        );
+        assert_eq!(
+            food("Skyr", Unit::Gram, 0.0, SKYR, ""),
             Err(Refusal::NotAPortion)
         );
         assert_eq!(
@@ -128,7 +141,8 @@ mod tests {
                 Nutrients {
                     protein_g: -1.0,
                     ..SKYR
-                }
+                },
+                ""
             ),
             Err(Refusal::NotANutrient)
         );
@@ -140,7 +154,8 @@ mod tests {
                 Nutrients {
                     energy_kcal: f64::NAN,
                     ..SKYR
-                }
+                },
+                ""
             ),
             Err(Refusal::NotANutrient)
         );
@@ -148,7 +163,7 @@ mod tests {
 
     #[test]
     fn a_quantity_eaten_scales_the_nutrients_of_the_portion() {
-        let skyr = food("Skyr", Unit::Gram, 100.0, SKYR).expect("a food");
+        let skyr = food("Skyr", Unit::Gram, 100.0, SKYR, "").expect("a food");
 
         assert_eq!(
             nutrients_of(&skyr, 150.0),
@@ -175,6 +190,7 @@ mod tests {
                 fat_g: 9.4,
                 fibre_g: 12.0,
             },
+            "",
         )
         .expect("a food");
 

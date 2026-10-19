@@ -41,6 +41,8 @@ pub struct FoodForm {
     pub unit: Unit,
     pub portion: f64,
     pub nutrients: Nutrients,
+    #[serde(default)]
+    pub description: String,
 }
 
 pub fn foods(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Food>, Failure> {
@@ -48,8 +50,14 @@ pub fn foods(fuel: &impl ForStoringFuelRecords) -> Result<Vec<Food>, Failure> {
 }
 
 pub fn add_food(fuel: &impl ForStoringFuelRecords, form: &FoodForm) -> Result<Vec<Food>, Failure> {
-    let added =
-        food(&form.name, form.unit, form.portion, form.nutrients).map_err(Failure::Refused)?;
+    let added = food(
+        &form.name,
+        form.unit,
+        form.portion,
+        form.nutrients,
+        &form.description,
+    )
+    .map_err(Failure::Refused)?;
     fuel.save_food(&added)?;
     foods(fuel)
 }
@@ -262,6 +270,7 @@ mod tests {
                 fat_g: 0.0,
                 fibre_g: 0.0,
             },
+            description: String::new(),
         }
     }
 
@@ -292,6 +301,24 @@ mod tests {
         assert_eq!(
             add_food(&fuel, &a_food_form(" ", 54.0)),
             Err(Failure::Refused(Refusal::NotAName))
+        );
+    }
+
+    #[test]
+    fn a_food_keeps_its_description_trimmed() {
+        let fuel = crate::testing::FuelRecordsInMemory::default();
+
+        let catalog = add_food(
+            &fuel,
+            &FoodForm {
+                description: "  Siggi's, the plain 0% pot ".into(),
+                ..a_food_form("Skyr", 54.0)
+            },
+        );
+
+        assert_eq!(
+            catalog.map(|foods| foods.into_iter().map(|food| food.description).collect()),
+            Ok(vec!["Siggi's, the plain 0% pot".to_string()])
         );
     }
 

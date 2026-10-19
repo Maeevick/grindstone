@@ -168,6 +168,7 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
                 fat_g: fat_g.unwrap_or(0.0),
                 fibre_g: fibre_g.unwrap_or(0.0),
             },
+            description: String::new(),
         };
         spawn_local(async move {
             match tauri::add_food(&form).await {

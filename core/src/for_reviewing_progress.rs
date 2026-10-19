@@ -506,12 +506,14 @@ mod tests {
                     fat_g: 80.0,
                     fibre_g,
                 },
+                description: String::new(),
             };
             FoodForm {
                 name: food.name,
                 unit: food.unit,
                 portion: food.portion,
                 nutrients: food.nutrients,
+                description: String::new(),
             }
         }
 
@@ -983,6 +985,7 @@ mod tests {
                         fat_g: 80.0,
                         fibre_g: 35.0,
                     },
+                    description: String::new(),
                 },
             )
             .expect("a food adds");

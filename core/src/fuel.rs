@@ -408,6 +408,7 @@ mod tests {
                 fat_g,
                 fibre_g,
             },
+            description: String::new(),
         }
     }
 

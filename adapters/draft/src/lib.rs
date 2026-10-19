@@ -364,6 +364,7 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
                     fat_g: drafted.fat,
                     fibre_g: drafted.fiber,
                 },
+                "",
             )
             .map_err(|refusal| DraftRefusal::NotAFood {
                 name: drafted.name.clone(),

@@ -549,6 +549,7 @@ mod tests {
                     fat_g: 80.0,
                     fibre_g: 35.0,
                 },
+                description: String::new(),
             },
         )
         .expect("a food adds");

@@ -102,6 +102,7 @@ pub fn food_of(meal: &Meal) -> Food {
         unit: Unit::Gram,
         portion: 100.0,
         nutrients: scaled(meal.totals, 100.0 / meal.cooked_g),
+        description: String::new(),
     }
 }
 
@@ -121,6 +122,7 @@ mod tests {
                 fat_g: 0.0,
                 fibre_g: 0.0,
             },
+            description: String::new(),
         }
     }
 
@@ -134,6 +136,7 @@ mod tests {
                 protein_g: 6.0,
                 ..Nutrients::default()
             },
+            description: String::new(),
         }
     }
 
@@ -255,6 +258,7 @@ mod tests {
                 fat_g: 2.0,
                 fibre_g: 10.0,
             },
+            description: String::new(),
         };
         let dal = meal("Dal", "", &[(lentils, 200.0, 2.5)]).expect("a meal");
 

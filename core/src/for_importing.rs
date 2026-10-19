@@ -209,6 +209,7 @@ mod tests {
                 unit: crate::food::Unit::Gram,
                 portion: 100.0,
                 nutrients: crate::food::Nutrients::default(),
+                description: String::new(),
             }],
             intakes: vec![(
                 0,
