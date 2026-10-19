@@ -68,6 +68,7 @@ pub fn run() {
             commands::craft_circuit,
             commands::remove_circuit,
             commands::log_circuit,
+            commands::log_session,
             commands::hydrate_day,
             commands::log_drink,
             commands::remove_drinking,

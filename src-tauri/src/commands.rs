@@ -8,7 +8,7 @@ use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::Food;
 use grind_core::for_burning::CircuitSessionForm;
-use grind_core::for_burning::{self, OffTheClockForm, WorkoutForm};
+use grind_core::for_burning::{self, OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
@@ -313,6 +313,12 @@ pub fn log_circuit(records: State<Records>, form: CircuitSessionForm) -> Result<
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn log_session(records: State<Records>, form: SessionForm) -> Result<Burn, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::log_session(&*records, &*records, &form)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn hydrate_day(records: State<Records>, date: String) -> Result<Hydrate, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_hydrating::hydrate_day(&*records, &*records, &*records, &*records, &date)
@@ -527,6 +533,7 @@ mod tests {
                 craft_circuit,
                 remove_circuit,
                 log_circuit,
+                log_session,
                 hydrate_day,
                 log_drink,
                 remove_drinking,
