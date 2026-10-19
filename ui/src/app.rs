@@ -5,6 +5,7 @@ use leptos_router::path;
 use crate::screens::burn::BurnTab;
 use crate::screens::catalog::Catalog;
 use crate::screens::fuel::FuelTab;
+use crate::screens::header::Header;
 use crate::screens::home::Home;
 use crate::screens::hydrate::HydrateTab;
 use crate::screens::lines;
@@ -21,11 +22,7 @@ pub fn App() -> impl IntoView {
     view! {
         <Router>
             <main class="wrap">
-                <header class="top">
-                    <img class="logo" src="/icon.svg" alt="" />
-                    <h1>"GRINDSTONE"</h1>
-                    <span class="tag">"sharpen this rusty you!"</span>
-                </header>
+                <Header />
                 <Routes fallback=|| view! { <p class="empty">{lines::LOST}</p> }>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/gather") view=GatherTab />

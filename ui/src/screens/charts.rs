@@ -11,7 +11,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
-use crate::screens::home::tick_class;
+use crate::screens::header::tick_class;
 use crate::screens::lines;
 use crate::tauri;
 

@@ -6,6 +6,7 @@ pub mod circuits;
 pub mod fields;
 pub mod fuel;
 pub mod gauge;
+pub mod header;
 pub mod home;
 pub mod hydrate;
 pub mod lines;

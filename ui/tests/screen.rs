@@ -135,8 +135,8 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
 
     let welcome = screen.text_content().unwrap_or_default();
     assert!(welcome.contains("Greetings, rusty one"), "{welcome}");
-    let to_the_profile: Element = found(&screen, "a[href='/profile']");
-    let to_the_import: Element = found(&screen, "a[href='/settings']");
+    let to_the_profile: Element = found(&screen, ".welcome a[href='/profile']");
+    let to_the_import: Element = found(&screen, ".welcome a[href='/settings']");
     assert!(
         to_the_profile
             .text_content()
