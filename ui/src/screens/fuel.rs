@@ -4,10 +4,11 @@ use grind_core::food::{Food, Nutrients, Unit, food as food_of, nutrients_of, sum
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::fuel::{EnergyShares, Fuel, MacroRow, Macros, energy_shares};
 use grind_core::intake::Intake;
+use grind_core::meal::Meal;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::{chosen, nothing_matches};
+use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::catalog::FuelShelf;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
@@ -159,16 +160,27 @@ fn IntakeRow(
 pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     let fuel = RwSignal::new(None::<Fuel>);
     let catalog = RwSignal::new(Vec::<Food>::new());
+    let meals = RwSignal::new(Vec::<Meal>::new());
     let food = RwSignal::new(String::new());
     let quantity = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let shown_fuel = Callback::new(move |answer: Fuel| fuel.set(Some(answer)));
-    let names = Signal::derive(move || {
-        catalog
+    let options = Signal::derive(move || {
+        let cooked: Vec<String> = meals.get().into_iter().map(|meal| meal.name).collect();
+        let plain = catalog
             .get()
             .into_iter()
             .map(|known| known.name)
+            .filter(|name| !cooked.contains(name))
+            .collect();
+        grouped((lines::MEAL_ICON, cooked), (lines::FOOD_ICON, plain))
+    });
+    let names = Signal::derive(move || {
+        options
+            .get()
+            .into_iter()
+            .map(|choice| choice.name)
             .collect::<Vec<_>>()
     });
     let figures = FoodFigures::default();
@@ -207,6 +219,9 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             match tauri::foods().await {
                 Ok(known) => catalog.set(known),
                 Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+            if let Ok(kept) = tauri::meals().await {
+                meals.set(kept);
             }
         });
     });
@@ -299,7 +314,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             <h2>"Fuel"</h2>
             <form class="intake" on:submit=log>
                 <div class="row">
-                    <Chooser label="Food" name="food" options=names typed=food />
+                    <Chooser label="Food" name="food" options=options typed=food />
                     {move || {
                         let portion = eaten_food();
                         view! {

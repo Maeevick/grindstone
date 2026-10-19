@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::choice::matching;
+use crate::choice::{Choice, matching};
 
 #[component]
 pub fn FigureField(
@@ -66,7 +66,7 @@ pub fn DateField(
 pub fn Chooser(
     label: &'static str,
     name: &'static str,
-    #[prop(into)] options: Signal<Vec<String>>,
+    #[prop(into)] options: Signal<Vec<Choice>>,
     typed: RwSignal<String>,
 ) -> impl IntoView {
     let open = RwSignal::new(false);
@@ -88,20 +88,26 @@ pub fn Chooser(
             <Show when=move || open.get()>
                 <ul class="choices" role="listbox">
                     {move || {
-                        matching(&options.get(), &typed.get())
+                        let offered = options.get();
+                        let names: Vec<String> =
+                            offered.iter().map(|choice| choice.name.clone()).collect();
+                        matching(&names, &typed.get())
                             .into_iter()
                             .map(|option| {
-                                let picked = option.clone();
+                                let shown = offered
+                                    .iter()
+                                    .find(|choice| choice.name == option)
+                                    .map_or_else(|| option.clone(), Choice::shown);
                                 view! {
                                     <li
                                         role="option"
                                         on:mousedown=move |event| {
                                             event.prevent_default();
-                                            typed.set(picked.clone());
+                                            typed.set(option.clone());
                                             open.set(false);
                                         }
                                     >
-                                        {option}
+                                        {shown}
                                     </li>
                                 }
                             })

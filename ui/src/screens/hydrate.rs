@@ -10,7 +10,7 @@ use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::{chosen, nothing_matches};
+use crate::choice::{Choice, chosen, nothing_matches};
 use crate::screens::catalog::HydrateShelf;
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, DateField, FigureField};
@@ -115,6 +115,13 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
+    let options = Signal::derive(move || {
+        names
+            .get()
+            .into_iter()
+            .map(|name| Choice { name, icon: "" })
+            .collect::<Vec<_>>()
+    });
     let figures = DrinkFigures::default();
     let creating = Memo::new(move |_| nothing_matches(&names.get(), &drink.get()));
     let chosen_drink = move || {
@@ -197,7 +204,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             <h2>"Hydrate"</h2>
             <form class="drinking" on:submit=log>
                 <div class="row">
-                    <Chooser label="Drink" name="drink" options=names typed=drink />
+                    <Chooser label="Drink" name="drink" options=options typed=drink />
                     <FigureField
                         label="Volume (mL)"
                         name="volume"

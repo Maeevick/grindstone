@@ -14,7 +14,7 @@ use grind_core::workout::{burnt_by, workout};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::{chosen, nothing_matches};
+use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::catalog::BurnShelf;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
@@ -114,15 +114,24 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let logging = RwSignal::new(Logging::Workout);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
+    let options = Signal::derive(move || {
+        grouped(
+            (
+                lines::CIRCUIT_ICON,
+                crafted.get().into_iter().map(|known| known.name).collect(),
+            ),
+            (
+                lines::EXERCISE_ICON,
+                catalog.get().into_iter().map(|known| known.name).collect(),
+            ),
+        )
+    });
     let names = Signal::derive(move || {
-        let mut names: Vec<String> = catalog
+        options
             .get()
             .into_iter()
-            .map(|known| known.name)
-            .chain(crafted.get().into_iter().map(|known| known.name))
-            .collect();
-        names.sort();
-        names
+            .map(|choice| choice.name)
+            .collect::<Vec<_>>()
     });
     let shown_burn = Callback::new(move |answer: Burn| {
         if let Some(off) = answer.off_the_clock {
@@ -384,7 +393,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     view! {
                         <form class="workout" on:submit=log>
                             <div class="row">
-                                <Chooser label="Exercise or circuit" name="exercise" options=names typed=exercise />
+                                <Chooser label="Exercise or circuit" name="exercise" options=options typed=exercise />
                                 {move || {
                                     if !running_a_circuit.get() {
                                         view! {

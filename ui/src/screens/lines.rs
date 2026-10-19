@@ -326,6 +326,11 @@ pub fn circuit_kept_for_later(name: &str) -> String {
     format!("{name} waits in the lab, crafted, for the day you run it.")
 }
 
+pub const MEAL_ICON: &str = "💪";
+pub const FOOD_ICON: &str = "🥦";
+pub const CIRCUIT_ICON: &str = "🔄";
+pub const EXERCISE_ICON: &str = "💪";
+
 pub fn with_the_session(kcal: f64) -> String {
     format!("With the session: {}", shown(Figure::Energy(kcal)))
 }
