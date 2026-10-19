@@ -383,6 +383,33 @@ async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lea
     }
 }
 
+#[wasm_bindgen_test]
+async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
+    answering(&format!(
+        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
+              "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
+              "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }},
+              "pace": {{ "body_mass": {{ "by": -0.4, "heading": "Toward" }},
+                         "lean_mass": {{ "by": -0.1, "heading": "Away" }},
+                         "fat_mass": {{ "by": -0.3, "heading": "Toward" }},
+                         "fat_ratio": {{ "by": 0.0, "heading": "Steady" }},
+                         "judgement": "VeryGood", "safe_loss_kg": 0.48 }} }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
+    settled().await;
+
+    let pace = text_of(&screen, ".pace");
+
+    for measure in ["Body mass", "Lean mass", "Fat mass", "Fat"] {
+        assert!(pace.contains(measure), "{measure} in {pace}");
+    }
+    assert!(pace.contains("-0.4 kg a week"), "{pace}");
+    assert!(pace.contains("inside the safe lane"), "{pace}");
+    found::<Element>(&screen, ".pace li.toward");
+    found::<Element>(&screen, ".pace li.away");
+}
+
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
     "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } }"#;
 
