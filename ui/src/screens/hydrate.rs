@@ -120,11 +120,14 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
         chosen(&names.get(), &drink.get())
             .and_then(|name| catalog.get().into_iter().find(|known| known.name == name))
     };
-    spawn_local(async move {
-        match tauri::drinks().await {
-            Ok(drinks) => catalog.set(drinks),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
+    Effect::new(move |_| {
+        recorded.heard();
+        spawn_local(async move {
+            match tauri::drinks().await {
+                Ok(drinks) => catalog.set(drinks),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
     });
     Effect::new(move |_| {
         let date = day.get();
@@ -240,11 +243,15 @@ fn DrinkRow(
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let name = drink.name.clone();
+    let recorded = Recorded::here();
     let remove = move |_| {
         let name = name.clone();
         spawn_local(async move {
             match tauri::remove_drink(&name).await {
-                Ok(left) => drinks.set(left),
+                Ok(left) => {
+                    drinks.set(left);
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });

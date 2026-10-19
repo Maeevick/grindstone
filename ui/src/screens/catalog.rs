@@ -13,7 +13,7 @@ use crate::screens::entries::{
     ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
 };
 use crate::screens::hydrate::{DrinksList, NewDrink};
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -66,10 +66,14 @@ fn ExercisesList(
     exercises: RwSignal<Vec<Exercise>>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
+    let recorded = Recorded::here();
     let remove = move |named: String| {
         spawn_local(async move {
             match tauri::remove_exercise(&named).await {
-                Ok(known) => exercises.set(known),
+                Ok(known) => {
+                    exercises.set(known);
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -194,10 +198,14 @@ fn FoodsList(
     meals: RwSignal<Vec<Meal>>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
+    let recorded = Recorded::here();
     let remove = move |named: String| {
         spawn_local(async move {
             match tauri::remove_food(&named).await {
-                Ok(known) => foods.set(known),
+                Ok(known) => {
+                    foods.set(known);
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -238,20 +246,15 @@ fn FoodsList(
 }
 
 #[component]
-fn MealsList(
-    foods: RwSignal<Vec<Food>>,
-    meals: RwSignal<Vec<Meal>>,
-    said: RwSignal<Option<String>>,
-) -> impl IntoView {
+fn MealsList(meals: RwSignal<Vec<Meal>>, said: RwSignal<Option<String>>) -> impl IntoView {
     let opened = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let remove = move |named: String| {
         spawn_local(async move {
             match tauri::remove_meal(&named).await {
                 Ok(kept) => {
                     meals.set(kept);
-                    if let Ok(known) = tauri::foods().await {
-                        foods.set(known);
-                    }
+                    recorded.told();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
@@ -362,16 +365,23 @@ pub fn FuelShelf() -> impl IntoView {
     let meals = RwSignal::new(Vec::<Meal>::new());
     let listed = RwSignal::new(Listed::Foods);
     let said = RwSignal::new(None::<String>);
-    spawn_local(async move {
-        match tauri::foods().await {
-            Ok(known) => foods.set(known),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
-        if let Ok(kept) = tauri::meals().await {
-            meals.set(kept);
-        }
+    let recorded = Recorded::here();
+    Effect::new(move |_| {
+        recorded.heard();
+        spawn_local(async move {
+            match tauri::foods().await {
+                Ok(known) => foods.set(known),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+            if let Ok(kept) = tauri::meals().await {
+                meals.set(kept);
+            }
+        });
     });
-    let done = Callback::new(move |line: String| said.set(Some(line)));
+    let done = Callback::new(move |line: String| {
+        said.set(Some(line));
+        recorded.told();
+    });
     view! {
         <section class="card">
             <h2>"Add to the catalog"</h2>
@@ -382,7 +392,7 @@ pub fn FuelShelf() -> impl IntoView {
             <h2>"On the shelf"</h2>
             {shelf_pills(listed)}
             {move || match listed.get() {
-                Listed::Meals => view! { <MealsList foods=foods meals=meals said=said /> }.into_any(),
+                Listed::Meals => view! { <MealsList meals=meals said=said /> }.into_any(),
                 Listed::Foods => view! { <FoodsList foods=foods meals=meals said=said /> }.into_any(),
             }}
         </section>
@@ -393,13 +403,20 @@ pub fn FuelShelf() -> impl IntoView {
 pub fn HydrateShelf() -> impl IntoView {
     let drinks = RwSignal::new(Vec::<Drink>::new());
     let said = RwSignal::new(None::<String>);
-    spawn_local(async move {
-        match tauri::drinks().await {
-            Ok(known) => drinks.set(known),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
+    let recorded = Recorded::here();
+    Effect::new(move |_| {
+        recorded.heard();
+        spawn_local(async move {
+            match tauri::drinks().await {
+                Ok(known) => drinks.set(known),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
     });
-    let done = Callback::new(move |line: String| said.set(Some(line)));
+    let done = Callback::new(move |line: String| {
+        said.set(Some(line));
+        recorded.told();
+    });
     view! {
         <section class="card">
             <h2>"Add to the catalog"</h2>
@@ -420,20 +437,19 @@ pub fn BurnShelf() -> impl IntoView {
     let body_mass = RwSignal::new(None::<f64>);
     let form = RwSignal::new(Form::Exercise);
     let said = RwSignal::new(None::<String>);
-    let price = move || {
+    let recorded = Recorded::here();
+    Effect::new(move |_| {
+        recorded.heard();
         spawn_local(async move {
+            match tauri::exercises().await {
+                Ok(known) => exercises.set(known),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
             if let Ok(known) = tauri::priced_circuits(&today()).await {
                 priced.set(known);
             }
         });
-    };
-    spawn_local(async move {
-        match tauri::exercises().await {
-            Ok(known) => exercises.set(known),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
     });
-    price();
     spawn_local(async move {
         if let Ok(burn) = tauri::burn_day(&today()).await {
             body_mass.set(burn.body_mass_kg);
@@ -441,7 +457,7 @@ pub fn BurnShelf() -> impl IntoView {
     });
     let done = Callback::new(move |line: String| {
         said.set(Some(line));
-        price();
+        recorded.told();
     });
     view! {
         <section class="card">

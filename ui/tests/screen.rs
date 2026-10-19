@@ -1018,6 +1018,11 @@ async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the
     assert_eq!(tables_in_order(&screen), ["exercises"]);
     found::<Element>(&screen, "button.form-Exercise.chosen");
     found::<Element>(&screen, "button.form-Circuit");
+    let swing =
+        r#"[{ "name": "Kettlebell swing", "met": 9.8, "description": "Both hands, a hip hinge" }]"#;
+    answering(&format!(
+        r#"{{ "exercises": {swing}, "circuits": [], "add_exercise": {swing} }}"#
+    ));
 
     typed_into(&screen, "exercise_name", "Kettlebell swing");
     typed_into(&screen, "exercise_description", "Both hands, a hip hinge");
@@ -1347,6 +1352,12 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_
             vec!["food_protein", "food_fat", "food_fibre", "food_carbs"],
         ]
     );
+    let skyr = r#"[{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
+        "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 },
+        "description": "Siggi's, the plain 0% pot" }]"#;
+    answering(&format!(
+        r#"{{ "foods": {skyr}, "meals": [], "add_food": {skyr} }}"#
+    ));
 
     typed_into(&screen, "food_name", "Skyr");
     typed_into(&screen, "food_description", "Siggi's, the plain 0% pot");
@@ -2427,6 +2438,8 @@ async fn a_drink_added_from_the_hydrate_shelfs_form_card_joins_its_list_its_kind
         found::<HtmlSelectElement>(&screen, "select[name=drink_kind]").length(),
         2
     );
+    let tea = r#"[{ "name": "Tea", "volume_ml": 200.0, "kind": "Other", "description": "Green, no sugar" }]"#;
+    answering(&format!(r#"{{ "drinks": {tea}, "add_drink": {tea} }}"#));
 
     typed_into(&screen, "drink_name", "Tea");
     typed_into(&screen, "drink_description", "Green, no sugar");

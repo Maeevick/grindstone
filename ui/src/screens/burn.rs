@@ -164,11 +164,14 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             }
         });
     };
-    spawn_local(async move {
-        match tauri::exercises().await {
-            Ok(known) => catalog.set(known),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
+    Effect::new(move |_| {
+        recorded.heard();
+        spawn_local(async move {
+            match tauri::exercises().await {
+                Ok(known) => catalog.set(known),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
     });
     Effect::new(move |_| {
         let date = day.get();

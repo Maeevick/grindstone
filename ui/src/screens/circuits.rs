@@ -10,7 +10,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::chosen;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
-use crate::screens::lines;
+use crate::screens::{Recorded, lines};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
 
@@ -316,15 +316,19 @@ pub fn CircuitsList(
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let opened = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let remove = Callback::new(move |named: String| {
         spawn_local(async move {
             match tauri::remove_circuit(&named).await {
-                Ok(left) => priced.update(|kept| {
-                    kept.retain(|priced| {
-                        left.iter()
-                            .any(|circuit| circuit.name == priced.circuit.name)
-                    })
-                }),
+                Ok(left) => {
+                    priced.update(|kept| {
+                        kept.retain(|priced| {
+                            left.iter()
+                                .any(|circuit| circuit.name == priced.circuit.name)
+                        })
+                    });
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -374,11 +378,15 @@ pub fn CircuitLog(
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
-    spawn_local(async move {
-        match tauri::circuits().await {
-            Ok(known) => crafted.set(known),
-            Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
-        }
+    let recorded = Recorded::here();
+    Effect::new(move |_| {
+        recorded.heard();
+        spawn_local(async move {
+            match tauri::circuits().await {
+                Ok(known) => crafted.set(known),
+                Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
+            }
+        });
     });
     let preview = move || {
         let named = chosen(&names.get(), &circuit.get())?;

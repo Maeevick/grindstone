@@ -200,11 +200,14 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
         let eaten = typed.unwrap_or(known.portion);
         Some(lines::figures_of(&nutrients_of(&known, eaten)))
     };
-    spawn_local(async move {
-        match tauri::foods().await {
-            Ok(known) => catalog.set(known),
-            Err(failure) => said.set(Some(lines::failure(&failure))),
-        }
+    Effect::new(move |_| {
+        recorded.heard();
+        spawn_local(async move {
+            match tauri::foods().await {
+                Ok(known) => catalog.set(known),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
     });
     Effect::new(move |_| {
         let date = day.get();
@@ -275,6 +278,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             };
             if onto_the_plate {
                 plated_now(&served, quantity_typed);
+                recorded.told();
                 return;
             }
             let form = IntakeForm {
