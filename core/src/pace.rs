@@ -5,26 +5,14 @@ use crate::aims::aims_on;
 use crate::body::body_on;
 use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
-use crate::heading::{STABLE_SHARE_A_WEEK, heading_of};
+use crate::heading::heading_of;
+use crate::judgement::{Judgement, Week, judgement_of};
 use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
-use crate::recommendations::{Recommendations, recommended};
+use crate::recommendations::recommended;
 use crate::tendency::Change;
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Judgement {
-    Holding,
-    VeryGood,
-    Good,
-    Stable,
-    WrongWay,
-    GainingTooFast,
-    LosingTooFast,
-    UnderHealthyMass,
-    UnderHealthyFat,
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Pace {
@@ -43,9 +31,6 @@ const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
 const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
 const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
-const GAIN_SHARE_A_WEEK_FROM: f64 = 0.0025;
-const AT_THE_AIM_SHARE: f64 = 0.01;
-const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
 
 /// The most a body can lose in a week without eating into its lean mass: 1% of its mass, 1 kg at most, and
 /// no more than its fat store can spare.
@@ -63,61 +48,6 @@ fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
     (LOSS_SHARE_A_WEEK_AT_MOST * body_mass_kg)
         .min(LOSS_KG_A_WEEK_AT_MOST)
         .min(spared)
-}
-
-struct Week {
-    per_week: f64,
-    body_mass_kg: f64,
-    fat_ratio: Option<f64>,
-    healthy: Option<Recommendations>,
-    safe_loss_kg: f64,
-    aim_kg: Option<f64>,
-}
-
-/// Health first: a loss under the healthy mass or fat, or past the safe loss, is dangerous whatever the aim.
-/// Towards a higher aim, a quarter to half a percent of the body mass a week builds more than it stores:
-/// Iraki J. et al. (2019), *Nutrition recommendations for bodybuilders in the off-season*, Sports 7(7):154.
-fn judgement_of(week: &Week) -> Judgement {
-    let losing = week.per_week < -STABLE_SHARE_A_WEEK * week.body_mass_kg;
-    let gaining = week.per_week > STABLE_SHARE_A_WEEK * week.body_mass_kg;
-    let towards_a_lower_aim = week.aim_kg.is_some_and(|aim| aim < week.body_mass_kg);
-    let towards_a_higher_aim = week.aim_kg.is_some_and(|aim| aim > week.body_mass_kg);
-    let gained_share = week.per_week / week.body_mass_kg;
-    let at_the_aim = week
-        .aim_kg
-        .is_some_and(|aim| (week.body_mass_kg - aim).abs() <= AT_THE_AIM_SHARE * aim);
-    if losing
-        && week
-            .healthy
-            .is_some_and(|healthy| week.body_mass_kg < healthy.healthy_mass_kg.0)
-    {
-        Judgement::UnderHealthyMass
-    } else if losing
-        && week
-            .healthy
-            .zip(week.fat_ratio)
-            .is_some_and(|(healthy, fat_ratio)| fat_ratio < healthy.healthy_fat_ratio.0)
-    {
-        Judgement::UnderHealthyFat
-    } else if -week.per_week > week.safe_loss_kg {
-        Judgement::LosingTooFast
-    } else if towards_a_lower_aim && -week.per_week >= week.safe_loss_kg / 2.0 {
-        Judgement::VeryGood
-    } else if towards_a_lower_aim && losing {
-        Judgement::Good
-    } else if towards_a_lower_aim && gaining || towards_a_higher_aim && losing {
-        Judgement::WrongWay
-    } else if towards_a_higher_aim && gained_share > GAIN_SHARE_A_WEEK_AT_MOST {
-        Judgement::GainingTooFast
-    } else if towards_a_higher_aim && gained_share >= GAIN_SHARE_A_WEEK_FROM {
-        Judgement::VeryGood
-    } else if towards_a_higher_aim && gaining {
-        Judgement::Good
-    } else if at_the_aim && !losing && !gaining {
-        Judgement::Holding
-    } else {
-        Judgement::Stable
-    }
 }
 
 /// The slope, per week, of the seven-day average of a measure over the fourteen days ending on a day,
@@ -164,12 +94,14 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
     };
     let body = body_on(day, &days, &gathered.profiles);
     let safe_loss_kg = safe_loss_kg(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
+    let healthy = version_in_force_on(&gathered.profiles, day)
+        .map(|profile| recommended(profile, day, Some(body_mass_kg)));
     let judgement = judgement_of(&Week {
         per_week,
         body_mass_kg,
         fat_ratio: body.as_ref().map(|body| body.fat_kg / body.mass_kg),
-        healthy: version_in_force_on(&gathered.profiles, day)
-            .map(|profile| recommended(profile, day, Some(body_mass_kg))),
+        healthy_mass_from_kg: healthy.map(|healthy| healthy.healthy_mass_kg.0),
+        healthy_fat_ratio_from: healthy.map(|healthy| healthy.healthy_fat_ratio.0),
         safe_loss_kg,
         aim_kg: aims.map(|aims| aims.body_mass_kg),
     });
