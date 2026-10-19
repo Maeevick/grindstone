@@ -275,4 +275,9 @@ mod tests {
     fn losing_between_half_the_safe_loss_and_all_of_it_towards_the_aim_is_very_good() {
         assert_eq!(judged(&losing_at(0.75)), Judgement::VeryGood);
     }
+
+    #[test]
+    fn losing_slower_than_half_the_safe_loss_towards_the_aim_is_good() {
+        assert_eq!(judged(&losing_at(0.3)), Judgement::Good);
+    }
 }
