@@ -82,12 +82,16 @@ pub struct BurnGauge {
     pub up_to_kcal: f64,
 }
 
-pub fn burn_gauge_of(_burnt: f64, _target: f64, _width: f64) -> BurnGauge {
+const BURN_GAUGE_KCAL: f64 = 200.0;
+const GRACE_UNDER_THE_TARGET: f64 = 0.95;
+
+pub fn burn_gauge_of(burnt: f64, target: f64, width: f64) -> BurnGauge {
+    let scale = (0.0, BURN_GAUGE_KCAL);
     BurnGauge {
-        grace_from: 0.0,
-        target_at: 0.0,
-        burnt_at: 0.0,
-        up_to_kcal: 0.0,
+        grace_from: placed(GRACE_UNDER_THE_TARGET * target, scale, width),
+        target_at: placed(target, scale, width),
+        burnt_at: placed(burnt, scale, width),
+        up_to_kcal: scale.1,
     }
 }
 
