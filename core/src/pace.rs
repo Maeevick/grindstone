@@ -230,4 +230,22 @@ mod tests {
             (Judgement::UnderHealthyMass, Judgement::UnderHealthyFat)
         );
     }
+
+    fn losing_at(share_of_the_safe_loss: f64) -> GatherRecords {
+        let safe_loss_kg = pace_on(
+            day("2026-10-10"),
+            &aiming_at(70.0, a_man_weighed(81.0, -0.05)),
+        )
+        .expect("a pace")
+        .safe_loss_kg;
+        aiming_at(
+            70.0,
+            a_man_weighed(81.0, -share_of_the_safe_loss * safe_loss_kg / 7.0),
+        )
+    }
+
+    #[test]
+    fn losing_between_half_the_safe_loss_and_all_of_it_towards_the_aim_is_very_good() {
+        assert_eq!(judged(&losing_at(0.75)), Judgement::VeryGood);
+    }
 }
