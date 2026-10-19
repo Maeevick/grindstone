@@ -19,7 +19,7 @@ pub fn heading_of(per_week: f64, now: f64, aim: Option<Aim>) -> Heading {
         Some(_) if per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => Heading::Steady,
         Some(Aim::Reach(aim)) if (aim - now).signum() == per_week.signum() => Heading::Toward,
         Some(Aim::Reach(_)) => Heading::Away,
-        Some(Aim::Floor(_)) if per_week > 0.0 => Heading::Toward,
+        Some(Aim::Floor(_)) if per_week.is_sign_positive() => Heading::Toward,
         Some(Aim::Floor(floor)) if now > floor => Heading::AboveItsFloor,
         Some(Aim::Floor(_)) => Heading::Away,
     }
