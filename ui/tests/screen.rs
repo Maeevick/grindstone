@@ -1009,7 +1009,8 @@ fn tables_in_order(screen: &Element) -> Vec<String> {
 #[wasm_bindgen_test]
 async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the_exercises_alone() {
     answering(
-        r#"{ "exercises": [], "circuits": [], "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8 }] }"#,
+        r#"{ "exercises": [], "circuits": [],
+             "add_exercise": [{ "name": "Kettlebell swing", "met": 9.8, "description": "Both hands, a hip hinge" }] }"#,
     );
     let screen = screen();
     let _mounted = the_burn_shelf(&screen);
@@ -1019,16 +1020,22 @@ async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the
     found::<Element>(&screen, "button.form-Circuit");
 
     typed_into(&screen, "exercise_name", "Kettlebell swing");
+    typed_into(&screen, "exercise_description", "Both hands, a hip hinge");
     typed_into(&screen, "exercise_met", "9.8");
     found::<HtmlFormElement>(&screen, "form.exercise")
         .request_submit()
         .expect("the exercise is added");
     settled().await;
 
+    assert!(asked("add_exercise").contains(r#""description":"Both hands, a hip hinge""#));
     let rows = text_of(&screen, "table.exercises tbody");
-    assert!(
-        rows.contains("Kettlebell swing") && rows.contains("9.8"),
-        "{rows}"
+    assert!(rows.contains("9.8"), "{rows}");
+    assert_eq!(
+        [
+            text_of(&screen, "table.exercises tbody .name"),
+            text_of(&screen, "table.exercises tbody .description")
+        ],
+        ["Kettlebell swing", "Both hands, a hip hinge"]
     );
     assert_eq!(value_of(&screen, "exercise_name"), "");
 }
@@ -1322,7 +1329,8 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_
 {
     answering(
         r#"{ "foods": [], "meals": [], "add_food": [{ "name": "Skyr", "unit": "Gram", "portion": 100.0,
-            "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 } }] }"#,
+            "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 },
+            "description": "Siggi's, the plain 0% pot" }] }"#,
     );
     let screen = screen();
     let _mounted = the_fuel_shelf(&screen);
@@ -1334,12 +1342,14 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_
         fields_in_rows(&screen, "form.food"),
         [
             vec!["food_name"],
+            vec!["food_description"],
             vec!["food_portion", "food_unit", "food_energy"],
             vec!["food_protein", "food_fat", "food_fibre", "food_carbs"],
         ]
     );
 
     typed_into(&screen, "food_name", "Skyr");
+    typed_into(&screen, "food_description", "Siggi's, the plain 0% pot");
     typed_into(&screen, "food_portion", "100");
     typed_into(&screen, "food_energy", "54");
     found::<HtmlFormElement>(&screen, "form.food")
@@ -1347,10 +1357,18 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_
         .expect("the food is added");
     settled().await;
 
+    assert!(asked("add_food").contains(r#""description":"Siggi's, the plain 0% pot""#));
     let row = texts_of(&screen, "table.foods tbody tr td");
-    for cell in ["Skyr", "100 g", "54", "10", "0", "4"] {
+    for cell in ["100 g", "54", "10", "0", "4"] {
         assert!(row.contains(&cell.to_string()), "{cell} in {row:?}");
     }
+    assert_eq!(
+        [
+            text_of(&screen, "table.foods tbody .name"),
+            text_of(&screen, "table.foods tbody .description")
+        ],
+        ["Skyr", "Siggi's, the plain 0% pot"]
+    );
     assert_eq!(value_of(&screen, "food_name"), "");
 }
 
@@ -2267,7 +2285,7 @@ async fn removing_a_drinking_takes_it_off_the_day() {
 #[wasm_bindgen_test]
 async fn a_drink_added_from_the_hydrate_shelfs_form_card_joins_its_list_its_kind_water_or_other() {
     answering(
-        r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }] }"#,
+        r#"{ "drinks": [], "add_drink": [{ "name": "Tea", "volume_ml": 200.0, "kind": "Other", "description": "Green, no sugar" }] }"#,
     );
     let screen = screen();
     let _mounted = the_hydrate_shelf(&screen);
@@ -2278,15 +2296,24 @@ async fn a_drink_added_from_the_hydrate_shelfs_form_card_joins_its_list_its_kind
     );
 
     typed_into(&screen, "drink_name", "Tea");
-    typed_into(&screen, "serving", "200");
+    typed_into(&screen, "drink_description", "Green, no sugar");
+    typed_into(&screen, "drink_serving", "200");
     found::<HtmlFormElement>(&screen, "form.drink")
         .request_submit()
         .expect("the drink is added");
     settled().await;
 
     assert_eq!(value_of(&screen, "drink_name"), "");
+    assert!(asked("add_drink").contains(r#""description":"Green, no sugar""#));
     let rows = text_of(&screen, "table.drinks tbody");
-    assert!(rows.contains("Tea") && rows.contains("200 mL"), "{rows}");
+    assert!(rows.contains("200 mL"), "{rows}");
+    assert_eq!(
+        [
+            text_of(&screen, "table.drinks tbody .name"),
+            text_of(&screen, "table.drinks tbody .description")
+        ],
+        ["Tea", "Green, no sugar"]
+    );
 }
 
 #[wasm_bindgen_test]
