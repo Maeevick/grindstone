@@ -1,18 +1,13 @@
-use grind_core::burn::Burn;
-use grind_core::circuit::{Circuit, CircuitStep, StepForm, burnt_per_set};
+use grind_core::circuit::{CircuitStep, StepForm};
 use grind_core::exercise::Exercise;
 use grind_core::figures::{Figure, bare, shown};
-use grind_core::for_burning::{CircuitSessionForm, DEFAULT_SETS};
 use grind_core::for_cataloguing::PricedCircuit;
 use grind_core::workout::activity_induced_energy_expenditure_from_compendium;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::chosen;
-use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::{Recorded, lines};
 use crate::tauri;
-use crate::typed::count_typed;
 
 fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {
     let goal = reps
@@ -55,15 +50,6 @@ pub(crate) fn step_kcal(step: &StepForm, exercises: &[Exercise], body_mass_kg: f
                 step.load_kg,
             )
         })
-}
-
-fn said_line(said: RwSignal<Option<Result<String, String>>>) -> impl IntoView {
-    move || {
-        said.get().map(|line| match line {
-            Ok(good) => view! { <p class="said">{good}</p> }.into_any(),
-            Err(bad) => view! { <p class="bad">{bad}</p> }.into_any(),
-        })
-    }
 }
 
 #[component]
@@ -177,94 +163,5 @@ pub fn CircuitsList(
                     }}
                 </tbody>
             </table>
-    }
-}
-
-#[component]
-pub fn CircuitLog(
-    day: RwSignal<String>,
-    body_mass: Signal<Option<f64>>,
-    on_logged: Callback<Burn>,
-) -> impl IntoView {
-    let crafted = RwSignal::new(Vec::<Circuit>::new());
-    let circuit = RwSignal::new(String::new());
-    let sets = RwSignal::new(String::new());
-    let said = RwSignal::new(None::<Result<String, String>>);
-    let names = Signal::derive(move || {
-        crafted
-            .get()
-            .into_iter()
-            .map(|known| known.name)
-            .collect::<Vec<_>>()
-    });
-    let recorded = Recorded::here();
-    Effect::new(move |_| {
-        recorded.heard();
-        spawn_local(async move {
-            match tauri::circuits().await {
-                Ok(known) => crafted.set(known),
-                Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
-            }
-        });
-    });
-    let preview = move || {
-        let named = chosen(&names.get(), &circuit.get())?;
-        let known = crafted
-            .get()
-            .into_iter()
-            .find(|known| known.name == named)?;
-        let times = count_typed(&sets.get()).unwrap_or(DEFAULT_SETS);
-        let kcal = burnt_per_set(&known, body_mass.get()?) * f64::from(times);
-        Some(shown(Figure::Energy(kcal)))
-    };
-    let log = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        let Some(name) = chosen(&names.get_untracked(), &circuit.get_untracked()) else {
-            said.set(Some(Err(lines::CHOOSE_FIRST.into())));
-            return;
-        };
-        let form = CircuitSessionForm {
-            date: day.get_untracked(),
-            circuit: name,
-            sets: count_typed(&sets.get_untracked()),
-        };
-        spawn_local(async move {
-            match tauri::log_circuit(&form).await {
-                Ok(burn) => {
-                    on_logged.run(burn);
-                    circuit.set(String::new());
-                    sets.set(String::new());
-                    said.set(Some(Ok(lines::circuit_logged(
-                        &form.circuit,
-                        form.sets.unwrap_or(DEFAULT_SETS),
-                    ))));
-                }
-                Err(failure) => said.set(Some(Err(lines::failure(&failure)))),
-            }
-        });
-    };
-    view! {
-        {move || {
-            crafted
-                .get()
-                .is_empty()
-                .then(|| view! { <p class="empty">{lines::NO_CIRCUIT_TO_RUN}</p> })
-        }}
-        <form class="circuit-log" on:submit=log>
-            <div class="row">
-                <Chooser label="Circuit" name="circuit" options=names typed=circuit />
-                <FigureField
-                    label="Sets"
-                    name="circuit_sets"
-                    value=sets
-                    placeholder=DEFAULT_SETS.to_string()
-                />
-            </div>
-            {preview_line(preview)}
-            <button class="cta" type="submit">
-                "Run the circuit"
-            </button>
-        </form>
-        {said_line(said)}
     }
 }

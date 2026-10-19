@@ -417,9 +417,6 @@ pub const NOTHING_TO_EXPLORE: &str = "Nothing logged for this measure in the win
 pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Put a few exercises in a session, then \
     keep it as a circuit.";
 
-pub const NO_CIRCUIT_TO_RUN: &str =
-    "No circuit to run yet: put a session together, then keep it as a circuit.";
-
 pub fn a_set(kcal: f64) -> String {
     format!("{} a set", shown(Figure::Energy(kcal)))
 }
