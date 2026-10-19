@@ -6,8 +6,10 @@ use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
 use crate::ledger::ledger;
 use crate::progress::progress_towards;
+use crate::recommendations::recommended;
 use crate::tendency::{Change, Heading};
 use crate::trend::seven_day_trend;
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Judgement {
@@ -38,6 +40,7 @@ const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
 const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
 const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
+const STABLE_SHARE_A_WEEK: f64 = 0.0015;
 
 /// The most a body can lose in a week without eating into its lean mass: 1% of its mass, 1 kg at most, and
 /// no more than its fat store can spare.
@@ -75,18 +78,30 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         .collect();
     let progress = progress_towards(None, &trend)?;
     let (_, body_mass_kg) = *trend.last()?;
-    let fat_kg = body_on(
+    let body = body_on(
         day,
         &ledger(&gathered.measurements, &gathered.profiles),
         &gathered.profiles,
-    )
-    .map(|body| body.fat_kg);
-    let safe_loss_kg = safe_loss_kg(body_mass_kg, fat_kg);
-    let judgement = if -progress.per_week > safe_loss_kg {
-        Judgement::LosingTooFast
-    } else {
-        Judgement::Stable
-    };
+    );
+    let safe_loss_kg = safe_loss_kg(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
+    let healthy = version_in_force_on(&gathered.profiles, day)
+        .map(|profile| recommended(profile, day, Some(body_mass_kg)));
+    let fat_ratio = body.as_ref().map(|body| body.fat_kg / body.mass_kg);
+    let losing = progress.per_week < -STABLE_SHARE_A_WEEK * body_mass_kg;
+    let judgement =
+        if losing && healthy.is_some_and(|healthy| body_mass_kg < healthy.healthy_mass_kg.0) {
+            Judgement::UnderHealthyMass
+        } else if losing
+            && healthy
+                .zip(fat_ratio)
+                .is_some_and(|(healthy, fat_ratio)| fat_ratio < healthy.healthy_fat_ratio.0)
+        {
+            Judgement::UnderHealthyFat
+        } else if -progress.per_week > safe_loss_kg {
+            Judgement::LosingTooFast
+        } else {
+            Judgement::Stable
+        };
     Some(Pace {
         body_mass: Change {
             by: progress.per_week,
