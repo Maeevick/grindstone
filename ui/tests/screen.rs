@@ -1604,7 +1604,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
 }
 
 #[wasm_bindgen_test]
-async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_trackers_strict_bands() {
+async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_gauges_strict_bands() {
     answering(A_HOME);
     let screen = screen();
     let _mounted = the_app(&screen);

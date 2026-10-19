@@ -204,7 +204,7 @@ pub fn failure(failure: &Failure) -> String {
             "A circuit needs one step at least. Even my experiments have one: the bang.".into()
         }
         Failure::Refused(Refusal::NotACircuit) => {
-            "That circuit is not in the lab. Craft it in Catalog first.".into()
+            "That circuit is not in the lab. Craft it first, at the bottom of Burn.".into()
         }
         Failure::Refused(Refusal::NotAVolume) => {
             "Some millilitres above nothing, please. An empty cup files as nothing at all.".into()
@@ -315,8 +315,8 @@ pub fn longest_streak(longest: u32) -> String {
     format!("(longest: {})", days_counted(longest))
 }
 
-pub const STREAK_GRACE: &str = "Each tick holds within 5% of its band, a mercy the Tracker's gauges \
-    never show. Aim for the gauges: the 5% is for the days that wobble.";
+pub const STREAK_GRACE: &str = "Each tick holds within 5% of its band, a mercy the gauges never \
+    show. Aim for the gauges: the 5% is for the days that wobble.";
 
 pub fn streak_remark(streak: &Streak) -> &'static str {
     if streak.at_risk {
@@ -401,7 +401,7 @@ pub const CIRCUIT_HOW: &str = "Name it, stack its steps one by one, then craft. 
 pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Stack a few exercises from the catalog \
     and craft one.";
 
-pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is in Catalog.";
+pub const NO_CIRCUIT_TO_RUN: &str = "No circuit to run yet: the lab is at the bottom of this tab.";
 
 pub fn a_set(kcal: f64) -> String {
     format!("{} a set", shown(Figure::Energy(kcal)))
