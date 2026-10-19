@@ -1116,6 +1116,60 @@ async fn a_quantity_left_empty_logs_one_portion_of_the_food_its_placeholder_show
     assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
 }
 
+const KEFIR: &str = r#"{ "name": "Kefir", "unit": "Gram", "portion": 100.0, "description": "Plain, from the farm",
+    "nutrients": { "energy_kcal": 64.0, "protein_g": 3.4, "carbs_g": 4.1, "fat_g": 3.6, "fibre_g": 0.0 } }"#;
+
+#[wasm_bindgen_test]
+async fn a_food_nothing_matches_turns_the_fuel_form_into_a_new_one_added_then_logged_in_one_tap() {
+    answering(&format!(
+        r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
+              "add_food": [{KEFIR}], "log_intake": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "food", "Kefir");
+    settled().await;
+    assert_eq!(texts_in_order(&screen, "form.intake .new"), ["New Kefir"]);
+    typed_into(&screen, "new_food_description", "Plain, from the farm");
+    for (field, figure) in [
+        ("new_food_portion", "100"),
+        ("new_food_energy", "64"),
+        ("new_food_protein", "3.4"),
+        ("new_food_fat", "3.6"),
+        ("new_food_fibre", "0"),
+        ("new_food_carbs", "4.1"),
+        ("quantity", "250"),
+    ] {
+        typed_into(&screen, field, figure);
+    }
+    settled().await;
+    let offered = text_of(&screen, "form.intake button[type=submit]");
+    found::<HtmlFormElement>(&screen, "form.intake")
+        .request_submit()
+        .expect("the new food is added, then logged");
+    settled().await;
+    settled().await;
+
+    assert_eq!(offered, "Add and log");
+    let added = asked("add_food");
+    for sent in [
+        r#""name":"Kefir""#,
+        r#""description":"Plain, from the farm""#,
+        r#""energy_kcal":64"#,
+        r#""carbs_g":4.1"#,
+    ] {
+        assert!(added.contains(sent), "{sent} in {added}");
+    }
+    let logged = asked("log_intake");
+    assert!(
+        logged.contains(r#""food":"Kefir""#) && logged.contains(r#""quantity":250"#),
+        "{logged}"
+    );
+    assert!(texts_in_order(&screen, "form.intake .new").is_empty());
+}
+
 #[wasm_bindgen_test]
 async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_quantity_is_typed() {
     answering(&format!(
