@@ -26,7 +26,7 @@ fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {
     format!("{goal}{}{load}", shown(Figure::Duration(minutes)))
 }
 
-fn asked_step(step: &StepForm) -> String {
+pub(crate) fn asked_step(step: &StepForm) -> String {
     format!(
         "{} · {}",
         step.exercise,
@@ -43,7 +43,7 @@ fn frozen_step(step: &CircuitStep) -> String {
     )
 }
 
-fn step_kcal(step: &StepForm, exercises: &[Exercise], body_mass_kg: f64) -> Option<f64> {
+pub(crate) fn step_kcal(step: &StepForm, exercises: &[Exercise], body_mass_kg: f64) -> Option<f64> {
     exercises
         .iter()
         .find(|known| known.name == step.exercise)

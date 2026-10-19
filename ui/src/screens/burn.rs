@@ -1,6 +1,7 @@
 use std::cmp::Reverse;
 
 use grind_core::burn::{Burn, BurntWorkout};
+use grind_core::circuit::StepForm;
 use grind_core::exercise::{Exercise, exercise as exercise_of};
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, typed_back};
@@ -18,6 +19,7 @@ use crate::screens::circuits::CircuitLog;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
+use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -129,6 +131,15 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     });
     let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
     let figures = ExerciseFigures::default();
+    let session = use_context::<SessionInProgress>().unwrap_or_default();
+    let on_the_session = Memo::new(move |_| !session.steps.get().is_empty());
+    let exercises = Signal::derive(move || catalog.get());
+    let sessioned = Signal::derive(move || {
+        let body_mass_kg = body_mass.get()?;
+        on_the_session
+            .get()
+            .then(|| session.per_set(&catalog.get(), body_mass_kg) * f64::from(session.sets()))
+    });
     let creating = Memo::new(move |_| nothing_matches(&names.get(), &exercise.get()));
     let new_exercise = move || {
         let [met] = figures_typed([&figures.met.get()])?;
@@ -195,47 +206,85 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         }
         Err(failure) => said.set(Some(lines::failure(&failure))),
     };
-    let log = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
+    let stepped_now = move |step: StepForm| {
+        session.steps.update(|steps| steps.push(step));
+        for typed in [exercise, minutes, reps, sets, load] {
+            typed.set(String::new());
+        }
+        figures.cleared();
+        said.set(None);
+    };
+    // The exercise typed, added to the catalog first when new, then logged or put in the session.
+    let served = move |into_the_session: bool| {
         let Some([minutes_typed, load_typed]) =
             figures_typed([&minutes.get_untracked(), &load.get_untracked()])
         else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
-        let form = |name: String| WorkoutForm {
-            date: day.get_untracked(),
-            exercise: name,
-            minutes: minutes_typed,
-            reps: count_typed(&reps.get_untracked()),
-            sets: count_typed(&sets.get_untracked()),
-            load_kg: load_typed,
-        };
-        if creating.get_untracked() {
+        let added = if creating.get_untracked() {
             let Some([met]) = figures_typed([&figures.met.get_untracked()]) else {
                 said.set(Some(lines::UNREADABLE.into()));
                 return;
             };
-            let name = exercise.get_untracked().trim().to_string();
-            let description = figures.description.get_untracked();
-            let form = form(name.clone());
-            spawn_local(async move {
-                match tauri::add_exercise(&name, met.unwrap_or(0.0), &description).await {
-                    Ok(known) => {
-                        catalog.set(known);
-                        logged(tauri::log_workout(&form).await);
-                    }
-                    Err(failure) => said.set(Some(lines::failure(&failure))),
-                }
-            });
-            return;
-        }
-        let Some(name) = chosen(&names.get_untracked(), &exercise.get_untracked()) else {
+            Some((
+                exercise.get_untracked().trim().to_string(),
+                met.unwrap_or(0.0),
+                figures.description.get_untracked(),
+            ))
+        } else {
+            None
+        };
+        let known = chosen(&names.get_untracked(), &exercise.get_untracked());
+        if added.is_none() && known.is_none() {
             said.set(Some(lines::CHOOSE_FIRST.into()));
             return;
+        }
+        let reps_typed = count_typed(&reps.get_untracked());
+        let form = WorkoutForm {
+            date: day.get_untracked(),
+            exercise: String::new(),
+            minutes: minutes_typed,
+            reps: reps_typed,
+            sets: count_typed(&sets.get_untracked()),
+            load_kg: load_typed,
         };
-        let form = form(name);
-        spawn_local(async move { logged(tauri::log_workout(&form).await) });
+        spawn_local(async move {
+            let name = match added {
+                Some((name, met, description)) => {
+                    match tauri::add_exercise(&name, met, &description).await {
+                        Ok(listed) => {
+                            catalog.set(listed);
+                            recorded.told();
+                            name
+                        }
+                        Err(failure) => {
+                            said.set(Some(lines::failure(&failure)));
+                            return;
+                        }
+                    }
+                }
+                None => known.unwrap_or_default(),
+            };
+            if into_the_session {
+                stepped_now(StepForm {
+                    exercise: name,
+                    reps: reps_typed,
+                    minutes: minutes_typed.unwrap_or(DEFAULT_MINUTES),
+                    load_kg: load_typed.unwrap_or(DEFAULT_LOAD_KG),
+                });
+                return;
+            }
+            let form = WorkoutForm {
+                exercise: name,
+                ..form
+            };
+            logged(tauri::log_workout(&form).await);
+        });
+    };
+    let log = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        served(on_the_session.get_untracked());
     };
     let keep_off_the_clock = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
@@ -315,12 +364,19 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                     value=reps
                                     placeholder=DEFAULT_REPS.to_string()
                                 />
-                                <FigureField
-                                    label="Sets"
-                                    name="sets"
-                                    value=sets
-                                    placeholder=DEFAULT_SETS.to_string()
-                                />
+                                {move || {
+                                    (!on_the_session.get())
+                                        .then(|| {
+                                            view! {
+                                                <FigureField
+                                                    label="Sets"
+                                                    name="sets"
+                                                    value=sets
+                                                    placeholder=DEFAULT_SETS.to_string()
+                                                />
+                                            }
+                                        })
+                                }}
                                 <FigureField
                                     label="Load (kg)"
                                     name="load"
@@ -329,10 +385,42 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                 />
                             </div>
                             {preview_line(preview)}
-                            <button class="cta" type="submit">
-                                {move || if creating.get() { "Add and log" } else { "Burn" }}
+                            <button
+                                class=move || if on_the_session.get() { "cta to-the-session" } else { "cta" }
+                                type="submit"
+                            >
+                                {move || {
+                                    if on_the_session.get() {
+                                        "Add to the session"
+                                    } else if creating.get() {
+                                        "Add and log"
+                                    } else {
+                                        "Burn"
+                                    }
+                                }}
                             </button>
+                            {move || {
+                                (!on_the_session.get())
+                                    .then(|| {
+                                        view! {
+                                            <button
+                                                class="cta ghost to-the-session"
+                                                type="button"
+                                                on:click=move |_| served(true)
+                                            >
+                                                "Add to the session"
+                                            </button>
+                                        }
+                                    })
+                            }}
                         </form>
+                        {move || {
+                            on_the_session
+                                .get()
+                                .then(|| {
+                                    view! { <Session session=session exercises=exercises body_mass=body_mass /> }
+                                })
+                        }}
                     }
                         .into_any()
                 }
@@ -359,13 +447,20 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 .map(|answer| {
                     let rested = answer.workouts.is_empty();
                     let burnt = answer.burnt_kcal.unwrap_or(0.0);
+                    let with_the_session = sessioned.get().map(|kcal| burnt + kcal);
                     view! {
                         <section class="card bands">
                             <h2>"Where the day stands"</h2>
                             <p class="figures">{lines::burnt(&answer)}</p>
+                            {with_the_session
+                                .map(|kcal| {
+                                    view! { <p class="hint with-the-session">{lines::with_the_session(kcal)}</p> }
+                                })}
                             {answer
                                 .target_kcal
-                                .map(|target| view! { <BurnGauge burnt=burnt target=target /> })}
+                                .map(|target| {
+                                    view! { <BurnGauge burnt=burnt target=target ghost=with_the_session /> }
+                                })}
                             {rested.then(|| view! { <p class="empty">{lines::NO_WORKOUT}</p> })}
                         </section>
                     }

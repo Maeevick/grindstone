@@ -13,11 +13,13 @@ use crate::screens::lines;
 use crate::screens::plate::PlateInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;
+use crate::screens::session::SessionInProgress;
 use crate::screens::stats::Stats;
 
 #[component]
 pub fn App() -> impl IntoView {
     provide_context(PlateInProgress::default());
+    provide_context(SessionInProgress::default());
     provide_context(Recorded::default());
     view! {
         <Router>

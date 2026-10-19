@@ -966,7 +966,8 @@ td .description {
 }
 
 td .ghost,
-.with-the-plate {
+.with-the-plate,
+.with-the-session {
 	color: var(--mut);
 	font-style: italic;
 }
