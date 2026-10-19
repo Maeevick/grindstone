@@ -3,10 +3,11 @@ use crate::tendency::Heading;
 /// A measure moving less than 0.15% of itself a week holds steady.
 pub(crate) const STABLE_SHARE_A_WEEK: f64 = 0.0015;
 
-/// What a measure aims at.
+/// What a measure aims at: a value to reach, or a floor to stay above.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Aim {
     Reach(f64),
+    Floor(f64),
 }
 
 /// Where a measure moving so much a week heads: steady under 0.15% of itself, else toward its aim or away from
@@ -15,8 +16,10 @@ pub fn heading_of(per_week: f64, now: f64, aim: Option<Aim>) -> Heading {
     match aim {
         None => Heading::Unaimed,
         Some(_) if per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => Heading::Steady,
-        Some(Aim::Reach(aim)) if (aim - now).signum() == per_week.signum() => Heading::Toward,
-        Some(Aim::Reach(_)) => Heading::Away,
+        Some(Aim::Reach(aim) | Aim::Floor(aim)) if (aim - now).signum() == per_week.signum() => {
+            Heading::Toward
+        }
+        Some(Aim::Reach(_) | Aim::Floor(_)) => Heading::Away,
     }
 }
 
@@ -45,6 +48,31 @@ mod tests {
                 heading_of(0.5, 60.0, Some(Aim::Reach(70.0))),
             ],
             [Heading::Toward, Heading::Away, Heading::Toward]
+        );
+    }
+
+    #[test]
+    fn a_measure_above_its_floor_rising_heads_toward_its_aim_falling_stays_above_it_until_it_reaches_it()
+     {
+        let floor = Some(Aim::Floor(61.6));
+
+        assert_eq!(
+            [
+                heading_of(0.3, 63.0, floor),
+                heading_of(0.3, 60.0, floor),
+                heading_of(-0.3, 63.0, floor),
+                heading_of(-0.3, 61.6, floor),
+                heading_of(-0.3, 60.0, floor),
+                heading_of(0.05, 63.0, floor),
+            ],
+            [
+                Heading::Toward,
+                Heading::Toward,
+                Heading::AboveItsFloor,
+                Heading::Away,
+                Heading::Away,
+                Heading::Steady
+            ]
         );
     }
 

@@ -9,6 +9,8 @@ pub enum Heading {
     Away,
     Steady,
     Unaimed,
+    /// Falling, yet still above its floor.
+    AboveItsFloor,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
