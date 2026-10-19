@@ -1434,7 +1434,8 @@ async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_q
 }
 
 #[wasm_bindgen_test]
-async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_maintenance() {
+async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_maintenance_alpert_labelled_under_its_tick()
+ {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
     ));
@@ -1457,6 +1458,29 @@ async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_main
     found::<Element>(&screen, ".fuel-gauge line.minimum");
     found::<Element>(&screen, ".fuel-gauge rect.band");
     found::<Element>(&screen, ".fuel-gauge circle.eaten");
+    let floor_at: f64 = found::<Element>(&screen, ".fuel-gauge line.tick")
+        .get_attribute("x1")
+        .and_then(|x| x.parse().ok())
+        .expect("the floor's tick");
+    let floor_label: Element = found(&screen, ".fuel-gauge .floor-label");
+    let left: f64 = floor_label
+        .get_attribute("style")
+        .and_then(|style| {
+            style
+                .strip_prefix("left: ")?
+                .strip_suffix('%')?
+                .parse()
+                .ok()
+        })
+        .expect("the label's place");
+    assert_eq!(
+        floor_label.text_content().unwrap_or_default(),
+        "Alpert 2199"
+    );
+    assert!(
+        (left - 100.0 * floor_at / 360.0).abs() < 1e-9,
+        "{left}% under {floor_at}"
+    );
 }
 
 #[wasm_bindgen_test]
