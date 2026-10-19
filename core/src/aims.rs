@@ -98,16 +98,8 @@ mod tests {
             recommended: false,
         };
 
-        assert!(
-            (aims.fat_mass_kg() - 8.4).abs() < 1e-9,
-            "{}",
-            aims.fat_mass_kg()
-        );
-        assert!(
-            (aims.fat_ratio() - 0.12).abs() < 1e-9,
-            "{}",
-            aims.fat_ratio()
-        );
+        assert!((aims.fat_mass_kg() - 8.4).abs() < 1e-9);
+        assert!((aims.fat_ratio() - 0.12).abs() < 1e-9);
     }
 
     #[test]
