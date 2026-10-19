@@ -1805,6 +1805,57 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
 }
 
 #[wasm_bindgen_test]
+async fn a_drink_added_and_logged_in_its_tab_joins_its_shelf_at_once() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    went_to("/hydrate");
+    settled().await;
+
+    let kombucha = r#"[{ "name": "Kombucha", "volume_ml": 330.0, "kind": "Other" }]"#;
+    let added = format!(
+        r#"{{ "drinks": {kombucha}, "add_drink": {kombucha}, "log_drink": {A_DAY_WITH_TWO_DRINKS} }}"#
+    );
+    answering_all(&[A_HOME, EVERY_TAB, &added]);
+    typed_into(&screen, "drink", "Kombucha");
+    settled().await;
+    typed_into(&screen, "new_drink_serving", "330");
+    found::<HtmlFormElement>(&screen, "form.drinking")
+        .request_submit()
+        .expect("the new drink is added, then logged");
+    settled().await;
+    settled().await;
+
+    assert!(text_of(&screen, "table.drinks tbody").contains("Kombucha"));
+}
+
+#[wasm_bindgen_test]
+async fn a_food_added_on_the_shelf_is_offered_by_the_fuel_form_at_once() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    went_to("/fuel");
+    settled().await;
+
+    let added = format!(r#"{{ "foods": [{KEFIR}], "add_food": [{KEFIR}] }}"#);
+    answering_all(&[A_HOME, EVERY_TAB, &added]);
+    typed_into(&screen, "food_name", "Kefir");
+    typed_into(&screen, "food_energy", "64");
+    found::<HtmlFormElement>(&screen, "form.food")
+        .request_submit()
+        .expect("the food is added");
+    settled().await;
+    settled().await;
+    typed_into(&screen, "food", "kefir");
+    settled().await;
+
+    assert!(texts_in_order(&screen, "form.intake .new").is_empty());
+    assert!(text_of(&screen, "form.intake p.preview").contains("64 kcal"));
+}
+
+#[wasm_bindgen_test]
 async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_gauges_strict_bands() {
     answering(A_HOME);
     let screen = screen();
