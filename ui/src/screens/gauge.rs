@@ -34,7 +34,10 @@ pub fn Gauge(
 #[component]
 pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -> impl IntoView {
     let placed = aim_gauge_of(amount, aim, 360.0);
-    let (Aim::Reach(aim) | Aim::Floor(aim)) = aim;
+    let (low, value, high) = match aim {
+        Aim::Reach(value) => ((1.0 - AIM_GRACE) * value, value, (1.0 + AIM_GRACE) * value),
+        Aim::Floor(value) => (placed.from, value, placed.up_to),
+    };
     let aimed = if recommended { "healthy" } else { "goal" };
     view! {
         <div class="gauge aim-gauge">
@@ -46,9 +49,9 @@ pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
             <div class="gauge-labels">
-                <span>{shown(Figure::Mass((1.0 - AIM_GRACE) * aim))}</span>
-                <span>{format!("{aimed} {}", shown(Figure::Mass(aim)))}</span>
-                <span>{shown(Figure::Mass((1.0 + AIM_GRACE) * aim))}</span>
+                <span>{shown(Figure::Mass(low))}</span>
+                <span>{format!("{aimed} {}", shown(Figure::Mass(value)))}</span>
+                <span>{shown(Figure::Mass(high))}</span>
             </div>
         </div>
     }

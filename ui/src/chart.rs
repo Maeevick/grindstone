@@ -118,19 +118,28 @@ pub struct AimGauge {
 const AIM_GAUGE_SPAN: f64 = 0.10;
 pub const AIM_GRACE: f64 = 0.05;
 
+/// A line a tenth either side of the aim, stretched to the amount: green a twentieth either side of a value
+/// to reach, and from a floor's tick to the end.
 pub fn aim_gauge_of(amount: f64, aim: Aim, width: f64) -> AimGauge {
-    let (Aim::Reach(aim) | Aim::Floor(aim)) = aim;
+    let (Aim::Reach(value) | Aim::Floor(value)) = aim;
     let scale = (
-        ((1.0 - AIM_GAUGE_SPAN) * aim).min(amount),
-        ((1.0 + AIM_GAUGE_SPAN) * aim).max(amount),
+        ((1.0 - AIM_GAUGE_SPAN) * value).min(amount),
+        ((1.0 + AIM_GAUGE_SPAN) * value).max(amount),
     );
+    let (band_from, band_to) = match aim {
+        Aim::Reach(_) => (
+            placed((1.0 - AIM_GRACE) * value, scale, width),
+            placed((1.0 + AIM_GRACE) * value, scale, width),
+        ),
+        Aim::Floor(_) => (placed(value, scale, width), width),
+    };
     AimGauge {
-        band_from: placed((1.0 - AIM_GRACE) * aim, scale, width),
-        band_to: placed((1.0 + AIM_GRACE) * aim, scale, width),
-        aim_at: placed(aim, scale, width),
+        band_from,
+        band_to,
+        aim_at: placed(value, scale, width),
         amount_at: placed(amount, scale, width),
-        from: 0.0,
-        up_to: 0.0,
+        from: scale.0,
+        up_to: scale.1,
     }
 }
 
