@@ -27,7 +27,7 @@ pub fn OpenTheGrimoire(href: &'static str) -> impl IntoView {
 pub fn ExploreInStats() -> impl IntoView {
     view! {
         <A href="/stats" attr:class="cta ghost explore">
-            "Explore in Stats"
+            "Explore the numbers"
         </A>
     }
 }

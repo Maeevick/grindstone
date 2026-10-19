@@ -74,7 +74,7 @@ pub fn Home() -> impl IntoView {
                                 <StreakCard />
                                 <Charts today=crate::screens::today() />
                                 <A href="/stats" attr:class="cta ghost explore">
-                                    "Explore in Stats"
+                                    "Explore the numbers"
                                 </A>
                             }
                                 .into_any()
