@@ -76,6 +76,21 @@ pub fn log_plate(
     fuel: &impl ForStoringFuelRecords,
     form: &PlateForm,
 ) -> Result<Fuel, Failure> {
+    let foods = fuel.fuel_records()?.foods;
+    let eaten = form
+        .ingredients
+        .iter()
+        .map(|ingredient| {
+            let food = foods
+                .iter()
+                .find(|known| known.name == ingredient.food)
+                .ok_or(Failure::Refused(Refusal::NotAFood))?;
+            intake(&form.date, food, ingredient.quantity).map_err(Failure::Refused)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    for each in &eaten {
+        fuel.save_intake(each)?;
+    }
     fuel_of_the_day(gather, burn, fuel, day(&form.date)?)
 }
 
