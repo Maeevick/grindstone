@@ -7,6 +7,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::fuel::{Fuel, fuel_on};
+use crate::fuel_week::FuelWeek;
 use crate::intake::intake;
 use crate::refusal::Refusal;
 
@@ -42,6 +43,18 @@ pub fn fuel_day(
     date: &str,
 ) -> Result<Fuel, Failure> {
     fuel_of_the_day(gather, burn, fuel, day(date)?)
+}
+
+/// The week's average up to a day: its logged days of the seven, today left out while under way.
+pub fn fuel_week(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    date: &str,
+    today: &str,
+) -> Result<Option<FuelWeek>, Failure> {
+    let _ = (gather, burn, fuel, date, today);
+    Ok(None)
 }
 
 pub fn log_intake(
@@ -110,9 +123,36 @@ pub fn remove_intake(
 mod tests {
     use super::*;
     use crate::food::{Food, Nutrients, Unit};
+    use crate::gender::Gender;
+    use crate::measurement::Measurement;
+    use crate::profile::Profile;
     use crate::testing::{
         BrokenFuelRecords, BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory,
     };
+
+    fn a_man_with_a_waist() -> GatherRecordsInMemory {
+        let gather = GatherRecordsInMemory::default();
+        gather
+            .save_profile(
+                day("2026-03-01").expect("a day"),
+                &Profile {
+                    birthday: day("1985-04-12").expect("a day"),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile saves");
+        gather
+            .save_measurement(&Measurement {
+                day: day("2026-10-01").expect("a day"),
+                body_mass_kg: 80.0,
+                waist_cm: Some(82.0),
+            })
+            .expect("a measurement saves");
+        gather
+    }
 
     fn a_catalog_with_skyr() -> FuelRecordsInMemory {
         let fuel = FuelRecordsInMemory::default();
@@ -155,6 +195,51 @@ mod tests {
         assert_eq!(fuelled.intakes.len(), 1);
         assert!((fuelled.eaten.energy_kcal - 108.0).abs() < 1e-9);
         assert_eq!(fuel_day(&gather, &burn, &fuel, "2026-10-10"), Ok(fuelled));
+    }
+
+    #[test]
+    fn a_weeks_average_runs_over_the_logged_days_of_the_seven_up_to_the_day_today_left_out_until_it_is_over()
+     {
+        let (gather, burn, fuel) = (
+            a_man_with_a_waist(),
+            BurnRecordsInMemory::default(),
+            a_catalog_with_skyr(),
+        );
+        for date in ["2026-10-02", "2026-10-04", "2026-10-06", "2026-10-10"] {
+            log_intake(&gather, &burn, &fuel, &skyr(date, 200.0)).expect("an intake logs");
+        }
+
+        let under_way = fuel_week(&gather, &burn, &fuel, "2026-10-10", "2026-10-10");
+        let over = fuel_week(&gather, &burn, &fuel, "2026-10-10", "2026-10-11");
+
+        assert_eq!(
+            [under_way, over].map(|week| {
+                week.ok()
+                    .flatten()
+                    .map(|week| (week.logged_days, week.energy.per_day))
+            }),
+            [Some((2, 108.0)), Some((3, 108.0))]
+        );
+    }
+
+    #[test]
+    fn a_week_up_to_a_day_the_calendar_does_not_have_is_refused() {
+        let (gather, burn, fuel) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+        );
+
+        assert_eq!(
+            [
+                fuel_week(&gather, &burn, &fuel, "2026-02-30", "2026-10-10"),
+                fuel_week(&gather, &burn, &fuel, "2026-10-10", "2026-02-30")
+            ],
+            [
+                Err(Failure::Refused(Refusal::NotADate)),
+                Err(Failure::Refused(Refusal::NotADate))
+            ]
+        );
     }
 
     #[test]
