@@ -5,7 +5,7 @@ use crate::aims::aims_on;
 use crate::body::body_on;
 use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
-use crate::heading::heading_of;
+use crate::heading::{Aim, heading_of};
 use crate::judgement::{Judgement, Week, judgement_of};
 use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
@@ -124,7 +124,7 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
     };
     let (per_week, body_mass_kg) = weekly(day, &readings(|measured| Some(measured.body_mass_kg)))?;
     let aims = aims_on(day, gathered);
-    let change = |measure: fn(&Day) -> Option<f64>, aim: Option<f64>| {
+    let change = |measure: fn(&Day) -> Option<f64>, aim: Option<Aim>| {
         weekly(day, &readings(measure)).map(|(per_week, now)| Change {
             by: per_week,
             heading: heading_of(per_week, now, aim),
@@ -147,19 +147,23 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
     Some(Pace {
         body_mass: Change {
             by: per_week,
-            heading: heading_of(per_week, body_mass_kg, aims.map(|aims| aims.body_mass_kg)),
+            heading: heading_of(
+                per_week,
+                body_mass_kg,
+                aims.map(|aims| Aim::Reach(aims.body_mass_kg)),
+            ),
         },
         lean_mass: change(
             |measured| measured.composition.map(|split| split.lean_mass_kg),
-            aims.map(|aims| aims.lean_mass_kg),
+            aims.map(|aims| Aim::Reach(aims.lean_mass_kg)),
         ),
         fat_mass: change(
             |measured| measured.composition.map(|split| split.fat_mass_kg),
-            aims.map(|aims| aims.fat_mass_kg()),
+            aims.map(|aims| Aim::Reach(aims.fat_mass_kg())),
         ),
         fat_ratio: change(
             |measured| measured.composition.map(|split| split.fat_ratio),
-            aims.map(|aims| aims.fat_ratio()),
+            aims.map(|aims| Aim::Reach(aims.fat_ratio())),
         ),
         judgement,
         safe_loss_kg,
