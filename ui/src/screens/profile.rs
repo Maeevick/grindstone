@@ -219,7 +219,7 @@ fn BurnTargetCard() -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"The sweat the day owes"</h2>
+            <h2>"The aches the day owes"</h2>
             <p class="hint">{lines::BURN_TARGET_HINT}</p>
             <form class="burn-target" on:submit=save>
                 {move || {
@@ -414,8 +414,8 @@ pub fn ProfileScreen() -> impl IntoView {
         <GoalsCard />
         <FuelTargetsCard />
         <HydrateCountedCard />
-        <UsualDayCard />
         <BurnTargetCard />
+        <UsualDayCard />
         <p class="hint disclaimer">{lines::RECOMMENDATIONS_DISCLAIMER}</p>
         <Settings />
     }
