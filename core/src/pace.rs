@@ -1,8 +1,10 @@
-use chrono::NaiveDate;
+use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
-use crate::tendency::Change;
+use crate::progress::progress_towards;
+use crate::tendency::{Change, Heading};
+use crate::trend::seven_day_trend;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Judgement {
@@ -27,14 +29,42 @@ pub struct Pace {
     pub safe_loss_kg: f64,
 }
 
-pub fn pace_on(_day: NaiveDate, _gathered: &GatherRecords) -> Option<Pace> {
-    None
+const DAYS_OF_THE_SLOPE: u64 = 13;
+const DAYS_OF_THE_AVERAGE: u64 = 6;
+
+/// The week's pace on a day: the slope, per week, of the seven-day average of the body mass over the
+/// fourteen days ending on it.
+pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
+    let readings: Vec<(NaiveDate, f64)> = gathered
+        .measurements
+        .iter()
+        .filter(|measured| {
+            measured.day <= day
+                && measured.day + Days::new(DAYS_OF_THE_SLOPE + DAYS_OF_THE_AVERAGE) >= day
+        })
+        .map(|measured| (measured.day, measured.body_mass_kg))
+        .collect();
+    let trend: Vec<(NaiveDate, f64)> = seven_day_trend(&readings)
+        .into_iter()
+        .filter(|(averaged, _)| *averaged + Days::new(DAYS_OF_THE_SLOPE) >= day)
+        .collect();
+    let progress = progress_towards(None, &trend)?;
+    Some(Pace {
+        body_mass: Change {
+            by: progress.per_week,
+            heading: Heading::Unaimed,
+        },
+        lean_mass: None,
+        fat_mass: None,
+        fat_ratio: None,
+        judgement: Judgement::Stable,
+        safe_loss_kg: 0.0,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Days;
 
     use crate::gender::Gender;
     use crate::measurement::Measurement;
