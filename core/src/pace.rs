@@ -91,6 +91,8 @@ fn judgement_of(week: &Week) -> Judgement {
         Judgement::LosingTooFast
     } else if towards_a_lower_aim && -week.per_week >= week.safe_loss_kg / 2.0 {
         Judgement::VeryGood
+    } else if towards_a_lower_aim && losing {
+        Judgement::Good
     } else {
         Judgement::Stable
     }
