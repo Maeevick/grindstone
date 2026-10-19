@@ -358,7 +358,7 @@ mod tests {
     }
 
     #[test]
-    fn each_measure_heads_toward_or_away_from_its_aim_or_holds_steady() {
+    fn each_measure_heads_toward_or_away_from_its_aim_holds_steady_or_stays_above_its_floor() {
         let pace = pace_on(
             day("2026-10-10"),
             &aiming_at(70.0, a_man_weighed(81.0, -0.05)),
@@ -374,10 +374,24 @@ mod tests {
             ],
             [
                 Some(Heading::Toward),
-                Some(Heading::Toward),
+                Some(Heading::AboveItsFloor),
                 Some(Heading::Toward),
                 Some(Heading::Steady)
             ]
+        );
+    }
+
+    #[test]
+    fn a_lean_mass_rising_above_its_goal_heads_toward_the_aim_its_goal_being_a_floor() {
+        let pace = pace_on(
+            day("2026-10-10"),
+            &aiming_at(70.0, a_man_weighed(74.0, 0.05)),
+        )
+        .expect("a pace");
+
+        assert_eq!(
+            pace.lean_mass.map(|change| change.heading),
+            Some(Heading::Toward)
         );
     }
 
