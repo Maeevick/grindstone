@@ -7,6 +7,7 @@ use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::hydrate::Hydrate;
 use grind_core::meal::Ingredient;
+use grind_core::pace::{Judgement, Pace};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
@@ -637,5 +638,60 @@ pub fn topic_name(topic: Topic) -> &'static str {
         Topic::Activity => "Activity",
         Topic::Macronutrients => "Macronutrients",
         Topic::Water => "Water",
+    }
+}
+
+pub const NO_PACE_YET: &str =
+    "Too few weigh-ins for a pace yet. Patience is half the hunt. The other half is also patience.";
+
+pub fn pace_said(pace: &Pace) -> String {
+    let lost = shown(Figure::Mass(-pace.body_mass.by));
+    match pace.judgement {
+        Judgement::Holding => {
+            "Holding the line at the aim. Steady is the hardest pace there is: keep it.".into()
+        }
+        Judgement::VeryGood => format!(
+            "{} a week, inside the safe lane. Keep the pace: the grindstone likes a steady hand.",
+            shown(Figure::Mass(pace.body_mass.by))
+        ),
+        Judgement::Good => {
+            "The right way, slower than the lane allows. Slow still sharpens.".into()
+        }
+        Judgement::Stable => {
+            "Steady this week. Plateaus are where scales go to think; give it another week.".into()
+        }
+        Judgement::WrongWay => {
+            "The week drifted from the aim. One week is a data point, not a verdict.".into()
+        }
+        Judgement::GainingTooFast => {
+            "Gaining faster than muscle can follow: past half a percent a week, \
+            the rest is stored. Trim the surplus a little."
+                .into()
+        }
+        Judgement::LosingTooFast => format!(
+            "{lost} lost a week, more than your fat can spare ({}). Eat back up to the band's floor, keep \
+             protein high, keep lifting: the rest is lean mass leaving.",
+            shown(Figure::Mass(pace.safe_loss_kg))
+        ),
+        Judgement::UnderHealthyMass => {
+            "Under the healthy mass for your height. Stop losing, eat to \
+            maintenance, and see a doctor if it keeps dropping."
+                .into()
+        }
+        Judgement::UnderHealthyFat => {
+            "Under the healthy body fat for your age. Stop losing, eat to \
+            maintenance, and see a doctor if it keeps dropping."
+                .into()
+        }
+    }
+}
+
+pub fn pace_class(judgement: Judgement) -> &'static str {
+    match judgement {
+        Judgement::Holding | Judgement::VeryGood => "said good",
+        Judgement::LosingTooFast | Judgement::UnderHealthyMass | Judgement::UnderHealthyFat => {
+            "bad"
+        }
+        _ => "said",
     }
 }

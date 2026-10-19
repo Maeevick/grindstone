@@ -916,3 +916,28 @@ tr.details .pinned {
 	max-width: calc(100vw - 64px);
 	white-space: normal;
 }
+
+.pace-lines {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.pace-lines li {
+	display: flex;
+	justify-content: space-between;
+	padding: 0.15rem 0;
+	font-size: 0.9rem;
+}
+
+.pace-lines li.toward span:last-child {
+	color: var(--ok);
+}
+
+.pace-lines li.away span:last-child {
+	color: var(--bad);
+}
+
+.pace-lines li.steady span:last-child {
+	color: var(--mut);
+}

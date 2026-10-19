@@ -1,4 +1,4 @@
-use grind_core::figures::{Figure, bare, signed, typed_back};
+use grind_core::figures::{Figure, bare, shown, signed, typed_back};
 use grind_core::for_tracking::GatherWeek;
 use grind_core::ledger::Day;
 use grind_core::tendency::{Change, Heading};
@@ -18,6 +18,36 @@ use crate::typed::figures_typed;
 
 fn bare_or_blank(figure: Option<Figure>) -> String {
     figure.map(bare).unwrap_or_default()
+}
+
+fn pace_line(
+    name: &'static str,
+    change: Option<Change>,
+    figure: fn(f64) -> Figure,
+) -> impl IntoView {
+    change.map(|change| {
+        let (class, moved) = match change.heading {
+            Heading::Steady => ("steady", "steady".to_string()),
+            heading => (
+                match heading {
+                    Heading::Toward => "toward",
+                    Heading::Away => "away",
+                    _ => "unaimed",
+                },
+                format!(
+                    "{}{} a week",
+                    if change.by > 0.0 { "+" } else { "" },
+                    shown(figure(change.by))
+                ),
+            ),
+        };
+        view! {
+            <li class=class>
+                <span>{name}</span>
+                <span>{moved}</span>
+            </li>
+        }
+    })
 }
 
 fn tendency_cell(change: Option<Change>, figure: fn(f64) -> Figure) -> impl IntoView {
@@ -165,6 +195,31 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                                 })}
                         </section>
                     })
+                })
+        }}
+        {move || {
+            week.get()
+                .map(|answer| {
+                    view! {
+                        <section class="card pace">
+                            <h2>"The week's pace"</h2>
+                            {match answer.pace {
+                                Some(pace) => {
+                                    view! {
+                                        <ul class="pace-lines">
+                                            {pace_line("Body mass", Some(pace.body_mass), Figure::Mass)}
+                                            {pace_line("Lean mass", pace.lean_mass, Figure::Mass)}
+                                            {pace_line("Fat mass", pace.fat_mass, Figure::Mass)}
+                                            {pace_line("Fat %", pace.fat_ratio, Figure::Ratio)}
+                                        </ul>
+                                        <p class=lines::pace_class(pace.judgement)>{lines::pace_said(&pace)}</p>
+                                    }
+                                        .into_any()
+                                }
+                                None => view! { <p class="empty">{lines::NO_PACE_YET}</p> }.into_any(),
+                            }}
+                        </section>
+                    }
                 })
         }}
         <section class="card last-days">
