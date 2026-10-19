@@ -412,6 +412,40 @@ mod tests {
     }
 
     #[test]
+    fn the_weeks_pace_reads_the_rate_homes_chart_reads_over_its_seven_days() {
+        use crate::for_reviewing_progress::{Window, gather_card};
+        use crate::for_storing_gather_records::ForStoringGatherRecords;
+        let weighed = [
+            71.4, 71.0, 71.1, 71.2, 71.4, 71.4, 70.9, 71.5, 71.0, 71.7, 71.7, 71.4, 71.5, 71.7,
+            72.4, 72.4, 72.1, 72.2, 72.0,
+        ];
+        let gathered = GatherRecords {
+            measurements: weighed
+                .iter()
+                .zip(0..)
+                .map(|(kg, back)| Measurement {
+                    day: day("2026-10-19") - Days::new(back),
+                    body_mass_kg: *kg,
+                    waist_cm: None,
+                })
+                .collect(),
+            ..a_man_weighed(80.0, 0.0)
+        };
+        let kept = crate::testing::GatherRecordsInMemory::default();
+        kept.replace_gather_records(&gathered)
+            .expect("the records replace");
+
+        let pace = pace_on(day("2026-10-19"), &gathered).expect("a pace");
+        let homes = gather_card(&kept, "2026-10-19", Window::Days7)
+            .expect("a card")
+            .progress
+            .expect("a progress");
+
+        assert!((pace.body_mass.by - homes.per_week).abs() < 1e-9);
+        assert!((pace.body_mass.by - -0.257).abs() < 1e-3);
+    }
+
+    #[test]
     fn fewer_than_four_weigh_ins_in_the_fortnight_give_no_pace() {
         let weighed = a_man_weighed(80.0, -0.05);
         let three_weigh_ins = GatherRecords {
