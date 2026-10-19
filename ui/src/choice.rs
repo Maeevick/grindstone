@@ -61,17 +61,27 @@ pub struct Choice {
 impl Choice {
     /// What the list shows: the icon, then the name.
     pub fn shown(&self) -> String {
-        self.name.clone()
+        if self.icon.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{} {}", self.icon, self.name)
+        }
     }
 }
 
 /// Two groups of options, the first one first, each in alphabetical order whatever the case and the
 /// accents, each behind its group's icon.
 pub fn grouped(
-    _first: (&'static str, Vec<String>),
-    _then: (&'static str, Vec<String>),
+    first: (&'static str, Vec<String>),
+    then: (&'static str, Vec<String>),
 ) -> Vec<Choice> {
-    Vec::new()
+    [first, then]
+        .into_iter()
+        .flat_map(|(icon, mut names)| {
+            names.sort_by_key(|name| folded(name));
+            names.into_iter().map(move |name| Choice { name, icon })
+        })
+        .collect()
 }
 
 #[cfg(test)]
