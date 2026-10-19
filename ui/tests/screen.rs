@@ -450,7 +450,8 @@ fn a_gathered_week() -> String {
 }
 
 #[wasm_bindgen_test]
-async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lean_mass() {
+async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lean_mass_green_from_its_goal_up()
+ {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
               "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
@@ -471,6 +472,28 @@ async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lea
             "{aim} in {bands:?}"
         );
     }
+    let lean: Element = screen
+        .query_selector_all(".aim-gauge")
+        .expect("the gauges")
+        .item(1)
+        .expect("the lean mass's gauge")
+        .unchecked_into();
+    let drawn = |selector: &str, attribute: &str| -> f64 {
+        found::<Element>(&lean, selector)
+            .get_attribute(attribute)
+            .and_then(|value| value.parse().ok())
+            .expect(attribute)
+    };
+    let band_from = drawn("rect.band", "x");
+    let band_to = band_from + drawn("rect.band", "width");
+    assert!(
+        (band_from - drawn("line.optimal", "x1")).abs() < 1e-9 && (band_to - 360.0).abs() < 1e-9,
+        "{band_from} to {band_to}"
+    );
+    assert_eq!(
+        texts_in_order(&lean, ".gauge-labels span"),
+        ["59.4 kg", "goal 66.0 kg", "72.6 kg"]
+    );
 }
 
 async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {

@@ -111,6 +111,8 @@ pub struct AimGauge {
     pub band_to: f64,
     pub aim_at: f64,
     pub amount_at: f64,
+    pub from: f64,
+    pub up_to: f64,
 }
 
 const AIM_GAUGE_SPAN: f64 = 0.10;
@@ -127,6 +129,8 @@ pub fn aim_gauge_of(amount: f64, aim: Aim, width: f64) -> AimGauge {
         band_to: placed((1.0 + AIM_GRACE) * aim, scale, width),
         aim_at: placed(aim, scale, width),
         amount_at: placed(amount, scale, width),
+        from: 0.0,
+        up_to: 0.0,
     }
 }
 
@@ -313,6 +317,23 @@ mod tests {
                 band_to: 210.0,
                 aim_at: 140.0,
                 amount_at: 180.0,
+                from: 63.0,
+                up_to: 77.0,
+            }
+        );
+    }
+
+    #[test]
+    fn a_floors_gauge_runs_green_from_its_tick_to_the_end_of_its_line() {
+        assert_eq!(
+            aim_gauge_of(72.0, Aim::Floor(70.0), 280.0),
+            AimGauge {
+                band_from: 140.0,
+                band_to: 280.0,
+                aim_at: 140.0,
+                amount_at: 180.0,
+                from: 63.0,
+                up_to: 77.0,
             }
         );
     }
