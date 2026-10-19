@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::hydrate::Hydrate;
-use crate::week::Averaged;
+use crate::week::{Averaged, Banded, averaged};
 
 /// What the week drank, a day, over its logged days, against their bands.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -12,15 +12,19 @@ pub struct HydrateWeek {
 
 /// The week's drinks, from its logged days; nothing without one.
 pub fn hydrate_week_of(days: &[Hydrate]) -> Option<HydrateWeek> {
-    let _ = days;
+    let drunk = averaged(
+        &days
+            .iter()
+            .map(|day| Banded {
+                amount: day.drunk_ml,
+                floor: day.floor_ml,
+                ceiling: day.cap_ml,
+            })
+            .collect::<Vec<_>>(),
+    )?;
     Some(HydrateWeek {
-        logged_days: 0,
-        drunk: Averaged {
-            per_day: 0.0,
-            floor: 0.0,
-            ceiling: 0.0,
-            in_band: 0,
-        },
+        logged_days: days.len(),
+        drunk,
     })
 }
 
