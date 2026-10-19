@@ -10,14 +10,14 @@ use crate::screens::header::Header;
 use crate::screens::home::Home;
 use crate::screens::hydrate::HydrateTab;
 use crate::screens::lines;
-use crate::screens::meals::MealInProgress;
+use crate::screens::plate::PlateInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;
 use crate::screens::stats::Stats;
 
 #[component]
 pub fn App() -> impl IntoView {
-    provide_context(MealInProgress::default());
+    provide_context(PlateInProgress::default());
     provide_context(Recorded::default());
     view! {
         <Router>

@@ -3,7 +3,7 @@ use grind_core::food::{Food, Nutrients, Unit, nutrients_of, summed};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
 use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::fuel::Fuel;
-use grind_core::meal::{MASS_KEPT, Meal};
+use grind_core::meal::MASS_KEPT;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -13,10 +13,10 @@ use crate::screens::{Recorded, lines};
 use crate::tauri;
 use crate::typed::figures_typed;
 
-/// The meal on the lab's bench, kept while the app runs, so the cook can check the day's gaps in
+/// The plate in progress in Fuel, kept while the app runs, so the cook can check the day's gaps in
 /// another tab and come back to it.
 #[derive(Clone, Copy)]
-pub struct MealInProgress {
+pub struct PlateInProgress {
     name: RwSignal<String>,
     description: RwSignal<String>,
     pub(crate) pot: RwSignal<Vec<InThePot>>,
@@ -24,7 +24,7 @@ pub struct MealInProgress {
     eaten: RwSignal<String>,
 }
 
-impl Default for MealInProgress {
+impl Default for PlateInProgress {
     fn default() -> Self {
         Self {
             name: RwSignal::new(String::new()),
@@ -150,15 +150,15 @@ fn ingredients_of(in_the_pot: &[InThePot]) -> Option<Vec<IngredientForm>> {
         .collect()
 }
 
-/// The foods put aside in Fuel before they are logged, on the meal in progress's pot.
+/// The foods put aside in Fuel before they are logged or kept as a meal.
 #[component]
 pub fn Plate(
-    plate: MealInProgress,
+    plate: PlateInProgress,
     day: RwSignal<String>,
     shown_fuel: Callback<Fuel>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
-    let MealInProgress {
+    let PlateInProgress {
         name,
         description,
         pot,
@@ -296,26 +296,5 @@ pub fn Plate(
                 </form>
             </Show>
         </div>
-    }
-}
-
-#[component]
-pub fn MealDetails(meal: Meal) -> impl IntoView {
-    view! {
-        <tr class="details">
-            <td colspan="8">
-                <div class="pinned">
-                    {(!meal.description.is_empty())
-                        .then(|| view! { <p class="hint description">{meal.description.clone()}</p> })}
-                    <ul class="figures">
-                        {meal
-                            .ingredients
-                            .iter()
-                            .map(|ingredient| view! { <li>{lines::cooked_ingredient(ingredient)}</li> })
-                            .collect_view()}
-                    </ul>
-                </div>
-            </td>
-        </tr>
     }
 }

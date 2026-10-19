@@ -13,7 +13,7 @@ use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
-use crate::screens::meals::{InThePot, MealInProgress, Plate};
+use crate::screens::plate::{InThePot, Plate, PlateInProgress};
 use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -171,7 +171,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             .collect::<Vec<_>>()
     });
     let figures = FoodFigures::default();
-    let plate = use_context::<MealInProgress>().unwrap_or_default();
+    let plate = use_context::<PlateInProgress>().unwrap_or_default();
     let on_the_plate = Memo::new(move |_| !plate.pot.get().is_empty());
     let plated = Signal::derive(move || {
         let pot = plate.pot.get();

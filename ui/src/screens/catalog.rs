@@ -13,7 +13,6 @@ use crate::screens::entries::{
     ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
 };
 use crate::screens::hydrate::{DrinksList, NewDrink};
-use crate::screens::meals::MealDetails;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -458,5 +457,26 @@ pub fn BurnShelf() -> impl IntoView {
             Form::Circuit => view! { <CircuitsList priced=priced said=said /> }.into_any(),
             _ => view! { <ExercisesList exercises=exercises said=said /> }.into_any(),
         }}
+    }
+}
+
+#[component]
+fn MealDetails(meal: Meal) -> impl IntoView {
+    view! {
+        <tr class="details">
+            <td colspan="8">
+                <div class="pinned">
+                    {(!meal.description.is_empty())
+                        .then(|| view! { <p class="hint description">{meal.description.clone()}</p> })}
+                    <ul class="figures">
+                        {meal
+                            .ingredients
+                            .iter()
+                            .map(|ingredient| view! { <li>{lines::cooked_ingredient(ingredient)}</li> })
+                            .collect_view()}
+                    </ul>
+                </div>
+            </td>
+        </tr>
     }
 }

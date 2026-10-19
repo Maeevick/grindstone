@@ -300,10 +300,6 @@ pub fn kept_for_later(name: &str) -> String {
     format!("{name} waits in the food catalog, per 100 g cooked, for the day you eat it.")
 }
 
-pub fn cooked(name: &str) -> String {
-    format!("{name} is in the food catalog, per 100 g cooked. Weigh your portions in Fuel.")
-}
-
 fn days_counted(days: u32) -> String {
     match days {
         1 => "1 day".to_string(),

@@ -12,7 +12,7 @@ pub mod header;
 pub mod home;
 pub mod hydrate;
 pub mod lines;
-pub mod meals;
+pub mod plate;
 pub mod profile;
 pub mod references;
 pub mod settings;

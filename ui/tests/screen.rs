@@ -9,7 +9,7 @@ use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
-use grind_ui::screens::meals::MealInProgress;
+use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
@@ -946,7 +946,7 @@ async fn the_days_expenditures_list_its_workouts_newest_first_then_off_the_clock
 
 fn the_fuel_shelf(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        provide_context(MealInProgress::default());
+        provide_context(PlateInProgress::default());
         view! {
             <Router>
                 <FuelShelf />
