@@ -136,7 +136,7 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
     let welcome = screen.text_content().unwrap_or_default();
     assert!(welcome.contains("Greetings, rusty one"), "{welcome}");
     let to_the_profile: Element = found(&screen, ".welcome a[href='/profile']");
-    let to_the_import: Element = found(&screen, ".welcome a[href='/settings']");
+    let to_the_import: Element = found(&screen, ".welcome a[href='/profile#draft']");
     assert!(
         to_the_profile
             .text_content()
@@ -184,6 +184,33 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
             vec!["usual_sitting", "usual_standing", "usual_moving"]
         ]
     );
+}
+
+#[wasm_bindgen_test]
+async fn the_profile_ends_on_the_settings_the_drafts_records_then_the_danger_zone() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "hydrate_counted_on": true, "burn_target_on": null }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let headings = texts_in_order(&screen, "h2");
+    assert_eq!(
+        headings[headings.len().saturating_sub(3)..],
+        ["Settings", "The draft's records", "Danger zone"],
+        "{headings:?}"
+    );
+    found::<Element>(&screen, "section#draft button.import");
+    assert!(screen.query_selector(".gear").ok().flatten().is_none());
 }
 
 #[wasm_bindgen_test]
