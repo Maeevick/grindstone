@@ -608,6 +608,27 @@ const A_BURN_PRICED_AT_80_KG: &str = r#"{ "day": "2026-10-10", "workouts": [], "
     "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true,
     "body_mass_kg": 80.0 }"#;
 
+const A_BURN_SHORT_OF_ITS_TARGET: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 60.0,
+    "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true,
+    "body_mass_kg": 80.0, "target_kcal": 80.0 }"#;
+
+#[wasm_bindgen_test]
+async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_the_grace_in_green() {
+    answering(&format!(
+        r#"{{ "exercises": [], "circuits": [], "burn_day": {A_BURN_SHORT_OF_ITS_TARGET},
+             "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    let band: Element = found(&screen, ".burn-gauge svg .band");
+    let labels = text_of(&screen, ".burn-gauge .gauge-labels");
+
+    assert_eq!(band.get_attribute("x").as_deref(), Some("136.8"));
+    assert!(labels.contains("target 80 kcal"), "{labels}");
+}
+
 #[wasm_bindgen_test]
 async fn the_workout_form_previews_what_the_workout_will_burn_on_the_days_body_mass() {
     answering(&format!(
