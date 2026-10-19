@@ -823,6 +823,7 @@ fn drink_read(row: &rusqlite::Row) -> rusqlite::Result<Drink> {
         name: row.get(0)?,
         volume_ml: row.get(1)?,
         kind: kind_read(&row.get::<_, String>(2)?)?,
+        description: String::new(),
     })
 }
 
@@ -1312,6 +1313,7 @@ mod tests {
                 name: name.into(),
                 volume_ml: 250.0,
                 kind,
+                description: String::new(),
             };
             records.save_drink(&drunk).expect("a drink saves");
             records

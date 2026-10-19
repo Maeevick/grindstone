@@ -553,7 +553,7 @@ mod tests {
             },
         )
         .expect("a food adds");
-        add_drink(&logged.hydrate, "Water", 500.0, DrinkKind::Water).expect("a drink adds");
+        add_drink(&logged.hydrate, "Water", 500.0, DrinkKind::Water, "").expect("a drink adds");
         for (date, kg) in [
             ("2026-08-01", 82.0),
             ("2026-10-09", 80.2),
@@ -772,7 +772,7 @@ mod tests {
     #[test]
     fn a_month_of_hydrate_tells_each_days_volume_and_its_share_of_water() {
         let logged = a_logged_man();
-        add_drink(&logged.hydrate, "Expresso", 80.0, DrinkKind::Other).expect("a drink adds");
+        add_drink(&logged.hydrate, "Expresso", 80.0, DrinkKind::Other, "").expect("a drink adds");
         log_drink(
             &logged.gather,
             &logged.burn,

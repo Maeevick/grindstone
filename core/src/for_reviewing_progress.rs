@@ -564,6 +564,7 @@ mod tests {
                 "Water",
                 2000.0,
                 crate::drink::DrinkKind::Water,
+                "",
             )
             .expect("a drink adds");
             records

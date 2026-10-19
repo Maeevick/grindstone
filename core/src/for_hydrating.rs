@@ -103,6 +103,7 @@ mod tests {
                 name: "Tea".into(),
                 volume_ml: 200.0,
                 kind: crate::drink::DrinkKind::Other,
+                description: String::new(),
             })
             .expect("a drink saves");
         hydrate

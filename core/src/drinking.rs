@@ -36,6 +36,7 @@ mod tests {
             name: "Tea".into(),
             volume_ml: 200.0,
             kind: DrinkKind::Other,
+            description: String::new(),
         }
     }
 
@@ -74,6 +75,7 @@ mod tests {
             name: "Water".into(),
             volume_ml: 250.0,
             kind: DrinkKind::Water,
+            description: String::new(),
         };
 
         let drunk = drinking("2026-10-10", &water, 500.0).expect("a drinking");

@@ -337,7 +337,7 @@ pub fn add_drink(
     kind: DrinkKind,
 ) -> Result<Vec<Drink>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_cataloguing::add_drink(&*records, &name, volume_ml, kind)
+    for_cataloguing::add_drink(&*records, &name, volume_ml, kind, "")
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -1164,13 +1164,15 @@ mod tests {
         assert_eq!(
             listed,
             Ok(json!([
-                { "name": "Expresso", "volume_ml": 80.0, "kind": "Other" },
-                { "name": "Tea", "volume_ml": 200.0, "kind": "Other" }
+                { "name": "Expresso", "volume_ml": 80.0, "kind": "Other", "description": "" },
+                { "name": "Tea", "volume_ml": 200.0, "kind": "Other", "description": "" }
             ]))
         );
         assert_eq!(
             left,
-            Ok(json!([{ "name": "Expresso", "volume_ml": 80.0, "kind": "Other" }]))
+            Ok(
+                json!([{ "name": "Expresso", "volume_ml": 80.0, "kind": "Other", "description": "" }])
+            )
         );
     }
 

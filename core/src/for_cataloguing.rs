@@ -186,8 +186,9 @@ pub fn add_drink(
     name: &str,
     volume_ml: f64,
     kind: DrinkKind,
+    description: &str,
 ) -> Result<Vec<Drink>, Failure> {
-    hydrate.save_drink(&drink(name, volume_ml, kind).map_err(Failure::Refused)?)?;
+    hydrate.save_drink(&drink(name, volume_ml, kind, description).map_err(Failure::Refused)?)?;
     drinks(hydrate)
 }
 
@@ -578,15 +579,17 @@ mod tests {
             name: name.into(),
             volume_ml,
             kind,
+            description: String::new(),
         }
     }
 
     #[test]
     fn added_drinks_come_back_in_the_catalog_by_name() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other).expect("a drink adds");
+        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other, "")
+            .expect("a drink adds");
 
-        let catalog = add_drink(&hydrate, "Expresso", 80.0, DrinkKind::Other);
+        let catalog = add_drink(&hydrate, "Expresso", 80.0, DrinkKind::Other, "");
 
         assert_eq!(
             catalog,
@@ -601,18 +604,38 @@ mod tests {
     #[test]
     fn a_drink_added_again_under_its_name_takes_its_new_serving() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other).expect("a drink adds");
+        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other, "")
+            .expect("a drink adds");
 
         assert_eq!(
-            add_drink(&hydrate, "Tea", 250.0, crate::drink::DrinkKind::Other),
+            add_drink(&hydrate, "Tea", 250.0, crate::drink::DrinkKind::Other, ""),
             Ok(vec![served("Tea", 250.0, DrinkKind::Other)])
+        );
+    }
+
+    #[test]
+    fn a_drink_keeps_its_description_trimmed() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+
+        let catalog = add_drink(
+            &hydrate,
+            "Kombucha",
+            330.0,
+            DrinkKind::Other,
+            " The ginger one, from the market ",
+        );
+
+        assert_eq!(
+            catalog.map(|drinks| drinks.into_iter().map(|drink| drink.description).collect()),
+            Ok(vec!["The ginger one, from the market".to_string()])
         );
     }
 
     #[test]
     fn a_removed_drink_leaves_the_catalog() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other).expect("a drink adds");
+        add_drink(&hydrate, "Tea", 200.0, crate::drink::DrinkKind::Other, "")
+            .expect("a drink adds");
 
         assert_eq!(remove_drink(&hydrate, "Tea"), Ok(vec![]));
     }
@@ -622,11 +645,11 @@ mod tests {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
 
         assert_eq!(
-            add_drink(&hydrate, " ", 200.0, crate::drink::DrinkKind::Other),
+            add_drink(&hydrate, " ", 200.0, crate::drink::DrinkKind::Other, ""),
             Err(Failure::Refused(Refusal::NotAName))
         );
         assert_eq!(
-            add_drink(&hydrate, "Tea", 0.0, crate::drink::DrinkKind::Other),
+            add_drink(&hydrate, "Tea", 0.0, crate::drink::DrinkKind::Other, ""),
             Err(Failure::Refused(Refusal::NotAVolume))
         );
         assert_eq!(drinks(&hydrate), Ok(vec![]));

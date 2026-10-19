@@ -427,11 +427,13 @@ fn drafted_drinks() -> Vec<Drink> {
             name: "Expresso".into(),
             volume_ml: 80.0,
             kind: grind_core::drink::DrinkKind::Other,
+            description: String::new(),
         },
         Drink {
             name: "Tea".into(),
             volume_ml: 200.0,
             kind: grind_core::drink::DrinkKind::Other,
+            description: String::new(),
         },
     ]
 }
@@ -912,11 +914,13 @@ mod tests {
                     name: "Expresso".into(),
                     volume_ml: 80.0,
                     kind: grind_core::drink::DrinkKind::Other,
+                    description: String::new(),
                 },
                 grind_core::drink::Drink {
                     name: "Tea".into(),
                     volume_ml: 200.0,
                     kind: grind_core::drink::DrinkKind::Other,
+                    description: String::new(),
                 },
             ]
         );

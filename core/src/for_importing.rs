@@ -230,6 +230,7 @@ mod tests {
             name: "Expresso".into(),
             volume_ml: 80.0,
             kind: crate::drink::DrinkKind::Other,
+            description: String::new(),
         };
         HydrateRecords {
             drinkings: vec![(
@@ -398,11 +399,13 @@ mod tests {
                     name: "Expresso".into(),
                     volume_ml: 80.0,
                     kind: crate::drink::DrinkKind::Other,
+                    description: String::new(),
                 },
                 crate::drink::Drink {
                     name: "Tea".into(),
                     volume_ml: 200.0,
                     kind: crate::drink::DrinkKind::Other,
+                    description: String::new(),
                 },
             ],
             drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],
