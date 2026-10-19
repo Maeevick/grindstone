@@ -359,6 +359,24 @@ fn a_gathered_week() -> String {
     )
 }
 
+#[wasm_bindgen_test]
+async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lean_mass() {
+    answering(&format!(
+        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
+              "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
+              "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_tracker(&screen);
+    settled().await;
+
+    let bands = texts_of(&screen, ".aim-gauge .gauge-labels");
+
+    assert_eq!(bands.len(), 2, "{bands:?}");
+    assert!(bands[0].contains("goal 75.0 kg"), "{bands:?}");
+    assert!(bands[1].contains("goal 66.0 kg"), "{bands:?}");
+}
+
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
     "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } }"#;
 
