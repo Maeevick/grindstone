@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::aims::Aims;
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
@@ -17,6 +18,7 @@ pub struct GatherWeek {
     pub day: Option<Day>,
     pub days: Vec<Day>,
     pub tendency: Tendency,
+    pub aims: Option<Aims>,
 }
 
 fn day_of(date: &str) -> Result<NaiveDate, Failure> {
@@ -34,6 +36,7 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         day: days.first().filter(|measured| measured.day == day).copied(),
         tendency: tendency_of(&days, version_in_force_on(&gathered.goals, day)),
         days,
+        aims: None,
     }
 }
 
@@ -198,6 +201,31 @@ mod tests {
                 .body_mass
                 .is_some_and(|change| (change.by - -1.0).abs() < 1e-9)
         );
+    }
+
+    #[test]
+    fn a_week_carries_the_aims_of_its_day() {
+        let records = GatherRecordsInMemory::default();
+        records
+            .save_goals(
+                day("2026-09-01"),
+                &Goals {
+                    body_mass_kg: 75.0,
+                    fat_ratio: 0.15,
+                },
+            )
+            .expect("goals save");
+
+        let week = log_measurement(&records, "2026-10-07", 79.0, None).expect("a week");
+
+        assert_eq!(
+            week.aims,
+            crate::aims::aims_on(
+                day("2026-10-07"),
+                &records.gather_records().expect("records")
+            )
+        );
+        assert!(week.aims.is_some());
     }
 
     #[test]
