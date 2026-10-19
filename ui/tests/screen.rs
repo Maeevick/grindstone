@@ -483,7 +483,7 @@ async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
                          "lean_mass": {{ "by": -0.1, "heading": "Away" }},
                          "fat_mass": {{ "by": -0.3, "heading": "Toward" }},
                          "fat_ratio": {{ "by": 0.0, "heading": "Steady" }},
-                         "judgement": "VeryGood", "safe_loss_kg": 0.48 }} }} }}"#
+                         "judgement": "VeryGood", "safe_loss_kg": 0.48, "safe_loss_by": "FatStore" }} }} }}"#
     ));
     let screen = screen();
     let _mounted = the_gather_tab(&screen);

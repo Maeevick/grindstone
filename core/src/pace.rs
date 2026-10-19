@@ -14,6 +14,14 @@ use crate::tendency::Change;
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
 
+/// What sets the safe weekly loss: what the fat store can spare, 1% of the body mass, or a kilo.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SafeLoss {
+    FatStore,
+    MassShare,
+    AKilo,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Pace {
     pub body_mass: Change,
@@ -22,6 +30,7 @@ pub struct Pace {
     pub fat_ratio: Option<Change>,
     pub judgement: Judgement,
     pub safe_loss_kg: f64,
+    pub safe_loss_by: SafeLoss,
 }
 
 const DAYS_BEFORE_THE_DAY_IN_A_WEEK: u64 = 6;
@@ -123,6 +132,7 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         ),
         judgement,
         safe_loss_kg,
+        safe_loss_by: SafeLoss::FatStore,
     })
 }
 
@@ -202,6 +212,7 @@ mod tests {
         let pace = pace_on(day("2026-10-10"), &losing_a_kilo_a_week).expect("a pace");
 
         assert_eq!(pace.judgement, Judgement::LosingTooFast);
+        assert_eq!(pace.safe_loss_by, SafeLoss::FatStore);
         assert!(
             (pace.safe_loss_kg - 290.0 / 4.184 * fat_kg_of(&losing_a_kilo_a_week) * 7.0 / 7700.0)
                 .abs()
@@ -409,6 +420,21 @@ mod tests {
             "{}",
             pace.safe_loss_kg
         );
+        assert_eq!(pace.safe_loss_by, SafeLoss::MassShare);
+    }
+
+    #[test]
+    fn a_heavy_body_loses_no_more_than_a_kilo_a_week() {
+        let heavy_and_round = a_man_with_a_waist_weighed(125.0, 130.0, 0.0);
+
+        let pace = pace_on(day("2026-10-10"), &heavy_and_round).expect("a pace");
+
+        assert!(
+            (pace.safe_loss_kg - 1.0).abs() < 1e-9,
+            "{}",
+            pace.safe_loss_kg
+        );
+        assert_eq!(pace.safe_loss_by, SafeLoss::AKilo);
     }
 
     #[test]
