@@ -312,8 +312,6 @@ pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl In
 #[component]
 pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) -> impl IntoView {
     view! {
-        <section class="card">
-            <h2>"Drinks"</h2>
             <table class="drinks">
                 <tbody>
                     <For
@@ -325,7 +323,6 @@ pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) 
                     />
                 </tbody>
             </table>
-        </section>
     }
 }
 

@@ -13,7 +13,7 @@ use crate::screens::entries::{
     ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
 };
 use crate::screens::hydrate::{DrinksList, NewDrink};
-use crate::screens::meals::{MealDetails, MealInProgress, NewMeal};
+use crate::screens::meals::MealDetails;
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -212,9 +212,7 @@ fn FoodsList(
             .collect::<Vec<_>>()
     };
     view! {
-        <section class="card">
-            <h2>"Foods"</h2>
-            {move || plain().is_empty().then(|| view! { <p class="empty">{lines::NO_FOOD}</p> })}
+        {move || plain().is_empty().then(|| view! { <p class="empty">{lines::NO_FOOD}</p> })}
             <div class="scroll">
                 <table class="foods">
                     {figure_heads()}
@@ -237,7 +235,6 @@ fn FoodsList(
                     </tbody>
                 </table>
             </div>
-        </section>
     }
 }
 
@@ -262,9 +259,7 @@ fn MealsList(
         });
     };
     view! {
-        <section class="card">
-            <h2>"Meals"</h2>
-            {move || meals.get().is_empty().then(|| view! { <p class="empty">{lines::NO_MEAL}</p> })}
+        {move || meals.get().is_empty().then(|| view! { <p class="empty">{lines::NO_MEAL}</p> })}
             <div class="scroll">
                 <table class="meals">
                     {figure_heads()}
@@ -303,16 +298,41 @@ fn MealsList(
                     </tbody>
                 </table>
             </div>
-        </section>
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Form {
-    Food,
-    Meal,
     Exercise,
     Circuit,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Listed {
+    Foods,
+    Meals,
+}
+
+fn shelf_pills(chosen: RwSignal<Listed>) -> impl IntoView {
+    view! {
+        <div class="pills">
+            {[(Listed::Foods, "Foods"), (Listed::Meals, "Meals")]
+                .into_iter()
+                .map(|(named, label)| {
+                    view! {
+                        <button
+                            type="button"
+                            class=format!("pill shelf-{named:?}")
+                            class:chosen=move || chosen.get() == named
+                            on:click=move |_| chosen.set(named)
+                        >
+                            {label}
+                        </button>
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
 }
 
 fn form_pills(chosen: RwSignal<Form>, forms: [(Form, &'static str); 2]) -> impl IntoView {
@@ -341,11 +361,7 @@ fn form_pills(chosen: RwSignal<Form>, forms: [(Form, &'static str); 2]) -> impl 
 pub fn FuelShelf() -> impl IntoView {
     let foods = RwSignal::new(Vec::<Food>::new());
     let meals = RwSignal::new(Vec::<Meal>::new());
-    let form = RwSignal::new(if expect_context::<MealInProgress>().started() {
-        Form::Meal
-    } else {
-        Form::Food
-    });
+    let listed = RwSignal::new(Listed::Foods);
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
         match tauri::foods().await {
@@ -360,17 +376,17 @@ pub fn FuelShelf() -> impl IntoView {
     view! {
         <section class="card">
             <h2>"Add to the catalog"</h2>
-            {form_pills(form, [(Form::Food, "Food"), (Form::Meal, "Meal")])}
-            {move || match form.get() {
-                Form::Meal => view! { <NewMeal foods=foods meals=meals done=done /> }.into_any(),
-                _ => view! { <NewFood foods=foods done=done /> }.into_any(),
-            }}
+            <NewFood foods=foods done=done />
             {said_on_the_shelf(said)}
         </section>
-        {move || match form.get() {
-            Form::Meal => view! { <MealsList foods=foods meals=meals said=said /> }.into_any(),
-            _ => view! { <FoodsList foods=foods meals=meals said=said /> }.into_any(),
-        }}
+        <section class="card">
+            <h2>"On the shelf"</h2>
+            {shelf_pills(listed)}
+            {move || match listed.get() {
+                Listed::Meals => view! { <MealsList foods=foods meals=meals said=said /> }.into_any(),
+                Listed::Foods => view! { <FoodsList foods=foods meals=meals said=said /> }.into_any(),
+            }}
+        </section>
     }
 }
 
@@ -391,7 +407,10 @@ pub fn HydrateShelf() -> impl IntoView {
             <NewDrink drinks=drinks done=done />
             {said_on_the_shelf(said)}
         </section>
-        <DrinksList drinks=drinks said=said />
+        <section class="card">
+            <h2>"On the shelf"</h2>
+            <DrinksList drinks=drinks said=said />
+        </section>
     }
 }
 
