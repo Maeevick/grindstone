@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::verdict::{Verdict, verdict_of};
@@ -51,9 +52,24 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
     })
 }
 
+/// The days logged in the seven up to the last, each once and oldest first, leaving out those from a day on:
+/// today, while it is still under way.
+pub fn logged_in_the_week(
+    last: NaiveDate,
+    left_out_from: NaiveDate,
+    logged: impl Iterator<Item = NaiveDate>,
+) -> Vec<NaiveDate> {
+    let _ = (last, left_out_from);
+    logged.collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
 
     fn banded(amount: f64) -> Banded {
         Banded {
@@ -85,6 +101,27 @@ mod tests {
                 in_band: 1,
             })
         );
+    }
+
+    #[test]
+    fn the_days_logged_in_the_seven_up_to_the_last_come_once_oldest_first_those_from_today_on_left_out()
+     {
+        let logged = [
+            "2026-10-10",
+            "2026-10-03",
+            "2026-10-06",
+            "2026-10-04",
+            "2026-10-06",
+            "2026-10-11",
+        ];
+
+        let week = logged_in_the_week(
+            day("2026-10-10"),
+            day("2026-10-10"),
+            logged.into_iter().map(day),
+        );
+
+        assert_eq!(week, [day("2026-10-04"), day("2026-10-06")]);
     }
 
     #[test]
