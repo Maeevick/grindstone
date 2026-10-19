@@ -185,7 +185,10 @@ pub fn burn_chart(
             .filter_map(|of_the_day| of_the_day.burnt_kcal.map(|kcal| (of_the_day.day, kcal)))
             .collect(),
         minutes: summed(|done| f64::from(done.sets) * done.minutes),
-        targets: vec![],
+        targets: burns
+            .iter()
+            .filter_map(|of_the_day| of_the_day.target_kcal.map(|kcal| (of_the_day.day, kcal)))
+            .collect(),
     })
 }
 
