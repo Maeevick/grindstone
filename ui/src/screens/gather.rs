@@ -148,7 +148,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                             <AimGauge
                                 label="Body mass"
                                 amount=latest.body_mass_kg
-                                aim=aims.body_mass_kg
+                                aim=aims.body_mass()
                                 recommended=aims.recommended
                             />
                             {lean_kg
@@ -157,7 +157,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                                         <AimGauge
                                             label="Lean mass"
                                             amount=lean_kg
-                                            aim=aims.lean_mass_kg
+                                            aim=aims.lean_mass()
                                             recommended=aims.recommended
                                         />
                                     }

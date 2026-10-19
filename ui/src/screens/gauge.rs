@@ -1,5 +1,6 @@
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::fuel::Band;
+use grind_core::heading::Aim;
 use leptos::prelude::*;
 
 use crate::chart::{AIM_GRACE, aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
@@ -31,8 +32,9 @@ pub fn Gauge(
 }
 
 #[component]
-pub fn AimGauge(label: &'static str, amount: f64, aim: f64, recommended: bool) -> impl IntoView {
+pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -> impl IntoView {
     let placed = aim_gauge_of(amount, aim, 360.0);
+    let (Aim::Reach(aim) | Aim::Floor(aim)) = aim;
     let aimed = if recommended { "healthy" } else { "goal" };
     view! {
         <div class="gauge aim-gauge">

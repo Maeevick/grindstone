@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use grind_core::heading::Aim;
 
 fn placed(value: f64, (lowest, highest): (f64, f64), length: f64) -> f64 {
     if highest > lowest {
@@ -115,7 +116,8 @@ pub struct AimGauge {
 const AIM_GAUGE_SPAN: f64 = 0.10;
 pub const AIM_GRACE: f64 = 0.05;
 
-pub fn aim_gauge_of(amount: f64, aim: f64, width: f64) -> AimGauge {
+pub fn aim_gauge_of(amount: f64, aim: Aim, width: f64) -> AimGauge {
+    let (Aim::Reach(aim) | Aim::Floor(aim)) = aim;
     let scale = (
         ((1.0 - AIM_GAUGE_SPAN) * aim).min(amount),
         ((1.0 + AIM_GAUGE_SPAN) * aim).max(amount),
@@ -305,7 +307,7 @@ mod tests {
     #[test]
     fn an_aim_gauge_spans_a_tenth_either_side_of_the_aim_green_a_twentieth_either_side() {
         assert_eq!(
-            aim_gauge_of(72.0, 70.0, 280.0),
+            aim_gauge_of(72.0, Aim::Reach(70.0), 280.0),
             AimGauge {
                 band_from: 70.0,
                 band_to: 210.0,
@@ -317,8 +319,8 @@ mod tests {
 
     #[test]
     fn an_amount_further_than_a_tenth_from_its_aim_stretches_the_aim_gauge_to_it() {
-        let above = aim_gauge_of(84.0, 70.0, 280.0);
-        let below = aim_gauge_of(56.0, 70.0, 280.0);
+        let above = aim_gauge_of(84.0, Aim::Reach(70.0), 280.0);
+        let below = aim_gauge_of(56.0, Aim::Reach(70.0), 280.0);
 
         assert_eq!((above.amount_at, below.amount_at), (280.0, 0.0));
         assert!((above.aim_at - 280.0 * 7.0 / 21.0).abs() < 1e-9);
