@@ -16,7 +16,7 @@ use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::HydrateLastDays;
 use crate::screens::references::ReferencesLink;
-use crate::screens::tab::{DayCard, ExploreInStats, OpenTheGrimoire};
+use crate::screens::tab::{DayCard, ExploreTheNumbers, OpenTheGrimoire};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -421,6 +421,6 @@ pub fn HydrateTab() -> impl IntoView {
         <HydrateDay day=day />
         <HydrateLastDays day=day />
         <OpenTheGrimoire href="/hydrate/grimoire" />
-        <ExploreInStats />
+        <ExploreTheNumbers />
     }
 }

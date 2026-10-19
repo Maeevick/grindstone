@@ -15,7 +15,7 @@ use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::last_days::FuelLastDays;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
-use crate::screens::tab::{DayCard, ExploreInStats, OpenTheGrimoire};
+use crate::screens::tab::{DayCard, ExploreTheNumbers, OpenTheGrimoire};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -458,6 +458,6 @@ pub fn FuelTab() -> impl IntoView {
         <FuelDay day=day />
         <FuelLastDays day=day />
         <OpenTheGrimoire href="/fuel/grimoire" />
-        <ExploreInStats />
+        <ExploreTheNumbers />
     }
 }

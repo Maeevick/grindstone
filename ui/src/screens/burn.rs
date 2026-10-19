@@ -20,7 +20,7 @@ use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::BurnLastDays;
 use crate::screens::session::{Session, SessionInProgress};
-use crate::screens::tab::{DayCard, ExploreInStats, OpenTheGrimoire};
+use crate::screens::tab::{DayCard, ExploreTheNumbers, OpenTheGrimoire};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
@@ -608,6 +608,6 @@ pub fn BurnTab() -> impl IntoView {
         <BurnDay day=day />
         <BurnLastDays day=day />
         <OpenTheGrimoire href="/burn/grimoire" />
-        <ExploreInStats />
+        <ExploreTheNumbers />
     }
 }
