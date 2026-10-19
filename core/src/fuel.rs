@@ -90,7 +90,9 @@ const PROTEIN_KCAL_PER_G: f64 = 4.0;
 const CARBS_KCAL_PER_G: f64 = 4.0;
 const FAT_KCAL_PER_G: f64 = 9.0;
 const FIBRE_KCAL_PER_G: f64 = 2.0;
-pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = 48.5;
+const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
+const KJ_PER_KCAL: f64 = 4.184;
+pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
 const FIBRE_BEFORE_EATING_G: f64 = 28.0;
 const CARBS_FLOOR_G: f64 = 130.0;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
@@ -128,7 +130,7 @@ fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eate
 /// The day's band: the budget plus the burn caps it; the floor is what the fat store can spare
 /// below the cap, never under a minimum per kilo of lean mass plus the burn.
 ///
-/// - What the fat store can spare, about 48.5 kcal per kilo of fat a day: Alpert S. S. (2005),
+/// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005),
 ///   *A limit on the energy transfer rate from the human fat store in hypophagia*, J Theor Biol 233(1):1-13.
 /// - The minimum per kilo of lean mass: Loucks A. B., Kiens B., Wright H. H. (2011),
 ///   *Energy availability in athletes*, J Sports Sci 29(sup1):S7-S15.

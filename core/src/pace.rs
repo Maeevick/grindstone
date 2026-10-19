@@ -38,7 +38,7 @@ const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
 ///   J Int Soc Sports Nutr 11:20; 0.7% kept more lean mass than 1.4%: Garthe I. et al. (2011), Int J Sport Nutr
 ///   Exerc Metab 21(2):97-104.
 /// - No more than 0.5 to 1 kg a week: NICE (2025), *Overweight and obesity management*, NG246.
-/// - What the fat store can spare, about 48.5 kcal per kilo of fat a day: Alpert S. S. (2005), J Theor Biol
+/// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005), J Theor Biol
 ///   233(1):1-13; about 7,700 kcal a kilo of fat tissue: Wishnofsky M. (1958), *Caloric equivalent of gained or lost weight*, Am J Clin Nutr 6(5):542-546.
 fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
     let spared = fat_kg.map_or(f64::INFINITY, |fat_kg| {

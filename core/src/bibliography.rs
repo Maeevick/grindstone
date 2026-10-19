@@ -165,7 +165,7 @@ pub const REFERENCES: [Reference; 32] = [
         title: "A limit on the energy transfer rate from the human fat store in hypophagia",
         published_in: "Journal of Theoretical Biology 233(1):1-13",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/15615615/"),
-        used_for: "The band's floor: what the fat store can spare in a day, about 48.5 kcal per kilo",
+        used_for: "The band's floor and the safe weekly loss: what the fat store can spare in a day, 290 kJ (about 69.3 kcal) per kilo",
     },
     Reference {
         topic: Topic::Energy,
