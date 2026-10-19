@@ -15,7 +15,7 @@ use grind_core::for_charting::{
     self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights,
     Month,
 };
-use grind_core::for_fuelling::{self, IntakeForm};
+use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
@@ -189,6 +189,12 @@ pub fn fuel_day(records: State<Records>, date: String) -> Result<Fuel, Failure> 
 pub fn log_intake(records: State<Records>, form: IntakeForm) -> Result<Fuel, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_fuelling::log_intake(&*records, &*records, &*records, &form)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn log_plate(records: State<Records>, form: PlateForm) -> Result<Fuel, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_fuelling::log_plate(&*records, &*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -504,6 +510,7 @@ mod tests {
                 usual_day_on,
                 fuel_day,
                 log_intake,
+                log_plate,
                 remove_intake,
                 foods,
                 add_food,

@@ -40,6 +40,7 @@ pub fn run() {
             commands::usual_day_on,
             commands::fuel_day,
             commands::log_intake,
+            commands::log_plate,
             commands::remove_intake,
             commands::foods,
             commands::add_food,
