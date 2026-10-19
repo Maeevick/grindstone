@@ -147,15 +147,11 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
     Some(Pace {
         body_mass: Change {
             by: per_week,
-            heading: heading_of(
-                per_week,
-                body_mass_kg,
-                aims.map(|aims| Aim::Reach(aims.body_mass_kg)),
-            ),
+            heading: heading_of(per_week, body_mass_kg, aims.map(|aims| aims.body_mass())),
         },
         lean_mass: change(
             |measured| measured.composition.map(|split| split.lean_mass_kg),
-            aims.map(|aims| Aim::Floor(aims.lean_mass_kg)),
+            aims.map(|aims| aims.lean_mass()),
         ),
         fat_mass: change(
             |measured| measured.composition.map(|split| split.fat_mass_kg),

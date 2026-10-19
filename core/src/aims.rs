@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
+use crate::heading::Aim;
 use crate::recommendations::recommended;
 use crate::version::version_in_force_on;
 
@@ -13,6 +14,16 @@ pub struct Aims {
 }
 
 impl Aims {
+    /// The body mass to reach.
+    pub fn body_mass(&self) -> Aim {
+        Aim::Reach(self.body_mass_kg)
+    }
+
+    /// The lean mass to stay above: a floor, not a value to reach.
+    pub fn lean_mass(&self) -> Aim {
+        Aim::Floor(self.lean_mass_kg)
+    }
+
     /// The fat mass the aims leave: the body mass less the lean.
     pub fn fat_mass_kg(&self) -> f64 {
         self.body_mass_kg - self.lean_mass_kg
