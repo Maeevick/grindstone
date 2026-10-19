@@ -1,12 +1,13 @@
 use std::cmp::Reverse;
 
 use grind_core::burn::{Burn, BurntWorkout};
-use grind_core::circuit::StepForm;
+use grind_core::circuit::{Circuit, StepForm, burnt_per_set};
 use grind_core::exercise::{Exercise, exercise as exercise_of};
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_burning::{
-    DEFAULT_LOAD_KG, DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS, OffTheClockForm, WorkoutForm,
+    CircuitSessionForm, DEFAULT_LOAD_KG, DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS,
+    OffTheClockForm, WorkoutForm,
 };
 use grind_core::nutrition::Budget;
 use grind_core::workout::{burnt_by, workout};
@@ -15,7 +16,6 @@ use leptos::task::spawn_local;
 
 use crate::choice::{chosen, nothing_matches};
 use crate::screens::catalog::BurnShelf;
-use crate::screens::circuits::CircuitLog;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
@@ -29,11 +29,13 @@ use crate::typed::{count_typed, figures_typed};
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Logging {
     Workout,
-    Circuit,
+    OffTheClock,
 }
 
-const LOGGINGS: [(Logging, &str); 2] =
-    [(Logging::Workout, "Workout"), (Logging::Circuit, "Circuit")];
+const LOGGINGS: [(Logging, &str); 2] = [
+    (Logging::Workout, "Workout"),
+    (Logging::OffTheClock, "Off the clock"),
+];
 
 #[component]
 fn ExpenditureRow(
@@ -100,6 +102,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let burn = RwSignal::new(None::<Burn>);
     let budget = RwSignal::new(None::<Budget>);
     let catalog = RwSignal::new(Vec::<Exercise>::new());
+    let crafted = RwSignal::new(Vec::<Circuit>::new());
     let exercise = RwSignal::new(String::new());
     let minutes = RwSignal::new(String::new());
     let reps = RwSignal::new(String::new());
@@ -112,11 +115,14 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let names = Signal::derive(move || {
-        catalog
+        let mut names: Vec<String> = catalog
             .get()
             .into_iter()
             .map(|known| known.name)
-            .collect::<Vec<_>>()
+            .chain(crafted.get().into_iter().map(|known| known.name))
+            .collect();
+        names.sort();
+        names
     });
     let shown_burn = Callback::new(move |answer: Burn| {
         if let Some(off) = answer.off_the_clock {
@@ -125,10 +131,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             moving.set(off.moving_km.to_string());
         }
         burn.set(Some(answer));
-    });
-    let logged_circuit = Callback::new(move |answer: Burn| {
-        shown_burn.run(answer);
-        recorded.told();
     });
     let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
     let figures = ExerciseFigures::default();
@@ -155,7 +157,18 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         chosen(&names.get(), &exercise.get())
             .and_then(|named| catalog.get().into_iter().find(|known| known.name == named))
     };
+    let chosen_circuit = move || {
+        chosen(&names.get(), &exercise.get())
+            .filter(|_| chosen_exercise().is_none())
+            .and_then(|named| crafted.get().into_iter().find(|known| known.name == named))
+    };
+    let running_a_circuit = Memo::new(move |_| chosen_circuit().is_some());
     let preview = move || {
+        if let Some(circuit) = chosen_circuit() {
+            let times = count_typed(&sets.get()).unwrap_or(DEFAULT_SETS);
+            let kcal = burnt_per_set(&circuit, body_mass.get()?) * f64::from(times);
+            return Some(shown(Figure::Energy(kcal)));
+        }
         let known = chosen_exercise().or_else(|| creating.get().then(new_exercise).flatten())?;
         let [minutes_typed, load_typed] = figures_typed([&minutes.get(), &load.get()])?;
         let done = workout(
@@ -183,6 +196,9 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 Ok(known) => catalog.set(known),
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
+            if let Ok(known) = tauri::circuits().await {
+                crafted.set(known);
+            }
         });
     });
     Effect::new(move |_| {
@@ -207,16 +223,44 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         }
         Err(failure) => said.set(Some(lines::failure(&failure))),
     };
-    let stepped_now = move |step: StepForm| {
-        session.steps.update(|steps| steps.push(step));
+    let stepped_now = move |stepped: Vec<StepForm>| {
+        session.steps.update(|steps| steps.extend(stepped));
         for typed in [exercise, minutes, reps, sets, load] {
             typed.set(String::new());
         }
         figures.cleared();
         said.set(None);
     };
+    // The circuit chosen, run by its sets or its steps put in the session.
+    let run = move |circuit: Circuit, into_the_session: bool| {
+        if into_the_session {
+            stepped_now(
+                circuit
+                    .steps
+                    .into_iter()
+                    .map(|step| StepForm {
+                        exercise: step.exercise,
+                        reps: step.reps,
+                        minutes: step.minutes,
+                        load_kg: step.load_kg,
+                    })
+                    .collect(),
+            );
+            return;
+        }
+        let form = CircuitSessionForm {
+            date: day.get_untracked(),
+            circuit: circuit.name,
+            sets: count_typed(&sets.get_untracked()),
+        };
+        spawn_local(async move { logged(tauri::log_circuit(&form).await) });
+    };
     // The exercise typed, added to the catalog first when new, then logged or put in the session.
     let served = move |into_the_session: bool| {
+        if let Some(circuit) = untrack(chosen_circuit) {
+            run(circuit, into_the_session);
+            return;
+        }
         let Some([minutes_typed, load_typed]) =
             figures_typed([&minutes.get_untracked(), &load.get_untracked()])
         else {
@@ -268,12 +312,12 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 None => known.unwrap_or_default(),
             };
             if into_the_session {
-                stepped_now(StepForm {
+                stepped_now(vec![StepForm {
                     exercise: name,
                     reps: reps_typed,
                     minutes: minutes_typed.unwrap_or(DEFAULT_MINUTES),
                     load_kg: load_typed.unwrap_or(DEFAULT_LOAD_KG),
-                });
+                }]);
                 return;
             }
             let form = WorkoutForm {
@@ -340,13 +384,32 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     view! {
                         <form class="workout" on:submit=log>
                             <div class="row">
-                                <Chooser label="Exercise" name="exercise" options=names typed=exercise />
-                                <FigureField
-                                    label="Minutes a set"
-                                    name="minutes"
-                                    value=minutes
-                                    placeholder=typed_back(DEFAULT_MINUTES)
-                                />
+                                <Chooser label="Exercise or circuit" name="exercise" options=names typed=exercise />
+                                {move || {
+                                    if !running_a_circuit.get() {
+                                        view! {
+                                            <FigureField
+                                                label="Minutes a set"
+                                                name="minutes"
+                                                value=minutes
+                                                placeholder=typed_back(DEFAULT_MINUTES)
+                                            />
+                                        }
+                                            .into_any()
+                                    } else if on_the_session.get() {
+                                        ().into_any()
+                                    } else {
+                                        view! {
+                                            <FigureField
+                                                label="Sets"
+                                                name="sets"
+                                                value=sets
+                                                placeholder=DEFAULT_SETS.to_string()
+                                            />
+                                        }
+                                            .into_any()
+                                    }
+                                }}
                             </div>
                             {move || {
                                 creating
@@ -358,33 +421,40 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                         }
                                     })
                             }}
-                            <div class="row">
-                                <FigureField
-                                    label="Reps"
-                                    name="reps"
-                                    value=reps
-                                    placeholder=DEFAULT_REPS.to_string()
-                                />
-                                {move || {
-                                    (!on_the_session.get())
-                                        .then(|| {
-                                            view! {
+                            {move || {
+                                (!running_a_circuit.get())
+                                    .then(|| {
+                                        view! {
+                                            <div class="row">
                                                 <FigureField
-                                                    label="Sets"
-                                                    name="sets"
-                                                    value=sets
-                                                    placeholder=DEFAULT_SETS.to_string()
+                                                    label="Reps"
+                                                    name="reps"
+                                                    value=reps
+                                                    placeholder=DEFAULT_REPS.to_string()
                                                 />
-                                            }
-                                        })
-                                }}
-                                <FigureField
-                                    label="Load (kg)"
-                                    name="load"
-                                    value=load
-                                    placeholder=typed_back(DEFAULT_LOAD_KG)
-                                />
-                            </div>
+                                                {move || {
+                                                    (!on_the_session.get())
+                                                        .then(|| {
+                                                            view! {
+                                                                <FigureField
+                                                                    label="Sets"
+                                                                    name="sets"
+                                                                    value=sets
+                                                                    placeholder=DEFAULT_SETS.to_string()
+                                                                />
+                                                            }
+                                                        })
+                                                }}
+                                                <FigureField
+                                                    label="Load (kg)"
+                                                    name="load"
+                                                    value=load
+                                                    placeholder=typed_back(DEFAULT_LOAD_KG)
+                                                />
+                                            </div>
+                                        }
+                                    })
+                            }}
                             {preview_line(preview)}
                             <button
                                 class=move || if on_the_session.get() { "cta to-the-session" } else { "cta" }
@@ -434,23 +504,27 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     }
                         .into_any()
                 }
-                Logging::Circuit => view! { <CircuitLog day=day on_logged=logged_circuit body_mass=body_mass /> }.into_any(),
+                Logging::OffTheClock => {
+                    view! {
+                        {move || {
+                            burn.get()
+                                .map(|answer| view! { <p class="hint">{lines::off_the_clock(&answer)}</p> })
+                        }}
+                        <form class="off-the-clock" on:submit=keep_off_the_clock>
+                            <div class="row">
+                                <FigureField label="Sitting (min)" name="sitting" value=sitting />
+                                <FigureField label="Standing (min)" name="standing" value=standing />
+                                <FigureField label="Moving (km)" name="moving" value=moving />
+                            </div>
+                            <button class="cta" type="submit">
+                                "Keep for this day"
+                            </button>
+                        </form>
+                    }
+                        .into_any()
+                }
             }}
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-        </section>
-        <section class="card">
-            <h2>"Off the clock"</h2>
-            {move || burn.get().map(|answer| view! { <p class="hint">{lines::off_the_clock(&answer)}</p> })}
-            <form class="off-the-clock" on:submit=keep_off_the_clock>
-                <div class="row">
-                    <FigureField label="Sitting (min)" name="sitting" value=sitting />
-                    <FigureField label="Standing (min)" name="standing" value=standing />
-                    <FigureField label="Moving (km)" name="moving" value=moving />
-                </div>
-                <button class="cta ghost" type="submit">
-                    "Keep for this day"
-                </button>
-            </form>
         </section>
         {move || {
             burn.get()
