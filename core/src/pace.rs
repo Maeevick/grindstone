@@ -43,6 +43,7 @@ const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
 const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
 const STABLE_SHARE_A_WEEK: f64 = 0.0015;
 const GAIN_SHARE_A_WEEK_FROM: f64 = 0.0025;
+const AT_THE_AIM_SHARE: f64 = 0.01;
 const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
 
 /// The most a body can lose in a week without eating into its lean mass: 1% of its mass, 1 kg at most, and
@@ -81,6 +82,9 @@ fn judgement_of(week: &Week) -> Judgement {
     let towards_a_lower_aim = week.aim_kg.is_some_and(|aim| aim < week.body_mass_kg);
     let towards_a_higher_aim = week.aim_kg.is_some_and(|aim| aim > week.body_mass_kg);
     let gained_share = week.per_week / week.body_mass_kg;
+    let at_the_aim = week
+        .aim_kg
+        .is_some_and(|aim| (week.body_mass_kg - aim).abs() <= AT_THE_AIM_SHARE * aim);
     if losing
         && week
             .healthy
@@ -108,6 +112,8 @@ fn judgement_of(week: &Week) -> Judgement {
         Judgement::VeryGood
     } else if towards_a_higher_aim && gaining {
         Judgement::Good
+    } else if at_the_aim && !losing && !gaining {
+        Judgement::Holding
     } else {
         Judgement::Stable
     }
