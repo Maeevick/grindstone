@@ -404,4 +404,15 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn fewer_than_four_weigh_ins_in_the_fortnight_give_no_pace() {
+        let weighed = a_man_weighed(80.0, -0.05);
+        let three_weigh_ins = GatherRecords {
+            measurements: weighed.measurements[18..].to_vec(),
+            ..weighed
+        };
+
+        assert_eq!(pace_on(day("2026-10-10"), &three_weigh_ins), None);
+    }
 }
