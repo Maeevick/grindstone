@@ -95,6 +95,7 @@ const MIGRATIONS: &[&str] = &[
     "drop table hydrate_bases",
     "create table burn_targets (effective_from text primary key, kcal real not null)",
     "alter table foods add column description text not null default ''",
+    "alter table drinks add column description text not null default ''",
 ];
 
 pub struct Sqlite(Connection);
@@ -795,7 +796,7 @@ impl ForStoringSwitchOver for Sqlite {
     }
 }
 
-const DRINKS: &str = "select name, volume_ml, kind from drinks order by name";
+const DRINKS: &str = "select name, volume_ml, kind, description from drinks order by name";
 const DRINKINGS: &str =
     "select id, day, drink, volume_ml, kind, servings from drinkings order by day, id";
 
@@ -823,7 +824,7 @@ fn drink_read(row: &rusqlite::Row) -> rusqlite::Result<Drink> {
         name: row.get(0)?,
         volume_ml: row.get(1)?,
         kind: kind_read(&row.get::<_, String>(2)?)?,
-        description: String::new(),
+        description: row.get(3)?,
     })
 }
 
@@ -847,9 +848,15 @@ fn counted_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, bool)> {
 impl ForStoringHydrateRecords for Sqlite {
     fn save_drink(&self, drink: &Drink) -> Result<(), Broken> {
         self.run(
-            "insert into drinks (name, volume_ml, kind) values (?1, ?2, ?3)
-             on conflict (name) do update set volume_ml = excluded.volume_ml, kind = excluded.kind",
-            params![drink.name, drink.volume_ml, kind_word(drink.kind)],
+            "insert into drinks (name, volume_ml, kind, description) values (?1, ?2, ?3, ?4)
+             on conflict (name) do update set volume_ml = excluded.volume_ml, kind = excluded.kind,
+                 description = excluded.description",
+            params![
+                drink.name,
+                drink.volume_ml,
+                kind_word(drink.kind),
+                drink.description
+            ],
         )
     }
 
