@@ -263,7 +263,7 @@ Expected: `Success`.
 2. **Profile** (the person at the top right): save a profile, goals, fuel targets, whether Hydrate counts in the streak, the usual day and the burn target. Each says from which day it is kept.
 3. **Gather** (⚖️): log the day's mass and waist. The bands and the week's pace appear, the day joins the last days, and the ⚖️ tile turns to the mass.
 4. **Fuel** (⚡): type a food the catalog lacks, fill "New …", then "Add and log". Put two foods on the plate: the band and the macros show its ghost. Log the plate.
-5. **Hydrate** (💧): log a drink, a new one through "Add and log".
+5. **Hydrate** (💧): log a drink, a new one through "Add and log", then open the grimoire: the new drink is on the shelf.
 6. **Burn** (🔥): log a workout, then put two exercises in a session, set its sets, and keep it as a circuit.
 7. Close the app from the recent apps, then open it again: Home shows the streak and its chart, and today's tiles hold the day's figures.
 
