@@ -318,18 +318,19 @@ mod tests {
     }
 
     #[test]
-    fn an_aim_gauge_spans_a_tenth_either_side_of_the_aim_green_a_twentieth_either_side() {
-        assert_eq!(
-            aim_gauge_of(72.0, Aim::Reach(70.0), 280.0),
-            AimGauge {
-                band_from: 70.0,
-                band_to: 210.0,
-                aim_at: 140.0,
-                amount_at: 180.0,
-                from: 63.0,
-                up_to: 77.0,
-            }
-        );
+    fn an_aim_gauge_spans_a_tenth_either_side_of_the_aim_green_a_hundredth_either_side() {
+        let gauge = aim_gauge_of(72.0, Aim::Reach(70.0), 280.0);
+
+        for (placed, expected) in [
+            (gauge.band_from, 126.0),
+            (gauge.band_to, 154.0),
+            (gauge.aim_at, 140.0),
+            (gauge.amount_at, 180.0),
+            (gauge.from, 63.0),
+            (gauge.up_to, 77.0),
+        ] {
+            assert!((placed - expected).abs() < 1e-9, "{gauge:?}");
+        }
     }
 
     #[test]
