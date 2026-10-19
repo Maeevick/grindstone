@@ -13,6 +13,16 @@ pub fn DayCard(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
+/// Where the tab keeps its catalog, on a page of its own.
+#[component]
+pub fn OpenTheGrimoire(href: &'static str) -> impl IntoView {
+    view! {
+        <A href=href attr:class="cta ghost grimoire">
+            "Open the grimoire"
+        </A>
+    }
+}
+
 #[component]
 pub fn ExploreInStats() -> impl IntoView {
     view! {

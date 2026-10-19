@@ -4,6 +4,7 @@ use leptos_router::path;
 
 use crate::screens::Recorded;
 use crate::screens::burn::BurnTab;
+use crate::screens::catalog::{BurnGrimoire, FuelGrimoire, HydrateGrimoire};
 use crate::screens::fuel::FuelTab;
 use crate::screens::gather::GatherTab;
 use crate::screens::header::Header;
@@ -29,8 +30,11 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/gather") view=GatherTab />
                     <Route path=path!("/fuel") view=FuelTab />
+                    <Route path=path!("/fuel/grimoire") view=FuelGrimoire />
                     <Route path=path!("/hydrate") view=HydrateTab />
+                    <Route path=path!("/hydrate/grimoire") view=HydrateGrimoire />
                     <Route path=path!("/burn") view=BurnTab />
+                    <Route path=path!("/burn/grimoire") view=BurnGrimoire />
                     <Route path=path!("/profile") view=ProfileScreen />
                     <Route path=path!("/stats") view=Stats />
                     <Route path=path!("/references") view=ReferencesScreen />

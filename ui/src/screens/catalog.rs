@@ -461,3 +461,41 @@ fn MealDetails(meal: Meal) -> impl IntoView {
         </tr>
     }
 }
+
+/// A tab's catalog on a page of its own, opened from the tab.
+#[component]
+fn Grimoire(title: &'static str, children: Children) -> impl IntoView {
+    view! {
+        <header class="screen-top">
+            <h2>{title}</h2>
+        </header>
+        {children()}
+    }
+}
+
+#[component]
+pub fn FuelGrimoire() -> impl IntoView {
+    view! {
+        <Grimoire title="Fuel's grimoire">
+            <FuelShelf />
+        </Grimoire>
+    }
+}
+
+#[component]
+pub fn HydrateGrimoire() -> impl IntoView {
+    view! {
+        <Grimoire title="Hydrate's grimoire">
+            <HydrateShelf />
+        </Grimoire>
+    }
+}
+
+#[component]
+pub fn BurnGrimoire() -> impl IntoView {
+    view! {
+        <Grimoire title="Burn's grimoire">
+            <BurnShelf />
+        </Grimoire>
+    }
+}

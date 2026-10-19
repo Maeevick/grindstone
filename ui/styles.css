@@ -711,6 +711,10 @@ table.pot {
 	height: 36px;
 }
 
+.cta.grimoire {
+	margin-bottom: 12px;
+}
+
 .cta.explore {
 	margin: 4px 0 12px;
 }

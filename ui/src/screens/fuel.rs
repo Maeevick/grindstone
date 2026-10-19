@@ -9,14 +9,13 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
-use crate::screens::catalog::FuelShelf;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::last_days::FuelLastDays;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
-use crate::screens::tab::{DayCard, ExploreInStats};
+use crate::screens::tab::{DayCard, ExploreInStats, OpenTheGrimoire};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -458,7 +457,7 @@ pub fn FuelTab() -> impl IntoView {
         <DayCard day=day />
         <FuelDay day=day />
         <FuelLastDays day=day />
+        <OpenTheGrimoire href="/fuel/grimoire" />
         <ExploreInStats />
-        <FuelShelf />
     }
 }
