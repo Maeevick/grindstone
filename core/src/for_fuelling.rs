@@ -6,10 +6,11 @@ use crate::for_cataloguing::IngredientForm;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::fuel::{Fuel, fuel_on};
-use crate::fuel_week::FuelWeek;
+use crate::fuel::{Fuel, fuel_on, fuel_over};
+use crate::fuel_week::{FuelWeek, fuel_week_of};
 use crate::intake::intake;
 use crate::refusal::Refusal;
+use crate::week::logged_in_the_week;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IntakeForm {
@@ -53,8 +54,19 @@ pub fn fuel_week(
     date: &str,
     today: &str,
 ) -> Result<Option<FuelWeek>, Failure> {
-    let _ = (gather, burn, fuel, date, today);
-    Ok(None)
+    let (last, today) = (day(date)?, day(today)?);
+    let fuelled = fuel.fuel_records()?;
+    let logged = logged_in_the_week(
+        last,
+        today,
+        fuelled.intakes.iter().map(|(_, eaten)| eaten.day),
+    );
+    Ok(fuel_week_of(&fuel_over(
+        &logged,
+        &gather.gather_records()?,
+        &burn.burn_records()?,
+        &fuelled,
+    )))
 }
 
 pub fn log_intake(
