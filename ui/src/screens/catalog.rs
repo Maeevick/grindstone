@@ -1,16 +1,17 @@
 use grind_core::drink::Drink;
 use grind_core::exercise::Exercise;
 use grind_core::figures::{Figure, shown};
-use grind_core::food::{Food, Nutrients};
-use grind_core::for_cataloguing::{FoodForm, PricedCircuit};
+use grind_core::food::Food;
+use grind_core::for_cataloguing::PricedCircuit;
 use grind_core::meal::{Meal, food_of};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::screens::cells::nutrient_cells;
 use crate::screens::circuits::{CircuitsList, NewCircuit};
-use crate::screens::entries::unit_named;
-use crate::screens::fields::FigureField;
+use crate::screens::entries::{
+    ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
+};
 use crate::screens::hydrate::{DrinksList, NewDrink};
 use crate::screens::meals::{MealDetails, MealInProgress, NewMeal};
 use crate::screens::{lines, today};
@@ -24,22 +25,23 @@ fn said_on_the_shelf(said: RwSignal<Option<String>>) -> impl IntoView {
 #[component]
 fn NewExercise(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> impl IntoView {
     let name = RwSignal::new(String::new());
-    let met = RwSignal::new(String::new());
+    let figures = ExerciseFigures::default();
     let said = RwSignal::new(None::<String>);
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let named = name.get_untracked();
-        let Some([met_typed]) = figures_typed([&met.get_untracked()]) else {
+        let Some([met_typed]) = figures_typed([&figures.met.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
         let met_typed = met_typed.unwrap_or(0.0);
+        let description = figures.description.get_untracked();
         spawn_local(async move {
-            match tauri::add_exercise(&named, met_typed, "").await {
+            match tauri::add_exercise(&named, met_typed, &description).await {
                 Ok(known) => {
                     exercises.set(known);
                     name.set(String::new());
-                    met.set(String::new());
+                    figures.cleared();
                     done.run(lines::added(named.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
@@ -49,17 +51,9 @@ fn NewExercise(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> im
     view! {
         <form class="exercise" on:submit=add>
             <div class="row">
-                <label class="field grow2">
-                    "Name"
-                    <input
-                        name="exercise_name"
-                        autocomplete="off"
-                        prop:value=move || name.get()
-                        on:input=move |event| name.set(event_target_value(&event))
-                    />
-                </label>
-                <FigureField label="MET" name="exercise_met" value=met />
+                <NameField name="exercise_name" value=name />
             </div>
+            <ExerciseFields prefix="exercise" figures=figures />
             <button class="cta" type="submit">
                 "Add to the catalog"
             </button>
@@ -94,7 +88,7 @@ fn ExercisesList(
                             let named = known.name.clone();
                             view! {
                                 <tr>
-                                    <td>{known.name.clone()}</td>
+                                    {name_cell(known.name.clone(), known.description.clone())}
                                     <td>{format!("{} MET", known.met)}</td>
                                     <td>
                                         <button
@@ -119,58 +113,21 @@ fn ExercisesList(
 #[component]
 fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView {
     let name = RwSignal::new(String::new());
-    let unit = RwSignal::new("Gram".to_string());
-    let portion = RwSignal::new("100".to_string());
-    let energy = RwSignal::new(String::new());
-    let protein = RwSignal::new(String::new());
-    let carbs = RwSignal::new(String::new());
-    let fat = RwSignal::new(String::new());
-    let fibre = RwSignal::new(String::new());
+    let figures = FoodFigures::default();
     let said = RwSignal::new(None::<String>);
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some(
-            [
-                portion_typed,
-                energy_kcal,
-                protein_g,
-                carbs_g,
-                fat_g,
-                fibre_g,
-            ],
-        ) = figures_typed([
-            &portion.get_untracked(),
-            &energy.get_untracked(),
-            &protein.get_untracked(),
-            &carbs.get_untracked(),
-            &fat.get_untracked(),
-            &fibre.get_untracked(),
-        ])
-        else {
+        let Some(form) = untrack(|| figures.typed(&name.get())) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
-        };
-        let form = FoodForm {
-            name: name.get_untracked(),
-            unit: unit_named(&unit.get_untracked()),
-            portion: portion_typed.unwrap_or(0.0),
-            nutrients: Nutrients {
-                energy_kcal: energy_kcal.unwrap_or(0.0),
-                protein_g: protein_g.unwrap_or(0.0),
-                carbs_g: carbs_g.unwrap_or(0.0),
-                fat_g: fat_g.unwrap_or(0.0),
-                fibre_g: fibre_g.unwrap_or(0.0),
-            },
-            description: String::new(),
         };
         spawn_local(async move {
             match tauri::add_food(&form).await {
                 Ok(known) => {
                     foods.set(known);
-                    for typed in [name, energy, protein, carbs, fat, fibre] {
-                        typed.set(String::new());
-                    }
-                    done.run(lines::added(form.name.trim()));
+                    name.set(String::new());
+                    figures.cleared();
+                    done.run(lines::added(&form.name));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
@@ -179,38 +136,9 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
     view! {
         <form class="food" on:submit=add>
             <div class="row">
-                <label class="field">
-                    "Name"
-                    <input
-                        name="food_name"
-                        autocomplete="off"
-                        prop:value=move || name.get()
-                        on:input=move |event| name.set(event_target_value(&event))
-                    />
-                </label>
+                <NameField name="food_name" value=name />
             </div>
-            <div class="row thirds">
-                <FigureField label="Per" name="food_portion" value=portion />
-                <label class="field">
-                    "Unit"
-                    <select
-                        name="food_unit"
-                        prop:value=move || unit.get()
-                        on:change=move |event| unit.set(event_target_value(&event))
-                    >
-                        <option value="Gram">"g"</option>
-                        <option value="Millilitre">"mL"</option>
-                        <option value="Piece">"piece"</option>
-                    </select>
-                </label>
-                <FigureField label="kcal" name="food_energy" value=energy />
-            </div>
-            <div class="row quarters">
-                <FigureField label="Protein (g)" name="food_protein" value=protein />
-                <FigureField label="Fat (g)" name="food_fat" value=fat />
-                <FigureField label="Fibre (g)" name="food_fibre" value=fibre />
-                <FigureField label="Carbs (g)" name="food_carbs" value=carbs />
-            </div>
+            <FoodFields prefix="food" figures=figures />
             <button class="cta" type="submit">
                 "Add to the catalog"
             </button>
@@ -298,7 +226,7 @@ fn FoodsList(
                                     let named = food.name.clone();
                                     view! {
                                         <tr>
-                                            <td>{food.name.clone()}</td>
+                                            {name_cell(food.name.clone(), food.description.clone())}
                                             {figure_cells(&food)}
                                             {remove_button(move || remove(named.clone()))}
                                         </tr>

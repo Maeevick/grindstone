@@ -949,3 +949,10 @@ tr.details .pinned {
 	font: 600 0.85rem var(--mono);
 	letter-spacing: 0.06em;
 }
+
+td .description {
+	display: block;
+	color: var(--mut);
+	font-size: 0.75rem;
+	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}

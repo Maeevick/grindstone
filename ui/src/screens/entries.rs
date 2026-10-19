@@ -31,6 +31,32 @@ pub fn NewEntry(name: RwSignal<String>) -> impl IntoView {
 }
 
 #[component]
+pub fn NameField(name: &'static str, value: RwSignal<String>) -> impl IntoView {
+    view! {
+        <label class="field grow2">
+            "Name"
+            <input
+                name=name
+                autocomplete="off"
+                prop:value=move || value.get()
+                on:input=move |event| value.set(event_target_value(&event))
+            />
+        </label>
+    }
+}
+
+/// A catalog entry's name in a list, its description under it.
+pub fn name_cell(name: String, description: String) -> impl IntoView {
+    view! {
+        <td>
+            <span class="name">{name}</span>
+            {(!description.is_empty())
+                .then(|| view! { <span class="description">{description}</span> })}
+        </td>
+    }
+}
+
+#[component]
 fn DescriptionField(name: String, value: RwSignal<String>) -> impl IntoView {
     view! {
         <label class="field grow2">

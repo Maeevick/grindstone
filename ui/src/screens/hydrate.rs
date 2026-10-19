@@ -1,5 +1,5 @@
 use grind_core::bibliography::Topic;
-use grind_core::drink::{Drink, DrinkKind};
+use grind_core::drink::Drink;
 use grind_core::drinking::Drinking;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown};
@@ -12,7 +12,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::{chosen, nothing_matches};
 use crate::screens::catalog::HydrateShelf;
-use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NewEntry, kind_named};
+use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::references::ReferencesLink;
@@ -251,7 +251,7 @@ fn DrinkRow(
     };
     view! {
         <tr>
-            <td>{drink.name}</td>
+            {name_cell(drink.name, drink.description)}
             <td>{shown(Figure::Volume(drink.volume_ml))}</td>
             <td class="hint">
                 {KINDS
@@ -271,23 +271,24 @@ fn DrinkRow(
 #[component]
 pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl IntoView {
     let name = RwSignal::new(String::new());
-    let serving = RwSignal::new(String::new());
-    let kind = RwSignal::new(DrinkKind::Water);
+    let figures = DrinkFigures::default();
     let said = RwSignal::new(None::<String>);
     let add = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let named = name.get_untracked();
-        let Some([volume_ml]) = figures_typed([&serving.get_untracked()]) else {
+        let Some([volume_ml]) = figures_typed([&figures.serving.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
         let volume_ml = volume_ml.unwrap_or(0.0);
+        let kind = figures.kind.get_untracked();
+        let description = figures.description.get_untracked();
         spawn_local(async move {
-            match tauri::add_drink(&named, volume_ml, kind.get_untracked(), "").await {
+            match tauri::add_drink(&named, volume_ml, kind, &description).await {
                 Ok(known) => {
                     drinks.set(known);
                     name.set(String::new());
-                    serving.set(String::new());
+                    figures.cleared();
                     done.run(lines::added(named.trim()));
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
@@ -297,31 +298,9 @@ pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl In
     view! {
         <form class="drink" on:submit=add>
             <div class="row">
-                <label class="field grow2">
-                    "Name"
-                    <input
-                        name="drink_name"
-                        autocomplete="off"
-                        prop:value=move || name.get()
-                        on:input=move |event| name.set(event_target_value(&event))
-                    />
-                </label>
-                <FigureField label="Serving (mL)" name="serving" value=serving />
-                <label class="field">
-                    "Kind"
-                    <select
-                        name="drink_kind"
-                        on:change=move |event| kind.set(kind_named(&event_target_value(&event)))
-                    >
-                        {KINDS
-                            .into_iter()
-                            .map(|(named, label)| {
-                                view! { <option value=format!("{named:?}")>{label}</option> }
-                            })
-                            .collect_view()}
-                    </select>
-                </label>
+                <NameField name="drink_name" value=name />
             </div>
+            <DrinkFields prefix="drink" figures=figures />
             <button class="cta" type="submit">
                 "Add to the catalog"
             </button>
