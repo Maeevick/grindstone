@@ -17,7 +17,6 @@ use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
 use crate::verdict::Verdict;
 use crate::version::version_in_force_on;
-use crate::workout::Workout;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct GatherChart {
@@ -37,7 +36,6 @@ pub struct BandChart {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct BurnChart {
     pub burnt: Vec<(NaiveDate, f64)>,
-    pub minutes: Vec<(NaiveDate, f64)>,
     pub targets: Vec<(NaiveDate, f64)>,
 }
 
@@ -164,27 +162,11 @@ pub fn burn_chart(
         .iter()
         .map(|day| burn_on(*day, &burnt, &gathered.measurements))
         .collect();
-    let summed = |each: fn(&Workout) -> f64| -> Vec<(NaiveDate, f64)> {
-        burns
-            .iter()
-            .map(|of_the_day| {
-                (
-                    of_the_day.day,
-                    of_the_day
-                        .workouts
-                        .iter()
-                        .map(|done| each(&done.workout))
-                        .sum(),
-                )
-            })
-            .collect()
-    };
     Ok(BurnChart {
         burnt: burns
             .iter()
             .filter_map(|of_the_day| of_the_day.burnt_kcal.map(|kcal| (of_the_day.day, kcal)))
             .collect(),
-        minutes: summed(|done| f64::from(done.sets) * done.minutes),
         targets: burns
             .iter()
             .filter_map(|of_the_day| of_the_day.target_kcal.map(|kcal| (of_the_day.day, kcal)))
@@ -700,20 +682,6 @@ mod tests {
     }
 
     #[test]
-    fn the_burn_chart_draws_each_days_burn_and_minutes() {
-        let logged = a_logged_man();
-
-        let chart = burn_chart(&logged.gather, &logged.burn, "2026-10-10", Window::Days30)
-            .expect("a chart");
-
-        assert_eq!(
-            chart.minutes,
-            vec![(day("2026-10-09"), 1.5), (day("2026-10-10"), 1.5)]
-        );
-        assert_eq!(chart.burnt.len(), 2);
-    }
-
-    #[test]
     fn the_burn_chart_draws_each_days_burn_and_its_target() {
         let logged = a_logged_man();
 
@@ -734,7 +702,7 @@ mod tests {
                 .flatten()
                 .collect::<Vec<_>>()
         );
-        assert_eq!(chart.targets.len(), 2);
+        assert_eq!((chart.targets.len(), chart.burnt.len()), (2, 2));
     }
 
     #[test]
