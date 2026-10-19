@@ -23,7 +23,7 @@ pub fn Settings() -> impl IntoView {
         <header class="screen-top">
             <h2>"Settings"</h2>
         </header>
-        <section class="card">
+        <section class="card" id="draft">
             <h2>"The draft's records"</h2>
             <p class="hint">{lines::IMPORT_HOW}</p>
             <button class="cta import" type="button" on:click=import>

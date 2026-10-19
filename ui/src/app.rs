@@ -13,7 +13,6 @@ use crate::screens::lines;
 use crate::screens::meals::MealInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;
-use crate::screens::settings::Settings;
 use crate::screens::stats::Stats;
 use crate::screens::tracker::{GatherTab, Tracker};
 
@@ -34,7 +33,6 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/tracker") view=Tracker />
                     <Route path=path!("/catalog") view=Catalog />
                     <Route path=path!("/profile") view=ProfileScreen />
-                    <Route path=path!("/settings") view=Settings />
                     <Route path=path!("/stats") view=Stats />
                     <Route path=path!("/references") view=ReferencesScreen />
                 </Routes>

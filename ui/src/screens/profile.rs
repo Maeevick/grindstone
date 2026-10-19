@@ -8,11 +8,11 @@ use grind_core::goals::fat_percentage;
 use grind_core::recommendations::Recommendations;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use leptos_router::components::A;
 
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateCountedCard;
 use crate::screens::references::ReferencesLink;
+use crate::screens::settings::Settings;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -373,9 +373,6 @@ pub fn ProfileScreen() -> impl IntoView {
     view! {
         <header class="screen-top">
             <h2>"Profile"</h2>
-            <A href="/settings" attr:class="gear">
-                "⚙ Settings"
-            </A>
         </header>
         <section class="card">
             <h2>"The rusty you behind the numbers"</h2>
@@ -420,5 +417,6 @@ pub fn ProfileScreen() -> impl IntoView {
         <UsualDayCard />
         <BurnTargetCard />
         <p class="hint disclaimer">{lines::RECOMMENDATIONS_DISCLAIMER}</p>
+        <Settings />
     }
 }

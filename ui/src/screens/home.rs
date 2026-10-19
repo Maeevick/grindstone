@@ -15,7 +15,7 @@ fn Welcome() -> impl IntoView {
             <A href="/profile" attr:class="cta">
                 "Set up your profile"
             </A>
-            <A href="/settings" attr:class="cta ghost">
+            <A href="/profile#draft" attr:class="cta ghost">
                 "Import the draft"
             </A>
         </section>

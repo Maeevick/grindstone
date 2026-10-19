@@ -241,12 +241,6 @@ select {
 	margin: 0;
 }
 
-.gear {
-	color: var(--mut);
-	text-decoration: none;
-	font-size: 0.8rem;
-}
-
 .said {
 	color: var(--ok);
 	font-size: 0.85rem;
