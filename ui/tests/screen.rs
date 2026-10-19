@@ -1516,6 +1516,33 @@ async fn foods_added_to_the_plate_wait_there_adding_up_and_ghosting_the_band_and
 }
 
 #[wasm_bindgen_test]
+async fn logging_the_plate_logs_its_ingredients_in_one_go_then_clears_it() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "fuel_day": {A_DAY_NOT_FUELLED_YET}, "log_plate": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    added_to_the_plate(&screen, "pasta", "100").await;
+    added_to_the_plate(&screen, "creme fraiche", "200").await;
+
+    clicked(&screen, "button.log-the-plate");
+    settled().await;
+    settled().await;
+
+    let sent = asked("log_plate");
+    for ingredient in [
+        r#""date":"2026-10-10""#,
+        r#""food":"Pasta","quantity":100"#,
+        r#""food":"Crème fraîche","quantity":200"#,
+    ] {
+        assert!(sent.contains(ingredient), "{ingredient} in {sent}");
+    }
+    assert!(screen.query_selector("table.pot").ok().flatten().is_none());
+    assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
+}
+
+#[wasm_bindgen_test]
 async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_what_each_brings() {
     answering(&format!(r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [] }}"#));
     let screen = screen();
