@@ -710,7 +710,7 @@ pub mod honouring_for_storing_fuel_records {
                 fat_g: 0.2,
                 fibre_g: 0.0,
             },
-            description: String::new(),
+            description: format!("The {name} on the second shelf."),
         }
     }
 
