@@ -67,4 +67,26 @@ mod tests {
         assert!((aims.lean_mass_kg - 70.0 * 0.88).abs() < 1e-9);
         assert!(!aims.recommended);
     }
+
+    #[test]
+    fn without_goals_a_day_aims_for_whos_healthy_weight_and_fat_for_its_profile_and_nothing_without_one()
+     {
+        let advised =
+            crate::recommendations::recommended(&a_man().profiles[0].1, day("2026-10-10"), None);
+
+        assert_eq!(
+            (
+                aims_on(day("2026-10-10"), &a_man()),
+                aims_on(day("2026-10-10"), &GatherRecords::default())
+            ),
+            (
+                Some(Aims {
+                    body_mass_kg: advised.goal_mass_kg,
+                    lean_mass_kg: advised.goal_mass_kg * (1.0 - advised.goal_fat_ratio),
+                    recommended: true,
+                }),
+                None
+            )
+        );
+    }
 }
