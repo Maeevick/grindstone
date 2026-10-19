@@ -194,11 +194,11 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         ),
         fat_mass: change(
             |measured| measured.composition.map(|split| split.fat_mass_kg),
-            aims.map(|aims| aims.body_mass_kg - aims.lean_mass_kg),
+            aims.map(|aims| aims.fat_mass_kg()),
         ),
         fat_ratio: change(
             |measured| measured.composition.map(|split| split.fat_ratio),
-            aims.map(|aims| 1.0 - aims.lean_mass_kg / aims.body_mass_kg),
+            aims.map(|aims| aims.fat_ratio()),
         ),
         judgement,
         safe_loss_kg,
