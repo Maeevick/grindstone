@@ -3,6 +3,8 @@ use crate::food::Unit;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Figure {
     Mass(f64),
+    /// A mass moved in a week, where the hundredth tells a pace from its limit.
+    WeeklyMass(f64),
     Length(f64),
     Ratio(f64),
     Energy(f64),
@@ -29,7 +31,9 @@ pub fn typed_back(value: f64) -> String {
 
 fn parts(figure: Figure) -> (String, &'static str) {
     match figure {
-        Figure::Mass(kg) => (format!("{:.1}", to_the_tenth(kg) + 0.0), " kg"),
+        Figure::Mass(kg) | Figure::WeeklyMass(kg) => {
+            (format!("{:.1}", to_the_tenth(kg) + 0.0), " kg")
+        }
         Figure::Length(cm) => (format!("{:.1}", to_the_tenth(cm) + 0.0), " cm"),
         Figure::Ratio(ratio) => (format!("{:.1}", to_the_tenth(ratio * 100.0) + 0.0), "%"),
         Figure::Energy(kcal) => (format!("{}", kcal.round() + 0.0), " kcal"),
@@ -79,6 +83,17 @@ pub fn signed(figure: Figure) -> String {
 mod tests {
     use super::*;
 
+    #[test]
+    fn a_mass_moved_in_a_week_shows_to_the_hundredth() {
+        assert_eq!(
+            [
+                shown(Figure::WeeklyMass(-0.623)),
+                shown(Figure::WeeklyMass(0.5)),
+                shown(Figure::WeeklyMass(-0.2)),
+            ],
+            ["-0.62 kg", "0.50 kg", "-0.20 kg"]
+        );
+    }
     #[test]
     fn a_mass_shows_in_kilograms_to_the_tenth() {
         assert_eq!(shown(Figure::Mass(72.43)), "72.4 kg");
