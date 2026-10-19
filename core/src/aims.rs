@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
+use crate::recommendations::recommended;
 use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -11,14 +12,23 @@ pub struct Aims {
     pub recommended: bool,
 }
 
-/// The body mass and the lean mass a day aims for: the goals in force, the lean mass being what their fat
-/// ratio leaves of their body mass.
+/// The body mass and the lean mass a day aims for: the goals in force, else the healthy weight and fat
+/// recommended for the profile in force (WHO's body mass index, Gallagher's fat), the lean mass being what
+/// their fat ratio leaves of their body mass.
 pub fn aims_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Aims> {
-    version_in_force_on(&gathered.goals, day).map(|goals| Aims {
-        body_mass_kg: goals.body_mass_kg,
-        lean_mass_kg: goals.body_mass_kg * (1.0 - goals.fat_ratio),
-        recommended: false,
-    })
+    let aiming = |body_mass_kg: f64, fat_ratio: f64, recommended: bool| Aims {
+        body_mass_kg,
+        lean_mass_kg: body_mass_kg * (1.0 - fat_ratio),
+        recommended,
+    };
+    version_in_force_on(&gathered.goals, day)
+        .map(|goals| aiming(goals.body_mass_kg, goals.fat_ratio, false))
+        .or_else(|| {
+            version_in_force_on(&gathered.profiles, day).map(|profile| {
+                let advised = recommended(profile, day, None);
+                aiming(advised.goal_mass_kg, advised.goal_fat_ratio, true)
+            })
+        })
 }
 
 #[cfg(test)]
