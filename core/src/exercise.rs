@@ -10,7 +10,7 @@ pub struct Exercise {
     pub description: String,
 }
 
-pub fn exercise(name: &str, met: f64, _description: &str) -> Result<Exercise, Refusal> {
+pub fn exercise(name: &str, met: f64, description: &str) -> Result<Exercise, Refusal> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Refusal::NotAName);
@@ -21,7 +21,7 @@ pub fn exercise(name: &str, met: f64, _description: &str) -> Result<Exercise, Re
     Ok(Exercise {
         name: name.into(),
         met,
-        description: String::new(),
+        description: description.trim().into(),
     })
 }
 
