@@ -15,12 +15,12 @@ pub struct Aims {
 impl Aims {
     /// The fat mass the aims leave: the body mass less the lean.
     pub fn fat_mass_kg(&self) -> f64 {
-        0.0
+        self.body_mass_kg - self.lean_mass_kg
     }
 
     /// The fat ratio the aims leave: the share of the body mass the lean does not take.
     pub fn fat_ratio(&self) -> f64 {
-        0.0
+        1.0 - self.lean_mass_kg / self.body_mass_kg
     }
 }
 
