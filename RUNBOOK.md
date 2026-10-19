@@ -259,11 +259,13 @@ Expected: `Success`.
 
 ## 10. Smoke test, on the phone
 
-1. Open **Grindstone**: the welcome shows until a profile exists.
-2. **Profile:** save a profile, goals, fuel targets, whether Hydrate counts in the streak, the usual day and the burn target. Each says from which day it is kept.
-3. **Catalog:** add a food, a drink and an exercise.
-4. **Tracker:** log the day's mass and waist, an intake, a drink and a workout, each in its segment.
-5. Close the app from the recent apps, then open it again: Home shows the streak, today's figures and the Gather card, and the day is still in Tracker.
+1. Open **Grindstone**: the welcome shows until a profile exists, under the header and the icon bar.
+2. **Profile** (the person at the top right): save a profile, goals, fuel targets, whether Hydrate counts in the streak, the usual day and the burn target. Each says from which day it is kept.
+3. **Gather** (⚖️): log the day's mass and waist. The bands and the week's pace appear, the day joins the last days, and the ⚖️ tile turns to the mass.
+4. **Fuel** (⚡): type a food the catalog lacks, fill "New …", then "Add and log". Put two foods on the plate: the band and the macros show its ghost. Log the plate.
+5. **Hydrate** (💧): log a drink, a new one through "Add and log".
+6. **Burn** (🔥): log a workout, then put two exercises in a session, set its sets, and keep it as a circuit.
+7. Close the app from the recent apps, then open it again: Home shows the streak and its chart, and today's tiles hold the day's figures.
 
 ## 11. The draft's records
 
@@ -273,7 +275,7 @@ The app must have run once, which creates its Documents folder. With the phone p
 make import-draft-android BACKUP=../grindstone_draft/data/backups/<latest backup>.json
 ```
 
-Then, in the app, go to Profile, the gear, then **Import the draft**. The app tells what it filed:
+Then, in the app, open the Profile and scroll to its settings, then **Import the draft**. The app tells what it filed:
 - measurements, profiles and goals;
 - exercises and workouts;
 - foods and intakes;
