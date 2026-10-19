@@ -9,6 +9,7 @@ use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
+use grind_ui::screens::last_days::FuelLastDays;
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
@@ -1306,6 +1307,76 @@ async fn the_macros_card_tells_each_goal_what_was_eaten_the_gap_and_its_share_of
     );
     found::<Element>(&screen, "table.macros tr.protein .low");
     assert!(text_of(&screen, "table.macros tfoot").contains("100.0"));
+}
+
+fn fuelled_on(date: &str, kcal: f64) -> String {
+    format!(
+        r#"{{ "day": "{date}", "eaten": {{ "energy_kcal": {kcal}, "protein_g": 100.0, "carbs_g": 200.0,
+            "fat_g": 60.0, "fibre_g": 30.0 }} }}"#
+    )
+}
+
+#[wasm_bindgen_test]
+async fn the_last_days_show_the_week_up_to_the_day_then_the_rest_of_its_month_then_the_month_before()
+ {
+    answering(&format!(
+        r#"{{ "fuel_month": {{ "__by": "month",
+            "2026-10": {{ "month": "2026-10", "earlier": "2026-08", "rows": [{}, {}, {}, {}] }},
+            "2026-08": {{ "month": "2026-08", "earlier": null, "rows": [{}, {}] }} }} }}"#,
+        fuelled_on("2026-10-10", 2400.0),
+        fuelled_on("2026-10-09", 2300.0),
+        fuelled_on("2026-10-05", 2200.0),
+        fuelled_on("2026-10-02", 2100.0),
+        fuelled_on("2026-08-31", 2000.0),
+        fuelled_on("2026-08-15", 1900.0),
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+    let days = |screen: &Element| texts_in_order(screen, ".last-days tbody tr td:first-child");
+
+    let a_week = days(&screen);
+    let first_more = text_of(&screen, ".last-days button.more");
+    clicked(&screen, ".last-days button.more");
+    settled().await;
+    let the_month = days(&screen);
+    let then_more = text_of(&screen, ".last-days button.more");
+    clicked(&screen, ".last-days button.more");
+    settled().await;
+
+    assert_eq!(a_week, ["2026-10-10", "2026-10-09", "2026-10-05"]);
+    assert_eq!(first_more, "Load the rest of October 2026");
+    assert_eq!(
+        the_month,
+        ["2026-10-10", "2026-10-09", "2026-10-05", "2026-10-02"]
+    );
+    assert_eq!(then_more, "Load August 2026");
+    assert_eq!(
+        days(&screen),
+        [
+            "2026-10-10",
+            "2026-10-09",
+            "2026-10-05",
+            "2026-10-02",
+            "2026-08-31",
+            "2026-08-15"
+        ]
+    );
+    assert!(
+        screen
+            .query_selector(".last-days button.more")
+            .ok()
+            .flatten()
+            .is_none()
+    );
+    assert!(text_of(&screen, ".last-days tr.chosen").contains("2026-10-10"));
 }
 
 #[wasm_bindgen_test]

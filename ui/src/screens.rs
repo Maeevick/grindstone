@@ -11,6 +11,7 @@ pub mod gauge;
 pub mod header;
 pub mod home;
 pub mod hydrate;
+pub mod last_days;
 pub mod lines;
 pub mod plate;
 pub mod profile;
