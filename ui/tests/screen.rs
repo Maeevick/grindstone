@@ -1447,41 +1447,6 @@ const A_HOME: &str = r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "M
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
                  "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#;
 
-#[wasm_bindgen_test]
-async fn each_of_todays_tiles_opens_its_segment_of_the_tracker() {
-    answering(A_HOME);
-    let screen = screen();
-    let _mounted = the_app(&screen);
-    settled().await;
-    settled().await;
-
-    let tiles = screen
-        .query_selector_all(".today a.tile")
-        .expect("the tiles");
-    let links: Vec<String> = (0..tiles.length())
-        .filter_map(|at| tiles.item(at))
-        .filter_map(|tile| tile.unchecked_into::<Element>().get_attribute("href"))
-        .collect();
-    assert_eq!(
-        links,
-        [
-            "/tracker?segment=Gather",
-            "/tracker?segment=Fuel",
-            "/tracker?segment=Hydrate",
-            "/tracker?segment=Burn"
-        ]
-    );
-    let mut opened = Vec::new();
-    for link in &links {
-        went_to("/");
-        settled().await;
-        went_to(link);
-        settled().await;
-        opened.push(text_of(&screen, ".day .pill.chosen"));
-    }
-    assert_eq!(opened, ["Gather", "Fuel", "Hydrate", "Burn"]);
-}
-
 const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [],
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
         "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
@@ -1532,37 +1497,45 @@ async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_trackers_s
 }
 
 #[wasm_bindgen_test]
-async fn home_shows_the_streak_and_today_in_one_card_the_tiles_green_or_red_by_their_ticks_stats_at_the_bottom()
- {
+async fn every_screen_wears_the_header_its_person_opening_the_profile_and_todays_four_tiles() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let mut worn = Vec::new();
+    for page in ["/", "/burn", "/profile", "/stats"] {
+        went_to(page);
+        settled().await;
+        worn.push((
+            page,
+            screen
+                .query_selector("header.top img.logo")
+                .ok()
+                .flatten()
+                .is_some(),
+            attributes_of(&screen, "header.top a.person", "href"),
+            attributes_of(&screen, "header.top .today a.tile", "href").len(),
+        ));
+    }
+
+    assert!(
+        worn.iter()
+            .all(|(_, logo, person, tiles)| *logo && *person == ["/profile"] && *tiles == 4),
+        "{worn:?}"
+    );
+}
+
+#[wasm_bindgen_test]
+async fn todays_tiles_show_each_figure_green_or_red_by_its_tick_and_open_its_tab() {
     answering(A_HOME);
     let screen = screen();
     let _mounted = the_app(&screen);
     settled().await;
     settled().await;
 
-    found::<Element>(&screen, "header.top img.logo");
     assert_eq!(
-        texts_of(&screen, "section.card.streak h2"),
-        ["Streak", "Today"]
-    );
-    assert!(
-        screen
-            .query_selector("section.card.today")
-            .ok()
-            .flatten()
-            .is_none()
-    );
-    assert_eq!(text_of(&screen, ".streak .current"), "2 days");
-    assert_eq!(text_of(&screen, ".streak .longest"), "(longest: 5 days)");
-    assert!(
-        screen
-            .query_selector(".streak .ticks")
-            .ok()
-            .flatten()
-            .is_none()
-    );
-    assert_eq!(
-        texts_of(&screen, ".streak .today .tile .icon"),
+        texts_in_order(&screen, "header.top .today .tile .icon"),
         ["⚖️", "⚡", "💧", "🔥"]
     );
     assert!(text_of(&screen, ".today .tile.weighed").contains("71.7"));
@@ -1582,14 +1555,30 @@ async fn home_shows_the_streak_and_today_in_one_card_the_tiles_green_or_red_by_t
     })
     .collect();
     assert_eq!(coloured, [true, true, true, true]);
-    found::<Element>(&screen, "main.wrap > a.explore:last-child");
-    assert!(
-        screen
-            .query_selector(".streak .dot")
-            .ok()
-            .flatten()
-            .is_none()
+    assert_eq!(
+        attributes_of(&screen, ".today a.tile", "href"),
+        ["/gather", "/fuel", "/hydrate", "/burn"]
     );
+}
+
+#[wasm_bindgen_test]
+async fn home_holds_the_streak_alone_in_its_card_and_ends_on_stats() {
+    answering(A_HOME);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    settled().await;
+
+    assert_eq!(texts_of(&screen, "section.card.streak h2"), ["Streak"]);
+    assert_eq!(text_of(&screen, ".streak .current"), "2 days");
+    assert_eq!(text_of(&screen, ".streak .longest"), "(longest: 5 days)");
+    for elsewhere in [".streak .tile", ".streak .dot"] {
+        assert!(
+            screen.query_selector(elsewhere).ok().flatten().is_none(),
+            "{elsewhere}"
+        );
+    }
+    found::<Element>(&screen, "main.wrap > a.explore:last-child");
 }
 
 const TWO_MEASURES_EXPLORED: &str = r#"{ "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
