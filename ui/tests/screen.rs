@@ -2871,7 +2871,7 @@ fn lines_drawn(screen: &Element) -> u32 {
 }
 
 #[wasm_bindgen_test]
-async fn the_home_chart_draws_gather_on_two_axes_with_its_goals_then_each_chip_its_own_lines_burn_with_its_target()
+async fn the_home_chart_draws_gather_on_one_axis_with_its_goals_then_each_chip_its_own_lines_burn_with_its_target()
  {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
@@ -2893,8 +2893,14 @@ async fn the_home_chart_draws_gather_on_two_axes_with_its_goals_then_each_chip_i
         labels.contains("80.0 kg") && labels.contains("70.0 kg") && labels.contains("Lean mass"),
         "{labels}"
     );
-    found::<Element>(&screen, ".plot .label.left.tick.mass");
-    found::<Element>(&screen, ".plot .label.right.tick.lean");
+    found::<Element>(&screen, ".plot .label.left.tick");
+    assert!(
+        screen
+            .query_selector(".plot .label.right.tick")
+            .ok()
+            .flatten()
+            .is_none()
+    );
 
     for (chip, lines, said) in [
         ("Fuel", 3, "1900 kcal"),
