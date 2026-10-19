@@ -51,6 +51,29 @@ pub fn nothing_matches(options: &[String], typed: &str) -> bool {
     !folded(typed).is_empty() && matching(options, typed).is_empty()
 }
 
+/// An option of a chooser: the name it stands for, and the icon shown before it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Choice {
+    pub name: String,
+    pub icon: &'static str,
+}
+
+impl Choice {
+    /// What the list shows: the icon, then the name.
+    pub fn shown(&self) -> String {
+        self.name.clone()
+    }
+}
+
+/// Two groups of options, the first one first, each in alphabetical order whatever the case and the
+/// accents, each behind its group's icon.
+pub fn grouped(
+    _first: (&'static str, Vec<String>),
+    _then: (&'static str, Vec<String>),
+) -> Vec<Choice> {
+    Vec::new()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -101,6 +124,35 @@ mod tests {
             [true, false, false, false, false]
         );
         assert!(nothing_matches(&[], "Ai"));
+    }
+
+    #[test]
+    fn grouped_options_come_first_group_first_each_in_alphabetical_order_behind_its_icon() {
+        let named = |names: &[&str]| names.iter().map(|name| name.to_string()).collect();
+
+        let offered = grouped(
+            ("💪", named(&["Pâtes au beurre", "Dal"])),
+            ("🥦", named(&["Skyr", "Épinards", "ail"])),
+        );
+
+        assert_eq!(
+            offered.iter().map(Choice::shown).collect::<Vec<_>>(),
+            [
+                "💪 Dal",
+                "💪 Pâtes au beurre",
+                "🥦 ail",
+                "🥦 Épinards",
+                "🥦 Skyr"
+            ]
+        );
+        assert_eq!(
+            Choice {
+                name: "Tea".into(),
+                icon: ""
+            }
+            .shown(),
+            "Tea"
+        );
     }
 
     #[test]
