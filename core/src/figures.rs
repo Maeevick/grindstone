@@ -31,9 +31,8 @@ pub fn typed_back(value: f64) -> String {
 
 fn parts(figure: Figure) -> (String, &'static str) {
     match figure {
-        Figure::Mass(kg) | Figure::WeeklyMass(kg) => {
-            (format!("{:.1}", to_the_tenth(kg) + 0.0), " kg")
-        }
+        Figure::Mass(kg) => (format!("{:.1}", to_the_tenth(kg) + 0.0), " kg"),
+        Figure::WeeklyMass(kg) => (format!("{:.2}", to_the_hundredth(kg) + 0.0), " kg"),
         Figure::Length(cm) => (format!("{:.1}", to_the_tenth(cm) + 0.0), " cm"),
         Figure::Ratio(ratio) => (format!("{:.1}", to_the_tenth(ratio * 100.0) + 0.0), "%"),
         Figure::Energy(kcal) => (format!("{}", kcal.round() + 0.0), " kcal"),
