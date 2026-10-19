@@ -296,4 +296,30 @@ mod tests {
             (Judgement::WrongWay, Judgement::Stable)
         );
     }
+
+    #[test]
+    fn towards_a_higher_aim_gaining_a_quarter_to_half_a_percent_a_week_is_very_good_slower_good_faster_too_fast()
+     {
+        let gaining = |share_a_week: f64| {
+            judged(&aiming_at(
+                85.0,
+                a_man_weighed(75.0, share_a_week * 75.0 / 7.0),
+            ))
+        };
+
+        assert_eq!(
+            [
+                gaining(0.0035),
+                gaining(0.002),
+                gaining(0.008),
+                gaining(-0.004)
+            ],
+            [
+                Judgement::VeryGood,
+                Judgement::Good,
+                Judgement::GainingTooFast,
+                Judgement::WrongWay
+            ]
+        );
+    }
 }
