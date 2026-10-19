@@ -15,7 +15,8 @@ use crate::choice::chosen;
 use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
-use crate::screens::lines;
+use crate::screens::tab::{DayCard, ExploreInStats};
+use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
 
@@ -348,5 +349,15 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 </table>
             </div>
         </section>
+    }
+}
+
+#[component]
+pub fn BurnTab() -> impl IntoView {
+    let day = RwSignal::new(today());
+    view! {
+        <DayCard day=day />
+        <BurnDay day=day />
+        <ExploreInStats />
     }
 }

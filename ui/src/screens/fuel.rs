@@ -10,7 +10,8 @@ use crate::choice::chosen;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
-use crate::screens::lines;
+use crate::screens::tab::{DayCard, ExploreInStats};
+use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -257,5 +258,15 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                 </table>
             </div>
         </section>
+    }
+}
+
+#[component]
+pub fn FuelTab() -> impl IntoView {
+    let day = RwSignal::new(today());
+    view! {
+        <DayCard day=day />
+        <FuelDay day=day />
+        <ExploreInStats />
     }
 }

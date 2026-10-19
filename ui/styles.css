@@ -173,16 +173,17 @@ td {
 }
 
 .tabs a {
-	color: var(--mut);
 	text-decoration: none;
-	font: 600 0.78rem var(--mono);
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
-	padding: 8px 10px;
+	font-size: 1.5rem;
+	line-height: 1;
+	padding: 6px 12px;
+	border-bottom: 2px solid transparent;
+	opacity: 0.55;
 }
 
 .tabs a[aria-current='page'] {
-	color: var(--acc);
+	opacity: 1;
+	border-bottom-color: var(--acc);
 }
 
 a.cta {

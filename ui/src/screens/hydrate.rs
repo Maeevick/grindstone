@@ -13,6 +13,7 @@ use crate::choice::chosen;
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::references::ReferencesLink;
+use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -363,5 +364,15 @@ pub fn HydrateCountedCard() -> impl IntoView {
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
+    }
+}
+
+#[component]
+pub fn HydrateTab() -> impl IntoView {
+    let day = RwSignal::new(today());
+    view! {
+        <DayCard day=day />
+        <HydrateDay day=day />
+        <ExploreInStats />
     }
 }

@@ -12,6 +12,7 @@ use crate::screens::fields::{DateField, FigureField};
 use crate::screens::fuel::FuelDay;
 use crate::screens::gauge::AimGauge;
 use crate::screens::hydrate::HydrateDay;
+use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -269,6 +270,16 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                 </tfoot>
             </table>
         </section>
+    }
+}
+
+#[component]
+pub fn GatherTab() -> impl IntoView {
+    let day = RwSignal::new(today());
+    view! {
+        <DayCard day=day />
+        <GatherDay day=day />
+        <ExploreInStats />
     }
 }
 

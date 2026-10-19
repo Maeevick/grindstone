@@ -14,6 +14,7 @@ pub mod profile;
 pub mod references;
 pub mod settings;
 pub mod stats;
+pub mod tab;
 pub mod tracker;
 
 pub fn today() -> String {
