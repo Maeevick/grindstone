@@ -73,6 +73,7 @@ struct Week {
 /// Health first: a loss under the healthy mass or fat, or past the safe loss, is dangerous whatever the aim.
 fn judgement_of(week: &Week) -> Judgement {
     let losing = week.per_week < -STABLE_SHARE_A_WEEK * week.body_mass_kg;
+    let gaining = week.per_week > STABLE_SHARE_A_WEEK * week.body_mass_kg;
     let towards_a_lower_aim = week.aim_kg.is_some_and(|aim| aim < week.body_mass_kg);
     if losing
         && week
@@ -93,6 +94,8 @@ fn judgement_of(week: &Week) -> Judgement {
         Judgement::VeryGood
     } else if towards_a_lower_aim && losing {
         Judgement::Good
+    } else if towards_a_lower_aim && gaining {
+        Judgement::WrongWay
     } else {
         Judgement::Stable
     }
