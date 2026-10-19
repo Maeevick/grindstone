@@ -203,7 +203,8 @@ mod tests {
 
         assert_eq!(pace.judgement, Judgement::LosingTooFast);
         assert!(
-            (pace.safe_loss_kg - 48.5 * fat_kg_of(&losing_a_kilo_a_week) * 7.0 / 7700.0).abs()
+            (pace.safe_loss_kg - 290.0 / 4.184 * fat_kg_of(&losing_a_kilo_a_week) * 7.0 / 7700.0)
+                .abs()
                 < 1e-9
         );
     }

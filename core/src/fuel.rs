@@ -484,7 +484,7 @@ mod tests {
         );
         assert!(fuelled.band.is_some_and(|band| about(
             band.floor_kcal,
-            (budget.kcal() + burnt - 48.5 * fat_kg).max(25.0 * lean_kg + burnt)
+            (budget.kcal() + burnt - 290.0 / 4.184 * fat_kg).max(25.0 * lean_kg + burnt)
         )));
         assert_eq!(fuelled.budget, Some(budget));
     }
