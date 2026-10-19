@@ -2682,6 +2682,33 @@ async fn a_drink_logged_in_its_tab_reaches_todays_tile_at_once() {
 }
 
 #[wasm_bindgen_test]
+async fn the_drink_chooser_offers_water_then_the_other_drinks_each_in_alphabetical_order_behind_its_icon()
+ {
+    answering(&format!(
+        r#"{{ "drinks": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }},
+                        {{ "name": "Water", "volume_ml": 250.0, "kind": "Water" }},
+                        {{ "name": "Expresso", "volume_ml": 80.0, "kind": "Other" }},
+                        {{ "name": "Eau pétillante", "volume_ml": 330.0, "kind": "Water" }}],
+             "hydrate_day": {A_DRY_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
+    settled().await;
+
+    focused(&screen, "drink");
+    settled().await;
+    let offered = choices(&screen);
+    picked(&screen, "💧 Water");
+    settled().await;
+
+    assert_eq!(
+        offered,
+        ["💧 Eau pétillante", "💧 Water", "☕ Expresso", "☕ Tea"]
+    );
+    assert_eq!(value_of(&screen, "drink"), "Water");
+}
+
+#[wasm_bindgen_test]
 async fn the_drink_chooser_starts_on_select_me_and_a_volume_left_empty_logs_one_serving() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY}, "log_drink": {A_DRY_DAY} }}"#
@@ -2694,7 +2721,7 @@ async fn the_drink_chooser_starts_on_select_me_and_a_volume_left_empty_logs_one_
 
     focused(&screen, "drink");
     settled().await;
-    picked(&screen, "Tea");
+    picked(&screen, "☕ Tea");
     settled().await;
     let volume: HtmlInputElement = found(&screen, "input[name=volume]");
     assert_eq!(volume.placeholder(), "200");
