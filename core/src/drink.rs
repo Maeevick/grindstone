@@ -23,7 +23,7 @@ pub fn drink(
     name: &str,
     volume_ml: f64,
     kind: DrinkKind,
-    _description: &str,
+    description: &str,
 ) -> Result<Drink, Refusal> {
     let name = name.trim();
     if name.is_empty() {
@@ -33,7 +33,7 @@ pub fn drink(
         name: name.into(),
         volume_ml: volume(volume_ml)?,
         kind,
-        description: String::new(),
+        description: description.trim().into(),
     })
 }
 
