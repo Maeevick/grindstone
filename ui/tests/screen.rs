@@ -1948,7 +1948,7 @@ fn shown_in_order(screen: &Element) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
-async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_stats_then_its_shelf()
+async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_its_grimoire_then_stats()
  {
     let a_day_in_each_tab = format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
@@ -1990,9 +1990,8 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The four macros",
                 "The day's intakes",
                 "The last days",
-                "Explore in Stats",
-                "Add to the catalog",
-                "On the shelf"
+                "Open the grimoire",
+                "Explore in Stats"
             ],
             vec![
                 "Today",
@@ -2001,9 +2000,8 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The day's drinks",
                 "The last days",
-                "Explore in Stats",
-                "Add to the catalog",
-                "On the shelf"
+                "Open the grimoire",
+                "Explore in Stats"
             ],
             vec![
                 "Today",
@@ -2012,16 +2010,65 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The day's expenditures",
                 "The last days",
-                "Explore in Stats",
-                "Add to the catalog",
-                "On the shelf"
+                "Open the grimoire",
+                "Explore in Stats"
             ],
         ]
     );
 }
 
 #[wasm_bindgen_test]
-async fn a_drink_added_and_logged_in_its_tab_joins_its_shelf_at_once() {
+async fn each_grimoire_opens_from_its_tab_on_a_page_of_its_own_holding_the_shelf_its_tab_still_lit()
+{
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let (mut opened, mut shown, mut lit) = (Vec::new(), Vec::new(), Vec::new());
+    for tab in ["/fuel", "/hydrate", "/burn"] {
+        went_to(tab);
+        settled().await;
+        let grimoire = attributes_of(&screen, "main.wrap > a.grimoire", "href").concat();
+        went_to(&grimoire);
+        settled().await;
+        opened.push(grimoire);
+        shown.push(shown_in_order(&screen));
+        lit.push(attributes_of(&screen, "nav.tabs a[aria-current='page']", "aria-label").concat());
+    }
+
+    assert_eq!(
+        opened,
+        ["/fuel/grimoire", "/hydrate/grimoire", "/burn/grimoire"]
+    );
+    assert_eq!(
+        shown,
+        [
+            vec![
+                "Today",
+                "Fuel's grimoire",
+                "Add to the catalog",
+                "On the shelf"
+            ],
+            vec![
+                "Today",
+                "Hydrate's grimoire",
+                "Add to the catalog",
+                "On the shelf"
+            ],
+            vec![
+                "Today",
+                "Burn's grimoire",
+                "Add to the catalog",
+                "On the shelf"
+            ],
+        ]
+    );
+    assert_eq!(lit, ["Fuel", "Hydrate", "Burn"]);
+}
+
+#[wasm_bindgen_test]
+async fn a_drink_added_and_logged_in_its_tab_joins_its_grimoire() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
     let _mounted = the_app(&screen);
@@ -2042,17 +2089,19 @@ async fn a_drink_added_and_logged_in_its_tab_joins_its_shelf_at_once() {
         .expect("the new drink is added, then logged");
     settled().await;
     settled().await;
+    went_to("/hydrate/grimoire");
+    settled().await;
 
     assert!(text_of(&screen, "table.drinks tbody").contains("Kombucha"));
 }
 
 #[wasm_bindgen_test]
-async fn a_food_added_on_the_shelf_is_offered_by_the_fuel_form_at_once() {
+async fn a_food_added_in_the_grimoire_is_offered_by_the_fuel_form() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
     let _mounted = the_app(&screen);
     settled().await;
-    went_to("/fuel");
+    went_to("/fuel/grimoire");
     settled().await;
 
     let added = format!(r#"{{ "foods": [{KEFIR}], "add_food": [{KEFIR}] }}"#);
@@ -2063,6 +2112,8 @@ async fn a_food_added_on_the_shelf_is_offered_by_the_fuel_form_at_once() {
         .request_submit()
         .expect("the food is added");
     settled().await;
+    settled().await;
+    went_to("/fuel");
     settled().await;
     typed_into(&screen, "food", "kefir");
     settled().await;
