@@ -12,6 +12,18 @@ pub struct Aims {
     pub recommended: bool,
 }
 
+impl Aims {
+    /// The fat mass the aims leave: the body mass less the lean.
+    pub fn fat_mass_kg(&self) -> f64 {
+        0.0
+    }
+
+    /// The fat ratio the aims leave: the share of the body mass the lean does not take.
+    pub fn fat_ratio(&self) -> f64 {
+        0.0
+    }
+}
+
 /// The body mass and the lean mass a day aims for: the goals in force, else the healthy weight and fat
 /// recommended for the profile in force (WHO's body mass index, Gallagher's fat), the lean mass being what
 /// their fat ratio leaves of their body mass.
@@ -76,6 +88,26 @@ mod tests {
         assert!((aims.body_mass_kg - 70.0).abs() < 1e-9);
         assert!((aims.lean_mass_kg - 70.0 * 0.88).abs() < 1e-9);
         assert!(!aims.recommended);
+    }
+
+    #[test]
+    fn the_aims_leave_a_fat_mass_and_a_fat_ratio() {
+        let aims = Aims {
+            body_mass_kg: 70.0,
+            lean_mass_kg: 61.6,
+            recommended: false,
+        };
+
+        assert!(
+            (aims.fat_mass_kg() - 8.4).abs() < 1e-9,
+            "{}",
+            aims.fat_mass_kg()
+        );
+        assert!(
+            (aims.fat_ratio() - 0.12).abs() < 1e-9,
+            "{}",
+            aims.fat_ratio()
+        );
     }
 
     #[test]
