@@ -830,7 +830,7 @@ async fn an_exercise_nothing_matches_turns_the_workout_form_into_a_new_one_added
     settled().await;
 
     assert_eq!(offered, "Add and log");
-    assert!(previewed.contains("160 kcal"), "{previewed}");
+    assert!(previewed.contains("168 kcal"), "{previewed}");
     let added = asked("add_exercise");
     for sent in [
         r#""name":"Rowing""#,

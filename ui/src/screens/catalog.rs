@@ -34,7 +34,7 @@ fn NewExercise(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> im
         };
         let met_typed = met_typed.unwrap_or(0.0);
         spawn_local(async move {
-            match tauri::add_exercise(&named, met_typed).await {
+            match tauri::add_exercise(&named, met_typed, "").await {
                 Ok(known) => {
                     exercises.set(known);
                     name.set(String::new());

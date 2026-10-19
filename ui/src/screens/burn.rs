@@ -1,7 +1,8 @@
 use std::cmp::Reverse;
 
 use grind_core::burn::{Burn, BurntWorkout};
-use grind_core::exercise::Exercise;
+use grind_core::exercise::{Exercise, exercise as exercise_of};
+use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_burning::{
     DEFAULT_LOAD_KG, DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS, OffTheClockForm, WorkoutForm,
@@ -11,7 +12,7 @@ use grind_core::workout::{burnt_by, workout};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::chosen;
+use crate::choice::{chosen, nothing_matches};
 use crate::screens::catalog::BurnShelf;
 use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
@@ -90,6 +91,47 @@ fn neat_row(activity: &'static str, kcal: f64) -> impl IntoView {
     }
 }
 
+/// What an exercise new to the catalog is typed with, its name aside.
+#[derive(Clone, Copy)]
+struct NewExerciseFigures {
+    description: RwSignal<String>,
+    met: RwSignal<String>,
+}
+
+impl NewExerciseFigures {
+    fn new() -> Self {
+        Self {
+            description: RwSignal::new(String::new()),
+            met: RwSignal::new(String::new()),
+        }
+    }
+
+    fn cleared(self) {
+        self.description.set(String::new());
+        self.met.set(String::new());
+    }
+}
+
+#[component]
+fn NewExerciseFields(name: RwSignal<String>, figures: NewExerciseFigures) -> impl IntoView {
+    view! {
+        <p class="new">{move || format!("New {}", name.get().trim())}</p>
+        <div class="row">
+            <label class="field grow2">
+                "Description"
+                <input
+                    name="new_exercise_description"
+                    autocomplete="off"
+                    placeholder="Optional"
+                    prop:value=move || figures.description.get()
+                    on:input=move |event| figures.description.set(event_target_value(&event))
+                />
+            </label>
+            <FigureField label="MET" name="new_exercise_met" value=figures.met />
+        </div>
+    }
+}
+
 #[component]
 pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let burn = RwSignal::new(None::<Burn>);
@@ -126,12 +168,23 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         recorded.told();
     });
     let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
+    let figures = NewExerciseFigures::new();
+    let creating = Memo::new(move |_| nothing_matches(&names.get(), &exercise.get()));
+    let new_exercise = move || {
+        let [met] = figures_typed([&figures.met.get()])?;
+        exercise_of(
+            &exercise.get(),
+            met.unwrap_or(0.0),
+            &figures.description.get(),
+        )
+        .ok()
+    };
+    let chosen_exercise = move || {
+        chosen(&names.get(), &exercise.get())
+            .and_then(|named| catalog.get().into_iter().find(|known| known.name == named))
+    };
     let preview = move || {
-        let named = chosen(&names.get(), &exercise.get())?;
-        let known = catalog
-            .get()
-            .into_iter()
-            .find(|known| known.name == named)?;
+        let known = chosen_exercise().or_else(|| creating.get().then(new_exercise).flatten())?;
         let [minutes_typed, load_typed] = figures_typed([&minutes.get(), &load.get()])?;
         let done = workout(
             &day.get(),
@@ -167,19 +220,27 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             }
         });
     });
+    let logged = move |answer: Result<Burn, Failure>| match answer {
+        Ok(answer) => {
+            shown_burn.run(answer);
+            for typed in [exercise, minutes, reps, sets, load] {
+                typed.set(String::new());
+            }
+            figures.cleared();
+            said.set(None);
+            recorded.told();
+        }
+        Err(failure) => said.set(Some(lines::failure(&failure))),
+    };
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some(name) = chosen(&names.get_untracked(), &exercise.get_untracked()) else {
-            said.set(Some(lines::CHOOSE_FIRST.into()));
-            return;
-        };
         let Some([minutes_typed, load_typed]) =
             figures_typed([&minutes.get_untracked(), &load.get_untracked()])
         else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
-        let form = WorkoutForm {
+        let form = |name: String| WorkoutForm {
             date: day.get_untracked(),
             exercise: name,
             minutes: minutes_typed,
@@ -187,19 +248,31 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             sets: count_typed(&sets.get_untracked()),
             load_kg: load_typed,
         };
-        spawn_local(async move {
-            match tauri::log_workout(&form).await {
-                Ok(answer) => {
-                    shown_burn.run(answer);
-                    for typed in [exercise, minutes, reps, sets, load] {
-                        typed.set(String::new());
+        if creating.get_untracked() {
+            let Some([met]) = figures_typed([&figures.met.get_untracked()]) else {
+                said.set(Some(lines::UNREADABLE.into()));
+                return;
+            };
+            let name = exercise.get_untracked().trim().to_string();
+            let description = figures.description.get_untracked();
+            let form = form(name.clone());
+            spawn_local(async move {
+                match tauri::add_exercise(&name, met.unwrap_or(0.0), &description).await {
+                    Ok(known) => {
+                        catalog.set(known);
+                        logged(tauri::log_workout(&form).await);
                     }
-                    said.set(None);
-                    recorded.told();
+                    Err(failure) => said.set(Some(lines::failure(&failure))),
                 }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
+            });
+            return;
+        }
+        let Some(name) = chosen(&names.get_untracked(), &exercise.get_untracked()) else {
+            said.set(Some(lines::CHOOSE_FIRST.into()));
+            return;
+        };
+        let form = form(name);
+        spawn_local(async move { logged(tauri::log_workout(&form).await) });
     };
     let keep_off_the_clock = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
@@ -262,6 +335,11 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                     placeholder=typed_back(DEFAULT_MINUTES)
                                 />
                             </div>
+                            {move || {
+                                creating
+                                    .get()
+                                    .then(|| view! { <NewExerciseFields name=exercise figures=figures /> })
+                            }}
                             <div class="row">
                                 <FigureField
                                     label="Reps"
@@ -284,7 +362,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                             </div>
                             {preview_line(preview)}
                             <button class="cta" type="submit">
-                                "Burn"
+                                {move || if creating.get() { "Add and log" } else { "Burn" }}
                             </button>
                         </form>
                     }

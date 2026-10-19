@@ -148,6 +148,7 @@ struct Naming<'a> {
 struct Cataloguing<'a> {
     name: &'a str,
     met: f64,
+    description: &'a str,
 }
 
 pub async fn burn_day(date: &str) -> Result<Burn, Failure> {
@@ -170,8 +171,21 @@ pub async fn exercises() -> Result<Vec<Exercise>, Failure> {
     call("exercises", Nothing {}, broken).await
 }
 
-pub async fn add_exercise(name: &str, met: f64) -> Result<Vec<Exercise>, Failure> {
-    call("add_exercise", Cataloguing { name, met }, broken).await
+pub async fn add_exercise(
+    name: &str,
+    met: f64,
+    description: &str,
+) -> Result<Vec<Exercise>, Failure> {
+    call(
+        "add_exercise",
+        Cataloguing {
+            name,
+            met,
+            description,
+        },
+        broken,
+    )
+    .await
 }
 
 pub async fn remove_exercise(name: &str) -> Result<Vec<Exercise>, Failure> {
