@@ -493,6 +493,29 @@ mod tests {
     }
 
     #[test]
+    fn a_session_with_an_exercise_missing_from_the_catalog_logs_none_of_its_steps() {
+        let (gather, burn) = (GatherRecordsInMemory::default(), a_lab_with_morning_rust());
+
+        let refused = log_session(
+            &gather,
+            &burn,
+            &a_session(
+                &[
+                    ("Push up", Some(12), 0.5, 0.0),
+                    ("Moonwalk", None, 3.0, 0.0),
+                ],
+                None,
+            ),
+        );
+
+        assert_eq!(refused, Err(Failure::Refused(Refusal::NotAnExercise)));
+        assert_eq!(
+            burn_day(&gather, &burn, "2026-10-10").map(|burnt| burnt.workouts.len()),
+            Ok(0)
+        );
+    }
+
+    #[test]
     fn a_circuit_logged_burns_its_sets_times_what_a_set_burns_at_the_body_mass_in_force() {
         let gather = GatherRecordsInMemory::default();
         log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");
