@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 27] = [
+pub const REFERENCES: [Reference; 32] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -76,6 +76,51 @@ pub const REFERENCES: [Reference; 27] = [
         published_in: "American Journal of Clinical Nutrition 72(3):694-701",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/10966886/"),
         used_for: "The healthy body fat by age and gender (table 4), behind the recommended fat",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "Helms E. R., Aragon A. A., Fitschen P. J.",
+        year: 2014,
+        title: "Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation",
+        published_in: "Journal of the International Society of Sports Nutrition 11:20",
+        page: Some("https://doi.org/10.1186/1550-2783-11-20"),
+        used_for: "A loss of 0.5 to 1% of the body mass a week, the pace that keeps the muscle",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "Garthe I., Raastad T., Refsnes P. E., et al.",
+        year: 2011,
+        title: "Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes",
+        published_in: "International Journal of Sport Nutrition and Exercise Metabolism 21(2):97-104",
+        page: Some("https://www.sponet.de/sponet/Record/4020931"),
+        used_for: "Losing 0.7% a week kept more lean mass than 1.4%: why a fast loss is judged dangerous",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "Iraki J., Fitschen P., Espinar S., et al.",
+        year: 2019,
+        title: "Nutrition recommendations for bodybuilders in the off-season: a narrative review",
+        published_in: "Sports 7(7):154",
+        page: Some("https://doi.org/10.3390/sports7070154"),
+        used_for: "A gain of 0.25 to 0.5% of the body mass a week, more built than stored",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "National Institute for Health and Care Excellence",
+        year: 2025,
+        title: "Overweight and obesity management",
+        published_in: "NICE guideline NG246",
+        page: Some("https://www.nice.org.uk/guidance/ng246"),
+        used_for: "No more than 0.5 to 1 kg lost a week",
+    },
+    Reference {
+        topic: Topic::HealthyRanges,
+        authors: "Wishnofsky M.",
+        year: 1958,
+        title: "Caloric equivalent of gained or lost weight",
+        published_in: "American Journal of Clinical Nutrition 6(5):542-546",
+        page: Some("https://doi.org/10.1093/ajcn/6.5.542"),
+        used_for: "About 7,700 kcal a kilo of fat tissue, to turn what the fat store can spare into kilos a week",
     },
     Reference {
         topic: Topic::Energy,

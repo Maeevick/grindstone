@@ -55,7 +55,7 @@ const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
 ///   Exerc Metab 21(2):97-104.
 /// - No more than 0.5 to 1 kg a week: NICE (2025), *Overweight and obesity management*, NG246.
 /// - What the fat store can spare, about 48.5 kcal per kilo of fat a day: Alpert S. S. (2005), J Theor Biol
-///   233(1):1-13; about 7,700 kcal a kilo of fat tissue: Wishnofsky M. (1958), Am J Clin Nutr 6(5):542-546.
+///   233(1):1-13; about 7,700 kcal a kilo of fat tissue: Wishnofsky M. (1958), *Caloric equivalent of gained or lost weight*, Am J Clin Nutr 6(5):542-546.
 fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
     let spared = fat_kg.map_or(f64::INFINITY, |fat_kg| {
         SPARED_KCAL_PER_KG_OF_FAT * fat_kg * DAYS_A_WEEK / KCAL_PER_KG_OF_FAT_TISSUE
