@@ -16,7 +16,8 @@ pub enum Judgement {
 }
 
 const GAIN_SHARE_A_WEEK_FROM: f64 = 0.0025;
-const AT_THE_AIM_SHARE: f64 = 0.01;
+/// Within 1% of its aim, a body mass stands at it.
+pub const AT_THE_AIM_SHARE: f64 = 0.01;
 const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
 
 /// A week of the body mass, as it is judged.

@@ -1,9 +1,10 @@
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::fuel::Band;
 use grind_core::heading::Aim;
+use grind_core::judgement::AT_THE_AIM_SHARE;
 use leptos::prelude::*;
 
-use crate::chart::{AIM_GRACE, aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
+use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
 
 #[component]
 pub fn Gauge(
@@ -35,7 +36,11 @@ pub fn Gauge(
 pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -> impl IntoView {
     let placed = aim_gauge_of(amount, aim, 360.0);
     let (low, value, high) = match aim {
-        Aim::Reach(value) => ((1.0 - AIM_GRACE) * value, value, (1.0 + AIM_GRACE) * value),
+        Aim::Reach(value) => (
+            (1.0 - AT_THE_AIM_SHARE) * value,
+            value,
+            (1.0 + AT_THE_AIM_SHARE) * value,
+        ),
         Aim::Floor(value) => (placed.from, value, placed.up_to),
     };
     let aimed = if recommended { "healthy" } else { "goal" };

@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use grind_core::heading::Aim;
+use grind_core::judgement::AT_THE_AIM_SHARE;
 
 fn placed(value: f64, (lowest, highest): (f64, f64), length: f64) -> f64 {
     if highest > lowest {
@@ -116,10 +117,9 @@ pub struct AimGauge {
 }
 
 const AIM_GAUGE_SPAN: f64 = 0.10;
-pub const AIM_GRACE: f64 = 0.01;
 
-/// A line a tenth either side of the aim, stretched to the amount: green a twentieth either side of a value
-/// to reach, and from a floor's tick to the end.
+/// A line a tenth either side of the aim, stretched to the amount: green where a value to reach stands at its
+/// aim, and from a floor's tick to the end.
 pub fn aim_gauge_of(amount: f64, aim: Aim, width: f64) -> AimGauge {
     let (Aim::Reach(value) | Aim::Floor(value)) = aim;
     let scale = (
@@ -128,8 +128,8 @@ pub fn aim_gauge_of(amount: f64, aim: Aim, width: f64) -> AimGauge {
     );
     let (band_from, band_to) = match aim {
         Aim::Reach(_) => (
-            placed((1.0 - AIM_GRACE) * value, scale, width),
-            placed((1.0 + AIM_GRACE) * value, scale, width),
+            placed((1.0 - AT_THE_AIM_SHARE) * value, scale, width),
+            placed((1.0 + AT_THE_AIM_SHARE) * value, scale, width),
         ),
         Aim::Floor(_) => (placed(value, scale, width), width),
     };
