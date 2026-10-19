@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::fuel::{Band, Fuel, MacroRow, Macros};
 use crate::sharpening::Habit;
+use crate::verdict::Verdict;
 use crate::week::{Averaged, Banded, averaged};
 
 /// What the week ate, a day, over the days a band judged: the energy and each of the four macros against
@@ -26,15 +27,15 @@ pub struct Gap {
 impl FuelWeek {
     /// What runs short of its band, furthest first by the share of its floor it misses.
     pub fn short(&self) -> Vec<Gap> {
-        self.off_band(|gap| gap < 0.0, |row| row.floor)
+        self.off_band(Verdict::Low, |row| row.floor)
     }
 
     /// What runs over its band, furthest first by the share of its ceiling it passes.
     pub fn over(&self) -> Vec<Gap> {
-        self.off_band(|gap| gap > 0.0, |row| row.ceiling)
+        self.off_band(Verdict::High, |row| row.ceiling)
     }
 
-    fn off_band(&self, side: fn(f64) -> bool, bound: fn(&Averaged) -> f64) -> Vec<Gap> {
+    fn off_band(&self, side: Verdict, bound: fn(&Averaged) -> f64) -> Vec<Gap> {
         let mut off: Vec<(Gap, f64)> = [
             (Habit::Energy, self.energy),
             (Habit::Protein, self.protein),
@@ -43,8 +44,9 @@ impl FuelWeek {
             (Habit::Carbs, self.carbs),
         ]
         .into_iter()
+        .filter(|(_, row)| row.verdict() == side)
         .filter_map(|(habit, row)| {
-            let per_day = row.gap().filter(|gap| side(*gap))?;
+            let per_day = row.gap()?;
             Some((Gap { habit, per_day }, per_day.abs() / bound(&row)))
         })
         .collect();
