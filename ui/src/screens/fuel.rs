@@ -450,12 +450,20 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
+/// The week up to the tab's day, a logged day on average, against the bands.
+#[component]
+pub fn FuelWeekCard(day: RwSignal<String>) -> impl IntoView {
+    let _ = day;
+    view! { <section class="card week"></section> }
+}
+
 #[component]
 pub fn FuelTab() -> impl IntoView {
     let day = RwSignal::new(today());
     view! {
         <DayCard day=day />
         <FuelDay day=day />
+        <FuelWeekCard day=day />
         <FuelLastDays day=day />
         <GrimoireBesideTheNumbers grimoire="/fuel/grimoire" />
     }

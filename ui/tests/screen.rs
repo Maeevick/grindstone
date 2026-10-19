@@ -5,7 +5,7 @@ use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
-use grind_ui::screens::fuel::FuelDay;
+use grind_ui::screens::fuel::{FuelDay, FuelWeekCard};
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
 use grind_ui::screens::last_days::FuelLastDays;
@@ -1223,6 +1223,80 @@ fn the_fuel_day(screen: &Element) -> impl Drop {
     })
 }
 
+fn the_fuel_week(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelWeekCard day=day />
+            </Router>
+        }
+    })
+}
+
+const A_FUEL_WEEK: &str = r#"{ "logged_days": 6,
+    "energy": { "per_day": 2100.0, "floor": 1800.0, "ceiling": 2400.0, "in_band": 4 },
+    "protein": { "per_day": 96.0, "floor": 115.0, "ceiling": 190.0, "in_band": 1 },
+    "fat": { "per_day": 71.0, "floor": 48.0, "ceiling": 57.0, "in_band": 2 },
+    "fibre": { "per_day": 19.0, "floor": 25.0, "ceiling": 60.0, "in_band": 0 },
+    "carbs": { "per_day": 330.0, "floor": 200.0, "ceiling": 310.0, "in_band": 2 } }"#;
+
+#[wasm_bindgen_test]
+async fn the_weeks_average_tells_each_measure_a_day_against_its_band_and_how_many_days_stood_in_it()
+{
+    answering(&format!(r#"{{ "fuel_week": {A_FUEL_WEEK} }}"#));
+    let screen = screen();
+    let _mounted = the_fuel_week(&screen);
+    settled().await;
+
+    assert_eq!(text_of(&screen, ".week h2"), "The week's average");
+    assert_eq!(
+        cells_by_row(&screen, ".week tbody tr"),
+        [
+            ["Energy (kcal)", "2100", "1800–2400", "4/6"],
+            ["Protein (g)", "96", "115–190", "1/6"],
+            ["Fat (g)", "71", "48–57", "2/6"],
+            ["Fibre (g)", "19", "25–60", "0/6"],
+            ["Carbs (g)", "330", "200–310", "2/6"]
+        ]
+    );
+    assert_eq!(
+        attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
+        ["good", "low", "high", "low", "high"]
+    );
+    assert_eq!(text_of(&screen, ".week p.hint"), "Over 6 logged days.");
+}
+
+#[wasm_bindgen_test]
+async fn the_weeks_tip_names_what_runs_short_then_what_runs_over_furthest_first_between_quotation_marks()
+ {
+    answering(&format!(r#"{{ "fuel_week": {A_FUEL_WEEK} }}"#));
+    let screen = screen();
+    let _mounted = the_fuel_week(&screen);
+    settled().await;
+
+    let tip = text_of(&screen, ".week p.tip");
+
+    assert!(
+        tip.starts_with(
+            "“Short on fibre (-6 g a day) and protein (-19 g), over on fat (+14 g) and carbs (+20 g). "
+        ) && tip.ends_with('”'),
+        "{tip}"
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_week_without_a_finished_logged_day_says_there_is_nothing_to_average_yet() {
+    answering(r#"{ "fuel_week": null }"#);
+    let screen = screen();
+    let _mounted = the_fuel_week(&screen);
+    settled().await;
+
+    let said = text_of(&screen, ".week p.empty");
+
+    assert!(said.contains("No finished day"), "{said}");
+}
+
 fn focused(screen: &Element, name: &str) {
     found::<HtmlInputElement>(screen, &format!("input[name={name}]"))
         .dispatch_event(&Event::new("focus").expect("a focus event"))
@@ -1957,7 +2031,7 @@ const A_HOME: &str = r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "M
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
                  "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#;
 
-const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [],
+const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null,
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
         "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
 
@@ -2065,6 +2139,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The four macros",
                 "The day's intakes",
+                "The week's average",
                 "The last days",
                 "📚 Open the grimoire | 🎱 Explore the numbers"
             ],
