@@ -457,7 +457,7 @@ fn streak_cell(status: Option<Status>) -> impl IntoView {
     }
 }
 
-fn header(name: &'static str, unit: &'static str) -> impl IntoView {
+pub(crate) fn header(name: &'static str, unit: &'static str) -> impl IntoView {
     view! {
         {name}
         {(!unit.is_empty())
@@ -470,7 +470,7 @@ fn header(name: &'static str, unit: &'static str) -> impl IntoView {
     }
 }
 
-fn bare_or_blank(value: Option<f64>, figure: fn(f64) -> Figure) -> String {
+pub(crate) fn bare_or_blank(value: Option<f64>, figure: fn(f64) -> Figure) -> String {
     value.map(|value| bare(figure(value))).unwrap_or_default()
 }
 
@@ -484,7 +484,7 @@ fn gather_cells(row: GatherRow) -> impl IntoView {
     }
 }
 
-fn fuel_cells(row: FuelRow) -> impl IntoView {
+pub(crate) fn fuel_cells(row: FuelRow) -> impl IntoView {
     view! {
             <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Energy(row.eaten.energy_kcal))}</td>
@@ -495,7 +495,7 @@ fn fuel_cells(row: FuelRow) -> impl IntoView {
     }
 }
 
-fn hydrate_cells(row: HydrateRow) -> impl IntoView {
+pub(crate) fn hydrate_cells(row: HydrateRow) -> impl IntoView {
     view! {
             <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Volume(row.drunk_ml))}</td>
@@ -503,7 +503,7 @@ fn hydrate_cells(row: HydrateRow) -> impl IntoView {
     }
 }
 
-fn burn_cells(row: BurnRow) -> impl IntoView {
+pub(crate) fn burn_cells(row: BurnRow) -> impl IntoView {
     view! {
             <td>{row.day.to_string()}</td>
             <td>{bare_or_blank(row.burnt_kcal, Figure::Energy)}</td>

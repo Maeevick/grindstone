@@ -467,6 +467,16 @@ pub const NOTHING_TO_CHART: &str = "Nothing filed in this window yet. The parchm
 
 pub const NOTHING_THIS_MONTH: &str = "Nothing filed this month yet.";
 
+pub const NOTHING_THESE_DAYS: &str = "Nothing filed these days yet.";
+
+pub fn load_the_rest_of(month: &str) -> String {
+    format!("Load the rest of {}", month_name(month))
+}
+
+pub fn load_the_month(month: &str) -> String {
+    format!("Load {}", month_name(month))
+}
+
 fn habit_name(habit: Habit) -> &'static str {
     match habit {
         Habit::Energy => "Energy",
