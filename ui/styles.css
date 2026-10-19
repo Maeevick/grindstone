@@ -602,11 +602,6 @@ select {
 	color: var(--acc);
 }
 
-.last-days tfoot td {
-	border-top: 2px solid var(--line);
-	font-weight: 600;
-}
-
 .toward {
 	color: var(--ok);
 }

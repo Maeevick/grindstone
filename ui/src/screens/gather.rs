@@ -1,20 +1,16 @@
-use grind_core::figures::{Figure, bare, shown, signed, typed_back};
+use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::for_tracking::GatherWeek;
-use grind_core::ledger::Day;
 use grind_core::tendency::{Change, Heading};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::screens::fields::FigureField;
 use crate::screens::gauge::AimGauge;
+use crate::screens::last_days::GatherLastDays;
 use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
-
-fn bare_or_blank(figure: Option<Figure>) -> String {
-    figure.map(bare).unwrap_or_default()
-}
 
 fn pace_line(
     name: &'static str,
@@ -44,43 +40,6 @@ fn pace_line(
             </li>
         }
     })
-}
-
-fn tendency_cell(change: Option<Change>, figure: fn(f64) -> Figure) -> impl IntoView {
-    let (class, text) = match change {
-        None => ("", String::new()),
-        Some(change) => match change.heading {
-            Heading::Steady => ("steady", "-".to_string()),
-            Heading::Toward => ("toward", signed(figure(change.by))),
-            Heading::Away => ("away", signed(figure(change.by))),
-            Heading::Unaimed => ("unaimed", signed(figure(change.by))),
-        },
-    };
-    view! { <td class=class>{text}</td> }
-}
-
-#[component]
-fn DayRow(day: Day, chosen: bool, remove: Callback<String>) -> impl IntoView {
-    let date = day.day.to_string();
-    view! {
-        <tr class:chosen=chosen>
-            <td>{day.day.to_string()}</td>
-            <td>{bare(Figure::Mass(day.body_mass_kg))}</td>
-            <td>{bare_or_blank(day.waist_cm.map(Figure::Length))}</td>
-            <td>{bare_or_blank(day.composition.map(|split| Figure::Ratio(split.fat_ratio)))}</td>
-            <td>{bare_or_blank(day.composition.map(|split| Figure::Mass(split.lean_mass_kg)))}</td>
-            <td>
-                <button
-                    class="remove"
-                    type="button"
-                    on:click=move |_| remove.run(date.clone())
-                    aria-label="Remove this day"
-                >
-                    "×"
-                </button>
-            </td>
-        </tr>
-    }
 }
 
 #[component]
@@ -115,22 +74,18 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
         });
     };
     Effect::new(move |_| load(day.get()));
-    let remove = Callback::new(move |date: String| {
-        let chosen = day.get_untracked();
+    let remove = move |_| {
+        let date = day.get_untracked();
         spawn_local(async move {
             match tauri::remove_measurement(&date).await {
-                Ok(answer) if date == chosen => {
+                Ok(answer) => {
                     shown_week.run(answer);
-                    recorded.told();
-                }
-                Ok(_) => {
-                    load(chosen);
                     recorded.told();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
-    });
+    };
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let date = day.get_untracked();
@@ -164,6 +119,16 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                 <button class="cta" type="submit">
                     "Gather"
                 </button>
+                {move || {
+                    (!unrecorded.get())
+                        .then(|| {
+                            view! {
+                                <button class="cta ghost remove-weigh-in" type="button" on:click=remove>
+                                    "Remove this weigh-in"
+                                </button>
+                            }
+                        })
+                }}
                 {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
             </form>
         </section>
@@ -226,53 +191,6 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                     }
                 })
         }}
-        <section class="card last-days">
-            <h2>"The last days"</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>"Day"</th>
-                        <th>"Mass (kg)"</th>
-                        <th>"Waist (cm)"</th>
-                        <th>"Fat (%)"</th>
-                        <th>"Lean (kg)"</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {move || {
-                        let chosen = day.get();
-                        week.get()
-                            .map(|answer| answer.days)
-                            .unwrap_or_default()
-                            .into_iter()
-                            .map(|measured| {
-                                let is_chosen = measured.day.to_string() == chosen;
-                                view! { <DayRow day=measured chosen=is_chosen remove=remove /> }
-                            })
-                            .collect_view()
-                    }}
-                </tbody>
-                <tfoot>
-                    {move || {
-                        week.get()
-                            .map(|answer| {
-                                let tendency = answer.tendency;
-                                view! {
-                                    <tr class="tendency">
-                                        <td>"Tendency"</td>
-                                        {tendency_cell(tendency.body_mass, Figure::Mass)}
-                                        {tendency_cell(tendency.waist, Figure::Length)}
-                                        {tendency_cell(tendency.fat_ratio, Figure::Ratio)}
-                                        {tendency_cell(tendency.lean_mass, Figure::Mass)}
-                                        <td></td>
-                                    </tr>
-                                }
-                            })
-                    }}
-                </tfoot>
-            </table>
-        </section>
     }
 }
 
@@ -282,6 +200,7 @@ pub fn GatherTab() -> impl IntoView {
     view! {
         <DayCard day=day />
         <GatherDay day=day />
+        <GatherLastDays day=day />
         <ExploreInStats />
     }
 }

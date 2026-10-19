@@ -13,6 +13,7 @@ use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
+use crate::screens::last_days::FuelLastDays;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
 use crate::screens::tab::{DayCard, ExploreInStats};
 use crate::screens::{Recorded, lines, today};
@@ -441,6 +442,7 @@ pub fn FuelTab() -> impl IntoView {
     view! {
         <DayCard day=day />
         <FuelDay day=day />
+        <FuelLastDays day=day />
         <ExploreInStats />
         <FuelShelf />
     }
