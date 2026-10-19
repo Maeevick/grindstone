@@ -75,3 +75,87 @@ pub fn judgement_of(week: &Week) -> Judgement {
         Judgement::Stable
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const A_BODY_KG: f64 = 64.0;
+
+    fn a_week(per_week: f64, aim_kg: Option<f64>) -> Week {
+        Week {
+            per_week,
+            body_mass_kg: A_BODY_KG,
+            fat_ratio: None,
+            healthy_mass_from_kg: None,
+            healthy_fat_ratio_from: None,
+            safe_loss_kg: 10.0,
+            aim_kg,
+        }
+    }
+
+    #[test]
+    fn a_loss_or_a_gain_of_exactly_015_percent_a_week_is_no_move_yet() {
+        let a_lower_aim = Some(50.0);
+
+        assert_eq!(
+            [
+                judgement_of(&a_week(-STABLE_SHARE_A_WEEK * A_BODY_KG, a_lower_aim)),
+                judgement_of(&a_week(STABLE_SHARE_A_WEEK * A_BODY_KG, a_lower_aim)),
+            ],
+            [Judgement::Stable, Judgement::Stable]
+        );
+    }
+
+    #[test]
+    fn a_body_at_its_aim_aims_neither_lower_nor_higher_whichever_way_it_moves() {
+        let a_move = 2.0 * STABLE_SHARE_A_WEEK * A_BODY_KG;
+
+        assert_eq!(
+            [
+                judgement_of(&a_week(a_move, Some(A_BODY_KG))),
+                judgement_of(&a_week(-a_move, Some(A_BODY_KG))),
+            ],
+            [Judgement::Stable, Judgement::Stable]
+        );
+    }
+
+    #[test]
+    fn losing_right_at_the_healthy_mass_or_fat_is_not_yet_under_them() {
+        let losing = a_week(-1.0, None);
+
+        assert_eq!(
+            [
+                judgement_of(&Week {
+                    healthy_mass_from_kg: Some(A_BODY_KG),
+                    ..losing
+                }),
+                judgement_of(&Week {
+                    fat_ratio: Some(0.125),
+                    healthy_fat_ratio_from: Some(0.125),
+                    ..losing
+                }),
+            ],
+            [Judgement::Stable, Judgement::Stable]
+        );
+    }
+
+    #[test]
+    fn losing_right_the_safe_loss_towards_a_lower_aim_is_very_good_not_yet_too_fast() {
+        assert_eq!(
+            judgement_of(&Week {
+                safe_loss_kg: 0.5,
+                ..a_week(-0.5, Some(50.0))
+            }),
+            Judgement::VeryGood
+        );
+    }
+
+    #[test]
+    fn gaining_right_half_a_percent_a_week_towards_a_higher_aim_is_very_good_not_yet_too_fast() {
+        assert_eq!(
+            judgement_of(&a_week(GAIN_SHARE_A_WEEK_AT_MOST * A_BODY_KG, Some(80.0))),
+            Judgement::VeryGood
+        );
+    }
+}
