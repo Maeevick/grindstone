@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
+use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Aims {
@@ -10,8 +11,14 @@ pub struct Aims {
     pub recommended: bool,
 }
 
-pub fn aims_on(_day: NaiveDate, _gathered: &GatherRecords) -> Option<Aims> {
-    None
+/// The body mass and the lean mass a day aims for: the goals in force, the lean mass being what their fat
+/// ratio leaves of their body mass.
+pub fn aims_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Aims> {
+    version_in_force_on(&gathered.goals, day).map(|goals| Aims {
+        body_mass_kg: goals.body_mass_kg,
+        lean_mass_kg: goals.body_mass_kg * (1.0 - goals.fat_ratio),
+        recommended: false,
+    })
 }
 
 #[cfg(test)]
