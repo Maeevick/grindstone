@@ -2089,6 +2089,66 @@ async fn the_crafter_crafts_a_circuit_the_lab_lists_priced_per_set_its_steps_on_
     );
 }
 
+async fn added_to_the_session(
+    screen: &Element,
+    exercise: &str,
+    minutes: &str,
+    reps: &str,
+    load: &str,
+) {
+    typed_into(screen, "exercise", exercise);
+    typed_into(screen, "minutes", minutes);
+    typed_into(screen, "reps", reps);
+    typed_into(screen, "load", load);
+    clicked(screen, "button.to-the-session");
+    settled().await;
+}
+
+const BURPEES_AND_PUSH_UPS: &str =
+    r#"[{ "name": "Burpee", "met": 8.0 }, { "name": "Push up", "met": 3.8 }]"#;
+
+fn a_session_at_80_kg() -> String {
+    format!(
+        r#""exercises": {BURPEES_AND_PUSH_UPS}, "circuits": [], "burn_day": {A_BURN_SHORT_OF_ITS_TARGET},
+            "fuel_day": {A_DAY_NOT_FUELLED_YET}"#
+    )
+}
+
+#[wasm_bindgen_test]
+async fn steps_added_to_the_session_wait_there_priced_a_set_and_ghosting_the_band() {
+    answering(&format!("{{ {} }}", a_session_at_80_kg()));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    added_to_the_session(&screen, "burpee", "1", "", "5").await;
+    added_to_the_session(&screen, "push up", "0.5", "12", "").await;
+    typed_into(&screen, "session_sets", "3");
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, "ol.steps li .kcal"),
+        ["10 kcal", "2 kcal"]
+    );
+    assert_eq!(text_of(&screen, "p.per-set"), "12 kcal a set");
+    assert_eq!(
+        texts_in_order(&screen, "form.workout button[type=submit]"),
+        ["Add to the session"]
+    );
+    assert!(
+        screen
+            .query_selector("input[name=sets]")
+            .ok()
+            .flatten()
+            .is_none()
+    );
+    assert_eq!(
+        text_of(&screen, ".bands .with-the-session"),
+        "With the session: 97 kcal"
+    );
+    found::<Element>(&screen, ".burn-gauge circle.ghost");
+}
+
 #[wasm_bindgen_test]
 async fn the_crafter_prices_each_step_and_the_set_they_add_up_to() {
     answering(&format!(
