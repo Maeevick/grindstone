@@ -690,7 +690,7 @@ fn UnwantedTips(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -
                                     Chip::Hydrate => lines::hydrate_note(&found.hydrate),
                                     Chip::Burn => lines::burn_note(&found.burn),
                                 };
-                                view! { <p class="tip">{line}</p> }.into_any()
+                                view! { <p class="tip">{lines::quoted(&line)}</p> }.into_any()
                             }
                             Err(failure) => {
                                 view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()

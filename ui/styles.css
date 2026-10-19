@@ -693,6 +693,10 @@ a.references {
 	line-height: 1.55;
 }
 
+.pace .tip {
+	margin-top: 10px;
+}
+
 table.pot {
 	min-width: 32rem;
 }

@@ -738,12 +738,7 @@ pub fn pace_said(pace: &Pace) -> String {
     }
 }
 
-pub fn pace_class(judgement: Judgement) -> &'static str {
-    match judgement {
-        Judgement::Holding | Judgement::VeryGood => "said good",
-        Judgement::LosingTooFast | Judgement::UnderHealthyMass | Judgement::UnderHealthyFat => {
-            "bad"
-        }
-        _ => "said",
-    }
+/// A tip, said between quotation marks.
+pub fn quoted(line: &str) -> String {
+    format!("“{line}”")
 }

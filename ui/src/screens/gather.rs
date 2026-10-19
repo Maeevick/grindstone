@@ -181,7 +181,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                                             {pace_line("Fat mass", pace.fat_mass, Figure::Mass)}
                                             {pace_line("Fat %", pace.fat_ratio, Figure::Ratio)}
                                         </ul>
-                                        <p class=lines::pace_class(pace.judgement)>{lines::pace_said(&pace)}</p>
+                                        <p class="tip">{lines::quoted(&lines::pace_said(&pace))}</p>
                                     }
                                         .into_any()
                                 }
