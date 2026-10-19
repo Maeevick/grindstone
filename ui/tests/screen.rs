@@ -1016,8 +1016,8 @@ async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the
     let _mounted = the_burn_shelf(&screen);
     settled().await;
     assert_eq!(tables_in_order(&screen), ["exercises"]);
-    found::<Element>(&screen, "button.form-Exercise.chosen");
-    found::<Element>(&screen, "button.form-Circuit");
+    found::<Element>(&screen, "button.shelf-Exercises.chosen");
+    found::<Element>(&screen, "button.shelf-Circuits");
     let swing =
         r#"[{ "name": "Kettlebell swing", "met": 9.8, "description": "Both hands, a hip hinge" }]"#;
     answering(&format!(
@@ -1809,7 +1809,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's expenditures",
                 "Explore in Stats",
                 "Add to the catalog",
-                "Exercises"
+                "On the shelf"
             ],
         ]
     );
@@ -2030,48 +2030,25 @@ const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
 
 #[wasm_bindgen_test]
-async fn the_crafter_crafts_a_circuit_the_lab_lists_priced_per_set_its_steps_on_a_click() {
+async fn a_kept_circuit_shows_its_price_a_set_and_its_steps_on_a_click_on_the_shelf() {
     answering(&format!(
-        r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
-             "circuits": [], "craft_circuit": [{MORNING_RUST}],
+        r#"{{ "exercises": {BURPEES_AND_PUSH_UPS}, "circuits": [{MORNING_RUST}],
              "priced_circuits": [{{ "circuit": {MORNING_RUST}, "burnt_per_set_kcal": 12.3 }}] }}"#
     ));
     let screen = screen();
     let _mounted = the_burn_shelf(&screen);
     settled().await;
-    clicked(&screen, "button.form-Circuit");
+    assert!(
+        screen
+            .query_selector("form.circuit")
+            .ok()
+            .flatten()
+            .is_none()
+    );
+
+    clicked(&screen, "button.shelf-Circuits");
     settled().await;
 
-    typed_into(&screen, "circuit_name", "Morning rust");
-    written_into(
-        &screen,
-        "circuit_description",
-        "Found on YouTube, the rusty goblin channel.",
-    );
-    typed_into(&screen, "step_exercise", "Push up");
-    typed_into(&screen, "step_reps", "12");
-    typed_into(&screen, "step_minutes", "0.5");
-    clicked(&screen, "button.add-step");
-    typed_into(&screen, "step_exercise", "Burpee");
-    typed_into(&screen, "step_minutes", "1");
-    typed_into(&screen, "step_load", "5");
-    clicked(&screen, "button.add-step");
-    settled().await;
-    let steps = text_of(&screen, "ol.steps");
-    assert!(
-        steps.contains("Push up") && steps.contains("Burpee"),
-        "{steps}"
-    );
-    found::<HtmlFormElement>(&screen, "form.circuit")
-        .request_submit()
-        .expect("the circuit is crafted");
-    settled().await;
-
-    assert!(
-        asked("craft_circuit")
-            .contains(r#""description":"Found on YouTube, the rusty goblin channel.""#)
-    );
-    assert_eq!(value_of(&screen, "circuit_name"), "");
     assert_eq!(
         texts_of(&screen, "table.circuits thead th"),
         ["", "Name", "kcal / set"]
@@ -2248,63 +2225,52 @@ async fn a_circuit_kept_with_sets_of_nothing_waits_for_later() {
 }
 
 #[wasm_bindgen_test]
-async fn the_crafter_prices_each_step_and_the_set_they_add_up_to() {
-    answering(&format!(
-        r#"{{ "exercises": [{{ "name": "Burpee", "met": 8.0 }}, {{ "name": "Push up", "met": 3.8 }}],
-             "circuits": [], "priced_circuits": [], "burn_day": {A_BURN_PRICED_AT_80_KG} }}"#
-    ));
+async fn a_step_added_by_mistake_leaves_the_session() {
+    answering(&format!("{{ {} }}", a_session_at_80_kg()));
     let screen = screen();
-    let _mounted = the_burn_shelf(&screen);
+    let _mounted = the_burn_day(&screen);
     settled().await;
-    clicked(&screen, "button.form-Circuit");
-    settled().await;
-
-    typed_into(&screen, "step_exercise", "burpee");
-    typed_into(&screen, "step_minutes", "1");
-    typed_into(&screen, "step_load", "5");
-    settled().await;
-    let burpee = text_of(&screen, "form.circuit p.preview");
-    clicked(&screen, "button.add-step");
-    settled().await;
-    typed_into(&screen, "step_exercise", "push up");
-    typed_into(&screen, "step_reps", "12");
-    typed_into(&screen, "step_minutes", "0.5");
-    clicked(&screen, "button.add-step");
-    settled().await;
-
-    let priced: Vec<String> = screen
-        .query_selector_all("ol.steps li .kcal")
-        .map(|found| {
-            (0..found.length())
-                .filter_map(|at| found.item(at))
-                .filter_map(|step| step.text_content())
-                .collect()
-        })
-        .unwrap_or_default();
-    assert_eq!(burpee, "10 kcal");
-    assert_eq!(priced, ["10 kcal", "2 kcal"]);
-    assert_eq!(text_of(&screen, "form.circuit p.per-set"), "12 kcal a set");
-}
-
-#[wasm_bindgen_test]
-async fn a_step_added_by_mistake_leaves_the_circuit_before_it_is_crafted() {
-    answering(
-        r#"{ "exercises": [{ "name": "Burpee", "met": 8.0 }, { "name": "Push up", "met": 3.8 }], "circuits": [] }"#,
-    );
-    let screen = screen();
-    let _mounted = the_burn_shelf(&screen);
-    settled().await;
-    clicked(&screen, "button.form-Circuit");
-    settled().await;
-    typed_into(&screen, "step_exercise", "Burpee");
-    typed_into(&screen, "step_minutes", "1");
-    clicked(&screen, "button.add-step");
-    settled().await;
+    added_to_the_session(&screen, "burpee", "1", "", "").await;
 
     clicked(&screen, "ol.steps button.remove");
     settled().await;
 
-    assert_eq!(text_of(&screen, "ol.steps"), "");
+    assert!(screen.query_selector("ol.steps").ok().flatten().is_none());
+}
+
+#[wasm_bindgen_test]
+async fn the_session_waits_in_burn_while_the_athlete_checks_another_tab() {
+    answering_all(&[
+        A_HOME,
+        EVERY_TAB,
+        &format!(
+            r#"{{ "exercises": {BURPEES_AND_PUSH_UPS}, "burn_day": {A_BURN_SHORT_OF_ITS_TARGET} }}"#
+        ),
+    ]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+    went_to("/burn");
+    settled().await;
+    added_to_the_session(&screen, "burpee", "1", "", "5").await;
+    typed_into(&screen, "session_sets", "3");
+    clicked(&screen, "button.keep-as-a-circuit");
+    settled().await;
+    typed_into(&screen, "circuit_name", "Morning rust");
+
+    went_to("/hydrate");
+    settled().await;
+    went_to("/burn");
+    settled().await;
+
+    assert_eq!(
+        [
+            value_of(&screen, "session_sets"),
+            value_of(&screen, "circuit_name")
+        ],
+        ["3", "Morning rust"]
+    );
+    assert!(text_of(&screen, "ol.steps").contains("Burpee"));
 }
 
 #[wasm_bindgen_test]
@@ -2316,7 +2282,7 @@ async fn removing_a_circuit_takes_it_out_of_the_lab() {
     let screen = screen();
     let _mounted = the_burn_shelf(&screen);
     settled().await;
-    clicked(&screen, "button.form-Circuit");
+    clicked(&screen, "button.shelf-Circuits");
     settled().await;
     assert_eq!(tables_in_order(&screen), ["circuits"]);
 
@@ -3221,7 +3187,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     let _burn_shelf = the_burn_shelf(&burn_shelf);
     settled().await;
     clicked(&fuel_shelf, "button.shelf-Meals");
-    clicked(&burn_shelf, "button.form-Circuit");
+    clicked(&burn_shelf, "button.shelf-Circuits");
     settled().await;
     said.extend([spoken_on(&fuel_shelf), spoken_on(&burn_shelf)]);
 
