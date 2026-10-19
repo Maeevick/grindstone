@@ -216,6 +216,37 @@ async fn the_profile_ends_on_the_settings_the_drafts_records_then_the_danger_zon
 }
 
 #[wasm_bindgen_test]
+async fn the_profile_asks_the_aches_the_day_owes_before_the_forgotten_bucket_of_sweat() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "hydrate_counted_on": true, "burn_target_on": null }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, "h2")[..7],
+        [
+            "Profile",
+            "The rusty you behind the numbers",
+            "Where the grindstone is heading",
+            "How to feed the forge",
+            "Hydrate the material",
+            "The aches the day owes",
+            "The forgotten bucket of sweat"
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
     answering(r#"{ "profile_on": null, "goals_on": null }"#);
     let screen = screen();
