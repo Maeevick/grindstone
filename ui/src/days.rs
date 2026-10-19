@@ -1,4 +1,6 @@
-use chrono::NaiveDate;
+use chrono::{Datelike, Days, Months, NaiveDate};
+
+const DAYS_BEFORE_IN_A_WEEK: u64 = 6;
 
 /// The days a tab's last days show, from the first one up to the tab's day.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -10,22 +12,39 @@ pub struct Shown {
 impl Shown {
     /// At first: the week up to the day, the day included.
     pub fn a_week_up_to(day: NaiveDate) -> Self {
-        Self { from: day, to: day }
+        Self {
+            from: day - Days::new(DAYS_BEFORE_IN_A_WEEK),
+            to: day,
+        }
     }
 
     /// One more load: back to the first of the month shown first, then to the first of the latest
     /// month with records before it; nothing further once none is left.
-    pub fn further_back(self, _earlier: Option<&str>) -> Option<Self> {
-        None
+    pub fn further_back(self, earlier: Option<&str>) -> Option<Self> {
+        let from = if self.from.day() > 1 {
+            self.from.with_day(1)
+        } else {
+            earlier.and_then(|month| {
+                NaiveDate::parse_from_str(&format!("{month}-01"), "%Y-%m-%d").ok()
+            })
+        }?;
+        Some(Self { from, ..self })
     }
 
     /// The months the days shown run across, newest first, named as the app names them.
     pub fn months(self) -> Vec<String> {
-        Vec::new()
+        let first = |day: NaiveDate| day.with_day(1).unwrap_or(day);
+        let oldest = first(self.from);
+        std::iter::successors(Some(first(self.to)), |month| {
+            month.checked_sub_months(Months::new(1))
+        })
+        .take_while(|month| *month >= oldest)
+        .map(|month| month.format("%Y-%m").to_string())
+        .collect()
     }
 
-    pub fn holds(self, _day: NaiveDate) -> bool {
-        false
+    pub fn holds(self, day: NaiveDate) -> bool {
+        (self.from..=self.to).contains(&day)
     }
 }
 
