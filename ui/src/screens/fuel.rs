@@ -1,13 +1,15 @@
+use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, signed};
-use grind_core::food::{Food, Nutrients, Unit, nutrients_of};
+use grind_core::food::{Food, Nutrients, Unit, food as food_of, nutrients_of};
+use grind_core::for_cataloguing::FoodForm;
 use grind_core::for_fuelling::IntakeForm;
 use grind_core::fuel::{EnergyShares, Fuel, MacroRow, Macros, energy_shares};
 use grind_core::intake::Intake;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::chosen;
-use crate::screens::catalog::FuelShelf;
+use crate::choice::{chosen, nothing_matches};
+use crate::screens::catalog::{FuelShelf, unit_named};
 use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
@@ -110,6 +112,112 @@ fn IntakeRow(
     }
 }
 
+/// What a food new to the catalog is typed with, its name aside.
+#[derive(Clone, Copy)]
+struct NewFoodFigures {
+    description: RwSignal<String>,
+    unit: RwSignal<String>,
+    portion: RwSignal<String>,
+    energy: RwSignal<String>,
+    protein: RwSignal<String>,
+    fat: RwSignal<String>,
+    fibre: RwSignal<String>,
+    carbs: RwSignal<String>,
+}
+
+impl NewFoodFigures {
+    fn new() -> Self {
+        Self {
+            description: RwSignal::new(String::new()),
+            unit: RwSignal::new("Gram".into()),
+            portion: RwSignal::new("100".into()),
+            energy: RwSignal::new(String::new()),
+            protein: RwSignal::new(String::new()),
+            fat: RwSignal::new(String::new()),
+            fibre: RwSignal::new(String::new()),
+            carbs: RwSignal::new(String::new()),
+        }
+    }
+
+    fn typed(self, name: &str) -> Option<FoodForm> {
+        let [portion, energy_kcal, protein_g, carbs_g, fat_g, fibre_g] = figures_typed([
+            &self.portion.get(),
+            &self.energy.get(),
+            &self.protein.get(),
+            &self.carbs.get(),
+            &self.fat.get(),
+            &self.fibre.get(),
+        ])?;
+        Some(FoodForm {
+            name: name.trim().into(),
+            unit: unit_named(&self.unit.get()),
+            portion: portion.unwrap_or(0.0),
+            nutrients: Nutrients {
+                energy_kcal: energy_kcal.unwrap_or(0.0),
+                protein_g: protein_g.unwrap_or(0.0),
+                carbs_g: carbs_g.unwrap_or(0.0),
+                fat_g: fat_g.unwrap_or(0.0),
+                fibre_g: fibre_g.unwrap_or(0.0),
+            },
+            description: self.description.get(),
+        })
+    }
+
+    fn cleared(self) {
+        for typed in [
+            self.description,
+            self.energy,
+            self.protein,
+            self.fat,
+            self.fibre,
+            self.carbs,
+        ] {
+            typed.set(String::new());
+        }
+        self.unit.set("Gram".into());
+        self.portion.set("100".into());
+    }
+}
+
+#[component]
+fn NewFoodFields(name: RwSignal<String>, figures: NewFoodFigures) -> impl IntoView {
+    view! {
+        <p class="new">{move || format!("New {}", name.get().trim())}</p>
+        <label class="field">
+            "Description"
+            <input
+                name="new_food_description"
+                autocomplete="off"
+                placeholder="Optional"
+                prop:value=move || figures.description.get()
+                on:input=move |event| figures.description.set(event_target_value(&event))
+            />
+        </label>
+        <div class="row thirds">
+            <FigureField label="Per" name="new_food_portion" value=figures.portion />
+            <label class="field">
+                "Unit"
+                <select
+                    name="new_food_unit"
+                    prop:value=move || figures.unit.get()
+                    on:change=move |event| figures.unit.set(event_target_value(&event))
+                >
+                    <option value="Gram">"g"</option>
+                    <option value="Millilitre">"mL"</option>
+                    <option value="Piece">"piece"</option>
+                </select>
+            </label>
+            <FigureField label="kcal" name="new_food_energy" value=figures.energy />
+        </div>
+        <div class="row quarters">
+            <FigureField label="Protein (g)" name="new_food_protein" value=figures.protein />
+            <FigureField label="Fat (g)" name="new_food_fat" value=figures.fat />
+            <FigureField label="Fibre (g)" name="new_food_fibre" value=figures.fibre />
+            <FigureField label="Carbs (g)" name="new_food_carbs" value=figures.carbs />
+        </div>
+    }
+}
+
 #[component]
 pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     let fuel = RwSignal::new(None::<Fuel>);
@@ -126,12 +234,26 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
+    let figures = NewFoodFigures::new();
+    let creating = Memo::new(move |_| nothing_matches(&names.get(), &food.get()));
     let chosen_food = move || {
         chosen(&names.get(), &food.get())
             .and_then(|name| catalog.get().into_iter().find(|known| known.name == name))
     };
+    let new_food = move || {
+        let form = figures.typed(&food.get())?;
+        food_of(
+            &form.name,
+            form.unit,
+            form.portion,
+            form.nutrients,
+            &form.description,
+        )
+        .ok()
+    };
+    let eaten_food = move || chosen_food().or_else(|| creating.get().then(new_food).flatten());
     let preview = move || {
-        let known = chosen_food()?;
+        let known = eaten_food()?;
         let [typed] = figures_typed([&quantity.get()])?;
         let eaten = typed.unwrap_or(known.portion);
         Some(lines::figures_of(&nutrients_of(&known, eaten)))
@@ -151,33 +273,55 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             }
         });
     });
+    let logged = move |answer: Result<Fuel, Failure>| match answer {
+        Ok(answer) => {
+            shown_fuel.run(answer);
+            food.set(String::new());
+            quantity.set(String::new());
+            figures.cleared();
+            said.set(None);
+            recorded.told();
+        }
+        Err(failure) => said.set(Some(lines::failure(&failure))),
+    };
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some(eaten) = chosen_food() else {
-            said.set(Some(lines::CHOOSE_FIRST.into()));
-            return;
-        };
         let Some([quantity_typed]) = figures_typed([&quantity.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
+        let date = day.get_untracked();
+        if creating.get_untracked() {
+            let Some(added) = untrack(|| figures.typed(&food.get())) else {
+                said.set(Some(lines::UNREADABLE.into()));
+                return;
+            };
+            spawn_local(async move {
+                match tauri::add_food(&added).await {
+                    Ok(known) => {
+                        catalog.set(known);
+                        let form = IntakeForm {
+                            date,
+                            food: added.name,
+                            quantity: quantity_typed,
+                        };
+                        logged(tauri::log_intake(&form).await);
+                    }
+                    Err(failure) => said.set(Some(lines::failure(&failure))),
+                }
+            });
+            return;
+        }
+        let Some(eaten) = untrack(chosen_food) else {
+            said.set(Some(lines::CHOOSE_FIRST.into()));
+            return;
+        };
         let form = IntakeForm {
-            date: day.get_untracked(),
+            date,
             food: eaten.name,
             quantity: quantity_typed,
         };
-        spawn_local(async move {
-            match tauri::log_intake(&form).await {
-                Ok(answer) => {
-                    shown_fuel.run(answer);
-                    food.set(String::new());
-                    quantity.set(String::new());
-                    said.set(None);
-                    recorded.told();
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
+        spawn_local(async move { logged(tauri::log_intake(&form).await) });
     };
     view! {
         <section class="card">
@@ -186,7 +330,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                 <div class="row">
                     <Chooser label="Food" name="food" options=names typed=food />
                     {move || {
-                        let portion = chosen_food();
+                        let portion = eaten_food();
                         view! {
                             <FigureField
                                 label=match portion.as_ref().map(|known| known.unit) {
@@ -203,9 +347,12 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                         }
                     }}
                 </div>
+                {move || {
+                    creating.get().then(|| view! { <NewFoodFields name=food figures=figures /> })
+                }}
                 {preview_line(preview)}
                 <button class="cta" type="submit">
-                    "Fuel"
+                    {move || if creating.get() { "Add and log" } else { "Fuel" }}
                 </button>
             </form>
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}

@@ -942,3 +942,10 @@ tr.details .pinned {
 .pace-lines li.steady span:last-child {
 	color: var(--mut);
 }
+
+.new {
+	margin: 12px 0 6px;
+	color: var(--acc);
+	font: 600 0.85rem var(--mono);
+	letter-spacing: 0.06em;
+}

@@ -115,7 +115,7 @@ fn ExercisesList(
     }
 }
 
-fn unit_named(word: &str) -> Unit {
+pub(crate) fn unit_named(word: &str) -> Unit {
     match word {
         "Millilitre" => Unit::Millilitre,
         "Piece" => Unit::Piece,
