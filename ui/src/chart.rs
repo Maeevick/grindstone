@@ -116,7 +116,7 @@ pub struct AimGauge {
 }
 
 const AIM_GAUGE_SPAN: f64 = 0.10;
-pub const AIM_GRACE: f64 = 0.05;
+pub const AIM_GRACE: f64 = 0.01;
 
 /// A line a tenth either side of the aim, stretched to the amount: green a twentieth either side of a value
 /// to reach, and from a floor's tick to the end.
