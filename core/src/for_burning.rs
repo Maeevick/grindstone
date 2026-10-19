@@ -170,6 +170,30 @@ pub fn log_session(
     burn: &impl ForStoringBurnRecords,
     form: &SessionForm,
 ) -> Result<Burn, Failure> {
+    let exercises = burn.burn_records()?.exercises;
+    let sets = form.sets.unwrap_or(DEFAULT_SETS);
+    let done = form
+        .steps
+        .iter()
+        .map(|step| {
+            let exercise = exercises
+                .iter()
+                .find(|known| known.name == step.exercise)
+                .ok_or(Failure::Refused(Refusal::NotAnExercise))?;
+            workout(
+                &form.date,
+                exercise,
+                step.minutes,
+                step.reps,
+                sets,
+                step.load_kg,
+            )
+            .map_err(Failure::Refused)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    for each in &done {
+        burn.save_workout(each)?;
+    }
     burn_of_the_day(gather, burn, day(&form.date)?)
 }
 
