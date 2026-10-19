@@ -155,9 +155,10 @@ pub fn add_exercise(
     records: State<Records>,
     name: String,
     met: f64,
+    description: Option<String>,
 ) -> Result<Vec<Exercise>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_cataloguing::add_exercise(&*records, &name, met, "")
+    for_cataloguing::add_exercise(&*records, &name, met, &description.unwrap_or_default())
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -335,9 +336,16 @@ pub fn add_drink(
     name: String,
     volume_ml: f64,
     kind: DrinkKind,
+    description: Option<String>,
 ) -> Result<Vec<Drink>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_cataloguing::add_drink(&*records, &name, volume_ml, kind, "")
+    for_cataloguing::add_drink(
+        &*records,
+        &name,
+        volume_ml,
+        kind,
+        &description.unwrap_or_default(),
+    )
 }
 
 #[tauri::command(rename_all = "snake_case")]
