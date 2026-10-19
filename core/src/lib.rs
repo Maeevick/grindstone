@@ -42,6 +42,7 @@ pub mod ledger;
 pub mod meal;
 pub mod measurement;
 pub mod nutrition;
+pub mod pace;
 pub mod profile;
 pub mod progress;
 pub mod recommendations;
