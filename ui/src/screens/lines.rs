@@ -8,7 +8,7 @@ use grind_core::fuel::{Fuel, Verdict};
 use grind_core::hydrate::Hydrate;
 use grind_core::judgement::Judgement;
 use grind_core::meal::Ingredient;
-use grind_core::pace::Pace;
+use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
@@ -671,8 +671,37 @@ pub fn topic_name(topic: Topic) -> &'static str {
 pub const NO_PACE_YET: &str =
     "Too few weigh-ins for a pace yet. Patience is half the hunt. The other half is also patience.";
 
+/// Past the safe loss: said plainly first, figures to the hundredth, lean mass named only when the tape
+/// sees it leave.
+fn losing_too_fast(pace: &Pace) -> String {
+    let moved = shown(Figure::WeeklyMass(pace.body_mass.by));
+    let safe = shown(Figure::WeeklyMass(pace.safe_loss_kg));
+    let lean = pace.lean();
+    let past = match (pace.safe_loss_by, lean) {
+        (SafeLoss::FatStore, Lean::Leaving(_)) => format!("past the {safe} your fat can spare"),
+        (SafeLoss::FatStore, _) => format!("past the {safe} your fat can spare on paper"),
+        (SafeLoss::MassShare, _) => format!("past the {safe} that 1% of your body mass allows"),
+        (SafeLoss::AKilo, _) => format!("past the {safe} the guidelines allow"),
+    };
+    match lean {
+        Lean::Leaving(by) => format!(
+            "{moved} a week, {past}: your lean mass is going too ({} a week). Ease the deficit towards \
+             the top of your band, keep protein high, keep lifting. Steel ground too hot loses its \
+             temper; so do goblins, I have the burnt eyebrows to prove it.",
+            shown(Figure::WeeklyMass(by))
+        ),
+        Lean::Holding => format!(
+            "{moved} a week, {past}, though your lean mass holds so far. Ease the deficit a little and \
+             watch the next weigh-ins. The paper is mine, so it is right about 97.3% of the time."
+        ),
+        Lean::Unmeasured => format!(
+            "{moved} a week, {past}. Ease the deficit a little and watch the next weigh-ins. Without a \
+             tape round the waist I cannot tell what is leaving, and I squint badly."
+        ),
+    }
+}
+
 pub fn pace_said(pace: &Pace) -> String {
-    let lost = shown(Figure::Mass(-pace.body_mass.by));
     match pace.judgement {
         Judgement::Holding => {
             "Holding the line at the aim. Steady is the hardest pace there is: keep it.".into()
@@ -695,11 +724,7 @@ pub fn pace_said(pace: &Pace) -> String {
             the rest is stored. Trim the surplus a little."
                 .into()
         }
-        Judgement::LosingTooFast => format!(
-            "{lost} lost a week, more than your fat can spare ({}). Eat back up to the band's floor, keep \
-             protein high, keep lifting: the rest is lean mass leaving.",
-            shown(Figure::Mass(pace.safe_loss_kg))
-        ),
+        Judgement::LosingTooFast => losing_too_fast(pace),
         Judgement::UnderHealthyMass => {
             "Under the healthy mass for your height. Stop losing, eat to \
             maintenance, and see a doctor if it keeps dropping."
