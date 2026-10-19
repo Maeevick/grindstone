@@ -348,4 +348,28 @@ mod tests {
             Judgement::Holding
         );
     }
+
+    #[test]
+    fn each_measure_heads_toward_or_away_from_its_aim_or_holds_steady() {
+        let pace = pace_on(
+            day("2026-10-10"),
+            &aiming_at(70.0, a_man_weighed(81.0, -0.05)),
+        )
+        .expect("a pace");
+
+        assert_eq!(
+            [
+                Some(pace.body_mass.heading),
+                pace.lean_mass.map(|change| change.heading),
+                pace.fat_mass.map(|change| change.heading),
+                pace.fat_ratio.map(|change| change.heading)
+            ],
+            [
+                Some(Heading::Toward),
+                Some(Heading::Toward),
+                Some(Heading::Toward),
+                Some(Heading::Steady)
+            ]
+        );
+    }
 }
