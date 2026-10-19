@@ -282,4 +282,15 @@ mod tests {
     fn losing_slower_than_half_the_safe_loss_towards_the_aim_is_good() {
         assert_eq!(judged(&losing_at(0.3)), Judgement::Good);
     }
+
+    #[test]
+    fn gaining_away_from_a_lower_aim_is_the_wrong_way_and_moving_less_than_015_percent_is_stable() {
+        assert_eq!(
+            (
+                judged(&aiming_at(70.0, a_man_weighed(80.0, 0.03))),
+                judged(&aiming_at(70.0, a_man_weighed(80.0, 0.0)))
+            ),
+            (Judgement::WrongWay, Judgement::Stable)
+        );
+    }
 }
