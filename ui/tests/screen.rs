@@ -543,7 +543,8 @@ async fn past_the_safe_loss_the_warning_speaks_of_lean_mass_only_when_the_tape_s
 }
 
 #[wasm_bindgen_test]
-async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
+async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_judges_the_body_mass()
+ {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
               "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
@@ -565,8 +566,23 @@ async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
     }
     assert!(pace.contains("-0.4 kg a week"), "{pace}");
     assert!(pace.contains("inside the safe lane"), "{pace}");
-    found::<Element>(&screen, ".pace li.toward");
-    found::<Element>(&screen, ".pace li.away");
+    assert_eq!(
+        (
+            attributes_of(&screen, ".pace li", "class"),
+            attributes_of(&screen, ".pace li span:first-child", "class"),
+            attributes_of(&screen, ".pace li span:last-child", "class"),
+        ),
+        (
+            vec![],
+            vec![],
+            vec![
+                "toward".to_string(),
+                "away".to_string(),
+                "toward".to_string(),
+                "steady".to_string()
+            ]
+        )
+    );
 }
 
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
