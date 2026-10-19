@@ -38,6 +38,7 @@ pub struct BandChart {
 pub struct BurnChart {
     pub burnt: Vec<(NaiveDate, f64)>,
     pub minutes: Vec<(NaiveDate, f64)>,
+    pub targets: Vec<(NaiveDate, f64)>,
 }
 
 fn span_of(today: &str, window: Window) -> Result<(NaiveDate, NaiveDate), Failure> {
@@ -184,6 +185,7 @@ pub fn burn_chart(
             .filter_map(|of_the_day| of_the_day.burnt_kcal.map(|kcal| (of_the_day.day, kcal)))
             .collect(),
         minutes: summed(|done| f64::from(done.sets) * done.minutes),
+        targets: vec![],
     })
 }
 
@@ -706,6 +708,30 @@ mod tests {
             vec![(day("2026-10-09"), 1.5), (day("2026-10-10"), 1.5)]
         );
         assert_eq!(chart.burnt.len(), 2);
+    }
+
+    #[test]
+    fn the_burn_chart_draws_each_days_burn_and_its_target() {
+        let logged = a_logged_man();
+
+        let chart = burn_chart(&logged.gather, &logged.burn, "2026-10-10", Window::Days30)
+            .expect("a chart");
+
+        let burnt = logged.burn.burn_records().expect("burn records");
+        let measured = logged.gather.gather_records().expect("gather records");
+        let target_on = |date: &str| {
+            burn_on(day(date), &burnt, &measured.measurements)
+                .target_kcal
+                .map(|kcal| (day(date), kcal))
+        };
+        assert_eq!(
+            chart.targets,
+            [target_on("2026-10-09"), target_on("2026-10-10")]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(chart.targets.len(), 2);
     }
 
     #[test]
