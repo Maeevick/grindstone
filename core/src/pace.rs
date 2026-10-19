@@ -525,6 +525,7 @@ mod tests {
             [
                 moving(-0.2, Heading::Away),
                 moving(-0.05, Heading::Steady),
+                moving(0.0, Heading::Away),
                 moving(0.2, Heading::Toward),
                 a_pace_with(None).lean(),
             ],
@@ -532,9 +533,21 @@ mod tests {
                 Lean::Leaving(-0.2),
                 Lean::Holding,
                 Lean::Holding,
+                Lean::Holding,
                 Lean::Unmeasured
             ]
         );
+    }
+
+    #[test]
+    fn four_weigh_ins_in_the_week_are_enough_for_a_pace() {
+        let weighed = a_man_weighed(80.0, -0.05);
+        let four_in_the_week = GatherRecords {
+            measurements: weighed.measurements[17..].to_vec(),
+            ..weighed
+        };
+
+        assert!(pace_on(day("2026-10-10"), &four_in_the_week).is_some());
     }
 
     #[test]
