@@ -334,4 +334,12 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn within_1_percent_of_the_aim_and_steady_is_holding() {
+        assert_eq!(
+            judged(&aiming_at(70.0, a_man_weighed(70.5, 0.0))),
+            Judgement::Holding
+        );
+    }
 }
