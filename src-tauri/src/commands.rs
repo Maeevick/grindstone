@@ -594,7 +594,8 @@ mod tests {
             answer,
             Ok(json!({
                 "day": measured, "days": [measured],
-                "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }
+                "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null },
+                "aims": null
             }))
         );
     }
@@ -607,7 +608,8 @@ mod tests {
             invoke(&screen, "gather_week", json!({ "date": "2026-10-10" })),
             Ok(json!({
                 "day": null, "days": [],
-                "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }
+                "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null },
+                "aims": null
             }))
         );
     }

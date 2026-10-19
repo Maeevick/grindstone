@@ -1,7 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use crate::aims::Aims;
+use crate::aims::{Aims, aims_on};
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
@@ -36,7 +36,7 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         day: days.first().filter(|measured| measured.day == day).copied(),
         tendency: tendency_of(&days, version_in_force_on(&gathered.goals, day)),
         days,
-        aims: None,
+        aims: aims_on(day, gathered),
     }
 }
 
