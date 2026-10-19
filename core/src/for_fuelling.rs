@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
+use crate::for_cataloguing::IngredientForm;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -59,6 +60,23 @@ pub fn log_intake(
         .map_err(Failure::Refused)?;
     fuel.save_intake(&eaten)?;
     fuel_of_the_day(gather, burn, fuel, eaten.day)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PlateForm {
+    pub date: String,
+    pub ingredients: Vec<IngredientForm>,
+}
+
+/// Each ingredient of the plate as an intake of its day, by its raw quantity; none when one of them
+/// cannot be.
+pub fn log_plate(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    form: &PlateForm,
+) -> Result<Fuel, Failure> {
+    fuel_of_the_day(gather, burn, fuel, day(&form.date)?)
 }
 
 pub fn remove_intake(
@@ -182,6 +200,46 @@ mod tests {
         assert_eq!(
             remove_intake(&gather, &burn, &BrokenFuelRecords, "2026-10-10", 1),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    fn a_plate(date: &str, ingredients: &[(&str, f64)]) -> PlateForm {
+        PlateForm {
+            date: date.into(),
+            ingredients: ingredients
+                .iter()
+                .map(|(food, quantity)| IngredientForm {
+                    food: (*food).into(),
+                    quantity: *quantity,
+                    cooked_per_raw: None,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn a_plate_logs_one_intake_per_ingredient_on_its_day_by_its_raw_quantity() {
+        let fuel = a_catalog_with_skyr();
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+        );
+
+        let fuelled = log_plate(
+            &gather,
+            &burn,
+            &fuel,
+            &a_plate("2026-10-10", &[("Skyr", 200.0), ("Skyr", 50.0)]),
+        )
+        .expect("a fuel");
+
+        assert_eq!(
+            fuelled
+                .intakes
+                .iter()
+                .map(|(_, eaten)| (eaten.food.as_str(), eaten.quantity))
+                .collect::<Vec<_>>(),
+            vec![("Skyr", 200.0), ("Skyr", 50.0)]
         );
     }
 
