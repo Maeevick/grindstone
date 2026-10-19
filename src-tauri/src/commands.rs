@@ -1152,6 +1152,39 @@ mod tests {
     }
 
     #[test]
+    fn a_description_typed_on_the_screen_joins_its_food_drink_and_exercise() {
+        let (_app, screen) = launched();
+
+        let foods = invoke(
+            &screen,
+            "add_food",
+            json!({ "form": { "name": "Skyr", "unit": "Gram", "portion": 100.0,
+                "nutrients": { "energy_kcal": 54.0, "protein_g": 9.5, "carbs_g": 4.0, "fat_g": 0.0, "fibre_g": 0.0 },
+                "description": "The plain 0% pot" } }),
+        );
+        let drinks = invoke(
+            &screen,
+            "add_drink",
+            json!({ "name": "Kombucha", "volume_ml": 330.0, "kind": "Other", "description": "The ginger one" }),
+        );
+        let exercises = invoke(
+            &screen,
+            "add_exercise",
+            json!({ "name": "Rowing", "met": 7.0, "description": "Concept2, damper on 5" }),
+        );
+
+        assert_eq!(
+            [foods, drinks, exercises]
+                .map(|answer| answer.map(|listed| listed[0]["description"].clone())),
+            [
+                Ok(json!("The plain 0% pot")),
+                Ok(json!("The ginger one")),
+                Ok(json!("Concept2, damper on 5"))
+            ]
+        );
+    }
+
+    #[test]
     fn the_drinks_catalog_crosses_to_the_screen_by_name() {
         let (_app, screen) = with_tea_in_the_catalog();
         invoke(
