@@ -102,6 +102,23 @@ pub fn burn_gauge_of(burnt: f64, target: f64, width: f64) -> BurnGauge {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AimGauge {
+    pub band_from: f64,
+    pub band_to: f64,
+    pub aim_at: f64,
+    pub amount_at: f64,
+}
+
+pub fn aim_gauge_of(_amount: f64, _aim: f64, _width: f64) -> AimGauge {
+    AimGauge {
+        band_from: 0.0,
+        band_to: 0.0,
+        aim_at: 0.0,
+        amount_at: 0.0,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EnergyGauge {
     pub minimum_at: f64,
     pub floor_at: f64,
@@ -257,6 +274,19 @@ mod tests {
                 burn_gauge_of(20.0, 180.0, 400.0).up_to_kcal
             ),
             (400.0, 250.0)
+        );
+    }
+
+    #[test]
+    fn an_aim_gauge_spans_a_tenth_either_side_of_the_aim_green_a_twentieth_either_side() {
+        assert_eq!(
+            aim_gauge_of(72.0, 70.0, 280.0),
+            AimGauge {
+                band_from: 70.0,
+                band_to: 210.0,
+                aim_at: 140.0,
+                amount_at: 180.0,
+            }
         );
     }
 
