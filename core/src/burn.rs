@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::burn_records::BurnRecords;
+use crate::burn_target::target_on;
 use crate::measurement::Measurement;
 use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
@@ -61,7 +62,7 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
         off_the_clock: own_day.or_else(|| version_in_force_on(&records.usual_days, day).copied()),
         off_the_clock_is_usual: own_day.is_none(),
         body_mass_kg,
-        target_kcal: None,
+        target_kcal: target_on(day, &records.targets, body_mass_kg),
     }
 }
 
