@@ -13,3 +13,37 @@ pub fn heading_of(per_week: f64, now: f64, aim: Option<f64>) -> Heading {
         Some(_) => Heading::Away,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_measure_moving_less_than_015_percent_of_itself_a_week_holds_steady_and_from_it_on_moves() {
+        assert_eq!(
+            [
+                heading_of(0.1, 80.0, Some(70.0)),
+                heading_of(STABLE_SHARE_A_WEEK * 80.0, 80.0, Some(70.0)),
+                heading_of(-0.1, -80.0, Some(-70.0)),
+            ],
+            [Heading::Steady, Heading::Away, Heading::Steady]
+        );
+    }
+
+    #[test]
+    fn a_measure_moving_to_its_aim_heads_toward_it_and_from_it_away() {
+        assert_eq!(
+            [
+                heading_of(-0.5, 80.0, Some(70.0)),
+                heading_of(0.5, 80.0, Some(70.0)),
+                heading_of(0.5, 60.0, Some(70.0)),
+            ],
+            [Heading::Toward, Heading::Away, Heading::Toward]
+        );
+    }
+
+    #[test]
+    fn a_measure_without_an_aim_is_unaimed_however_it_moves() {
+        assert_eq!(heading_of(-0.5, 80.0, None), Heading::Unaimed);
+    }
+}
