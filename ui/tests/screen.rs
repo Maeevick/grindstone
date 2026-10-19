@@ -65,6 +65,32 @@ fn answering(answers: &str) {
     answer_commands_with(&js_sys::JSON::parse(answers).expect("answers in JSON"));
 }
 
+/// Several sets of answers as one, the later answering a command the earlier also answer.
+fn answering_all(parts: &[&str]) {
+    let all = js_sys::Object::new();
+    for part in parts {
+        let answers = js_sys::JSON::parse(part).expect("answers in JSON");
+        js_sys::Object::assign(&all, &answers.unchecked_into());
+    }
+    answer_commands_with(&all);
+}
+
+fn attributes_of(screen: &Element, selector: &str, attribute: &str) -> Vec<String> {
+    let found = screen.query_selector_all(selector).expect(selector);
+    (0..found.length())
+        .filter_map(|at| found.item(at))
+        .filter_map(|node| node.unchecked_into::<Element>().get_attribute(attribute))
+        .collect()
+}
+
+fn texts_in_order(screen: &Element, selector: &str) -> Vec<String> {
+    let found = screen.query_selector_all(selector).expect(selector);
+    (0..found.length())
+        .filter_map(|at| found.item(at))
+        .filter_map(|node| node.text_content())
+        .collect()
+}
+
 fn screen() -> Element {
     let document = web_sys::window()
         .and_then(|window| window.document())
@@ -1454,6 +1480,43 @@ async fn each_of_todays_tiles_opens_its_segment_of_the_tracker() {
         opened.push(text_of(&screen, ".day .pill.chosen"));
     }
     assert_eq!(opened, ["Gather", "Fuel", "Hydrate", "Burn"]);
+}
+
+const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [],
+    "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
+        "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
+
+#[wasm_bindgen_test]
+async fn the_icon_bar_leads_home_and_to_each_tab() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    assert_eq!(
+        attributes_of(&screen, "nav.tabs a", "href"),
+        ["/", "/gather", "/fuel", "/hydrate", "/burn"]
+    );
+    assert_eq!(
+        texts_in_order(&screen, "nav.tabs a"),
+        ["🏠", "⚖️", "⚡", "💧", "🔥"]
+    );
+    assert_eq!(
+        attributes_of(&screen, "nav.tabs a", "aria-label"),
+        ["Home", "Gather", "Fuel", "Hydrate", "Burn"]
+    );
+    let mut opened = Vec::new();
+    for (tab, form) in [
+        ("/gather", "form.measurement"),
+        ("/fuel", "form.intake"),
+        ("/hydrate", "form.drinking"),
+        ("/burn", "form.workout"),
+    ] {
+        went_to(tab);
+        settled().await;
+        opened.push(screen.query_selector(form).ok().flatten().is_some());
+    }
+    assert_eq!(opened, [true; 4]);
 }
 
 #[wasm_bindgen_test]
