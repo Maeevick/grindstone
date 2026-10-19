@@ -113,7 +113,10 @@ const AIM_GAUGE_SPAN: f64 = 0.10;
 const AIM_GRACE: f64 = 0.05;
 
 pub fn aim_gauge_of(amount: f64, aim: f64, width: f64) -> AimGauge {
-    let scale = ((1.0 - AIM_GAUGE_SPAN) * aim, (1.0 + AIM_GAUGE_SPAN) * aim);
+    let scale = (
+        ((1.0 - AIM_GAUGE_SPAN) * aim).min(amount),
+        ((1.0 + AIM_GAUGE_SPAN) * aim).max(amount),
+    );
     AimGauge {
         band_from: placed((1.0 - AIM_GRACE) * aim, scale, width),
         band_to: placed((1.0 + AIM_GRACE) * aim, scale, width),
