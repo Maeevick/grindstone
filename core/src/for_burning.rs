@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, burn_on};
-use crate::circuit::Circuit;
+use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
@@ -25,6 +25,13 @@ pub struct WorkoutForm {
 pub struct CircuitSessionForm {
     pub date: String,
     pub circuit: String,
+    pub sets: Option<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SessionForm {
+    pub date: String,
+    pub steps: Vec<StepForm>,
     pub sets: Option<u32>,
 }
 
@@ -154,6 +161,16 @@ pub fn log_circuit(
         burn.save_workout(&done)?;
     }
     burn_of_the_day(gather, burn, day)
+}
+
+/// Each step of the session as a workout of its day, done as many sets as the session; none when
+/// one of them cannot be.
+pub fn log_session(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    form: &SessionForm,
+) -> Result<Burn, Failure> {
+    burn_of_the_day(gather, burn, day(&form.date)?)
 }
 
 #[cfg(test)]
@@ -385,6 +402,67 @@ mod tests {
                     sets: 3,
                     load_kg: 5.0,
                     circuit: Some("Morning rust".into()),
+                },
+            ]
+        );
+    }
+
+    fn a_session(steps: &[(&str, Option<u32>, f64, f64)], sets: Option<u32>) -> SessionForm {
+        SessionForm {
+            date: "2026-10-10".into(),
+            steps: steps
+                .iter()
+                .map(|(exercise, reps, minutes, load_kg)| StepForm {
+                    exercise: (*exercise).into(),
+                    reps: *reps,
+                    minutes: *minutes,
+                    load_kg: *load_kg,
+                })
+                .collect(),
+            sets,
+        }
+    }
+
+    #[test]
+    fn a_session_logs_one_workout_per_step_each_done_as_many_sets_as_the_session() {
+        let the_day = NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day");
+
+        let burnt = log_session(
+            &GatherRecordsInMemory::default(),
+            &a_lab_with_morning_rust(),
+            &a_session(
+                &[("Push up", Some(12), 0.5, 0.0), ("Burpee", None, 1.0, 5.0)],
+                Some(3),
+            ),
+        )
+        .expect("a burn");
+
+        assert_eq!(
+            burnt
+                .workouts
+                .into_iter()
+                .map(|done| done.workout)
+                .collect::<Vec<_>>(),
+            vec![
+                Workout {
+                    day: the_day,
+                    exercise: "Push up".into(),
+                    met: 3.8,
+                    minutes: 0.5,
+                    reps: Some(12),
+                    sets: 3,
+                    load_kg: 0.0,
+                    circuit: None,
+                },
+                Workout {
+                    day: the_day,
+                    exercise: "Burpee".into(),
+                    met: 8.0,
+                    minutes: 1.0,
+                    reps: None,
+                    sets: 3,
+                    load_kg: 5.0,
+                    circuit: None,
                 },
             ]
         );
