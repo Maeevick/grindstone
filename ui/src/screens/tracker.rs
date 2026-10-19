@@ -10,6 +10,7 @@ use leptos_router::hooks::use_query_map;
 use crate::screens::burn::BurnDay;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::fuel::FuelDay;
+use crate::screens::gauge::AimGauge;
 use crate::screens::hydrate::HydrateDay;
 use crate::screens::{lines, today};
 use crate::tauri;
@@ -132,6 +133,40 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                 {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
             </form>
         </section>
+        {move || {
+            week.get()
+                .and_then(|answer| {
+                    let aims = answer.aims?;
+                    let latest = answer.days.first().copied()?;
+                    let lean_kg = answer
+                        .days
+                        .iter()
+                        .find_map(|measured| measured.composition)
+                        .map(|composition| composition.lean_mass_kg);
+                    Some(view! {
+                        <section class="card bands">
+                            <h2>"Where you stand"</h2>
+                            <AimGauge
+                                label="Body mass"
+                                amount=latest.body_mass_kg
+                                aim=aims.body_mass_kg
+                                recommended=aims.recommended
+                            />
+                            {lean_kg
+                                .map(|lean_kg| {
+                                    view! {
+                                        <AimGauge
+                                            label="Lean mass"
+                                            amount=lean_kg
+                                            aim=aims.lean_mass_kg
+                                            recommended=aims.recommended
+                                        />
+                                    }
+                                })}
+                        </section>
+                    })
+                })
+        }}
         <section class="card last-days">
             <h2>"The last days"</h2>
             <table>

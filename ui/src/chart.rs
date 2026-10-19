@@ -110,7 +110,7 @@ pub struct AimGauge {
 }
 
 const AIM_GAUGE_SPAN: f64 = 0.10;
-const AIM_GRACE: f64 = 0.05;
+pub const AIM_GRACE: f64 = 0.05;
 
 pub fn aim_gauge_of(amount: f64, aim: f64, width: f64) -> AimGauge {
     let scale = (

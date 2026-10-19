@@ -378,6 +378,12 @@ select {
     fill: #7aa2f7;
 }
 
+.gauge-title {
+	margin: 0.6rem 0 0;
+	font-size: 0.8rem;
+	color: var(--mut);
+}
+
 .gauge svg {
     width: 100%;
     height: 1.6rem;

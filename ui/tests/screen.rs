@@ -370,11 +370,17 @@ async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lea
     let _mounted = the_tracker(&screen);
     settled().await;
 
+    let first = text_of(&screen, ".aim-gauge");
     let bands = texts_of(&screen, ".aim-gauge .gauge-labels");
 
+    assert!(first.starts_with("Body mass: 80.0 kg"), "{first}");
     assert_eq!(bands.len(), 2, "{bands:?}");
-    assert!(bands[0].contains("goal 75.0 kg"), "{bands:?}");
-    assert!(bands[1].contains("goal 66.0 kg"), "{bands:?}");
+    for aim in ["goal 75.0 kg", "goal 66.0 kg"] {
+        assert!(
+            bands.iter().any(|band| band.contains(aim)),
+            "{aim} in {bands:?}"
+        );
+    }
 }
 
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
