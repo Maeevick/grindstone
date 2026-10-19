@@ -37,7 +37,7 @@ pub fn food(
     unit: Unit,
     portion: f64,
     nutrients: Nutrients,
-    _description: &str,
+    description: &str,
 ) -> Result<Food, Refusal> {
     let name = name.trim();
     if name.is_empty() {
@@ -64,7 +64,7 @@ pub fn food(
         unit,
         portion,
         nutrients,
-        description: String::new(),
+        description: description.trim().into(),
     })
 }
 
