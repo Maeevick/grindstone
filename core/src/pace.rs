@@ -108,4 +108,38 @@ mod tests {
             pace.body_mass.by
         );
     }
+
+    fn aiming_at(body_mass_kg: f64, gathered: GatherRecords) -> GatherRecords {
+        GatherRecords {
+            goals: vec![(
+                day("2026-03-01"),
+                crate::goals::Goals {
+                    body_mass_kg,
+                    fat_ratio: 0.12,
+                },
+            )],
+            ..gathered
+        }
+    }
+
+    fn fat_kg_of(gathered: &GatherRecords) -> f64 {
+        crate::ledger::ledger(&gathered.measurements, &gathered.profiles)
+            .last()
+            .and_then(|measured| measured.composition)
+            .map(|composition| composition.fat_mass_kg)
+            .expect("a fat mass")
+    }
+
+    #[test]
+    fn losing_faster_than_the_fat_store_can_spare_a_week_is_dangerous() {
+        let losing_a_kilo_a_week = aiming_at(70.0, a_man_weighed(81.0, -0.14));
+
+        let pace = pace_on(day("2026-10-10"), &losing_a_kilo_a_week).expect("a pace");
+
+        assert_eq!(pace.judgement, Judgement::LosingTooFast);
+        assert!(
+            (pace.safe_loss_kg - 48.5 * fat_kg_of(&losing_a_kilo_a_week) * 7.0 / 7700.0).abs()
+                < 1e-9
+        );
+    }
 }
