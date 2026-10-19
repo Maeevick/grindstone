@@ -2149,6 +2149,104 @@ async fn steps_added_to_the_session_wait_there_priced_a_set_and_ghosting_the_ban
     found::<Element>(&screen, ".burn-gauge circle.ghost");
 }
 
+async fn a_session_of_burpees_and_push_ups(screen: &Element, sets: &str) {
+    added_to_the_session(screen, "burpee", "1", "", "5").await;
+    added_to_the_session(screen, "push up", "0.5", "12", "").await;
+    typed_into(screen, "session_sets", sets);
+    settled().await;
+}
+
+#[wasm_bindgen_test]
+async fn logging_the_session_logs_its_steps_in_one_go_then_clears_it() {
+    answering(&format!(
+        r#"{{ {}, "log_session": {A_DAY_OF_MORNING_RUST} }}"#,
+        a_session_at_80_kg()
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    a_session_of_burpees_and_push_ups(&screen, "3").await;
+
+    clicked(&screen, "button.log-the-session");
+    settled().await;
+    settled().await;
+
+    let sent = asked("log_session");
+    for part in [
+        r#""date":"2026-10-10""#,
+        r#""exercise":"Burpee""#,
+        r#""exercise":"Push up""#,
+        r#""sets":3"#,
+    ] {
+        assert!(sent.contains(part), "{part} in {sent}");
+    }
+    assert!(screen.query_selector("ol.steps").ok().flatten().is_none());
+    assert!(text_of(&screen, "table.expenditures tbody").contains("Push up"));
+}
+
+async fn kept_as_a_circuit(screen: &Element) {
+    clicked(screen, "button.keep-as-a-circuit");
+    settled().await;
+    typed_into(screen, "circuit_name", "Morning rust");
+    written_into(
+        screen,
+        "circuit_description",
+        "Found on YouTube, the rusty goblin channel.",
+    );
+    found::<HtmlFormElement>(screen, "form.circuit")
+        .request_submit()
+        .expect("the circuit is kept");
+    settled().await;
+    settled().await;
+}
+
+#[wasm_bindgen_test]
+async fn keeping_the_session_as_a_circuit_crafts_it_then_logs_its_sets() {
+    answering(&format!(
+        r#"{{ {}, "craft_circuit": [{MORNING_RUST}], "log_circuit": {A_DAY_OF_MORNING_RUST} }}"#,
+        a_session_at_80_kg()
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    a_session_of_burpees_and_push_ups(&screen, "3").await;
+
+    kept_as_a_circuit(&screen).await;
+
+    let crafted = asked("craft_circuit");
+    for part in [
+        r#""name":"Morning rust""#,
+        r#""description":"Found on YouTube, the rusty goblin channel.""#,
+        r#""exercise":"Burpee""#,
+    ] {
+        assert!(crafted.contains(part), "{part} in {crafted}");
+    }
+    let logged = asked("log_circuit");
+    assert!(
+        logged.contains(r#""circuit":"Morning rust""#) && logged.contains(r#""sets":3"#),
+        "{logged}"
+    );
+    assert!(screen.query_selector("ol.steps").ok().flatten().is_none());
+}
+
+#[wasm_bindgen_test]
+async fn a_circuit_kept_with_sets_of_nothing_waits_for_later() {
+    answering(&format!(
+        r#"{{ {}, "craft_circuit": [{MORNING_RUST}], "log_circuit": {A_DAY_OF_MORNING_RUST} }}"#,
+        a_session_at_80_kg()
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    a_session_of_burpees_and_push_ups(&screen, "0").await;
+
+    kept_as_a_circuit(&screen).await;
+
+    assert!(asked("craft_circuit").contains("Morning rust"));
+    assert_eq!(asked("log_circuit"), "");
+    assert!(text_of(&screen, ".said").contains("Morning rust waits"));
+}
+
 #[wasm_bindgen_test]
 async fn the_crafter_prices_each_step_and_the_set_they_add_up_to() {
     answering(&format!(
