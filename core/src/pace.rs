@@ -5,10 +5,11 @@ use crate::aims::aims_on;
 use crate::body::body_on;
 use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
+use crate::heading::{STABLE_SHARE_A_WEEK, heading_of};
 use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
 use crate::recommendations::{Recommendations, recommended};
-use crate::tendency::{Change, Heading};
+use crate::tendency::Change;
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
 
@@ -42,7 +43,6 @@ const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
 const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
 const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
-const STABLE_SHARE_A_WEEK: f64 = 0.0015;
 const GAIN_SHARE_A_WEEK_FROM: f64 = 0.0025;
 const AT_THE_AIM_SHARE: f64 = 0.01;
 const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
@@ -145,16 +145,6 @@ fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
     Some((progress.per_week, trend.last()?.1))
 }
 
-/// A measure moving less than 0.15% of itself a week holds steady.
-fn heading_of(per_week: f64, now: f64, aim: Option<f64>) -> Heading {
-    match aim {
-        None => Heading::Unaimed,
-        Some(_) if per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => Heading::Steady,
-        Some(aim) if (aim - now).signum() == per_week.signum() => Heading::Toward,
-        Some(_) => Heading::Away,
-    }
-}
-
 /// The week's pace on a day: how each measure moved per week, heading toward its aim or away from it, and a
 /// judgement of the body mass's pace, health first.
 pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
@@ -212,6 +202,7 @@ mod tests {
     use crate::gender::Gender;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
+    use crate::tendency::Heading;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
