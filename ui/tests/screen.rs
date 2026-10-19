@@ -1170,6 +1170,49 @@ fn text_of(screen: &Element, selector: &str) -> String {
 }
 
 #[wasm_bindgen_test]
+async fn the_food_chooser_offers_meals_then_foods_each_in_alphabetical_order_behind_its_icon() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [{PASTA_IN_CREAM}], "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    focused(&screen, "food");
+    settled().await;
+    let offered = choices(&screen);
+    picked(&screen, "🥦 Pasta");
+    settled().await;
+
+    assert_eq!(
+        offered,
+        ["💪 Pasta in cream", "🥦 Crème fraîche", "🥦 Pasta"]
+    );
+    assert_eq!(value_of(&screen, "food"), "Pasta");
+}
+
+#[wasm_bindgen_test]
+async fn the_exercise_chooser_offers_circuits_then_exercises_each_in_alphabetical_order_behind_its_icon()
+ {
+    answering(&format!(
+        r#"{{ "exercises": {BURPEES_AND_PUSH_UPS}, "circuits": [{MORNING_RUST}],
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    focused(&screen, "exercise");
+    settled().await;
+    let offered = choices(&screen);
+    picked(&screen, "🔄 Morning rust");
+    settled().await;
+
+    assert_eq!(offered, ["🔄 Morning rust", "💪 Burpee", "💪 Push up"]);
+    assert_eq!(value_of(&screen, "exercise"), "Morning rust");
+}
+
+#[wasm_bindgen_test]
 async fn the_food_chooser_starts_on_select_me_and_narrows_from_three_letters() {
     answering(&format!(
         r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
@@ -1189,9 +1232,9 @@ async fn the_food_chooser_starts_on_select_me_and_narrows_from_three_letters() {
 
     typed_into(&screen, "food", "sky");
     settled().await;
-    assert_eq!(choices(&screen), vec!["Skyr".to_string()]);
+    assert_eq!(choices(&screen), vec!["🥦 Skyr".to_string()]);
 
-    picked(&screen, "Skyr");
+    picked(&screen, "🥦 Skyr");
     settled().await;
     assert_eq!(value_of(&screen, "food"), "Skyr");
     assert!(choices(&screen).is_empty());
