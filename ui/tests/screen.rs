@@ -473,6 +473,47 @@ async fn the_gathered_day_stands_on_a_band_for_its_body_mass_and_one_for_its_lea
     }
 }
 
+async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
+    answering(&format!(
+        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
+              "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
+              "aims": {{ "body_mass_kg": 70.0, "lean_mass_kg": 61.6, "recommended": false }},
+              "pace": {{ "body_mass": {{ "by": -0.623, "heading": "Toward" }},
+                         "lean_mass": {lean_mass},
+                         "fat_mass": {{ "by": -0.4, "heading": "Toward" }},
+                         "fat_ratio": {{ "by": -0.005, "heading": "Toward" }},
+                         "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "safe_loss_by": "FatStore" }} }},
+              "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_gather_tab(&screen);
+    settled().await;
+    text_of(&screen, ".pace p")
+}
+
+#[wasm_bindgen_test]
+async fn past_the_safe_loss_the_warning_speaks_of_lean_mass_only_when_the_tape_sees_it_leave() {
+    let leaving = said_of_a_pace_past_the_safe_loss(r#"{ "by": -0.2, "heading": "Away" }"#).await;
+    let holding = said_of_a_pace_past_the_safe_loss(r#"{ "by": 0.24, "heading": "Toward" }"#).await;
+
+    for said in [&leaving, &holding] {
+        assert!(
+            said.starts_with("-0.62 kg a week, past the 0.50 kg your fat can spare"),
+            "{said}"
+        );
+        assert!(!said.contains("floor"), "{said}");
+    }
+    assert!(
+        leaving.contains("your lean mass is going too (-0.20 kg a week)"),
+        "{leaving}"
+    );
+    assert!(
+        holding.contains("on paper, though your lean mass holds so far")
+            && !holding.contains("going too"),
+        "{holding}"
+    );
+}
+
 #[wasm_bindgen_test]
 async fn the_weeks_pace_breaks_down_each_measure_and_judges_the_body_mass() {
     answering(&format!(
