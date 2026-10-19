@@ -39,6 +39,7 @@ pub fn run() {
             commands::set_usual_day,
             commands::usual_day_on,
             commands::fuel_day,
+            commands::fuel_week,
             commands::log_intake,
             commands::log_plate,
             commands::remove_intake,

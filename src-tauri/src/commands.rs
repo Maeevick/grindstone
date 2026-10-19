@@ -27,6 +27,7 @@ use grind_core::for_tracking;
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
+use grind_core::fuel_week::FuelWeek;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::meal::Meal;
@@ -183,6 +184,16 @@ pub fn usual_day_on(records: State<Records>, date: String) -> Result<Option<Voli
 pub fn fuel_day(records: State<Records>, date: String) -> Result<Fuel, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_fuelling::fuel_day(&*records, &*records, &*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_week(
+    records: State<Records>,
+    date: String,
+    today: String,
+) -> Result<Option<FuelWeek>, Failure> {
+    let _ = (records, date, today);
+    Ok(None)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -515,6 +526,7 @@ mod tests {
                 set_usual_day,
                 usual_day_on,
                 fuel_day,
+                fuel_week,
                 log_intake,
                 log_plate,
                 remove_intake,
@@ -991,6 +1003,45 @@ mod tests {
         assert_eq!(cooked[0]["cooked_g"], json!(200.0));
         assert_eq!(listed, Ok(cooked));
         assert_eq!(removed, Ok(json!([])));
+    }
+
+    #[test]
+    fn the_weeks_fuel_crosses_to_the_screen_with_its_logged_days_and_their_averages() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "set_profile",
+            json!({ "form": { "from": "2026-10-01", "birthday": "1985-04-12", "gender": "Male",
+                "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null } }),
+        )
+        .expect("a profile sets");
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-01", "body_mass_kg": 80.0, "waist_cm": 82.0 }),
+        )
+        .expect("a measurement logs");
+        with_skyr_in_the_catalog(&screen).expect("a food adds");
+        invoke(
+            &screen,
+            "log_intake",
+            json!({ "form": { "date": "2026-10-09", "food": "Skyr", "quantity": 200.0 } }),
+        )
+        .expect("an intake logs");
+
+        let answer = invoke(
+            &screen,
+            "fuel_week",
+            json!({ "date": "2026-10-10", "today": "2026-10-10" }),
+        );
+
+        assert_eq!(
+            answer.map(|week| (
+                week["logged_days"].clone(),
+                week["energy"]["per_day"].clone()
+            )),
+            Ok((json!(1), json!(108.0)))
+        );
     }
 
     #[test]
