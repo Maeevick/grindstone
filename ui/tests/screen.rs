@@ -1399,14 +1399,16 @@ async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_w
 }
 
 #[wasm_bindgen_test]
-async fn a_meal_in_progress_waits_in_the_lab_while_the_cook_checks_the_tracker() {
-    answering(&format!(
-        r#"{{ "profile_on": null, "foods": {PASTA_AND_CREAM}, "meals": [] }}"#
-    ));
+async fn a_meal_in_progress_waits_on_the_fuel_shelf_while_the_cook_checks_another_tab() {
+    answering_all(&[
+        A_HOME,
+        EVERY_TAB,
+        &format!(r#"{{ "profile_on": null, "foods": {PASTA_AND_CREAM}, "meals": [] }}"#),
+    ]);
     let screen = screen();
     let _mounted = the_app(&screen);
     settled().await;
-    went_to("/catalog");
+    went_to("/fuel");
     settled().await;
     clicked(&screen, "button.form-Meal");
     settled().await;
@@ -1416,9 +1418,9 @@ async fn a_meal_in_progress_waits_in_the_lab_while_the_cook_checks_the_tracker()
     typed_into(&screen, "ratio_0", "2.5");
     typed_into(&screen, "ingredient", "creme fraiche");
 
-    went_to("/tracker");
+    went_to("/hydrate");
     settled().await;
-    went_to("/catalog");
+    went_to("/fuel");
     settled().await;
 
     assert_eq!(
@@ -1513,6 +1515,101 @@ async fn the_icon_bar_leads_home_and_to_each_tab() {
         opened.push(screen.query_selector(form).ok().flatten().is_some());
     }
     assert_eq!(opened, [true; 4]);
+}
+
+/// What a screen shows, top to bottom: each part by its title, else by its words for a link, else
+/// by its class.
+fn shown_in_order(screen: &Element) -> Vec<String> {
+    let parts = screen
+        .query_selector_all("main.wrap > *")
+        .expect("the screen's parts");
+    (0..parts.length())
+        .filter_map(|at| parts.item(at))
+        .map(|part| {
+            let part: Element = part.unchecked_into();
+            part.query_selector("h2")
+                .ok()
+                .flatten()
+                .and_then(|title| title.text_content())
+                .or_else(|| {
+                    (part.tag_name() == "A")
+                        .then(|| part.text_content())
+                        .flatten()
+                })
+                .unwrap_or_else(|| part.class_name())
+        })
+        .collect()
+}
+
+#[wasm_bindgen_test]
+async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_stats_then_its_shelf()
+ {
+    let a_day_in_each_tab = format!(
+        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
+                  "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
+                  "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }},
+              "fuel_day": {A_FUELLED_DAY}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS},
+              "burn_day": {A_BURN_SHORT_OF_ITS_TARGET} }}"#
+    );
+    answering_all(&[A_HOME, EVERY_TAB, &a_day_in_each_tab]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let mut tabs = Vec::new();
+    for tab in ["/gather", "/fuel", "/hydrate", "/burn"] {
+        went_to(tab);
+        settled().await;
+        settled().await;
+        tabs.push(shown_in_order(&screen));
+    }
+
+    assert_eq!(
+        tabs,
+        [
+            vec![
+                "Today",
+                "card day",
+                "Gather",
+                "Where you stand",
+                "The week's pace",
+                "The last days",
+                "Explore in Stats"
+            ],
+            vec![
+                "Today",
+                "card day",
+                "Fuel",
+                "Where the day stands",
+                "The four macros",
+                "The day's intakes",
+                "Explore in Stats",
+                "Add to the catalog",
+                "Foods"
+            ],
+            vec![
+                "Today",
+                "card day",
+                "Hydrate",
+                "Where the day stands",
+                "The day's drinks",
+                "Explore in Stats",
+                "Add to the catalog",
+                "Drinks"
+            ],
+            vec![
+                "Today",
+                "card day",
+                "Burn",
+                "Off the clock",
+                "Where the day stands",
+                "The day's expenditures",
+                "Explore in Stats",
+                "Add to the catalog",
+                "Exercises"
+            ],
+        ]
+    );
 }
 
 #[wasm_bindgen_test]
