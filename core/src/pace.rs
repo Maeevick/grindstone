@@ -49,13 +49,21 @@ const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
 /// - No more than 0.5 to 1 kg a week: NICE (2025), *Overweight and obesity management*, NG246.
 /// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005), J Theor Biol
 ///   233(1):1-13; about 7,700 kcal a kilo of fat tissue: Wishnofsky M. (1958), *Caloric equivalent of gained or lost weight*, Am J Clin Nutr 6(5):542-546.
-fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
+fn safe_loss_of(body_mass_kg: f64, fat_kg: Option<f64>) -> (f64, SafeLoss) {
     let spared = fat_kg.map_or(f64::INFINITY, |fat_kg| {
         SPARED_KCAL_PER_KG_OF_FAT * fat_kg * DAYS_A_WEEK / KCAL_PER_KG_OF_FAT_TISSUE
     });
-    (LOSS_SHARE_A_WEEK_AT_MOST * body_mass_kg)
-        .min(LOSS_KG_A_WEEK_AT_MOST)
-        .min(spared)
+    [
+        (
+            LOSS_SHARE_A_WEEK_AT_MOST * body_mass_kg,
+            SafeLoss::MassShare,
+        ),
+        (LOSS_KG_A_WEEK_AT_MOST, SafeLoss::AKilo),
+        (spared, SafeLoss::FatStore),
+    ]
+    .into_iter()
+    .min_by(|(one, _), (other, _)| one.total_cmp(other))
+    .unwrap_or((spared, SafeLoss::FatStore))
 }
 
 /// The slope, per week, of the seven-day average of a measure over the week ending on a day, as Home's
@@ -101,7 +109,8 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         })
     };
     let body = body_on(day, &days, &gathered.profiles);
-    let safe_loss_kg = safe_loss_kg(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
+    let (safe_loss_kg, safe_loss_by) =
+        safe_loss_of(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
     let healthy = version_in_force_on(&gathered.profiles, day)
         .map(|profile| recommended(profile, day, Some(body_mass_kg)));
     let judgement = judgement_of(&Week {
@@ -132,7 +141,7 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         ),
         judgement,
         safe_loss_kg,
-        safe_loss_by: SafeLoss::FatStore,
+        safe_loss_by,
     })
 }
 
