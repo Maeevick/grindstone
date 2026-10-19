@@ -1542,6 +1542,114 @@ async fn logging_the_plate_logs_its_ingredients_in_one_go_then_clears_it() {
     assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
 }
 
+async fn a_plate_of_pasta_and_cream_kept_as(screen: &Element, meal: &str, eaten: &str) {
+    added_to_the_plate(screen, "pasta", "100").await;
+    added_to_the_plate(screen, "creme fraiche", "200").await;
+    typed_into(screen, "ratio_0", "2,5");
+    typed_into(screen, "ratio_1", "0.66");
+    clicked(screen, "button.keep-as-a-meal");
+    settled().await;
+    typed_into(screen, "meal_name", meal);
+    written_into(screen, "meal_description", "Boil, reduce, stir.");
+    typed_into(screen, "eaten", eaten);
+    found::<HtmlFormElement>(screen, "form.meal")
+        .request_submit()
+        .expect("the meal is kept");
+    settled().await;
+    settled().await;
+}
+
+const A_PLATE_KEPT: &str = r#""foods": [], "fuel_day": {}, "cook_meal": [], "log_intake": {}"#;
+
+fn a_plate_kept() -> String {
+    A_PLATE_KEPT
+        .replacen("[]", PASTA_AND_CREAM, 1)
+        .replacen("{}", A_DAY_NOT_FUELLED_YET, 1)
+        .replacen("[]", &format!("[{PASTA_IN_CREAM}]"), 1)
+        .replacen("{}", A_FUELLED_DAY, 1)
+}
+
+#[wasm_bindgen_test]
+async fn keeping_the_plate_as_a_meal_cooks_it_with_its_ratios_then_logs_the_portion_eaten() {
+    answering(&format!("{{ {} }}", a_plate_kept()));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    a_plate_of_pasta_and_cream_kept_as(&screen, "Pasta in cream", "250").await;
+
+    let cooked = asked("cook_meal");
+    for sent in [
+        r#""name":"Pasta in cream""#,
+        r#""description":"Boil, reduce, stir.""#,
+        r#""food":"Crème fraîche""#,
+        r#""cooked_per_raw":2.5"#,
+        r#""cooked_per_raw":0.66"#,
+    ] {
+        assert!(cooked.contains(sent), "{sent} in {cooked}");
+    }
+    let logged = asked("log_intake");
+    assert!(
+        logged.contains(r#""food":"Pasta in cream""#) && logged.contains(r#""quantity":250"#),
+        "{logged}"
+    );
+    assert!(screen.query_selector("table.pot").ok().flatten().is_none());
+}
+
+#[wasm_bindgen_test]
+async fn a_meal_kept_without_its_portion_is_eaten_whole() {
+    answering(&format!("{{ {} }}", a_plate_kept()));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    a_plate_of_pasta_and_cream_kept_as(&screen, "Pasta in cream", "").await;
+
+    let logged = asked("log_intake");
+    assert!(logged.contains(r#""quantity":382"#), "{logged}");
+}
+
+#[wasm_bindgen_test]
+async fn a_meal_kept_with_a_portion_of_nothing_waits_for_later() {
+    answering(&format!("{{ {} }}", a_plate_kept()));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    a_plate_of_pasta_and_cream_kept_as(&screen, "Pasta in cream", "0").await;
+
+    assert!(asked("cook_meal").contains("Pasta in cream"));
+    assert_eq!(asked("log_intake"), "");
+    assert!(text_of(&screen, ".said").contains("Pasta in cream waits"));
+}
+
+#[wasm_bindgen_test]
+async fn an_ingredient_on_the_plate_left_without_its_ratio_keeps_its_own_mass() {
+    answering(&format!("{{ {} }}", a_plate_kept()));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    added_to_the_plate(&screen, "Pasta", "100").await;
+    assert_eq!(
+        found::<HtmlInputElement>(&screen, "input[name=ratio_0]").placeholder(),
+        "1"
+    );
+
+    clicked(&screen, "button.keep-as-a-meal");
+    settled().await;
+    typed_into(&screen, "meal_name", "Plain pasta");
+    found::<HtmlFormElement>(&screen, "form.meal")
+        .request_submit()
+        .expect("the meal is kept");
+    settled().await;
+
+    let sent = asked("cook_meal");
+    assert!(
+        sent.contains(r#""food":"Pasta""#) && !sent.contains("cooked_per_raw"),
+        "{sent}"
+    );
+}
+
 #[wasm_bindgen_test]
 async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_what_each_brings() {
     answering(&format!(r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [] }}"#));
