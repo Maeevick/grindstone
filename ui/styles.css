@@ -433,6 +433,18 @@ hr.divider {
     color: #9aa0a6;
 }
 
+.gauge-floor {
+    position: relative;
+    height: 1.2rem;
+    font-size: 0.8rem;
+}
+
+.gauge-floor span {
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
 .chips .pill {
     font-weight: bold;
 }

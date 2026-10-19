@@ -91,6 +91,11 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                 {ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
+            <div class="gauge-floor">
+                <span class="acc floor-label" style=format!("left: {}%", 100.0 * placed.floor_at / 360.0)>
+                    {format!("Alpert {}", bare(Figure::Energy(band.floor_kcal)))}
+                </span>
+            </div>
             <div class="gauge-labels">
                 <span class="low">
                     {format!(
@@ -99,7 +104,6 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                         bare(Figure::Energy(band.minimum_kcal)),
                     )}
                 </span>
-                <span class="acc">{format!("Alpert {}", bare(Figure::Energy(band.floor_kcal)))}</span>
                 <span class="acc">
                     {format!("Maintenance {}", bare(Figure::Energy(band.cap_kcal)))}
                 </span>
