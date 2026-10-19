@@ -450,7 +450,7 @@ fn a_gathered_week() -> String {
 }
 
 #[wasm_bindgen_test]
-async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_percent_of_its_goal_and_one_for_its_lean_mass_green_from_its_goal_up()
+async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_percent_and_one_for_its_lean_mass_green_from_its_goal_up_each_labelled_by_its_ends()
  {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
@@ -475,7 +475,7 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
     let body: Element = found(&screen, ".aim-gauge");
     assert_eq!(
         texts_in_order(&body, ".gauge-labels span"),
-        ["74.3 kg", "goal 75.0 kg", "75.8 kg"]
+        ["67.5 kg", "goal 75.0 kg", "82.5 kg"]
     );
     let lean: Element = screen
         .query_selector_all(".aim-gauge")
