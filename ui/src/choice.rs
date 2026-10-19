@@ -47,8 +47,8 @@ pub fn chosen(options: &[String], typed: &str) -> Option<String> {
 }
 
 /// Whether the typed name is new to the options: typed, and matching none of them.
-pub fn nothing_matches(_options: &[String], _typed: &str) -> bool {
-    false
+pub fn nothing_matches(options: &[String], typed: &str) -> bool {
+    !folded(typed).is_empty() && matching(options, typed).is_empty()
 }
 
 #[cfg(test)]
