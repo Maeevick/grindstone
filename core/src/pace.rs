@@ -155,7 +155,7 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         },
         lean_mass: change(
             |measured| measured.composition.map(|split| split.lean_mass_kg),
-            aims.map(|aims| Aim::Reach(aims.lean_mass_kg)),
+            aims.map(|aims| Aim::Floor(aims.lean_mass_kg)),
         ),
         fat_mass: change(
             |measured| measured.composition.map(|split| split.fat_mass_kg),
