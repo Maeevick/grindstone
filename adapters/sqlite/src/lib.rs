@@ -96,6 +96,7 @@ const MIGRATIONS: &[&str] = &[
     "create table burn_targets (effective_from text primary key, kcal real not null)",
     "alter table foods add column description text not null default ''",
     "alter table drinks add column description text not null default ''",
+    "alter table exercises add column description text not null default ''",
 ];
 
 pub struct Sqlite(Connection);
@@ -347,7 +348,7 @@ impl Sqlite {
     }
 }
 
-const EXERCISES: &str = "select name, met from exercises order by name";
+const EXERCISES: &str = "select name, met, description from exercises order by name";
 const WORKOUTS: &str = "select id, day, exercise, met, minutes, reps, sets, load_kg, circuit from workouts order by day, id";
 const DAYS_OFF_THE_CLOCK: &str =
     "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day";
@@ -358,7 +359,7 @@ fn exercise_read(row: &rusqlite::Row) -> rusqlite::Result<Exercise> {
     Ok(Exercise {
         name: row.get(0)?,
         met: row.get(1)?,
-        description: String::new(),
+        description: row.get(2)?,
     })
 }
 
@@ -413,9 +414,9 @@ fn volitional_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Volition
 impl ForStoringBurnRecords for Sqlite {
     fn save_exercise(&self, exercise: &Exercise) -> Result<(), Broken> {
         self.run(
-            "insert into exercises (name, met) values (?1, ?2)
-             on conflict (name) do update set met = excluded.met",
-            params![exercise.name, exercise.met],
+            "insert into exercises (name, met, description) values (?1, ?2, ?3)
+             on conflict (name) do update set met = excluded.met, description = excluded.description",
+            params![exercise.name, exercise.met, exercise.description],
         )
     }
 
