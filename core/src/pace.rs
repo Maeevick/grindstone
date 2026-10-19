@@ -1,12 +1,13 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::aims::aims_on;
 use crate::body::body_on;
 use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
 use crate::ledger::ledger;
 use crate::progress::progress_towards;
-use crate::recommendations::recommended;
+use crate::recommendations::{Recommendations, recommended};
 use crate::tendency::{Change, Heading};
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
@@ -60,6 +61,41 @@ fn safe_loss_kg(body_mass_kg: f64, fat_kg: Option<f64>) -> f64 {
         .min(spared)
 }
 
+struct Week {
+    per_week: f64,
+    body_mass_kg: f64,
+    fat_ratio: Option<f64>,
+    healthy: Option<Recommendations>,
+    safe_loss_kg: f64,
+    aim_kg: Option<f64>,
+}
+
+/// Health first: a loss under the healthy mass or fat, or past the safe loss, is dangerous whatever the aim.
+fn judgement_of(week: &Week) -> Judgement {
+    let losing = week.per_week < -STABLE_SHARE_A_WEEK * week.body_mass_kg;
+    let towards_a_lower_aim = week.aim_kg.is_some_and(|aim| aim < week.body_mass_kg);
+    if losing
+        && week
+            .healthy
+            .is_some_and(|healthy| week.body_mass_kg < healthy.healthy_mass_kg.0)
+    {
+        Judgement::UnderHealthyMass
+    } else if losing
+        && week
+            .healthy
+            .zip(week.fat_ratio)
+            .is_some_and(|(healthy, fat_ratio)| fat_ratio < healthy.healthy_fat_ratio.0)
+    {
+        Judgement::UnderHealthyFat
+    } else if -week.per_week > week.safe_loss_kg {
+        Judgement::LosingTooFast
+    } else if towards_a_lower_aim && -week.per_week >= week.safe_loss_kg / 2.0 {
+        Judgement::VeryGood
+    } else {
+        Judgement::Stable
+    }
+}
+
 /// The week's pace on a day: the slope, per week, of the seven-day average of the body mass over the
 /// fourteen days ending on it.
 pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
@@ -84,24 +120,15 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
         &gathered.profiles,
     );
     let safe_loss_kg = safe_loss_kg(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
-    let healthy = version_in_force_on(&gathered.profiles, day)
-        .map(|profile| recommended(profile, day, Some(body_mass_kg)));
-    let fat_ratio = body.as_ref().map(|body| body.fat_kg / body.mass_kg);
-    let losing = progress.per_week < -STABLE_SHARE_A_WEEK * body_mass_kg;
-    let judgement =
-        if losing && healthy.is_some_and(|healthy| body_mass_kg < healthy.healthy_mass_kg.0) {
-            Judgement::UnderHealthyMass
-        } else if losing
-            && healthy
-                .zip(fat_ratio)
-                .is_some_and(|(healthy, fat_ratio)| fat_ratio < healthy.healthy_fat_ratio.0)
-        {
-            Judgement::UnderHealthyFat
-        } else if -progress.per_week > safe_loss_kg {
-            Judgement::LosingTooFast
-        } else {
-            Judgement::Stable
-        };
+    let judgement = judgement_of(&Week {
+        per_week: progress.per_week,
+        body_mass_kg,
+        fat_ratio: body.as_ref().map(|body| body.fat_kg / body.mass_kg),
+        healthy: version_in_force_on(&gathered.profiles, day)
+            .map(|profile| recommended(profile, day, Some(body_mass_kg))),
+        safe_loss_kg,
+        aim_kg: aims_on(day, gathered).map(|aims| aims.body_mass_kg),
+    });
     Some(Pace {
         body_mass: Change {
             by: progress.per_week,
