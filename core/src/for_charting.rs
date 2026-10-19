@@ -363,7 +363,7 @@ pub fn gather_month(
             .map(|measured| GatherRow {
                 day: measured.day,
                 body_mass_kg: measured.body_mass_kg,
-                waist_cm: None,
+                waist_cm: measured.waist_cm,
                 lean_mass_kg: measured.composition.map(|split| split.lean_mass_kg),
                 fat_mass_kg: measured.composition.map(|split| split.fat_mass_kg),
                 fat_ratio: measured.composition.map(|split| split.fat_ratio),
