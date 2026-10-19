@@ -12,6 +12,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::chosen;
+use crate::screens::catalog::BurnShelf;
 use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
@@ -292,20 +293,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 Logging::Circuit => view! { <CircuitLog day=day on_logged=logged_circuit body_mass=body_mass /> }.into_any(),
             }}
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            {move || {
-                burn.get()
-                    .map(|answer| {
-                        let rested = answer.workouts.is_empty();
-                        let burnt = answer.burnt_kcal.unwrap_or(0.0);
-                        view! {
-                            <p class="figures">{lines::burnt(&answer)}</p>
-                            {answer
-                                .target_kcal
-                                .map(|target| view! { <BurnGauge burnt=burnt target=target /> })}
-                            {rested.then(|| view! { <p class="empty">{lines::NO_WORKOUT}</p> })}
-                        }
-                    })
-            }}
         </section>
         <section class="card">
             <h2>"Off the clock"</h2>
@@ -321,6 +308,23 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 </button>
             </form>
         </section>
+        {move || {
+            burn.get()
+                .map(|answer| {
+                    let rested = answer.workouts.is_empty();
+                    let burnt = answer.burnt_kcal.unwrap_or(0.0);
+                    view! {
+                        <section class="card bands">
+                            <h2>"Where the day stands"</h2>
+                            <p class="figures">{lines::burnt(&answer)}</p>
+                            {answer
+                                .target_kcal
+                                .map(|target| view! { <BurnGauge burnt=burnt target=target /> })}
+                            {rested.then(|| view! { <p class="empty">{lines::NO_WORKOUT}</p> })}
+                        </section>
+                    }
+                })
+        }}
         <section class="card">
             <h2>"The day's expenditures"</h2>
             <div class="scroll">
@@ -370,5 +374,6 @@ pub fn BurnTab() -> impl IntoView {
         <DayCard day=day />
         <BurnDay day=day />
         <ExploreInStats />
+        <BurnShelf />
     }
 }

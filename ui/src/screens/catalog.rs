@@ -416,7 +416,7 @@ fn form_pills(chosen: RwSignal<Form>, forms: [(Form, &'static str); 2]) -> impl 
 }
 
 #[component]
-fn FuelShelf() -> impl IntoView {
+pub fn FuelShelf() -> impl IntoView {
     let foods = RwSignal::new(Vec::<Food>::new());
     let meals = RwSignal::new(Vec::<Meal>::new());
     let form = RwSignal::new(if expect_context::<MealInProgress>().started() {
@@ -453,7 +453,7 @@ fn FuelShelf() -> impl IntoView {
 }
 
 #[component]
-fn HydrateShelf() -> impl IntoView {
+pub fn HydrateShelf() -> impl IntoView {
     let drinks = RwSignal::new(Vec::<Drink>::new());
     let said = RwSignal::new(None::<String>);
     spawn_local(async move {
@@ -474,7 +474,7 @@ fn HydrateShelf() -> impl IntoView {
 }
 
 #[component]
-fn BurnShelf() -> impl IntoView {
+pub fn BurnShelf() -> impl IntoView {
     let exercises = RwSignal::new(Vec::<Exercise>::new());
     let priced = RwSignal::new(Vec::<PricedCircuit>::new());
     let body_mass = RwSignal::new(None::<f64>);

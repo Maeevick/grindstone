@@ -7,6 +7,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::chosen;
+use crate::screens::catalog::FuelShelf;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
@@ -208,11 +209,14 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                 </button>
             </form>
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            {move || {
-                fuel.get()
-                    .map(|answer| {
-                        let energy_class = answer.energy.map(lines::verdict_class).unwrap_or("hint");
-                        view! {
+        </section>
+        {move || {
+            fuel.get()
+                .map(|answer| {
+                    let energy_class = answer.energy.map(lines::verdict_class).unwrap_or("hint");
+                    view! {
+                        <section class="card bands">
+                            <h2>"Where the day stands"</h2>
                             <p class=format!("figures {energy_class}")>{lines::energy_line(&answer)}</p>
                             {match answer.band {
                                 Some(band) => {
@@ -221,10 +225,10 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                                 }
                                 None => view! { <p class="hint">{lines::NO_BAND}</p> }.into_any(),
                             }}
-                        }
-                    })
-            }}
-        </section>
+                        </section>
+                    }
+                })
+        }}
         {move || {
             fuel.get()
                 .and_then(|answer| {
@@ -274,5 +278,6 @@ pub fn FuelTab() -> impl IntoView {
         <DayCard day=day />
         <FuelDay day=day />
         <ExploreInStats />
+        <FuelShelf />
     }
 }

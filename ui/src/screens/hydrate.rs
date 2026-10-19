@@ -10,6 +10,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::chosen;
+use crate::screens::catalog::HydrateShelf;
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::references::ReferencesLink;
@@ -63,30 +64,36 @@ fn DrinkingsOfTheDay(
     let past_the_cap = of_the_day.verdict == Verdict::High;
     let dry = of_the_day.drinkings.is_empty();
     view! {
-        <p class="figures" class:good=reached>
-            {total}
-        </p>
-        <Gauge
-            amount=of_the_day.drunk_ml
-            floor=of_the_day.floor_ml
-            optimal=of_the_day.target_ml
-            cap=of_the_day.cap_ml
-            shown_as=Figure::Volume
-        />
-        {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
-        {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
-        {dry.then(|| view! { <p class="empty">{lines::NO_DRINKING}</p> })}
-        <table>
-            <tbody>
-                {of_the_day
-                    .drinkings
-                    .into_iter()
-                    .map(|(id, drinking)| {
-                        view! { <DrinkingRow id=id drinking=drinking hydrate=hydrate said=said /> }
-                    })
-                    .collect_view()}
-            </tbody>
-        </table>
+        <section class="card bands">
+            <h2>"Where the day stands"</h2>
+            <p class="figures" class:good=reached>
+                {total}
+            </p>
+            <Gauge
+                amount=of_the_day.drunk_ml
+                floor=of_the_day.floor_ml
+                optimal=of_the_day.target_ml
+                cap=of_the_day.cap_ml
+                shown_as=Figure::Volume
+            />
+            {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
+            {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
+        </section>
+        <section class="card">
+            <h2>"The day's drinks"</h2>
+            {dry.then(|| view! { <p class="empty">{lines::NO_DRINKING}</p> })}
+            <table>
+                <tbody>
+                    {of_the_day
+                        .drinkings
+                        .into_iter()
+                        .map(|(id, drinking)| {
+                            view! { <DrinkingRow id=id drinking=drinking hydrate=hydrate said=said /> }
+                        })
+                        .collect_view()}
+                </tbody>
+            </table>
+        </section>
     }
 }
 
@@ -172,14 +179,14 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
                 </button>
                 {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
             </form>
-            {move || {
-                hydrate
-                    .get()
-                    .map(|of_the_day| {
-                        view! { <DrinkingsOfTheDay of_the_day=of_the_day hydrate=hydrate said=said /> }
-                    })
-            }}
         </section>
+        {move || {
+            hydrate
+                .get()
+                .map(|of_the_day| {
+                    view! { <DrinkingsOfTheDay of_the_day=of_the_day hydrate=hydrate said=said /> }
+                })
+        }}
     }
 }
 
@@ -385,5 +392,6 @@ pub fn HydrateTab() -> impl IntoView {
         <DayCard day=day />
         <HydrateDay day=day />
         <ExploreInStats />
+        <HydrateShelf />
     }
 }
