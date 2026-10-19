@@ -21,6 +21,7 @@ use grind_core::for_setting_up_the_profile::{
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
+use grind_core::fuel_week::FuelWeek;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::meal::Meal;
@@ -210,6 +211,16 @@ pub async fn burn_target_on(date: &str) -> Result<Option<f64>, Failure> {
 
 pub async fn fuel_day(date: &str) -> Result<Fuel, Failure> {
     call("fuel_day", OnDay { date }, broken).await
+}
+
+#[derive(Serialize)]
+struct WeekUpTo<'a> {
+    date: &'a str,
+    today: &'a str,
+}
+
+pub async fn fuel_week(date: &str, today: &str) -> Result<Option<FuelWeek>, Failure> {
+    call("fuel_week", WeekUpTo { date, today }, broken).await
 }
 
 pub async fn log_intake(form: &IntakeForm) -> Result<Fuel, Failure> {

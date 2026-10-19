@@ -5,6 +5,7 @@ use grind_core::figures::{Figure, shown, signed};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
+use grind_core::fuel_week::{FuelWeek, Gap};
 use grind_core::hydrate::Hydrate;
 use grind_core::judgement::Judgement;
 use grind_core::meal::Ingredient;
@@ -665,6 +666,64 @@ pub fn topic_name(topic: Topic) -> &'static str {
         Topic::Activity => "Activity",
         Topic::Macronutrients => "Macronutrients",
         Topic::Water => "Water",
+    }
+}
+
+pub const NO_WEEK_YET: &str = "No finished day of the week is logged yet. I only average what is over: it spares me the rubbing out.";
+
+pub fn over_logged_days(days: usize) -> String {
+    if days == 1 {
+        "Over 1 logged day.".into()
+    } else {
+        format!("Over {days} logged days.")
+    }
+}
+
+fn gaps_said(gaps: &[Gap], a_day_first: bool) -> String {
+    let said: Vec<String> = gaps
+        .iter()
+        .enumerate()
+        .map(|(at, gap)| {
+            let figure = match gap.habit {
+                Habit::Energy => Figure::Energy(gap.per_day),
+                _ => Figure::Grams(gap.per_day),
+            };
+            format!(
+                "{} ({}{}{})",
+                habit_name(gap.habit).to_lowercase(),
+                if gap.per_day > 0.0 { "+" } else { "" },
+                shown(figure),
+                if at == 0 && a_day_first { " a day" } else { "" }
+            )
+        })
+        .collect();
+    match said.as_slice() {
+        [rest @ .., last] if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
+        _ => said.concat(),
+    }
+}
+
+/// What the week's average runs short of, then over, said plainly before a word from the ledger.
+pub fn fuel_week_said(week: &FuelWeek) -> String {
+    let (short, over) = (week.short(), week.over());
+    match (short.is_empty(), over.is_empty()) {
+        (true, true) => {
+            "Every average sits in its band. I checked twice, which for me counts as restraint."
+                .into()
+        }
+        (false, true) => format!(
+            "Short on {}. A little more every day and the gap closes on its own; I only have to watch, my favourite kind of work.",
+            gaps_said(&short, true)
+        ),
+        (true, false) => format!(
+            "Over on {}. A few swaps sand that down; no need to grind the whole stone.",
+            gaps_said(&over, true)
+        ),
+        (false, false) => format!(
+            "Short on {}, over on {}. Trade a little of the one for the other: the energy barely moves, the week does.",
+            gaps_said(&short, true),
+            gaps_said(&over, false)
+        ),
     }
 }
 

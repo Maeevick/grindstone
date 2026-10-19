@@ -705,7 +705,8 @@ a.references {
 	line-height: 1.55;
 }
 
-.pace .tip {
+.pace .tip,
+.week .tip {
 	margin-top: 10px;
 }
 

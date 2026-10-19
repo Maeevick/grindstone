@@ -5,6 +5,7 @@ use grind_core::for_fuelling::IntakeForm;
 use grind_core::fuel::{EnergyShares, Fuel, MacroRow, Macros, energy_shares};
 use grind_core::intake::Intake;
 use grind_core::meal::Meal;
+use grind_core::week::Averaged;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -450,11 +451,72 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
+fn week_row(
+    name: &'static str,
+    row: Averaged,
+    logged_days: usize,
+    figure: fn(f64) -> Figure,
+) -> impl IntoView {
+    view! {
+        <tr>
+            <td>{name}</td>
+            <td class=lines::verdict_class(row.verdict())>{bare(figure(row.per_day))}</td>
+            <td>{format!("{}–{}", bare(figure(row.floor)), bare(figure(row.ceiling)))}</td>
+            <td>{format!("{}/{logged_days}", row.in_band)}</td>
+        </tr>
+    }
+}
+
 /// The week up to the tab's day, a logged day on average, against the bands.
 #[component]
 pub fn FuelWeekCard(day: RwSignal<String>) -> impl IntoView {
-    let _ = day;
-    view! { <section class="card week"></section> }
+    let recorded = Recorded::here();
+    let week = LocalResource::new(move || {
+        recorded.heard();
+        let date = day.get();
+        async move { tauri::fuel_week(&date, &today()).await }
+    });
+    view! {
+        <section class="card week">
+            <h2>"The week's average"</h2>
+            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
+                {move || {
+                    week.get()
+                        .map(|answer| match answer {
+                            Ok(Some(week)) => {
+                                let logged = week.logged_days;
+                                view! {
+                                    <p class="hint">{lines::over_logged_days(logged)}</p>
+                                    <table class="macros">
+                                        <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th>"A day"</th>
+                                                <th>"Band"</th>
+                                                <th>"In band"</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {week_row("Energy (kcal)", week.energy, logged, Figure::Energy)}
+                                            {week_row("Protein (g)", week.protein, logged, Figure::Grams)}
+                                            {week_row("Fat (g)", week.fat, logged, Figure::Grams)}
+                                            {week_row("Fibre (g)", week.fibre, logged, Figure::Grams)}
+                                            {week_row("Carbs (g)", week.carbs, logged, Figure::Grams)}
+                                        </tbody>
+                                    </table>
+                                    <p class="tip">{lines::quoted(&lines::fuel_week_said(&week))}</p>
+                                }
+                                    .into_any()
+                            }
+                            Ok(None) => view! { <p class="empty">{lines::NO_WEEK_YET}</p> }.into_any(),
+                            Err(failure) => {
+                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
+                            }
+                        })
+                }}
+            </Transition>
+        </section>
+    }
 }
 
 #[component]
