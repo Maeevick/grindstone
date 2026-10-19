@@ -34,9 +34,9 @@ fn pace_line(
             ),
         };
         view! {
-            <li class=class>
+            <li>
                 <span>{name}</span>
-                <span>{moved}</span>
+                <span class=class>{moved}</span>
             </li>
         }
     })

@@ -949,15 +949,7 @@ tr.details .pinned {
 	font-size: 0.9rem;
 }
 
-.pace-lines li.toward span:last-child {
-	color: var(--ok);
-}
-
-.pace-lines li.away span:last-child {
-	color: var(--bad);
-}
-
-.pace-lines li.steady span:last-child {
+.pace-lines span.steady {
 	color: var(--mut);
 }
 
