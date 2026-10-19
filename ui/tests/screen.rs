@@ -1,12 +1,10 @@
 #![cfg(target_arch = "wasm32")]
 
-use grind_core::burn::Burn;
 use grind_ui::app::App;
 use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
-use grind_ui::screens::circuits::CircuitLog;
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
@@ -798,7 +796,7 @@ async fn without_a_weigh_in_the_workout_form_previews_nothing() {
 }
 
 #[wasm_bindgen_test]
-async fn the_circuit_log_previews_what_its_sets_will_burn() {
+async fn a_circuit_chosen_in_the_workout_form_asks_its_sets_alone_and_previews_their_burn() {
     answering(&format!(
         r#"{{ "exercises": [], "circuits": [{MORNING_RUST}],
              "burn_day": {A_BURN_PRICED_AT_80_KG}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
@@ -806,17 +804,19 @@ async fn the_circuit_log_previews_what_its_sets_will_burn() {
     let screen = screen();
     let _mounted = the_burn_day(&screen);
     settled().await;
-    clicked(&screen, "button.burn-Circuit");
-    settled().await;
 
-    typed_into(&screen, "circuit", "morning rust");
+    typed_into(&screen, "exercise", "morning rust");
     settled().await;
-    let one_set = text_of(&screen, "form.circuit-log p.preview");
-    typed_into(&screen, "circuit_sets", "3");
+    let one_set = text_of(&screen, "form.workout p.preview");
+    typed_into(&screen, "sets", "3");
     settled().await;
 
     assert_eq!(
-        [one_set, text_of(&screen, "form.circuit-log p.preview")],
+        attributes_of(&screen, "form.workout input", "name"),
+        ["exercise", "sets"]
+    );
+    assert_eq!(
+        [one_set, text_of(&screen, "form.workout p.preview")],
         ["12 kcal", "37 kcal"]
     );
 }
@@ -833,7 +833,6 @@ async fn logging_a_workout_lists_it_with_what_it_burnt() {
     let screen = screen();
     let _mounted = the_burn_day(&screen);
     settled().await;
-    assert_eq!(value_of(&screen, "sitting"), "480");
 
     typed_into(&screen, "exercise", "Walking");
     typed_into(&screen, "minutes", "60");
@@ -894,7 +893,7 @@ async fn an_exercise_nothing_matches_turns_the_workout_form_into_a_new_one_added
 }
 
 #[wasm_bindgen_test]
-async fn the_burn_card_switches_between_a_workout_and_a_circuit() {
+async fn the_burn_card_offers_a_workout_or_the_day_off_the_clock_on_its_pills() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
              "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
@@ -903,12 +902,16 @@ async fn the_burn_card_switches_between_a_workout_and_a_circuit() {
     let _mounted = the_burn_day(&screen);
     settled().await;
     let shown = |selector: &str| screen.query_selector(selector).ok().flatten().is_some();
-    assert!(shown("form.workout") && !shown("form.circuit-log"));
+    let pills = texts_in_order(&screen, "button.pill");
+    let at_first = shown("form.workout") && !shown("form.off-the-clock");
 
-    found::<web_sys::HtmlElement>(&screen, "button.burn-Circuit").click();
+    clicked(&screen, "button.burn-OffTheClock");
     settled().await;
 
-    assert!(shown("form.circuit-log") && !shown("form.workout"));
+    assert_eq!(pills, ["Workout", "Off the clock"]);
+    assert!(at_first);
+    assert!(shown("form.off-the-clock") && !shown("form.workout"));
+    assert_eq!(value_of(&screen, "sitting"), "480");
 }
 
 #[wasm_bindgen_test]
@@ -1922,7 +1925,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Today",
                 "card day",
                 "Burn",
-                "Off the clock",
                 "Where the day stands",
                 "The day's expenditures",
                 "The last days",
@@ -2419,42 +2421,55 @@ const A_DAY_OF_MORNING_RUST: &str = r#"{ "day": "2026-10-10", "burnt_kcal": 120.
         "minutes": 1.0, "reps": null, "sets": 3, "load_kg": 5.0, "circuit": "Morning rust" } } ] }"#;
 
 #[wasm_bindgen_test]
-async fn logging_a_circuit_hands_over_the_days_burn_with_a_workout_per_step() {
+async fn a_circuit_logged_from_the_workout_form_runs_by_its_sets() {
     answering(&format!(
-        r#"{{ "circuits": [{MORNING_RUST}], "log_circuit": {A_DAY_OF_MORNING_RUST} }}"#
+        r#"{{ "exercises": [], "circuits": [{MORNING_RUST}], "burn_day": {AN_EMPTY_BURN},
+             "fuel_day": {A_DAY_NOT_FUELLED_YET}, "log_circuit": {A_DAY_OF_MORNING_RUST} }}"#
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
-        let handed_over = RwSignal::new(None::<Burn>);
-        view! {
-            <Router>
-                <CircuitLog
-                    day=day
-                    body_mass=Signal::stored(None)
-                    on_logged=Callback::new(move |burn: Burn| handed_over.set(Some(burn)))
-                />
-                <p class="handed-over">
-                    {move || handed_over.get().map(|burn| burn.workouts.len().to_string())}
-                </p>
-            </Router>
-        }
-    });
+    let _mounted = the_burn_day(&screen);
     settled().await;
-    assert_eq!(
-        found::<HtmlInputElement>(&screen, "input[name=circuit_sets]").placeholder(),
-        "1"
-    );
 
-    typed_into(&screen, "circuit", "Morning rust");
-    typed_into(&screen, "circuit_sets", "3");
-    found::<HtmlFormElement>(&screen, "form.circuit-log")
+    typed_into(&screen, "exercise", "Morning rust");
+    typed_into(&screen, "sets", "3");
+    found::<HtmlFormElement>(&screen, "form.workout")
         .request_submit()
         .expect("the circuit is logged");
     settled().await;
 
-    let handed_over: Element = found(&screen, "p.handed-over");
-    assert_eq!(handed_over.text_content().unwrap_or_default(), "2");
+    let sent = asked("log_circuit");
+    assert!(
+        sent.contains(r#""circuit":"Morning rust""#) && sent.contains(r#""sets":3"#),
+        "{sent}"
+    );
+    let rows = text_of(&screen, "table.expenditures tbody");
+    assert!(
+        rows.contains("Push up") && rows.contains("Burpee"),
+        "{rows}"
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_circuit_put_in_the_session_brings_its_steps() {
+    answering(&format!(
+        r#"{{ "exercises": {BURPEES_AND_PUSH_UPS}, "circuits": [{MORNING_RUST}],
+             "burn_day": {A_BURN_PRICED_AT_80_KG}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "exercise", "Morning rust");
+    settled().await;
+    clicked(&screen, "button.to-the-session");
+    settled().await;
+
+    let steps = texts_in_order(&screen, "ol.steps li");
+    assert_eq!(steps.len(), 2, "{steps:?}");
+    assert!(
+        steps[0].contains("Push up") && steps[1].contains("Burpee"),
+        "{steps:?}"
+    );
 }
 
 const THE_CATALOG: &str = r#"[{ "name": "Expresso", "volume_ml": 80.0, "kind": "Other" }, { "name": "Tea", "volume_ml": 200.0, "kind": "Other" }]"#;
@@ -3321,7 +3336,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     let burn = screen();
     let _burn = the_burn_day(&burn);
     settled().await;
-    clicked(&burn, "button.burn-Circuit");
+    clicked(&burn, "button.burn-OffTheClock");
     settled().await;
     said.push(spoken_on(&burn));
 
