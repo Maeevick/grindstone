@@ -10,7 +10,7 @@ use crate::judgement::{Judgement, Week, judgement_of};
 use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
 use crate::recommendations::recommended;
-use crate::tendency::Change;
+use crate::tendency::{Change, Heading};
 use crate::trend::seven_day_trend;
 use crate::version::version_in_force_on;
 
@@ -45,7 +45,13 @@ pub enum Lean {
 impl Pace {
     /// Leaving once it falls past steady, holding otherwise.
     pub fn lean(&self) -> Lean {
-        Lean::Unmeasured
+        match self.lean_mass {
+            None => Lean::Unmeasured,
+            Some(change) if change.by < 0.0 && change.heading != Heading::Steady => {
+                Lean::Leaving(change.by)
+            }
+            Some(_) => Lean::Holding,
+        }
     }
 }
 
@@ -168,7 +174,6 @@ mod tests {
     use crate::gender::Gender;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
-    use crate::tendency::Heading;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
