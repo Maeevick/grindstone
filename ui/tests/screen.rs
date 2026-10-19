@@ -1336,8 +1336,8 @@ async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_
     let _mounted = the_fuel_shelf(&screen);
     settled().await;
     assert_eq!(tables_in_order(&screen), ["foods"]);
-    found::<Element>(&screen, "button.form-Food.chosen");
-    found::<Element>(&screen, "button.form-Meal");
+    found::<Element>(&screen, "button.shelf-Foods.chosen");
+    found::<Element>(&screen, "button.shelf-Meals");
     assert_eq!(
         fields_in_rows(&screen, "form.food"),
         [
@@ -1389,47 +1389,19 @@ const PASTA_IN_CREAM: &str = r#"{ "name": "Pasta in cream", "description": "Boil
     "raw_g": 300.0, "cooked_g": 382.0,
     "totals": { "energy_kcal": 960.0, "protein_g": 16.0, "carbs_g": 76.0, "fat_g": 61.5, "fibre_g": 3.0 } }"#;
 
-async fn added_to_the_pot(screen: &Element, food: &str, quantity: &str) {
-    typed_into(screen, "ingredient", food);
-    typed_into(screen, "ingredient_quantity", quantity);
-    clicked(screen, "button.add-ingredient");
-    settled().await;
-}
-
 #[wasm_bindgen_test]
-async fn a_meal_cooked_from_its_ingredients_and_their_ratios_joins_the_meals_its_ingredients_on_a_click()
- {
+async fn a_kept_meal_shows_its_description_and_ingredients_on_a_click_on_the_shelf() {
     answering(&format!(
-        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [{PASTA_IN_CREAM}] }}"#
     ));
     let screen = screen();
     let _mounted = the_fuel_shelf(&screen);
     settled().await;
-    clicked(&screen, "button.form-Meal");
+    assert!(screen.query_selector("form.meal").ok().flatten().is_none());
+
+    clicked(&screen, "button.shelf-Meals");
     settled().await;
 
-    typed_into(&screen, "meal_name", "Pasta in cream");
-    added_to_the_pot(&screen, "pasta", "100").await;
-    added_to_the_pot(&screen, "creme fraiche", "200").await;
-    assert_eq!(
-        found::<HtmlInputElement>(&screen, "input[name=ratio_1]").placeholder(),
-        "1"
-    );
-    typed_into(&screen, "ratio_0", "2,5");
-    typed_into(&screen, "ratio_1", "0.66");
-    found::<HtmlFormElement>(&screen, "form.meal")
-        .request_submit()
-        .expect("the meal is cooked");
-    settled().await;
-
-    let sent = asked("cook_meal");
-    assert!(
-        sent.contains(r#""food":"Crème fraîche""#)
-            && sent.contains(r#""cooked_per_raw":2.5"#)
-            && sent.contains(r#""cooked_per_raw":0.66"#),
-        "{sent}"
-    );
-    assert_eq!(value_of(&screen, "meal_name"), "");
     assert_eq!(tables_in_order(&screen), ["meals"]);
     let meal = found::<Element>(&screen, "table.meals tr.meal");
     assert!(
@@ -1648,59 +1620,26 @@ async fn an_ingredient_on_the_plate_left_without_its_ratio_keeps_its_own_mass() 
 }
 
 #[wasm_bindgen_test]
-async fn the_cooker_previews_an_ingredient_at_its_quantity_and_the_pot_adds_up_what_each_brings() {
-    answering(&format!(r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [] }}"#));
-    let screen = screen();
-    let _mounted = the_fuel_shelf(&screen);
-    settled().await;
-    clicked(&screen, "button.form-Meal");
-    settled().await;
-
-    typed_into(&screen, "ingredient", "pasta");
-    typed_into(&screen, "ingredient_quantity", "100");
-    settled().await;
-    assert_eq!(
-        text_of(&screen, "p.preview"),
-        "360 kcal · P 12 g · F 2 g · Fib 3 g · C 70 g"
-    );
-
-    clicked(&screen, "button.add-ingredient");
-    settled().await;
-    added_to_the_pot(&screen, "creme fraiche", "200").await;
-
-    assert!(screen.query_selector("p.preview").ok().flatten().is_none());
-    assert_eq!(
-        cells_by_row(&screen, "table.pot tbody tr"),
-        [
-            ["100 g Pasta", "", "360", "12", "2", "3", "70", "×"],
-            ["200 g Crème fraîche", "", "600", "4", "60", "0", "6", "×"]
-        ]
-    );
-    assert_eq!(
-        cells_by_row(&screen, "table.pot tfoot tr"),
-        [["Total", "", "960", "16", "62", "3", "76", ""]]
-    );
-}
-
-#[wasm_bindgen_test]
-async fn a_meal_in_progress_waits_on_the_fuel_shelf_while_the_cook_checks_another_tab() {
+async fn the_plate_waits_in_fuel_while_the_cook_checks_another_tab() {
     answering_all(&[
         A_HOME,
         EVERY_TAB,
-        &format!(r#"{{ "profile_on": null, "foods": {PASTA_AND_CREAM}, "meals": [] }}"#),
+        &format!(
+            r#"{{ "profile_on": null, "foods": {PASTA_AND_CREAM}, "meals": [],
+                  "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+        ),
     ]);
     let screen = screen();
     let _mounted = the_app(&screen);
     settled().await;
     went_to("/fuel");
     settled().await;
-    clicked(&screen, "button.form-Meal");
+    added_to_the_plate(&screen, "pasta", "100").await;
+    typed_into(&screen, "ratio_0", "2.5");
+    clicked(&screen, "button.keep-as-a-meal");
     settled().await;
     typed_into(&screen, "meal_name", "Pasta in cream");
     written_into(&screen, "meal_description", "Boil, reduce, stir.");
-    added_to_the_pot(&screen, "pasta", "100").await;
-    typed_into(&screen, "ratio_0", "2.5");
-    typed_into(&screen, "ingredient", "creme fraiche");
 
     went_to("/hydrate");
     settled().await;
@@ -1712,43 +1651,12 @@ async fn a_meal_in_progress_waits_on_the_fuel_shelf_while_the_cook_checks_anothe
             value_of(&screen, "meal_name"),
             found::<HtmlInputElement>(&screen, "textarea[name=meal_description]").value(),
             value_of(&screen, "ratio_0"),
-            value_of(&screen, "ingredient"),
         ],
-        [
-            "Pasta in cream",
-            "Boil, reduce, stir.",
-            "2.5",
-            "creme fraiche"
-        ]
+        ["Pasta in cream", "Boil, reduce, stir.", "2.5"]
     );
     assert_eq!(
-        cells_by_row(&screen, "form.meal table.pot tbody tr"),
+        cells_by_row(&screen, "table.pot tbody tr"),
         [["100 g Pasta", "", "360", "12", "2", "3", "70", "×"]]
-    );
-}
-
-#[wasm_bindgen_test]
-async fn an_ingredient_left_without_its_ratio_cooks_at_its_own_mass() {
-    answering(&format!(
-        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [], "cook_meal": [{PASTA_IN_CREAM}] }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_fuel_shelf(&screen);
-    settled().await;
-    clicked(&screen, "button.form-Meal");
-    settled().await;
-
-    typed_into(&screen, "meal_name", "Plain pasta");
-    added_to_the_pot(&screen, "Pasta", "100").await;
-    found::<HtmlFormElement>(&screen, "form.meal")
-        .request_submit()
-        .expect("the meal is cooked");
-    settled().await;
-
-    let sent = asked("cook_meal");
-    assert!(
-        sent.contains(r#""food":"Pasta""#) && !sent.contains("cooked_per_raw"),
-        "{sent}"
     );
 }
 
@@ -1869,7 +1777,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's intakes",
                 "Explore in Stats",
                 "Add to the catalog",
-                "Foods"
+                "On the shelf"
             ],
             vec![
                 "Today",
@@ -1879,7 +1787,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's drinks",
                 "Explore in Stats",
                 "Add to the catalog",
-                "Drinks"
+                "On the shelf"
             ],
             vec![
                 "Today",
@@ -3090,7 +2998,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     let burn_shelf = screen();
     let _burn_shelf = the_burn_shelf(&burn_shelf);
     settled().await;
-    clicked(&fuel_shelf, "button.form-Meal");
+    clicked(&fuel_shelf, "button.shelf-Meals");
     clicked(&burn_shelf, "button.form-Circuit");
     settled().await;
     said.extend([spoken_on(&fuel_shelf), spoken_on(&burn_shelf)]);
