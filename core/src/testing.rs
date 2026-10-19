@@ -1271,7 +1271,7 @@ pub mod honouring_for_storing_hydrate_records {
             name: name.into(),
             volume_ml,
             kind: crate::drink::DrinkKind::Other,
-            description: String::new(),
+            description: format!("The {name} of the house."),
         }
     }
 
