@@ -7,6 +7,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
+use crate::pace::Pace;
 use crate::refusal::Refusal;
 use crate::tendency::{Tendency, tendency_of};
 use crate::version::version_in_force_on;
@@ -19,6 +20,7 @@ pub struct GatherWeek {
     pub days: Vec<Day>,
     pub tendency: Tendency,
     pub aims: Option<Aims>,
+    pub pace: Option<Pace>,
 }
 
 fn day_of(date: &str) -> Result<NaiveDate, Failure> {
@@ -37,6 +39,7 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         tendency: tendency_of(&days, version_in_force_on(&gathered.goals, day)),
         days,
         aims: aims_on(day, gathered),
+        pace: None,
     }
 }
 
@@ -226,6 +229,22 @@ mod tests {
             )
         );
         assert!(week.aims.is_some());
+    }
+
+    #[test]
+    fn a_week_carries_the_pace_of_its_day() {
+        let records = a_september_of_weigh_ins();
+
+        let week = gather_week(&records, "2026-09-30").expect("a week");
+
+        assert_eq!(
+            week.pace,
+            crate::pace::pace_on(
+                day("2026-09-30"),
+                &records.gather_records().expect("records")
+            )
+        );
+        assert!(week.pace.is_some());
     }
 
     #[test]
