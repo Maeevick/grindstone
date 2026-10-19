@@ -526,7 +526,7 @@ async fn past_the_safe_loss_the_warning_speaks_of_lean_mass_only_when_the_tape_s
 
     for said in [&leaving, &holding] {
         assert!(
-            said.starts_with("-0.62 kg a week, past the 0.50 kg your fat can spare"),
+            said.starts_with("“-0.62 kg a week, past the 0.50 kg your fat can spare"),
             "{said}"
         );
         assert!(!said.contains("floor"), "{said}");
@@ -543,7 +543,7 @@ async fn past_the_safe_loss_the_warning_speaks_of_lean_mass_only_when_the_tape_s
 }
 
 #[wasm_bindgen_test]
-async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_judges_the_body_mass()
+async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_judges_the_body_mass_in_a_plain_quoted_tip()
  {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
@@ -583,6 +583,9 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
             ]
         )
     );
+    let tip = text_of(&screen, ".pace p");
+    assert_eq!(attributes_of(&screen, ".pace p", "class"), ["tip"]);
+    assert!(tip.starts_with('“') && tip.ends_with('”'), "{tip}");
 }
 
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
@@ -3260,7 +3263,7 @@ const THE_INSIGHTS: &str = r#""insights": { "days": 30, "weighed_days": 25, "fue
     "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 }"#;
 
 #[wasm_bindgen_test]
-async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_between_the_chart_and_the_history()
+async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_between_the_chart_and_the_history_each_between_quotation_marks()
  {
     answering(&format!(
         r#"{{ {THE_CHARTS}, {THE_INSIGHTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
@@ -3296,9 +3299,12 @@ async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_betw
     let burn = text_of(&screen, ".tips p");
     assert!(burn.contains("2.8") && burn.contains("210 kcal"), "{burn}");
     assert!(
-        [gather, fuel, hydrate, burn]
-            .iter()
-            .all(|tip| naming_the_cast(tip).is_empty() && !tip.contains('[')),
+        [gather, fuel, hydrate, burn].iter().all(|tip| {
+            naming_the_cast(tip).is_empty()
+                && !tip.contains('[')
+                && tip.starts_with('“')
+                && tip.ends_with('”')
+        }),
         "{:?}",
         texts_of(&screen, ".tips p")
     );
