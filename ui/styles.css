@@ -241,6 +241,13 @@ select {
 	margin: 0;
 }
 
+hr.divider {
+	margin: 40px 0 28px;
+	border: 0;
+	border-top: 2px solid var(--mut);
+	opacity: 0.5;
+}
+
 .said {
 	color: var(--ok);
 	font-size: 0.85rem;

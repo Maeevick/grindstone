@@ -20,6 +20,7 @@ pub fn Settings() -> impl IntoView {
         });
     };
     view! {
+        <hr class="divider" />
         <header class="screen-top">
             <h2>"Settings"</h2>
         </header>

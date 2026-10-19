@@ -313,15 +313,7 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_it
         );
     }
     assert!(screen.query_selector(".actions").ok().flatten().is_none());
-    let disclaimer: Element = found(&screen, ".disclaimer");
-    assert_eq!(
-        disclaimer
-            .next_element_sibling()
-            .and_then(|next| next.text_content())
-            .as_deref(),
-        Some("Settings"),
-        "the disclaimer closes the profile's own cards"
-    );
+    found::<Element>(&screen, ".disclaimer + hr.divider");
 }
 
 fn written_into(screen: &Element, name: &str, text: &str) {
