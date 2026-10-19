@@ -295,6 +295,15 @@ mod tests {
     }
 
     #[test]
+    fn an_amount_further_than_a_tenth_from_its_aim_stretches_the_aim_gauge_to_it() {
+        let above = aim_gauge_of(84.0, 70.0, 280.0);
+        let below = aim_gauge_of(56.0, 70.0, 280.0);
+
+        assert_eq!((above.amount_at, below.amount_at), (280.0, 0.0));
+        assert!((above.aim_at - 280.0 * 7.0 / 21.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn an_amount_beyond_the_scale_stretches_it_to_stay_in_sight() {
         let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), 400.0);
 
