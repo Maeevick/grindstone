@@ -2095,7 +2095,8 @@ const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_
     "hydrate_chart": { "amounts": [["2026-10-09", 1500.0], ["2026-10-10", 2100.0]], "floors": [["2026-10-09", 1800.0], ["2026-10-10", 1800.0]],
                        "caps": [["2026-10-09", 2200.0], ["2026-10-10", 2200.0]] },
     "burn_chart": { "burnt": [["2026-10-09", 120.0], ["2026-10-10", 252.0]],
-                    "minutes": [["2026-10-09", 6.0], ["2026-10-10", 60.0]] },
+                    "minutes": [["2026-10-09", 6.0], ["2026-10-10", 60.0]],
+                    "targets": [["2026-10-09", 80.0], ["2026-10-10", 80.0]] },
     "fuel_month": { "month": "2026-10", "earlier": null, "rows": [] },
     "hydrate_month": { "month": "2026-10", "earlier": null, "rows": [] },
     "burn_month": { "month": "2026-10", "earlier": null, "rows": [] },
@@ -2121,7 +2122,7 @@ fn lines_drawn(screen: &Element) -> u32 {
 }
 
 #[wasm_bindgen_test]
-async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines_and_legend_burn_without_reps()
+async fn the_home_chart_draws_gather_on_two_axes_with_its_goals_then_each_chip_its_own_lines_burn_with_its_target()
  {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
@@ -2143,11 +2144,13 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
         labels.contains("80.0 kg") && labels.contains("70.0 kg") && labels.contains("Lean mass"),
         "{labels}"
     );
+    found::<Element>(&screen, ".plot .label.left.tick.mass");
+    found::<Element>(&screen, ".plot .label.right.tick.lean");
 
     for (chip, lines, said) in [
         ("Fuel", 3, "1900 kcal"),
         ("Hydrate", 3, "2100 mL"),
-        ("Burn", 2, "Minutes"),
+        ("Burn", 2, "Target"),
     ] {
         found::<web_sys::HtmlElement>(&screen, &format!("button.chip-{chip}")).click();
         settled().await;
@@ -2158,9 +2161,10 @@ async fn the_home_chart_draws_gather_with_its_goals_then_each_chip_its_own_lines
     }
     let legend = text_of(&screen, ".charts ul.legend");
     assert!(
-        legend.contains("Burnt (kcal)") && legend.contains("Minutes") && !legend.contains("Reps"),
+        legend.contains("Burnt (kcal)") && legend.contains("Target") && !legend.contains("Minutes"),
         "{legend}"
     );
+    found::<Element>(&screen, ".plot polyline.goal.dashed");
 }
 
 fn texts_of(screen: &Element, selector: &str) -> Vec<String> {
