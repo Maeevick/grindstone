@@ -360,4 +360,22 @@ mod tests {
             assert!(cited.contains(&source), "{source:?}");
         }
     }
+
+    #[test]
+    fn the_sources_of_the_weeks_pace_are_cited() {
+        let cited: Vec<(&str, u16)> = references_about(Topic::HealthyRanges)
+            .iter()
+            .map(|reference| (reference.authors, reference.year))
+            .collect();
+
+        for source in [
+            ("Helms E. R., Aragon A. A., Fitschen P. J.", 2014),
+            ("Garthe I., Raastad T., Refsnes P. E., et al.", 2011),
+            ("Iraki J., Fitschen P., Espinar S., et al.", 2019),
+            ("National Institute for Health and Care Excellence", 2025),
+            ("Wishnofsky M.", 1958),
+        ] {
+            assert!(cited.contains(&source), "{source:?}");
+        }
+    }
 }
