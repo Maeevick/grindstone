@@ -13,7 +13,7 @@ use leptos_router::components::A;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateCountedCard;
 use crate::screens::references::ReferencesLink;
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -44,6 +44,7 @@ fn GoalsCard() -> impl IntoView {
     let target_fat = RwSignal::new(String::new());
     let healthy = RwSignal::new(None::<String>);
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let fill = Callback::new(move |advised: Recommendations| {
         target_mass.set(typed_back(advised.goal_mass_kg));
         target_fat.set(typed_back(advised.goal_fat_ratio * 100.0));
@@ -70,7 +71,10 @@ fn GoalsCard() -> impl IntoView {
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_goals(&form).await {
-                Ok(_) => lines::goals_kept(&form.from),
+                Ok(_) => {
+                    recorded.told();
+                    lines::goals_kept(&form.from)
+                }
                 Err(failure) => lines::failure(&failure),
             }));
         });
@@ -105,6 +109,7 @@ fn UsualDayCard() -> impl IntoView {
     let standing = RwSignal::new(String::new());
     let moving = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let fill = Callback::new(move |advised: Recommendations| {
         sitting.set(typed_back(advised.usual_day.sitting_min));
         standing.set(typed_back(advised.usual_day.standing_min));
@@ -135,7 +140,10 @@ fn UsualDayCard() -> impl IntoView {
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_usual_day(&form).await {
-                Ok(_) => lines::usual_day_kept(&form.from),
+                Ok(_) => {
+                    recorded.told();
+                    lines::usual_day_kept(&form.from)
+                }
                 Err(failure) => lines::failure(&failure),
             }));
         });
@@ -172,6 +180,7 @@ fn BurnTargetCard() -> impl IntoView {
     let kcal = RwSignal::new(String::new());
     let unweighed = RwSignal::new(false);
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let fill = Callback::new(move |advised: Recommendations| {
         if let Some(target) = advised.burn_target_kcal {
             kcal.set(typed_back(target));
@@ -200,7 +209,10 @@ fn BurnTargetCard() -> impl IntoView {
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_burn_target(&form).await {
-                Ok(_) => lines::burn_target_kept(&form.from),
+                Ok(_) => {
+                    recorded.told();
+                    lines::burn_target_kept(&form.from)
+                }
                 Err(failure) => lines::failure(&failure),
             }));
         });
@@ -237,6 +249,7 @@ fn FuelTargetsCard() -> impl IntoView {
     let fat = RwSignal::new(String::new());
     let fibre = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let fill = Callback::new(move |advised: Recommendations| {
         protein.set(typed_back(advised.fuel.protein_g_per_kg));
         fat.set(typed_back(advised.fuel.fat_g_per_kg));
@@ -267,7 +280,10 @@ fn FuelTargetsCard() -> impl IntoView {
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_fuel_targets(&form).await {
-                Ok(_) => lines::fuel_targets_kept(&form.from),
+                Ok(_) => {
+                    recorded.told();
+                    lines::fuel_targets_kept(&form.from)
+                }
                 Err(failure) => lines::failure(&failure),
             }));
         });
@@ -307,6 +323,7 @@ pub fn ProfileScreen() -> impl IntoView {
     let neck = RwSignal::new(String::new());
     let hip = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     spawn_local(async move {
         if let Ok(Some(profile)) = tauri::profile_on(&today()).await {
             birthday.set(profile.birthday.to_string());
@@ -344,7 +361,10 @@ pub fn ProfileScreen() -> impl IntoView {
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_profile(&form).await {
-                Ok(_) => lines::profile_kept(&form.from),
+                Ok(_) => {
+                    recorded.told();
+                    lines::profile_kept(&form.from)
+                }
                 Err(failure) => lines::failure(&failure),
             }));
         });

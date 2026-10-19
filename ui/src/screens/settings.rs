@@ -1,16 +1,20 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 
 #[component]
 pub fn Settings() -> impl IntoView {
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let import = move |_| {
         spawn_local(async move {
             said.set(Some(match tauri::import_draft(&today()).await {
-                Ok(imported) => lines::imported(&imported),
+                Ok(imported) => {
+                    recorded.told();
+                    lines::imported(&imported)
+                }
                 Err(failure) => lines::import_failure(&failure),
             }));
         });
@@ -37,11 +41,13 @@ const ERASE: &str = "ERASE";
 fn DangerZone() -> impl IntoView {
     let confirmed = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let erase = move |_| {
         spawn_local(async move {
             said.set(Some(match tauri::erase_everything().await {
                 Ok(()) => {
                     confirmed.set(String::new());
+                    recorded.told();
                     lines::ERASED.into()
                 }
                 Err(failure) => lines::failure(&failure),

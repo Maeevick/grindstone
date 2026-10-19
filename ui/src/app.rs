@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{A, Route, Router, Routes};
 use leptos_router::path;
 
+use crate::screens::Recorded;
 use crate::screens::burn::BurnTab;
 use crate::screens::catalog::Catalog;
 use crate::screens::fuel::FuelTab;
@@ -19,6 +20,7 @@ use crate::screens::tracker::{GatherTab, Tracker};
 #[component]
 pub fn App() -> impl IntoView {
     provide_context(MealInProgress::default());
+    provide_context(Recorded::default());
     view! {
         <Router>
             <main class="wrap">

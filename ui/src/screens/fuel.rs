@@ -11,7 +11,7 @@ use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::tab::{DayCard, ExploreInStats};
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -82,11 +82,15 @@ fn IntakeRow(
     shown_fuel: Callback<Fuel>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
+    let recorded = Recorded::here();
     let remove = move |_| {
         let date = day.get_untracked();
         spawn_local(async move {
             match tauri::remove_intake(&date, id).await {
-                Ok(fuel) => shown_fuel.run(fuel),
+                Ok(fuel) => {
+                    shown_fuel.run(fuel);
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -112,6 +116,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     let food = RwSignal::new(String::new());
     let quantity = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let shown_fuel = Callback::new(move |answer: Fuel| fuel.set(Some(answer)));
     let names = Signal::derive(move || {
         catalog
@@ -167,6 +172,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                     food.set(String::new());
                     quantity.set(String::new());
                     said.set(None);
+                    recorded.told();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }

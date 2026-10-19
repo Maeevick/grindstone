@@ -13,7 +13,7 @@ use crate::screens::fuel::FuelDay;
 use crate::screens::gauge::AimGauge;
 use crate::screens::hydrate::HydrateDay;
 use crate::screens::tab::{DayCard, ExploreInStats};
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -94,6 +94,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
     let waist = RwSignal::new(String::new());
     let week = RwSignal::new(None::<GatherWeek>);
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let shown_week = Callback::new(move |answer: GatherWeek| {
         mass.set(
             answer
@@ -123,8 +124,14 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
         let chosen = day.get_untracked();
         spawn_local(async move {
             match tauri::remove_measurement(&date).await {
-                Ok(answer) if date == chosen => shown_week.run(answer),
-                Ok(_) => load(chosen),
+                Ok(answer) if date == chosen => {
+                    shown_week.run(answer);
+                    recorded.told();
+                }
+                Ok(_) => {
+                    load(chosen);
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -144,6 +151,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                 Ok(answer) => {
                     shown_week.run(answer);
                     said.set(None);
+                    recorded.told();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }

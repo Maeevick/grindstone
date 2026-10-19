@@ -1,8 +1,9 @@
 use grind_core::figures::{Figure, bare};
 use leptos::prelude::*;
 use leptos_router::components::A;
+use leptos_router::hooks::use_location;
 
-use crate::screens::today;
+use crate::screens::{Recorded, today};
 use crate::tauri;
 
 pub(crate) fn tick_class(held: Option<bool>) -> &'static str {
@@ -33,11 +34,32 @@ fn Tile(
 
 #[component]
 fn TodaysTiles() -> impl IntoView {
-    let streak = LocalResource::new(move || async move { tauri::streak(&today()).await });
-    let fuel = LocalResource::new(move || async move { tauri::fuel_day(&today()).await });
-    let burn = LocalResource::new(move || async move { tauri::burn_day(&today()).await });
-    let hydrate = LocalResource::new(move || async move { tauri::hydrate_day(&today()).await });
-    let week = LocalResource::new(move || async move { tauri::gather_week(&today()).await });
+    let recorded = Recorded::here();
+    let pathname = use_location().pathname;
+    let again = move || {
+        recorded.heard();
+        pathname.track();
+    };
+    let streak = LocalResource::new(move || {
+        again();
+        async move { tauri::streak(&today()).await }
+    });
+    let fuel = LocalResource::new(move || {
+        again();
+        async move { tauri::fuel_day(&today()).await }
+    });
+    let burn = LocalResource::new(move || {
+        again();
+        async move { tauri::burn_day(&today()).await }
+    });
+    let hydrate = LocalResource::new(move || {
+        again();
+        async move { tauri::hydrate_day(&today()).await }
+    });
+    let week = LocalResource::new(move || {
+        again();
+        async move { tauri::gather_week(&today()).await }
+    });
     let not_yet = || "-".to_string();
     let ticks = Signal::derive(move || {
         streak

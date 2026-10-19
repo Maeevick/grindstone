@@ -16,7 +16,7 @@ use crate::screens::circuits::CircuitLog;
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::tab::{DayCard, ExploreInStats};
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
 
@@ -37,11 +37,15 @@ fn ExpenditureRow(
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let id = done.id;
+    let recorded = Recorded::here();
     let remove = move |_| {
         let date = day.get_untracked();
         spawn_local(async move {
             match tauri::remove_workout(&date, id).await {
-                Ok(burn) => shown_burn.run(burn),
+                Ok(burn) => {
+                    shown_burn.run(burn);
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -100,6 +104,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let moving = RwSignal::new(String::new());
     let logging = RwSignal::new(Logging::Workout);
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let names = Signal::derive(move || {
         catalog
             .get()
@@ -114,6 +119,10 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             moving.set(off.moving_km.to_string());
         }
         burn.set(Some(answer));
+    });
+    let logged_circuit = Callback::new(move |answer: Burn| {
+        shown_burn.run(answer);
+        recorded.told();
     });
     let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
     let preview = move || {
@@ -185,6 +194,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                         typed.set(String::new());
                     }
                     said.set(None);
+                    recorded.told();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
@@ -212,6 +222,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     shown_burn.run(answer);
                     budget_of(date);
                     said.set(Some(lines::DAY_OFF_THE_CLOCK_KEPT.into()));
+                    recorded.told();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
@@ -278,7 +289,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     }
                         .into_any()
                 }
-                Logging::Circuit => view! { <CircuitLog day=day on_logged=shown_burn body_mass=body_mass /> }.into_any(),
+                Logging::Circuit => view! { <CircuitLog day=day on_logged=logged_circuit body_mass=body_mass /> }.into_any(),
             }}
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             {move || {

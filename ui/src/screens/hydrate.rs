@@ -14,7 +14,7 @@ use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::references::ReferencesLink;
 use crate::screens::tab::{DayCard, ExploreInStats};
-use crate::screens::{lines, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
@@ -26,11 +26,15 @@ fn DrinkingRow(
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let date = drinking.day.to_string();
+    let recorded = Recorded::here();
     let remove = move |_| {
         let date = date.clone();
         spawn_local(async move {
             match tauri::remove_drinking(&date, id).await {
-                Ok(left) => hydrate.set(Some(left)),
+                Ok(left) => {
+                    hydrate.set(Some(left));
+                    recorded.told();
+                }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
         });
@@ -93,6 +97,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     let drink = RwSignal::new(String::new());
     let volume = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     let names = Signal::derive(move || {
         catalog
             .get()
@@ -138,6 +143,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             match tauri::log_drink(&form).await {
                 Ok(logged) => {
                     hydrate.set(Some(logged));
+                    recorded.told();
                     drink.set(String::new());
                     volume.set(String::new());
                     said.set(None);
@@ -313,6 +319,7 @@ pub fn HydrateCountedCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
+    let recorded = Recorded::here();
     spawn_local(async move {
         if let Ok(in_force) = tauri::hydrate_counted_on(&today()).await {
             counted.set(in_force);
@@ -325,7 +332,11 @@ pub fn HydrateCountedCard() -> impl IntoView {
             counted: counted.get_untracked(),
         };
         spawn_local(async move {
-            said.set(Some(match tauri::set_hydrate_counted(&form).await {
+            let kept = tauri::set_hydrate_counted(&form).await;
+            if kept.is_ok() {
+                recorded.told();
+            }
+            said.set(Some(match kept {
                 Ok(true) => lines::hydrate_counted_from(&form.from),
                 Ok(false) => lines::hydrate_left_out_from(&form.from),
                 Err(failure) => lines::failure(&failure),
