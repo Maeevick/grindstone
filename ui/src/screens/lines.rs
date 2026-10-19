@@ -330,6 +330,8 @@ pub const MEAL_ICON: &str = "💪";
 pub const FOOD_ICON: &str = "🥦";
 pub const CIRCUIT_ICON: &str = "🔄";
 pub const EXERCISE_ICON: &str = "💪";
+pub const WATER_ICON: &str = "💧";
+pub const OTHER_DRINK_ICON: &str = "☕\u{fe0f}";
 
 pub fn with_the_session(kcal: f64) -> String {
     format!("With the session: {}", shown(Figure::Energy(kcal)))

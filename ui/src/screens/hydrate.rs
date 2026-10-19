@@ -1,5 +1,5 @@
 use grind_core::bibliography::Topic;
-use grind_core::drink::Drink;
+use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown};
@@ -10,7 +10,7 @@ use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::{Choice, chosen, nothing_matches};
+use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::catalog::HydrateShelf;
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, DateField, FigureField};
@@ -108,18 +108,22 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     let volume = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
-    let names = Signal::derive(move || {
-        catalog
-            .get()
-            .into_iter()
-            .map(|known| known.name)
-            .collect::<Vec<_>>()
-    });
     let options = Signal::derive(move || {
-        names
+        let (water, other): (Vec<Drink>, Vec<Drink>) = catalog
             .get()
             .into_iter()
-            .map(|name| Choice { name, icon: "" })
+            .partition(|known| known.kind == DrinkKind::Water);
+        let named = |drinks: Vec<Drink>| drinks.into_iter().map(|known| known.name).collect();
+        grouped(
+            (lines::WATER_ICON, named(water)),
+            (lines::OTHER_DRINK_ICON, named(other)),
+        )
+    });
+    let names = Signal::derive(move || {
+        options
+            .get()
+            .into_iter()
+            .map(|choice| choice.name)
             .collect::<Vec<_>>()
     });
     let figures = DrinkFigures::default();

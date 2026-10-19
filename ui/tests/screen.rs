@@ -2703,7 +2703,12 @@ async fn the_drink_chooser_offers_water_then_the_other_drinks_each_in_alphabetic
 
     assert_eq!(
         offered,
-        ["💧 Eau pétillante", "💧 Water", "☕ Expresso", "☕ Tea"]
+        [
+            "💧 Eau pétillante",
+            "💧 Water",
+            "☕\u{fe0f} Expresso",
+            "☕\u{fe0f} Tea"
+        ]
     );
     assert_eq!(value_of(&screen, "drink"), "Water");
 }
@@ -2721,7 +2726,7 @@ async fn the_drink_chooser_starts_on_select_me_and_a_volume_left_empty_logs_one_
 
     focused(&screen, "drink");
     settled().await;
-    picked(&screen, "☕ Tea");
+    picked(&screen, "☕\u{fe0f} Tea");
     settled().await;
     let volume: HtmlInputElement = found(&screen, "input[name=volume]");
     assert_eq!(volume.placeholder(), "200");
