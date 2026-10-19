@@ -336,6 +336,81 @@ mod tests {
     }
 
     #[test]
+    fn a_weigh_in_on_the_day_counts_in_its_pace() {
+        let flat = a_man_weighed(80.0, 0.0);
+        let dropping_on_the_day = GatherRecords {
+            measurements: flat
+                .measurements
+                .iter()
+                .map(|measured| Measurement {
+                    body_mass_kg: if measured.day == day("2026-10-10") {
+                        78.0
+                    } else {
+                        measured.body_mass_kg
+                    },
+                    ..*measured
+                })
+                .collect(),
+            ..flat
+        };
+
+        let pace = pace_on(day("2026-10-10"), &dropping_on_the_day).expect("a pace");
+
+        assert!(pace.body_mass.by < 0.0, "{}", pace.body_mass.by);
+    }
+
+    #[test]
+    fn weigh_ins_after_the_day_leave_its_pace_as_it_was() {
+        let weighed = a_man_weighed(80.0, -0.05);
+        let and_after = GatherRecords {
+            measurements: weighed
+                .measurements
+                .iter()
+                .copied()
+                .chain((1..5).map(|later| Measurement {
+                    day: day("2026-10-10") + Days::new(later),
+                    body_mass_kg: 90.0,
+                    waist_cm: Some(82.0),
+                }))
+                .collect(),
+            ..weighed.clone()
+        };
+
+        assert_eq!(
+            pace_on(day("2026-10-10"), &and_after),
+            pace_on(day("2026-10-10"), &weighed)
+        );
+    }
+
+    #[test]
+    fn weigh_ins_older_than_the_fortnight_do_not_make_up_for_those_missing_in_it() {
+        let weighed = a_man_weighed(80.0, -0.05);
+        let three_in_the_fortnight = GatherRecords {
+            measurements: weighed.measurements[..6]
+                .iter()
+                .chain(&weighed.measurements[18..])
+                .copied()
+                .collect(),
+            ..weighed
+        };
+
+        assert_eq!(pace_on(day("2026-10-10"), &three_in_the_fortnight), None);
+    }
+
+    #[test]
+    fn a_light_body_loses_no_more_than_1_percent_of_its_mass_a_week() {
+        let light_and_round = a_man_with_a_waist_weighed(100.0, 60.0, 0.0);
+
+        let pace = pace_on(day("2026-10-10"), &light_and_round).expect("a pace");
+
+        assert!(
+            (pace.safe_loss_kg - 0.6).abs() < 1e-9,
+            "{}",
+            pace.safe_loss_kg
+        );
+    }
+
+    #[test]
     fn fewer_than_four_weigh_ins_in_the_fortnight_give_no_pace() {
         let weighed = a_man_weighed(80.0, -0.05);
         let three_weigh_ins = GatherRecords {
