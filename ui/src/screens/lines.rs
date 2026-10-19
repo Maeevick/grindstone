@@ -293,6 +293,13 @@ pub fn cooked_ingredient(ingredient: &Ingredient) -> String {
     )
 }
 
+pub const EATEN_HOW: &str =
+    "Eaten now: left empty, the whole plate; 0 keeps it all for another day.";
+
+pub fn kept_for_later(name: &str) -> String {
+    format!("{name} waits in the food catalog, per 100 g cooked, for the day you eat it.")
+}
+
 pub fn cooked(name: &str) -> String {
     format!("{name} is in the food catalog, per 100 g cooked. Weigh your portions in Fuel.")
 }

@@ -1,7 +1,7 @@
 use grind_core::figures::{Figure, shown, typed_back};
 use grind_core::food::{Food, Nutrients, Unit, nutrients_of, summed};
 use grind_core::for_cataloguing::{IngredientForm, MealForm};
-use grind_core::for_fuelling::PlateForm;
+use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::fuel::Fuel;
 use grind_core::meal::{MASS_KEPT, Meal};
 use leptos::prelude::*;
@@ -23,6 +23,8 @@ pub struct MealInProgress {
     food: RwSignal<String>,
     quantity: RwSignal<String>,
     pub(crate) pot: RwSignal<Vec<InThePot>>,
+    keeping: RwSignal<bool>,
+    eaten: RwSignal<String>,
 }
 
 impl Default for MealInProgress {
@@ -33,6 +35,8 @@ impl Default for MealInProgress {
             food: RwSignal::new(String::new()),
             quantity: RwSignal::new(String::new()),
             pot: RwSignal::new(Vec::new()),
+            keeping: RwSignal::new(false),
+            eaten: RwSignal::new(String::new()),
         }
     }
 }
@@ -168,8 +172,23 @@ pub fn Plate(
     shown_fuel: Callback<Fuel>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
-    let pot = plate.pot;
+    let MealInProgress {
+        name,
+        description,
+        pot,
+        keeping,
+        eaten,
+        ..
+    } = plate;
     let recorded = Recorded::here();
+    // Last, as it takes the plate off the screen.
+    let cleared = move || {
+        for typed in [name, description, eaten] {
+            typed.set(String::new());
+        }
+        keeping.set(false);
+        pot.set(Vec::new());
+    };
     let log_the_plate = move |_| {
         let Some(ingredients) = ingredients_of(&pot.get_untracked()) else {
             said.set(Some(lines::UNREADABLE.into()));
@@ -183,12 +202,62 @@ pub fn Plate(
             match tauri::log_plate(&form).await {
                 Ok(fuel) => {
                     shown_fuel.run(fuel);
-                    pot.set(Vec::new());
                     said.set(None);
                     recorded.told();
+                    cleared();
                 }
                 Err(failure) => said.set(Some(lines::failure(&failure))),
             }
+        });
+    };
+    let keep = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let Some(ingredients) = ingredients_of(&pot.get_untracked()) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let Some([eaten_typed]) = figures_typed([&eaten.get_untracked()]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let form = MealForm {
+            name: name.get_untracked(),
+            description: description.get_untracked(),
+            ingredients,
+        };
+        let date = day.get_untracked();
+        spawn_local(async move {
+            let kept = match tauri::cook_meal(&form).await {
+                Ok(kept) => kept,
+                Err(failure) => {
+                    said.set(Some(lines::failure(&failure)));
+                    return;
+                }
+            };
+            let named = form.name.trim().to_string();
+            let whole = kept
+                .iter()
+                .find(|meal| meal.name == named)
+                .map(|meal| meal.cooked_g);
+            match eaten_typed.or(whole).filter(|grams| *grams > 0.0) {
+                Some(grams) => {
+                    let intake = IntakeForm {
+                        date,
+                        food: named,
+                        quantity: Some(grams),
+                    };
+                    match tauri::log_intake(&intake).await {
+                        Ok(fuel) => {
+                            shown_fuel.run(fuel);
+                            said.set(None);
+                        }
+                        Err(failure) => said.set(Some(lines::failure(&failure))),
+                    }
+                }
+                None => said.set(Some(lines::kept_for_later(&named))),
+            }
+            recorded.told();
+            cleared();
         });
     };
     view! {
@@ -198,6 +267,48 @@ pub fn Plate(
             <button class="cta log-the-plate" type="button" on:click=log_the_plate>
                 "Log the plate"
             </button>
+            <button
+                class="cta ghost keep-as-a-meal"
+                type="button"
+                on:click=move |_| keeping.update(|keeping| *keeping = !*keeping)
+            >
+                "Keep as a meal"
+            </button>
+            <Show when=move || keeping.get()>
+                <form class="meal" on:submit=keep>
+                    <label class="field grow2">
+                        "Meal"
+                        <input
+                            name="meal_name"
+                            autocomplete="off"
+                            prop:value=move || name.get()
+                            on:input=move |event| name.set(event_target_value(&event))
+                        />
+                    </label>
+                    <label class="field grow2">
+                        "Description"
+                        <textarea
+                            name="meal_description"
+                            rows="3"
+                            prop:value=move || description.get()
+                            on:input=move |event| description.set(event_target_value(&event))
+                        ></textarea>
+                    </label>
+                    <div class="row">
+                        <FigureField
+                            label="Eaten now (g)"
+                            name="eaten"
+                            value=eaten
+                            placeholder="the whole plate"
+                        />
+                    </div>
+                    <p class="hint">{lines::COOKING_RATIO_HOW}</p>
+                    <p class="hint">{lines::EATEN_HOW}</p>
+                    <button class="cta" type="submit">
+                        "Keep the meal"
+                    </button>
+                </form>
+            </Show>
         </div>
     }
 }
@@ -214,6 +325,7 @@ pub fn NewMeal(
         food,
         quantity,
         pot,
+        ..
     } = expect_context();
     let said = RwSignal::new(None::<String>);
     let names = Signal::derive(move || {

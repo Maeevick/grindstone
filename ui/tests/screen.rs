@@ -1559,14 +1559,11 @@ async fn a_plate_of_pasta_and_cream_kept_as(screen: &Element, meal: &str, eaten:
     settled().await;
 }
 
-const A_PLATE_KEPT: &str = r#""foods": [], "fuel_day": {}, "cook_meal": [], "log_intake": {}"#;
-
 fn a_plate_kept() -> String {
-    A_PLATE_KEPT
-        .replacen("[]", PASTA_AND_CREAM, 1)
-        .replacen("{}", A_DAY_NOT_FUELLED_YET, 1)
-        .replacen("[]", &format!("[{PASTA_IN_CREAM}]"), 1)
-        .replacen("{}", A_FUELLED_DAY, 1)
+    format!(
+        r#""foods": {PASTA_AND_CREAM}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
+            "cook_meal": [{PASTA_IN_CREAM}], "log_intake": {A_FUELLED_DAY}"#
+    )
 }
 
 #[wasm_bindgen_test]
