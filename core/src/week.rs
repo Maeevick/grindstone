@@ -1,7 +1,9 @@
-use chrono::NaiveDate;
+use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::verdict::{Verdict, verdict_of};
+
+const DAYS_BEFORE_THE_LAST_IN_A_WEEK: u64 = 6;
 
 /// A logged day's amount of a measure, and the band it was judged against.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -59,8 +61,13 @@ pub fn logged_in_the_week(
     left_out_from: NaiveDate,
     logged: impl Iterator<Item = NaiveDate>,
 ) -> Vec<NaiveDate> {
-    let _ = (last, left_out_from);
-    logged.collect()
+    let first = last - Days::new(DAYS_BEFORE_THE_LAST_IN_A_WEEK);
+    let mut week: Vec<NaiveDate> = logged
+        .filter(|day| (first..=last).contains(day) && *day < left_out_from)
+        .collect();
+    week.sort();
+    week.dedup();
+    week
 }
 
 #[cfg(test)]
