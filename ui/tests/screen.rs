@@ -801,6 +801,53 @@ async fn logging_a_workout_lists_it_with_what_it_burnt() {
 }
 
 #[wasm_bindgen_test]
+async fn an_exercise_nothing_matches_turns_the_workout_form_into_a_new_one_added_then_logged_in_one_tap()
+ {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [],
+             "burn_day": {A_BURN_PRICED_AT_80_KG}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
+             "add_exercise": [{{ "name": "Rowing", "met": 7.0, "description": "Concept2, damper on 5" }},
+                              {{ "name": "Walking", "met": 4.0 }}],
+             "log_workout": {AN_EMPTY_BURN} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "exercise", "Rowing");
+    settled().await;
+    assert_eq!(texts_in_order(&screen, "form.workout .new"), ["New Rowing"]);
+    typed_into(&screen, "new_exercise_description", "Concept2, damper on 5");
+    typed_into(&screen, "new_exercise_met", "7");
+    typed_into(&screen, "minutes", "20");
+    settled().await;
+    let previewed = text_of(&screen, "form.workout p.preview");
+    let offered = text_of(&screen, "form.workout button[type=submit]");
+    found::<HtmlFormElement>(&screen, "form.workout")
+        .request_submit()
+        .expect("the new exercise is added, then logged");
+    settled().await;
+    settled().await;
+
+    assert_eq!(offered, "Add and log");
+    assert!(previewed.contains("160 kcal"), "{previewed}");
+    let added = asked("add_exercise");
+    for sent in [
+        r#""name":"Rowing""#,
+        r#""met":7"#,
+        r#""description":"Concept2, damper on 5""#,
+    ] {
+        assert!(added.contains(sent), "{sent} in {added}");
+    }
+    let logged = asked("log_workout");
+    assert!(
+        logged.contains(r#""exercise":"Rowing""#) && logged.contains(r#""minutes":20"#),
+        "{logged}"
+    );
+    assert!(texts_in_order(&screen, "form.workout .new").is_empty());
+}
+
+#[wasm_bindgen_test]
 async fn the_burn_card_switches_between_a_workout_and_a_circuit() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
