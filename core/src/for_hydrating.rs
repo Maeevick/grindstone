@@ -229,6 +229,7 @@ mod tests {
         burn.save_exercise(&Exercise {
             name: "Walking".into(),
             met: 4.0,
+            description: String::new(),
         })
         .expect("an exercise saves");
         log_workout(

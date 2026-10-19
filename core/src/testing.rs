@@ -267,6 +267,7 @@ pub mod honouring_for_storing_burn_records {
         Exercise {
             name: name.into(),
             met,
+            description: String::new(),
         }
     }
 

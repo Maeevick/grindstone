@@ -556,7 +556,7 @@ mod tests {
                 },
             )
             .expect("targets set");
-            add_exercise(&records.burn, "Walking", 4.0).expect("an exercise adds");
+            add_exercise(&records.burn, "Walking", 4.0, "").expect("an exercise adds");
             add_food(&records.fuel, &plate("Plate", 35.0)).expect("a food adds");
             add_food(&records.fuel, &plate("Fibreless plate", 5.0)).expect("a food adds");
             crate::for_cataloguing::add_drink(
@@ -780,6 +780,7 @@ mod tests {
             let walking = crate::exercise::Exercise {
                 name: "Walking".into(),
                 met: 4.0,
+                description: String::new(),
             };
             let a_minute = crate::workout::burnt_by(
                 &crate::workout::workout("2026-10-10", &walking, 1.0, None, 1, 0.0)
@@ -972,7 +973,7 @@ mod tests {
                 },
             )
             .expect("a profile set");
-            add_exercise(&burn, "Walking", 4.0).expect("an exercise adds");
+            add_exercise(&burn, "Walking", 4.0, "").expect("an exercise adds");
             add_food(
                 &fuel,
                 &FoodForm {

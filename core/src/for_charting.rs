@@ -535,7 +535,7 @@ mod tests {
             },
         )
         .expect("goals set");
-        add_exercise(&logged.burn, "Push up", 3.8).expect("an exercise adds");
+        add_exercise(&logged.burn, "Push up", 3.8, "").expect("an exercise adds");
         add_food(
             &logged.fuel,
             &FoodForm {
@@ -818,7 +818,7 @@ mod tests {
     #[test]
     fn the_top_exercise_of_a_day_sums_all_its_workouts() {
         let logged = a_logged_man();
-        add_exercise(&logged.burn, "Walking", 4.0).expect("an exercise adds");
+        add_exercise(&logged.burn, "Walking", 4.0, "").expect("an exercise adds");
         for (exercise, minutes) in [("Walking", 3.0), ("Push up", 2.0)] {
             log_workout(
                 &logged.gather,
@@ -931,8 +931,8 @@ mod tests {
             BurnRecordsInMemory::default(),
         );
         log_measurement(&gather, "2026-10-05", 80.0, None).expect("a measurement logs");
-        add_exercise(&burn, "Rowing", 4.0).expect("an exercise adds");
-        add_exercise(&burn, "Squat", 4.0).expect("an exercise adds");
+        add_exercise(&burn, "Rowing", 4.0, "").expect("an exercise adds");
+        add_exercise(&burn, "Squat", 4.0, "").expect("an exercise adds");
         for (exercise, minutes) in [("Rowing", 0.45), ("Squat", 0.25), ("Squat", 0.25)] {
             log_workout(
                 &gather,

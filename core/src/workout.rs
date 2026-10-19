@@ -132,6 +132,7 @@ mod tests {
         Exercise {
             name: "Push up".into(),
             met: 3.8,
+            description: String::new(),
         }
     }
 

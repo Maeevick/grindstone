@@ -275,6 +275,7 @@ fn exercise_of(
         .unwrap_or_else(|| Exercise {
             name: entry.activity.clone(),
             met: met_worked_back(entry, version_in_force_on(masses, day).copied()),
+            description: String::new(),
         })
 }
 
@@ -285,9 +286,11 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
         .activities
         .iter()
         .map(|activity| {
-            exercise(&activity.name, activity.met).map_err(|refusal| DraftRefusal::NotAnExercise {
-                name: activity.name.clone(),
-                refusal,
+            exercise(&activity.name, activity.met, "").map_err(|refusal| {
+                DraftRefusal::NotAnExercise {
+                    name: activity.name.clone(),
+                    refusal,
+                }
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -658,6 +661,7 @@ mod tests {
             Ok(vec![grind_core::exercise::Exercise {
                 name: "Walking".into(),
                 met: 4.0,
+                description: String::new(),
             }])
         );
     }

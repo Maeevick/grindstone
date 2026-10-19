@@ -358,6 +358,7 @@ fn exercise_read(row: &rusqlite::Row) -> rusqlite::Result<Exercise> {
     Ok(Exercise {
         name: row.get(0)?,
         met: row.get(1)?,
+        description: String::new(),
     })
 }
 

@@ -22,8 +22,9 @@ pub fn add_exercise(
     burn: &impl ForStoringBurnRecords,
     name: &str,
     met: f64,
+    description: &str,
 ) -> Result<Vec<Exercise>, Failure> {
-    burn.save_exercise(&exercise(name, met).map_err(Failure::Refused)?)?;
+    burn.save_exercise(&exercise(name, met, description).map_err(Failure::Refused)?)?;
     exercises(burn)
 }
 
@@ -211,15 +212,16 @@ mod tests {
         Exercise {
             name: name.into(),
             met,
+            description: String::new(),
         }
     }
 
     #[test]
     fn added_exercises_come_back_in_the_catalog_by_name() {
         let burn = BurnRecordsInMemory::default();
-        add_exercise(&burn, "Walking", 4.0).expect("an exercise adds");
+        add_exercise(&burn, "Walking", 4.0, "").expect("an exercise adds");
 
-        let catalog = add_exercise(&burn, "Biking", 8.0);
+        let catalog = add_exercise(&burn, "Biking", 8.0, "");
 
         assert_eq!(
             catalog,
@@ -231,18 +233,33 @@ mod tests {
     #[test]
     fn an_exercise_added_again_under_its_name_takes_its_new_met() {
         let burn = BurnRecordsInMemory::default();
-        add_exercise(&burn, "Walking", 3.5).expect("an exercise adds");
+        add_exercise(&burn, "Walking", 3.5, "").expect("an exercise adds");
 
         assert_eq!(
-            add_exercise(&burn, "Walking", 4.0),
+            add_exercise(&burn, "Walking", 4.0, ""),
             Ok(vec![named("Walking", 4.0)])
+        );
+    }
+
+    #[test]
+    fn an_exercise_keeps_its_description_trimmed() {
+        let burn = BurnRecordsInMemory::default();
+
+        let catalog = add_exercise(&burn, "Rowing", 7.0, "  Concept2, damper on 5 ");
+
+        assert_eq!(
+            catalog.map(|known| known
+                .into_iter()
+                .map(|exercise| exercise.description)
+                .collect()),
+            Ok(vec!["Concept2, damper on 5".to_string()])
         );
     }
 
     #[test]
     fn a_removed_exercise_leaves_the_catalog() {
         let burn = BurnRecordsInMemory::default();
-        add_exercise(&burn, "Walking", 4.0).expect("an exercise adds");
+        add_exercise(&burn, "Walking", 4.0, "").expect("an exercise adds");
 
         assert_eq!(remove_exercise(&burn, "Walking"), Ok(vec![]));
     }
@@ -250,7 +267,7 @@ mod tests {
     #[test]
     fn a_nameless_exercise_or_broken_records_change_nothing() {
         assert_eq!(
-            add_exercise(&BurnRecordsInMemory::default(), " ", 4.0),
+            add_exercise(&BurnRecordsInMemory::default(), " ", 4.0, ""),
             Err(Failure::Refused(Refusal::NotAName))
         );
         assert_eq!(
@@ -410,8 +427,8 @@ mod tests {
 
     fn with_push_ups_and_burpees() -> BurnRecordsInMemory {
         let burn = BurnRecordsInMemory::default();
-        add_exercise(&burn, "Push up", 3.8).expect("an exercise adds");
-        add_exercise(&burn, "Burpee", 8.0).expect("an exercise adds");
+        add_exercise(&burn, "Push up", 3.8, "").expect("an exercise adds");
+        add_exercise(&burn, "Burpee", 8.0, "").expect("an exercise adds");
         burn
     }
 
@@ -493,7 +510,7 @@ mod tests {
         let burn = with_push_ups_and_burpees();
         craft_circuit(&burn, &morning_rust()).expect("a circuit crafts");
 
-        add_exercise(&burn, "Push up", 4.0).expect("an exercise adds");
+        add_exercise(&burn, "Push up", 4.0, "").expect("an exercise adds");
         remove_exercise(&burn, "Burpee").expect("an exercise is removed");
 
         assert_eq!(

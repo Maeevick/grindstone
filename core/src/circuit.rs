@@ -102,10 +102,12 @@ mod tests {
             Exercise {
                 name: "Burpee".into(),
                 met: 8.0,
+                description: String::new(),
             },
             Exercise {
                 name: "Push up".into(),
                 met: 3.8,
+                description: String::new(),
             },
         ]
     }

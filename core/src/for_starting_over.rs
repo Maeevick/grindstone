@@ -46,7 +46,7 @@ mod tests {
             SwitchOverInMemory::default(),
         );
         log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");
-        add_exercise(&burn, "Walking", 4.0).expect("an exercise adds");
+        add_exercise(&burn, "Walking", 4.0, "").expect("an exercise adds");
         add_drink(&hydrate, "Water", 250.0, DrinkKind::Water, "").expect("a drink adds");
         switch_over
             .save_switch_over(NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"))

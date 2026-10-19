@@ -449,6 +449,7 @@ mod tests {
         let walking = Exercise {
             name: "Walking".into(),
             met: 4.0,
+            description: String::new(),
         };
         let walked = workout("2026-10-10", &walking, 60.0, None, 1, 0.0).expect("a workout");
         burn.workouts.push((1, walked.clone()));
@@ -643,6 +644,7 @@ mod tests {
         let walking = Exercise {
             name: "Walking".into(),
             met: 4.0,
+            description: String::new(),
         };
         let walked = workout("2026-10-10", &walking, 60.0, None, 1, 0.0).expect("a workout");
         burn.workouts.push((1, walked.clone()));

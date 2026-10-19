@@ -184,6 +184,7 @@ mod tests {
             exercises: vec![crate::exercise::Exercise {
                 name: "Walking".into(),
                 met: 4.0,
+                description: String::new(),
             }],
             workouts: vec![(
                 0,

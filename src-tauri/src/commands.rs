@@ -157,7 +157,7 @@ pub fn add_exercise(
     met: f64,
 ) -> Result<Vec<Exercise>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_cataloguing::add_exercise(&*records, &name, met)
+    for_cataloguing::add_exercise(&*records, &name, met, "")
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -827,7 +827,10 @@ mod tests {
         let listed = invoke(&screen, "exercises", json!({}));
         let removed = invoke(&screen, "remove_exercise", json!({ "name": "Walking" }));
 
-        assert_eq!(listed, Ok(json!([{ "name": "Walking", "met": 4.0 }])));
+        assert_eq!(
+            listed,
+            Ok(json!([{ "name": "Walking", "met": 4.0, "description": "" }]))
+        );
         assert_eq!(removed, Ok(json!([])));
     }
 

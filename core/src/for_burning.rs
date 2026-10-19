@@ -120,6 +120,7 @@ fn workouts_of_the_session(
             let exercise = Exercise {
                 name: step.exercise.clone(),
                 met: step.met,
+                description: String::new(),
             };
             workout(
                 &form.date,
@@ -173,6 +174,7 @@ mod tests {
         burn.save_exercise(&Exercise {
             name: "Walking".into(),
             met: 4.0,
+            description: String::new(),
         })
         .expect("an exercise saves");
         burn
@@ -311,8 +313,8 @@ mod tests {
 
     fn a_lab_with_morning_rust() -> BurnRecordsInMemory {
         let burn = BurnRecordsInMemory::default();
-        add_exercise(&burn, "Push up", 3.8).expect("an exercise adds");
-        add_exercise(&burn, "Burpee", 8.0).expect("an exercise adds");
+        add_exercise(&burn, "Push up", 3.8, "").expect("an exercise adds");
+        add_exercise(&burn, "Burpee", 8.0, "").expect("an exercise adds");
         craft_circuit(
             &burn,
             &CircuitForm {
