@@ -1,6 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
+use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateCountedForm;
@@ -9,7 +10,7 @@ use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::choice::chosen;
+use crate::choice::{chosen, nothing_matches};
 use crate::screens::catalog::HydrateShelf;
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
@@ -97,6 +98,65 @@ fn DrinkingsOfTheDay(
     }
 }
 
+/// What a drink new to the catalog is typed with, its name aside.
+#[derive(Clone, Copy)]
+struct NewDrinkFigures {
+    description: RwSignal<String>,
+    serving: RwSignal<String>,
+    kind: RwSignal<DrinkKind>,
+}
+
+impl NewDrinkFigures {
+    fn new() -> Self {
+        Self {
+            description: RwSignal::new(String::new()),
+            serving: RwSignal::new(String::new()),
+            kind: RwSignal::new(DrinkKind::Water),
+        }
+    }
+
+    fn cleared(self) {
+        self.description.set(String::new());
+        self.serving.set(String::new());
+        self.kind.set(DrinkKind::Water);
+    }
+}
+
+#[component]
+fn NewDrinkFields(name: RwSignal<String>, figures: NewDrinkFigures) -> impl IntoView {
+    view! {
+        <p class="new">{move || format!("New {}", name.get().trim())}</p>
+        <div class="row">
+            <label class="field grow2">
+                "Description"
+                <input
+                    name="new_drink_description"
+                    autocomplete="off"
+                    placeholder="Optional"
+                    prop:value=move || figures.description.get()
+                    on:input=move |event| figures.description.set(event_target_value(&event))
+                />
+            </label>
+            <FigureField label="Serving (mL)" name="new_drink_serving" value=figures.serving />
+            <label class="field">
+                "Kind"
+                <select
+                    name="new_drink_kind"
+                    prop:value=move || format!("{:?}", figures.kind.get())
+                    on:change=move |event| figures.kind.set(kind_named(&event_target_value(&event)))
+                >
+                    {KINDS
+                        .into_iter()
+                        .map(|(named, label)| {
+                            view! { <option value=format!("{named:?}")>{label}</option> }
+                        })
+                        .collect_view()}
+                </select>
+            </label>
+        </div>
+    }
+}
+
 #[component]
 pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     let hydrate = RwSignal::new(None::<Hydrate>);
@@ -112,6 +172,8 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             .map(|known| known.name)
             .collect::<Vec<_>>()
     });
+    let figures = NewDrinkFigures::new();
+    let creating = Memo::new(move |_| nothing_matches(&names.get(), &drink.get()));
     let chosen_drink = move || {
         chosen(&names.get(), &drink.get())
             .and_then(|name| catalog.get().into_iter().find(|known| known.name == name))
@@ -131,33 +193,58 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             }
         });
     });
+    let logged = move |answer: Result<Hydrate, Failure>| match answer {
+        Ok(logged) => {
+            hydrate.set(Some(logged));
+            recorded.told();
+            drink.set(String::new());
+            volume.set(String::new());
+            figures.cleared();
+            said.set(None);
+        }
+        Err(failure) => said.set(Some(lines::failure(&failure))),
+    };
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some(drunk) = chosen_drink() else {
-            said.set(Some(lines::CHOOSE_FIRST.into()));
-            return;
-        };
         let Some([volume_typed]) = figures_typed([&volume.get_untracked()]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
+        let date = day.get_untracked();
+        if creating.get_untracked() {
+            let Some([serving]) = figures_typed([&figures.serving.get_untracked()]) else {
+                said.set(Some(lines::UNREADABLE.into()));
+                return;
+            };
+            let name = drink.get_untracked().trim().to_string();
+            let description = figures.description.get_untracked();
+            let kind = figures.kind.get_untracked();
+            spawn_local(async move {
+                match tauri::add_drink(&name, serving.unwrap_or(0.0), kind, &description).await {
+                    Ok(known) => {
+                        catalog.set(known);
+                        let form = DrinkingForm {
+                            date,
+                            drink: name,
+                            volume_ml: volume_typed,
+                        };
+                        logged(tauri::log_drink(&form).await);
+                    }
+                    Err(failure) => said.set(Some(lines::failure(&failure))),
+                }
+            });
+            return;
+        }
+        let Some(drunk) = untrack(chosen_drink) else {
+            said.set(Some(lines::CHOOSE_FIRST.into()));
+            return;
+        };
         let form = DrinkingForm {
-            date: day.get_untracked(),
+            date,
             drink: drunk.name,
             volume_ml: volume_typed,
         };
-        spawn_local(async move {
-            match tauri::log_drink(&form).await {
-                Ok(logged) => {
-                    hydrate.set(Some(logged));
-                    recorded.told();
-                    drink.set(String::new());
-                    volume.set(String::new());
-                    said.set(None);
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
+        spawn_local(async move { logged(tauri::log_drink(&form).await) });
     };
     view! {
         <section class="card">
@@ -170,12 +257,19 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
                         name="volume"
                         value=volume
                         placeholder=Signal::derive(move || {
-                            chosen_drink().map(|known| bare(Figure::Volume(known.volume_ml)))
+                            chosen_drink()
+                                .map(|known| bare(Figure::Volume(known.volume_ml)))
+                                .or_else(|| {
+                                    creating.get().then(|| figures.serving.get()).filter(|serving| !serving.is_empty())
+                                })
                         })
                     />
                 </div>
+                {move || {
+                    creating.get().then(|| view! { <NewDrinkFields name=drink figures=figures /> })
+                }}
                 <button class="cta" type="submit">
-                    "Hydrate"
+                    {move || if creating.get() { "Add and log" } else { "Hydrate" }}
                 </button>
                 {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
             </form>
@@ -249,7 +343,7 @@ pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl In
         };
         let volume_ml = volume_ml.unwrap_or(0.0);
         spawn_local(async move {
-            match tauri::add_drink(&named, volume_ml, kind.get_untracked()).await {
+            match tauri::add_drink(&named, volume_ml, kind.get_untracked(), "").await {
                 Ok(known) => {
                     drinks.set(known);
                     name.set(String::new());

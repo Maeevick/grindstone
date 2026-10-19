@@ -359,6 +359,7 @@ struct Serving<'a> {
     name: &'a str,
     volume_ml: f64,
     kind: DrinkKind,
+    description: &'a str,
 }
 
 pub async fn hydrate_day(date: &str) -> Result<Hydrate, Failure> {
@@ -377,13 +378,19 @@ pub async fn drinks() -> Result<Vec<Drink>, Failure> {
     call("drinks", Nothing {}, broken).await
 }
 
-pub async fn add_drink(name: &str, volume_ml: f64, kind: DrinkKind) -> Result<Vec<Drink>, Failure> {
+pub async fn add_drink(
+    name: &str,
+    volume_ml: f64,
+    kind: DrinkKind,
+    description: &str,
+) -> Result<Vec<Drink>, Failure> {
     call(
         "add_drink",
         Serving {
             name,
             volume_ml,
             kind,
+            description,
         },
         broken,
     )
