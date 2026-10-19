@@ -130,65 +130,56 @@ fn clear_of(ticks: Vec<Label>, labels: &[Label]) -> Vec<Label> {
         .collect()
 }
 
-/// Two scales, two axes: the body mass on the left, the lean mass on the right, each with its goal, so that
-/// the two lines fill the height and a small change shows over a short window.
+/// Both masses on one axis, as both are kilograms, each with its goal.
 fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
     let span = span_of(chart.masses.iter().chain(&chart.lean_masses))?;
-    let mass = axis_of(chart.masses.iter().map(|(_, kg)| *kg).chain(chart.goal_kg))?;
-    let lean = axis_of(
-        chart
-            .lean_masses
-            .iter()
-            .map(|(_, kg)| *kg)
-            .chain(chart.goal_lean_kg),
-    );
-    let mut lines = vec![Line {
-        points: line_of(&chart.masses, span, mass.scale(), WIDTH, HEIGHT),
-        class: "mass",
-    }];
+    let values = chart
+        .masses
+        .iter()
+        .chain(&chart.lean_masses)
+        .map(|(_, kg)| *kg)
+        .chain(chart.goal_kg)
+        .chain(chart.goal_lean_kg);
+    let axis = axis_of(values)?;
+    let scale = axis.scale();
+    let mut lines = vec![
+        Line {
+            points: line_of(&chart.masses, span, scale, WIDTH, HEIGHT),
+            class: "mass",
+        },
+        Line {
+            points: line_of(&chart.lean_masses, span, scale, WIDTH, HEIGHT),
+            class: "lean",
+        },
+    ];
     lines.extend(chart.goal_kg.map(|kg| Line {
-        points: level(kg, mass.scale()),
+        points: level(kg, scale),
         class: "goal dashed",
     }));
-    let mut right = vec![];
-    let mut right_ticks = vec![];
-    if let Some(lean) = lean {
-        lines.push(Line {
-            points: line_of(&chart.lean_masses, span, lean.scale(), WIDTH, HEIGHT),
-            class: "lean",
-        });
-        lines.extend(chart.goal_lean_kg.map(|kg| Line {
-            points: level(kg, lean.scale()),
-            class: "lean dashed",
-        }));
-        right = [
-            labelled(chart.goal_lean_kg, lean.scale(), Figure::Mass, "lean"),
-            labelled(
-                current(&chart.lean_masses),
-                lean.scale(),
-                Figure::Mass,
-                "lean",
-            ),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
-        right_ticks = ticks_on(lean, Figure::Mass, "lean");
-    }
+    lines.extend(chart.goal_lean_kg.map(|kg| Line {
+        points: level(kg, scale),
+        class: "lean dashed",
+    }));
     Some(Plotted {
         lines,
         dots: vec![],
         left: [
-            labelled(chart.goal_kg, mass.scale(), Figure::Mass, "goal"),
-            labelled(current(&chart.masses), mass.scale(), Figure::Mass, "mass"),
+            labelled(chart.goal_kg, scale, Figure::Mass, "goal"),
+            labelled(chart.goal_lean_kg, scale, Figure::Mass, "lean"),
         ]
         .into_iter()
         .flatten()
         .collect(),
-        right,
-        ticks: ticks_on(mass, Figure::Mass, "mass"),
+        right: [
+            labelled(current(&chart.masses), scale, Figure::Mass, "mass"),
+            labelled(current(&chart.lean_masses), scale, Figure::Mass, "lean"),
+        ]
+        .into_iter()
+        .flatten()
+        .collect(),
+        ticks: ticks_on(axis, Figure::Mass, ""),
         days: days_along(span, WIDTH),
-        right_ticks,
+        right_ticks: vec![],
         legend: vec![
             ("mass", "Body mass"),
             ("lean", "Lean mass"),

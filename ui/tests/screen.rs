@@ -2947,10 +2947,12 @@ async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines()
             .unwrap_or_default()
     };
 
-    assert_eq!(count(&screen, ".charts svg line.axis"), 2);
-    assert!(count(&screen, ".charts .label.left.tick.mass") >= 2);
-    assert!(count(&screen, ".charts .label.right.tick.lean") >= 2);
-    assert!(count(&screen, ".charts svg line.grid") >= 2);
+    assert_eq!(count(&screen, ".charts svg line.axis"), 1);
+    assert_eq!(count(&screen, ".charts svg line.grid"), 4);
+    assert_eq!(
+        texts_of(&screen, ".charts .label.tick"),
+        ["60.0", "80.0", "90.0"]
+    );
 
     clicked(&screen, "button.chip-Fuel");
     settled().await;
