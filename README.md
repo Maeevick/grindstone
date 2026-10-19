@@ -36,6 +36,7 @@ Version 0.1, the full scope, on five tabs under an icon bar (🏠 Home, ⚖️ G
   - Where the day stands: the energy on a gauge, the minimum (25 kcal per kilo of lean mass for a man, 30 for a woman, plus the burn) in red, Alpert's floor (labelled under its tick) and maintenance in gold, the band between them in green, what was eaten in blue.
   - The four macros: their goal, what was eaten, the gap and their share of the energy, with a total.
   - The day's intakes, each food with its quantity, energy and macros; the grimoire lists foods or meals, a click on a meal showing its description and ingredients.
+  - The week's average: over the logged days of the seven up to the day, today left out until it is over, the energy and each macro a day against the average of their bands, coloured by it, with the days that stood in theirs; then a tip naming what runs short and what runs over, furthest first.
 - **Hydrate:** drinks in millilitres, one serving when none are typed.
   - Where the day stands: a scale from min through optimal to max, food bringing a tenth of the water. The optimal is 90% of what the lean mass turns over in a day (7% of its 73.2% of water) plus 1.25 mL per kcal burnt, the min 90% of a millilitre per kcal the day spends (its budget and burn) and never above the optimal, the max a fifth above the optimal; before any lean mass is known, EFSA's base plus a millilitre per kcal burnt, 20% either side. Past the max, a word on the litre an hour kidneys clear.
   - The day's drinks; the grimoire lists drinks, water or other.
