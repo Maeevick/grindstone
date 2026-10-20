@@ -20,8 +20,16 @@ pub fn in_force<T: Copy>(
     kept: Option<&Kept<T>>,
     recommendation: impl FnOnce() -> Option<T>,
 ) -> Option<InForce<T>> {
-    let _ = (kept, recommendation);
-    None
+    match kept {
+        Some(Kept::Own(values)) => Some(InForce {
+            values: *values,
+            recommended: false,
+        }),
+        _ => recommendation().map(|values| InForce {
+            values,
+            recommended: true,
+        }),
+    }
 }
 
 #[cfg(test)]
