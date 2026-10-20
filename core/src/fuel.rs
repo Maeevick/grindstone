@@ -9,9 +9,11 @@ use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
-use crate::kept::Kept;
+use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
+use crate::profile::Profile;
+use crate::recommendations::recommended;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
 use crate::version::version_in_force_on;
@@ -235,6 +237,21 @@ fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -
     }
 }
 
+/// The fuel targets in force on a day: those kept from the latest day up to it (the earliest before any), their
+/// own or the recommendation for the profile and body mass; never kept, the recommendation; nothing without a
+/// profile to recommend for.
+pub(crate) fn fuel_targets_in_force(
+    day: NaiveDate,
+    targets: &[(NaiveDate, Kept<FuelTargets>)],
+    profiles: &[(NaiveDate, Profile)],
+    body_mass_kg: Option<f64>,
+) -> Option<InForce<FuelTargets>> {
+    in_force(version_in_force_on(targets, day), || {
+        version_in_force_on(profiles, day)
+            .map(|profile| recommended(profile, day, body_mass_kg).fuel)
+    })
+}
+
 struct Ledgers<'records> {
     days: Vec<Day>,
     gather: &'records GatherRecords,
@@ -255,11 +272,14 @@ impl Ledgers<'_> {
     fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Fuel {
         let intakes = self.intakes_on(day);
         let eaten = added_up(&intakes);
-        let targets = version_in_force_on(&self.fuel.targets, day)
-            .and_then(Kept::own)
-            .copied()
-            .unwrap_or(DEFAULT_FUEL_TARGETS);
         let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
+            let targets = fuel_targets_in_force(
+                day,
+                &self.fuel.targets,
+                &self.gather.profiles,
+                Some(body.mass_kg),
+            )
+            .map_or(DEFAULT_FUEL_TARGETS, |targets| targets.values);
             let burnt = burn_on(day, self.burn, self.gather);
             let (band, budget) = band_for(
                 &body,

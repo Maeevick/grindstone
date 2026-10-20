@@ -8,7 +8,8 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
+use crate::fuel::fuel_targets_in_force;
+use crate::fuel_records::{FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate_counted::counted_on;
@@ -156,14 +157,13 @@ pub fn fuel_targets_on(
     date: &str,
 ) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let day = day(date)?;
-    let _ = gather;
-    Ok(Some(InForce {
-        values: version_in_force_on(&fuel.fuel_records()?.targets, day)
-            .and_then(Kept::own)
-            .copied()
-            .unwrap_or(DEFAULT_FUEL_TARGETS),
-        recommended: false,
-    }))
+    let gathered = gather.gather_records()?;
+    Ok(fuel_targets_in_force(
+        day,
+        &fuel.fuel_records()?.targets,
+        &gathered.profiles,
+        body_mass_in_force_on(day, &gathered.measurements),
+    ))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
