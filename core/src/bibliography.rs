@@ -407,6 +407,22 @@ mod tests {
     }
 
     #[test]
+    fn the_sources_of_the_energy_bands_floor_minimum_and_gain_are_cited() {
+        let cited: Vec<(&str, u16)> = references_about(Topic::Energy)
+            .iter()
+            .map(|reference| (reference.authors, reference.year))
+            .collect();
+
+        for source in [
+            ("Alpert S. S.", 2005),
+            ("Loucks A. B., Kiens B., Wright H. H.", 2011),
+            ("Helms E. R., Spence A.-J., Sousa C., et al.", 2023),
+        ] {
+            assert!(cited.contains(&source), "{source:?}");
+        }
+    }
+
+    #[test]
     fn the_sources_of_the_weeks_pace_are_cited() {
         let cited: Vec<(&str, u16)> = references_about(Topic::HealthyRanges)
             .iter()
