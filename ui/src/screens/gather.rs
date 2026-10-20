@@ -18,8 +18,8 @@ fn pace_line(
     figure: fn(f64) -> Figure,
 ) -> impl IntoView {
     change.map(|change| {
-        let (class, moved) = match change.heading {
-            Heading::Steady => ("steady", "steady".to_string()),
+        let (class, moved, a_week) = match change.heading {
+            Heading::Steady => ("steady", "steady".to_string(), ""),
             heading => (
                 match heading {
                     Heading::Toward => "toward",
@@ -27,16 +27,20 @@ fn pace_line(
                     _ => "unaimed",
                 },
                 format!(
-                    "{}{} a week",
+                    "{}{}",
                     if change.by > 0.0 { "+" } else { "" },
                     shown(figure(change.by))
                 ),
+                " a week",
             ),
         };
         view! {
             <li>
                 <span>{name}</span>
-                <span class=class>{moved}</span>
+                <span>
+                    <span class=class>{moved}</span>
+                    {a_week}
+                </span>
             </li>
         }
     })

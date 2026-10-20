@@ -970,6 +970,7 @@ tr.details .pinned {
 	justify-content: space-between;
 	padding: 0.15rem 0;
 	font-size: 0.9rem;
+	color: var(--mut);
 }
 
 .pace-lines span.steady {
