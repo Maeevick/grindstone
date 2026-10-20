@@ -282,6 +282,10 @@ hr.divider {
 	color: var(--acc);
 }
 
+.field.streak {
+	margin-top: 10px;
+}
+
 .chart {
 	width: 100%;
 	height: 180px;
