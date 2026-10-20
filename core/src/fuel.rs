@@ -522,11 +522,25 @@ mod tests {
                 .band
                 .is_some_and(|band| about(band.cap_kcal, budget.kcal() + burnt))
         );
+        assert_eq!(fuelled.budget, Some(budget));
+    }
+
+    #[test]
+    fn a_cut_may_go_as_low_as_alperts_deficit_on_the_fat_left_to_lose() {
+        let (_, fat_kg) = the_body();
+        let his_goals_fat_kg = 70.0 * 0.1;
+
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        );
+
         assert!(fuelled.band.is_some_and(|band| about(
             band.floor_kcal,
-            (budget.kcal() + burnt - 290.0 / 4.184 * fat_kg).max(25.0 * lean_kg + burnt)
+            band.cap_kcal - 290.0 / 4.184 * (fat_kg - his_goals_fat_kg)
         )));
-        assert_eq!(fuelled.budget, Some(budget));
     }
 
     #[test]
