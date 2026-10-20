@@ -90,30 +90,39 @@ pub fn goals_on(
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UsualDayForm {
     pub from: String,
-    pub sitting_min: f64,
-    pub standing_min: f64,
-    pub moving_km: f64,
+    pub kept: Kept<Volitional>,
 }
 
 pub fn set_usual_day(
+    gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     form: &UsualDayForm,
-) -> Result<Volitional, Failure> {
+) -> Result<Option<InForce<Volitional>>, Failure> {
     let from = day(&form.from)?;
-    let usual = volitional(form.sitting_min, form.standing_min, form.moving_km)
-        .map_err(Failure::Refused)?;
-    burn.save_usual_day(from, &Kept::Own(usual))?;
-    Ok(usual)
+    let kept = match form.kept {
+        Kept::Own(usual) => Kept::Own(
+            volitional(usual.sitting_min, usual.standing_min, usual.moving_km)
+                .map_err(Failure::Refused)?,
+        ),
+        Kept::Recommended => Kept::Recommended,
+    };
+    burn.save_usual_day(from, &kept)?;
+    usual_day_on(gather, burn, &form.from)
 }
 
 pub fn usual_day_on(
+    gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     date: &str,
-) -> Result<Option<Volitional>, Failure> {
+) -> Result<Option<InForce<Volitional>>, Failure> {
     let day = day(date)?;
+    let _ = gather;
     Ok(version_in_force_on(&burn.burn_records()?.usual_days, day)
         .and_then(Kept::own)
-        .copied())
+        .map(|usual| InForce {
+            values: *usual,
+            recommended: false,
+        }))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -332,43 +341,131 @@ mod tests {
         assert_eq!(goals_on(&BrokenGatherRecords, "2026-10-10"), Err(broken));
     }
 
-    fn a_desk_day_from(from: &str) -> UsualDayForm {
-        UsualDayForm {
-            from: from.into(),
+    fn a_desk_day() -> Volitional {
+        Volitional {
             sitting_min: 480.0,
             standing_min: 120.0,
             moving_km: 3.0,
         }
     }
 
-    #[test]
-    fn a_usual_day_set_from_a_date_is_the_one_in_force_from_that_date() {
-        let burn = crate::testing::BurnRecordsInMemory::default();
-        set_usual_day(&burn, &a_desk_day_from("2026-03-01")).expect("a usual day sets");
+    fn a_desk_day_from(from: &str) -> UsualDayForm {
+        UsualDayForm {
+            from: from.into(),
+            kept: Kept::Own(a_desk_day()),
+        }
+    }
 
-        assert_eq!(
-            usual_day_on(&burn, "2026-10-10"),
-            Ok(Some(Volitional {
+    fn the_recommended_usual_day(moving_km: f64) -> InForce<Volitional> {
+        InForce {
+            values: Volitional {
                 sitting_min: 480.0,
                 standing_min: 120.0,
-                moving_km: 3.0,
+                moving_km,
+            },
+            recommended: true,
+        }
+    }
+
+    fn born(birthday: &str) -> GatherRecordsInMemory {
+        let gather = GatherRecordsInMemory::default();
+        set_profile(
+            &gather,
+            &ProfileForm {
+                birthday: birthday.into(),
+                ..a_mans_form("2026-03-01")
+            },
+        )
+        .expect("a profile sets");
+        gather
+    }
+
+    #[test]
+    fn a_usual_day_set_from_a_date_is_the_one_in_force_from_that_date() {
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
+        set_usual_day(&gather, &burn, &a_desk_day_from("2026-03-01")).expect("a usual day sets");
+
+        assert_eq!(
+            usual_day_on(&gather, &burn, "2026-10-10"),
+            Ok(Some(InForce {
+                values: a_desk_day(),
+                recommended: false
             }))
         );
     }
 
     #[test]
+    fn a_usual_day_never_kept_follows_the_recommendation_for_the_age_none_without_a_profile() {
+        let burn = crate::testing::BurnRecordsInMemory::default();
+
+        assert_eq!(
+            (
+                usual_day_on(&born("1985-04-12"), &burn, "2026-10-10"),
+                usual_day_on(&GatherRecordsInMemory::default(), &burn, "2026-10-10")
+            ),
+            (Ok(Some(the_recommended_usual_day(6.0))), Ok(None))
+        );
+    }
+
+    #[test]
+    fn the_usual_days_recommendation_kept_from_a_day_follows_the_age_own_values_holding_before_it()
+    {
+        let (gather, burn) = (
+            born("1966-10-15"),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
+        set_usual_day(&gather, &burn, &a_desk_day_from("2026-03-01")).expect("a usual day sets");
+        set_usual_day(
+            &gather,
+            &burn,
+            &UsualDayForm {
+                from: "2026-10-10".into(),
+                kept: Kept::Recommended,
+            },
+        )
+        .expect("the recommendation keeps");
+
+        let in_force = |date| usual_day_on(&gather, &burn, date).ok().flatten();
+
+        assert_eq!(
+            [
+                in_force("2026-10-05"),
+                in_force("2026-10-11"),
+                in_force("2026-10-16")
+            ],
+            [
+                Some(InForce {
+                    values: a_desk_day(),
+                    recommended: false
+                }),
+                Some(the_recommended_usual_day(6.0)),
+                Some(the_recommended_usual_day(4.5))
+            ]
+        );
+    }
+
+    #[test]
     fn a_usual_day_with_more_minutes_than_a_day_holds_is_refused() {
+        let gather = GatherRecordsInMemory::default();
         let refused = set_usual_day(
+            &gather,
             &crate::testing::BurnRecordsInMemory::default(),
             &UsualDayForm {
-                sitting_min: 1500.0,
-                ..a_desk_day_from("2026-03-01")
+                from: "2026-03-01".into(),
+                kept: Kept::Own(Volitional {
+                    sitting_min: 1500.0,
+                    ..a_desk_day()
+                }),
             },
         );
 
         assert_eq!(refused, Err(Failure::Refused(Refusal::NotADistance)));
         assert_eq!(
             usual_day_on(
+                &gather,
                 &crate::testing::BurnRecordsInMemory::default(),
                 "2026-02-30"
             ),

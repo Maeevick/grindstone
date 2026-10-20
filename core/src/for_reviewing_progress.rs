@@ -540,12 +540,15 @@ mod tests {
             )
             .expect("a profile set");
             set_usual_day(
+                &records.gather,
                 &records.burn,
                 &UsualDayForm {
                     from: "2026-03-01".into(),
-                    sitting_min: 480.0,
-                    standing_min: 120.0,
-                    moving_km: 3.0,
+                    kept: crate::kept::Kept::Own(crate::volitional::Volitional {
+                        sitting_min: 480.0,
+                        standing_min: 120.0,
+                        moving_km: 3.0,
+                    }),
                 },
             )
             .expect("a usual day set");

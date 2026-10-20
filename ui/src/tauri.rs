@@ -200,11 +200,11 @@ pub async fn remove_exercise(name: &str) -> Result<Vec<Exercise>, Failure> {
     call("remove_exercise", Naming { name }, broken).await
 }
 
-pub async fn set_usual_day(form: &UsualDayForm) -> Result<Volitional, Failure> {
+pub async fn set_usual_day(form: &UsualDayForm) -> Result<Option<InForce<Volitional>>, Failure> {
     call("set_usual_day", Form { form }, broken).await
 }
 
-pub async fn usual_day_on(date: &str) -> Result<Option<Volitional>, Failure> {
+pub async fn usual_day_on(date: &str) -> Result<Option<InForce<Volitional>>, Failure> {
     call("usual_day_on", OnDay { date }, broken).await
 }
 

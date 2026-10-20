@@ -291,6 +291,38 @@ mod tests {
     }
 
     #[test]
+    fn a_day_whose_usual_day_was_never_kept_spends_its_time_off_the_clock_as_recommended_for_the_age()
+     {
+        let gather = GatherRecordsInMemory::default();
+        gather
+            .save_profile(
+                NaiveDate::from_ymd_opt(2026, 3, 1).expect("a day"),
+                &crate::profile::Profile {
+                    birthday: NaiveDate::from_ymd_opt(1985, 4, 12).expect("a day"),
+                    gender: crate::gender::Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile saves");
+
+        let burnt = burn_day(&gather, &BurnRecordsInMemory::default(), "2026-10-10");
+
+        assert_eq!(
+            burnt.map(|burnt| (burnt.off_the_clock, burnt.off_the_clock_is_usual)),
+            Ok((
+                Some(Volitional {
+                    sitting_min: 480.0,
+                    standing_min: 120.0,
+                    moving_km: 6.0,
+                }),
+                true
+            ))
+        );
+    }
+
+    #[test]
     fn a_logged_workout_comes_back_in_its_days_burn_with_what_it_burnt() {
         let gather = GatherRecordsInMemory::default();
         log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");

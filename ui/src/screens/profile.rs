@@ -7,6 +7,7 @@ use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
 use grind_core::kept::Kept;
 use grind_core::recommendations::Recommendations;
+use grind_core::volitional::Volitional;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -123,9 +124,9 @@ fn UsualDayCard() -> impl IntoView {
     });
     spawn_local(async move {
         if let Ok(Some(usual)) = tauri::usual_day_on(&today()).await {
-            sitting.set(usual.sitting_min.to_string());
-            standing.set(usual.standing_min.to_string());
-            moving.set(usual.moving_km.to_string());
+            sitting.set(usual.values.sitting_min.to_string());
+            standing.set(usual.values.standing_min.to_string());
+            moving.set(usual.values.moving_km.to_string());
         }
     });
     let save = move |event: leptos::ev::SubmitEvent| {
@@ -140,9 +141,11 @@ fn UsualDayCard() -> impl IntoView {
         };
         let form = UsualDayForm {
             from: from.get_untracked(),
-            sitting_min: sitting_min.unwrap_or(0.0),
-            standing_min: standing_min.unwrap_or(0.0),
-            moving_km: moving_km.unwrap_or(0.0),
+            kept: Kept::Own(Volitional {
+                sitting_min: sitting_min.unwrap_or(0.0),
+                standing_min: standing_min.unwrap_or(0.0),
+                moving_km: moving_km.unwrap_or(0.0),
+            }),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_usual_day(&form).await {

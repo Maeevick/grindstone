@@ -178,15 +178,21 @@ pub fn remove_exercise(records: State<Records>, name: String) -> Result<Vec<Exer
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_usual_day(records: State<Records>, form: UsualDayForm) -> Result<Volitional, Failure> {
+pub fn set_usual_day(
+    records: State<Records>,
+    form: UsualDayForm,
+) -> Result<Option<InForce<Volitional>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_usual_day(&*records, &form)
+    for_setting_up_the_profile::set_usual_day(&*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn usual_day_on(records: State<Records>, date: String) -> Result<Option<Volitional>, Failure> {
+pub fn usual_day_on(
+    records: State<Records>,
+    date: String,
+) -> Result<Option<InForce<Volitional>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::usual_day_on(&*records, &date)
+    for_setting_up_the_profile::usual_day_on(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -922,12 +928,13 @@ mod tests {
         let set = invoke(
             &screen,
             "set_usual_day",
-            json!({ "form": { "from": "2026-03-01", "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 } }),
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": usual } } }),
         );
         let in_force = invoke(&screen, "usual_day_on", json!({ "date": "2026-10-10" }));
 
-        assert_eq!(set, Ok(usual.clone()));
-        assert_eq!(in_force, Ok(usual));
+        let kept = json!({ "values": usual, "recommended": false });
+        assert_eq!(set, Ok(kept.clone()));
+        assert_eq!(in_force, Ok(kept));
     }
 
     fn with_skyr_in_the_catalog(screen: &WebviewWindow<MockRuntime>) -> Result<Value, Value> {
