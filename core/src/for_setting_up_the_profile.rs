@@ -353,9 +353,13 @@ mod tests {
                     fat_ratio: 0.1
                 },
                 recommended: false,
-                from: None,
+                from: since("2026-10-10"),
             }))
         );
+    }
+
+    fn since(date: &str) -> Option<NaiveDate> {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").ok()
     }
 
     fn goals_kept(from: &str, body_mass_kg: f64, fat_percentage: f64) -> GoalsForm {
@@ -434,10 +438,16 @@ mod tests {
                         fat_ratio: 0.1
                     },
                     recommended: false,
-                    from: None,
+                    from: since("2026-03-01"),
                 }),
-                Some(the_recommended_goals("1966-10-15", "2026-10-11")),
-                Some(the_recommended_goals("1966-10-15", "2026-10-16"))
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_goals("1966-10-15", "2026-10-11")
+                }),
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_goals("1966-10-15", "2026-10-16")
+                })
             ]
         );
     }
@@ -549,7 +559,7 @@ mod tests {
             Ok(Some(InForce {
                 values: a_desk_day(),
                 recommended: false,
-                from: None,
+                from: since("2026-03-01"),
             }))
         );
     }
@@ -597,10 +607,16 @@ mod tests {
                 Some(InForce {
                     values: a_desk_day(),
                     recommended: false,
-                    from: None,
+                    from: since("2026-03-01"),
                 }),
-                Some(the_recommended_usual_day(6.0)),
-                Some(the_recommended_usual_day(4.5))
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_usual_day(6.0)
+                }),
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_usual_day(4.5)
+                })
             ]
         );
     }
@@ -677,7 +693,7 @@ mod tests {
             Ok(Some(InForce {
                 values: own_targets(),
                 recommended: false,
-                from: None,
+                from: since("2026-03-01"),
             }))
         );
     }
@@ -727,10 +743,16 @@ mod tests {
                 Some(InForce {
                     values: own_targets(),
                     recommended: false,
-                    from: None,
+                    from: since("2026-03-01"),
                 }),
-                Some(the_recommended_targets(0.31)),
-                Some(the_recommended_targets(0.4))
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_targets(0.31)
+                }),
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_targets(0.4)
+                })
             ]
         );
     }
@@ -760,11 +782,11 @@ mod tests {
         }
     }
 
-    fn recommended_ml(values: f64) -> Option<InForce<f64>> {
+    fn recommended_ml(values: f64, from: Option<NaiveDate>) -> Option<InForce<f64>> {
         Some(InForce {
             values,
             recommended: true,
-            from: None,
+            from,
         })
     }
 
@@ -798,7 +820,7 @@ mod tests {
         let unweighed = hydrate_target_on(&without_a_waist, &hydrate, "2026-10-10");
         let lean = hydrate_target_on(&with_a_waist, &hydrate, "2026-10-10");
 
-        assert_eq!(unweighed, Ok(recommended_ml(2000.0)));
+        assert_eq!(unweighed, Ok(recommended_ml(2000.0, None)));
         assert!(
             following(
                 lean.clone().ok().flatten(),
@@ -834,9 +856,9 @@ mod tests {
                 Ok(Some(InForce {
                     values: 2800.0,
                     recommended: false,
-                    from: None,
+                    from: since("2026-03-01"),
                 })),
-                Ok(recommended_ml(2000.0))
+                Ok(recommended_ml(2000.0, since("2026-10-10")))
             )
         );
         assert!(following(
@@ -1039,7 +1061,7 @@ mod tests {
                 Ok(Some(InForce {
                     values: 150.0,
                     recommended: false,
-                    from: None,
+                    from: since("2026-10-15"),
                 }))
             )
         );
@@ -1084,17 +1106,17 @@ mod tests {
                 Some(InForce {
                     values: 150.0,
                     recommended: false,
-                    from: None,
+                    from: since("2026-10-01"),
                 }),
                 Some(InForce {
                     values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
                     recommended: true,
-                    from: None,
+                    from: since("2026-10-10"),
                 }),
                 Some(InForce {
                     values: 3.0 * 80.0 * 150.0 / 7.0 / 60.0,
                     recommended: true,
-                    from: None,
+                    from: since("2026-10-10"),
                 })
             ]
         );

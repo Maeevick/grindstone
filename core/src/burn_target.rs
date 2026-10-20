@@ -63,7 +63,7 @@ mod tests {
             Some(InForce {
                 values: 150.0,
                 recommended: false,
-                from: None,
+                from: Some(day("2026-10-15")),
             })
         );
         assert!(about(

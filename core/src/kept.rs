@@ -33,16 +33,17 @@ pub fn in_force<T: Copy>(
     kept: Option<&(NaiveDate, Kept<T>)>,
     recommendation: impl FnOnce() -> Option<T>,
 ) -> Option<InForce<T>> {
+    let from = kept.map(|(from, _)| *from);
     match kept.map(|(_, kept)| kept) {
         Some(Kept::Own(values)) => Some(InForce {
             values: *values,
             recommended: false,
-            from: None,
+            from,
         }),
         _ => recommendation().map(|values| InForce {
             values,
             recommended: true,
-            from: None,
+            from,
         }),
     }
 }
@@ -55,11 +56,12 @@ mod tests {
         Some(77.0)
     }
 
+    fn the_15th() -> NaiveDate {
+        NaiveDate::from_ymd_opt(2026, 10, 15).expect("a real day")
+    }
+
     fn from_the_15th<T>(kept: Kept<T>) -> (NaiveDate, Kept<T>) {
-        (
-            NaiveDate::from_ymd_opt(2026, 10, 15).expect("a real day"),
-            kept,
-        )
+        (the_15th(), kept)
     }
 
     #[test]
@@ -77,25 +79,27 @@ mod tests {
             Some(InForce {
                 values: 80.0,
                 recommended: false,
-                from: None,
+                from: Some(the_15th()),
             })
         );
     }
 
     #[test]
     fn the_recommendation_kept_or_nothing_kept_brings_the_recommendation_in_force() {
-        let recommended = Some(InForce {
-            values: 77.0,
-            recommended: true,
-            from: None,
-        });
+        let recommended_from = |from| {
+            Some(InForce {
+                values: 77.0,
+                recommended: true,
+                from,
+            })
+        };
 
         assert_eq!(
             [
                 in_force(Some(&from_the_15th(Kept::Recommended)), the_recommendation),
                 in_force(None, the_recommendation)
             ],
-            [recommended, recommended]
+            [recommended_from(Some(the_15th())), recommended_from(None)]
         );
     }
 
@@ -111,7 +115,7 @@ mod tests {
                 Some(InForce {
                     values: 80.0,
                     recommended: false,
-                    from: None,
+                    from: Some(the_15th()),
                 }),
                 None,
                 None
