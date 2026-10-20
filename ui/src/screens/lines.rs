@@ -7,6 +7,7 @@ use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_week::{FuelWeek, Gap};
 use grind_core::hydrate::Hydrate;
+use grind_core::hydrate_week::HydrateWeek;
 use grind_core::judgement::Judgement;
 use grind_core::meal::Ingredient;
 use grind_core::pace::{Lean, Pace, SafeLoss};
@@ -724,6 +725,25 @@ pub fn fuel_week_said(week: &FuelWeek) -> String {
             gaps_said(&short, true),
             gaps_said(&over, false)
         ),
+    }
+}
+
+/// How far the week's drinks run from the band, said plainly before a word from the ledger.
+pub fn hydrate_week_said(week: &HydrateWeek) -> String {
+    let gap = week.drunk.gap().unwrap_or_default();
+    match week.drunk.verdict() {
+        Verdict::Low => format!(
+            "Short of the band by {} a day. A glass more by mid-afternoon closes it; I measured, twice.",
+            shown(Figure::Volume(-gap))
+        ),
+        Verdict::High => format!(
+            "Past the band by {} a day. Kidneys clear about a litre an hour, so nothing grave; a glass less will do.",
+            shown(Figure::Volume(gap))
+        ),
+        Verdict::InBand => {
+            "A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high praise."
+                .into()
+        }
     }
 }
 

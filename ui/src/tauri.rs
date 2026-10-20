@@ -24,6 +24,7 @@ use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::FuelWeek;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
+use grind_core::hydrate_week::HydrateWeek;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
@@ -221,6 +222,10 @@ struct WeekUpTo<'a> {
 
 pub async fn fuel_week(date: &str, today: &str) -> Result<Option<FuelWeek>, Failure> {
     call("fuel_week", WeekUpTo { date, today }, broken).await
+}
+
+pub async fn hydrate_week(date: &str, today: &str) -> Result<Option<HydrateWeek>, Failure> {
+    call("hydrate_week", WeekUpTo { date, today }, broken).await
 }
 
 pub async fn log_intake(form: &IntakeForm) -> Result<Fuel, Failure> {

@@ -11,6 +11,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::screens::cells::week_table;
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
@@ -416,8 +417,38 @@ pub fn HydrateCountedCard() -> impl IntoView {
 /// The week up to the tab's day, a logged day's drinks on average, against the band.
 #[component]
 pub fn HydrateWeekCard(day: RwSignal<String>) -> impl IntoView {
-    let _ = day;
-    view! { <section class="card week"></section> }
+    let recorded = Recorded::here();
+    let week = LocalResource::new(move || {
+        recorded.heard();
+        let date = day.get();
+        async move { tauri::hydrate_week(&date, &today()).await }
+    });
+    view! {
+        <section class="card week">
+            <h2>"The week's average"</h2>
+            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
+                {move || {
+                    week.get()
+                        .map(|answer| match answer {
+                            Ok(Some(week)) => {
+                                view! {
+                                    {week_table(
+                                        week.logged_days,
+                                        vec![("Drinks (mL)", week.drunk, Figure::Volume)],
+                                    )}
+                                    <p class="tip">{lines::quoted(&lines::hydrate_week_said(&week))}</p>
+                                }
+                                    .into_any()
+                            }
+                            Ok(None) => view! { <p class="empty">{lines::NO_WEEK_YET}</p> }.into_any(),
+                            Err(failure) => {
+                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
+                            }
+                        })
+                }}
+            </Transition>
+        </section>
+    }
 }
 
 #[component]
