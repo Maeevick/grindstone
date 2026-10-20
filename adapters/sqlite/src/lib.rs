@@ -105,6 +105,9 @@ const MIGRATIONS: &[&str] = &[
      create table hydrate_targets (
          effective_from text primary key, base_ml real not null, recommended integer not null
      );",
+    "create table gather_counted (effective_from text primary key, counted integer not null);
+     create table fuel_counted (effective_from text primary key, counted integer not null);
+     create table burn_counted (effective_from text primary key, counted integer not null);",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
@@ -240,14 +243,17 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
-    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
-        Ok(())
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        self.switch_saved("gather_counted", from, counted)
     }
 
     fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
-            .execute_batch("delete from measurements; delete from profiles; delete from goals;")
+            .execute_batch(
+                "delete from measurements; delete from profiles; delete from goals;
+                 delete from gather_counted;",
+            )
             .map_err(broken)?;
         for measured in &records.measurements {
             self.save_measurement(measured)?;
@@ -257,6 +263,9 @@ impl ForStoringGatherRecords for Sqlite {
         }
         for (from, goals) in &records.goals {
             self.save_goals(*from, goals)?;
+        }
+        for (from, counted) in &records.counted_from {
+            self.switch_saved("gather_counted", *from, *counted)?;
         }
         replacing.commit().map_err(broken)
     }
@@ -327,12 +336,30 @@ impl ForStoringGatherRecords for Sqlite {
             measurements,
             profiles,
             goals,
-            counted_from: vec![],
+            counted_from: self.switches("gather_counted")?,
         })
     }
 }
 
 impl Sqlite {
+    /// A streak switch kept from a day, in the table of its card.
+    fn switch_saved(&self, table: &str, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        self.run(
+            &format!(
+                "insert into {table} (effective_from, counted) values (?1, ?2)
+                 on conflict (effective_from) do update set counted = excluded.counted"
+            ),
+            params![from, counted],
+        )
+    }
+
+    fn switches(&self, table: &str) -> Result<Vec<(NaiveDate, bool)>, Broken> {
+        self.rows(
+            &format!("select effective_from, counted from {table} order by effective_from"),
+            counted_read,
+        )
+    }
+
     fn run(&self, statement: &str, values: impl rusqlite::Params) -> Result<(), Broken> {
         self.0
             .execute(statement, values)
@@ -536,8 +563,8 @@ impl ForStoringBurnRecords for Sqlite {
         )
     }
 
-    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
-        Ok(())
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        self.switch_saved("burn_counted", from, counted)
     }
 
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
@@ -546,7 +573,7 @@ impl ForStoringBurnRecords for Sqlite {
             .execute_batch(
                 "delete from exercises; delete from workouts;
                  delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;
-                 delete from circuits; delete from burn_targets;",
+                 delete from circuits; delete from burn_targets; delete from burn_counted;",
             )
             .map_err(broken)?;
         for exercise in &records.exercises {
@@ -567,6 +594,9 @@ impl ForStoringBurnRecords for Sqlite {
         for (from, kcal) in &records.targets {
             self.save_burn_target(*from, *kcal)?;
         }
+        for (from, counted) in &records.counted_from {
+            self.switch_saved("burn_counted", *from, *counted)?;
+        }
         replacing.commit().map_err(broken)
     }
 
@@ -583,7 +613,7 @@ impl ForStoringBurnRecords for Sqlite {
             targets: self.rows(BURN_TARGETS, |row| {
                 Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
             })?,
-            counted_from: vec![],
+            counted_from: self.switches("burn_counted")?,
         })
     }
 
@@ -806,8 +836,8 @@ impl ForStoringFuelRecords for Sqlite {
         )
     }
 
-    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
-        Ok(())
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        self.switch_saved("fuel_counted", from, counted)
     }
 
     fn save_meal(&self, meal: &Meal) -> Result<(), Broken> {
@@ -827,7 +857,8 @@ impl ForStoringFuelRecords for Sqlite {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
-                "delete from foods; delete from intakes; delete from fuel_targets; delete from meals;",
+                "delete from foods; delete from intakes; delete from fuel_targets; delete from meals;
+                 delete from fuel_counted;",
             )
             .map_err(broken)?;
         for food in &records.foods {
@@ -838,6 +869,9 @@ impl ForStoringFuelRecords for Sqlite {
         }
         for (from, targets) in &records.targets {
             self.save_targets(*from, targets)?;
+        }
+        for (from, counted) in &records.counted_from {
+            self.switch_saved("fuel_counted", *from, *counted)?;
         }
         for meal in &records.meals {
             self.save_meal(meal)?;
@@ -851,7 +885,7 @@ impl ForStoringFuelRecords for Sqlite {
             intakes: self.rows(INTAKES, intake_read)?,
             targets: self.rows(FUEL_TARGETS, targets_read)?,
             meals: self.rows(MEALS, meal_read)?,
-            counted_from: vec![],
+            counted_from: self.switches("fuel_counted")?,
         })
     }
 }
