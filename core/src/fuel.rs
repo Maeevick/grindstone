@@ -589,9 +589,9 @@ mod tests {
         .kcal()
     }
 
-    #[test]
-    fn a_gain_may_go_as_high_as_what_the_goal_body_would_spend() {
-        let gaining = GatherRecords {
+    /// The same man aiming above his body: a gain.
+    fn gaining() -> GatherRecords {
+        GatherRecords {
             goals: vec![(
                 day("2026-03-01"),
                 Kept::Own(Goals {
@@ -600,9 +600,12 @@ mod tests {
                 }),
             )],
             ..a_mans_records(HIS_WAIST_CM)
-        };
+        }
+    }
 
-        let fuelled = fuel_on("2026-10-10", &gaining, &a_desk_job(), &aiming());
+    #[test]
+    fn a_gain_may_go_as_high_as_what_the_goal_body_would_spend() {
+        let fuelled = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming());
 
         let (lean_kg, fat_kg) = the_body();
         assert_eq!(
@@ -936,6 +939,32 @@ mod tests {
     fn gap_on(date: &str, fuel: &FuelRecords) -> f64 {
         let fuelled = fuel_on(date, &a_mans_records(HIS_WAIST_CM), &a_desk_job(), fuel);
         cap_of(&fuelled) - fuelled.eaten.energy_kcal
+    }
+
+    #[test]
+    fn the_deficit_that_wears_neat_down_counts_from_maintenance_not_the_bands_cap() {
+        let mut fuel = aiming();
+        eating(&mut fuel, "2026-10-08", &a_food(170.0, 230.0, 80.0, 35.0));
+        eating(&mut fuel, "2026-10-09", &a_food(170.0, 230.0, 80.0, 35.0));
+        let gap_from_maintenance = |date| {
+            let fuelled = fuel_on(date, &gaining(), &a_desk_job(), &fuel);
+            fuelled
+                .band
+                .map(|band| band.maintenance_kcal)
+                .unwrap_or_default()
+                - fuelled.eaten.energy_kcal
+        };
+        let mean_gap =
+            (gap_from_maintenance("2026-10-08") + gap_from_maintenance("2026-10-09")) / 2.0;
+
+        let fuelled = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &fuel);
+
+        assert!(
+            fuelled.band.is_some_and(|band| about(
+                band.maintenance_kcal,
+                cap_with(deficit_of(mean_gap, 1))
+            ))
+        );
     }
 
     #[test]
