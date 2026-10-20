@@ -342,8 +342,8 @@ pub fn hydrate_week(
     date: String,
     today: String,
 ) -> Result<Option<HydrateWeek>, Failure> {
-    let _ = (records, date, today);
-    Ok(None)
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_hydrating::hydrate_week(&*records, &*records, &*records, &*records, &date, &today)
 }
 
 #[tauri::command(rename_all = "snake_case")]
