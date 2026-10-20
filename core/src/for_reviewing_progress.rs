@@ -146,7 +146,7 @@ fn worked_out(day: NaiveDate, burnt: &BurnRecords, measurements: &[Measurement])
     !burn.workouts.is_empty()
         && match (
             burn.burnt_kcal,
-            target_on(day, &burnt.targets, burn.body_mass_kg),
+            target_on(day, &burnt.targets, burn.body_mass_kg).map(|target| target.values),
         ) {
             (Some(kcal), Some(target)) => within_grace(kcal, target, f64::INFINITY),
             _ => true,
@@ -779,7 +779,8 @@ mod tests {
                 &[],
                 Some(80.0),
             )
-            .expect("a target on a weighed body");
+            .expect("a target on a weighed body")
+            .values;
             let walking = crate::exercise::Exercise {
                 name: "Walking".into(),
                 met: 4.0,

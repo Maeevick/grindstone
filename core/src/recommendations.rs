@@ -67,7 +67,7 @@ pub fn recommended(
             standing_min: STANDING_MIN,
             moving_km: to_the_tenth(steps_a_day(age) * METRES_A_STEP / 1000.0),
         },
-        burn_target_kcal: target_on(day, &[], body_mass_kg),
+        burn_target_kcal: target_on(day, &[], body_mass_kg).map(|target| target.values),
     }
 }
 
@@ -246,7 +246,8 @@ mod tests {
         assert_eq!(
             (burn_target_on(Some(72.0)), burn_target_on(None)),
             (
-                crate::burn_target::target_on(day("2026-10-11"), &[], Some(72.0)),
+                crate::burn_target::target_on(day("2026-10-11"), &[], Some(72.0))
+                    .map(|target| target.values),
                 None
             )
         );

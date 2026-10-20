@@ -206,11 +206,7 @@ pub fn burn_target_on(
         day,
         &burn.burn_records()?.targets,
         body_mass_in_force_on(day, &measurements),
-    )
-    .map(|kcal| InForce {
-        values: kcal,
-        recommended: false,
-    }))
+    ))
 }
 
 pub fn recommended_on(

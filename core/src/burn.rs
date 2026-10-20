@@ -67,7 +67,7 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
         }),
         off_the_clock_is_usual: own_day.is_none(),
         body_mass_kg,
-        target_kcal: target_on(day, &records.targets, body_mass_kg),
+        target_kcal: target_on(day, &records.targets, body_mass_kg).map(|target| target.values),
     }
 }
 
@@ -123,7 +123,8 @@ mod tests {
                 burn_on(day("2026-10-20"), &records, &measurements).target_kcal
             ),
             (
-                crate::burn_target::target_on(day("2026-10-10"), &[], Some(72.0)),
+                crate::burn_target::target_on(day("2026-10-10"), &[], Some(72.0))
+                    .map(|target| target.values),
                 Some(150.0)
             )
         );
