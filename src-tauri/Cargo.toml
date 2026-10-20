@@ -14,6 +14,7 @@ tauri-build = { version = "2.7", features = [] }
 tauri = { version = "2.12", features = [] }
 tauri-plugin-opener = "2"
 serde.workspace = true
+chrono.workspace = true
 grind-core.workspace = true
 grind-sqlite.workspace = true
 grind-draft.workspace = true

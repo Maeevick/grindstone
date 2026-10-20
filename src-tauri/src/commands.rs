@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
+use chrono::NaiveDate;
 use grind_core::burn::Burn;
 use grind_core::burn_week::BurnWeek;
 use grind_core::circuit::Circuit;
@@ -78,10 +79,12 @@ pub fn set_profile(records: State<Records>, form: ProfileForm) -> Result<Profile
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn profile_on(records: State<Records>, date: String) -> Result<Option<Profile>, Failure> {
+pub fn profile_on(
+    records: State<Records>,
+    date: String,
+) -> Result<Option<(NaiveDate, Profile)>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::profile_on(&*records, &date)
-        .map(|in_force| in_force.map(|(_, profile)| profile))
 }
 
 #[tauri::command(rename_all = "snake_case")]
