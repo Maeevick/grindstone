@@ -56,7 +56,10 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
 
 /// The seven days up to the last, oldest first.
 pub fn the_seven_days_up_to(last: NaiveDate) -> Vec<NaiveDate> {
-    vec![last]
+    (0..=DAYS_BEFORE_THE_LAST_IN_A_WEEK)
+        .rev()
+        .map(|back| last - Days::new(back))
+        .collect()
 }
 
 /// The days logged in the seven up to the last, each once and oldest first, leaving out those from a day on:
