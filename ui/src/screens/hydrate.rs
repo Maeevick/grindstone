@@ -2,10 +2,11 @@ use grind_core::bibliography::Topic;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, bare, shown};
+use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
-use grind_core::for_setting_up_the_profile::HydrateCountedForm;
+use grind_core::for_setting_up_the_profile::{HydrateCountedForm, HydrateTargetForm};
 use grind_core::hydrate::Hydrate;
+use grind_core::kept::Kept;
 use grind_core::verdict::Verdict;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -16,6 +17,7 @@ use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEn
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::HydrateLastDays;
+use crate::screens::profile::{Recommend, Whose, keep_and_show, shown_in_force};
 use crate::screens::references::ReferencesLink;
 use crate::screens::tab::{DayCard, GrimoireBesideTheNumbers};
 use crate::screens::{Recorded, lines, today};
@@ -356,6 +358,44 @@ pub fn HydrateCountedCard() -> impl IntoView {
     let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
+    let water_from = RwSignal::new(today());
+    let water = RwSignal::new(String::new());
+    let water_whose = RwSignal::new(None::<bool>);
+    let water_said = RwSignal::new(None::<String>);
+    let show_water = move |ml: f64| water.set(typed_back(ml));
+    shown_in_force(
+        async { tauri::hydrate_target_on(&today()).await },
+        show_water,
+        water_whose,
+    );
+    let keep_water = move |kept: Kept<f64>, filed: fn(&str) -> String| {
+        let form = HydrateTargetForm {
+            from: water_from.get_untracked(),
+            kept,
+        };
+        let filed = filed(&form.from);
+        keep_and_show(
+            async move { tauri::set_hydrate_target(&form).await },
+            show_water,
+            water_whose,
+            water_said,
+            (filed, recorded),
+        );
+    };
+    let recommend_water =
+        Callback::new(move |()| keep_water(Kept::Recommended, lines::recommendation_kept));
+    let save_water = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let Some([typed]) = figures_typed([&water.get_untracked()]) else {
+            water_said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let Some(ml) = typed else {
+            water_said.set(Some(lines::NO_WATER_TYPED.into()));
+            return;
+        };
+        keep_water(Kept::Own(ml), lines::water_target_kept);
+    };
     spawn_local(async move {
         if let Ok(in_force) = tauri::hydrate_counted_on(&today()).await {
             counted.set(in_force);
@@ -382,6 +422,18 @@ pub fn HydrateCountedCard() -> impl IntoView {
     view! {
         <section class="card">
             <h2>"Hydrate the material"</h2>
+            <form class="water-target" on:submit=save_water>
+                <div class="row">
+                    <DateField label="From" name="water_target_from" value=water_from />
+                    <FigureField label="Water a day (mL)" name="water_target" value=water />
+                </div>
+                <Whose whose=water_whose />
+                <Recommend keep=recommend_water />
+                <button class="cta" type="submit">
+                    "Keep this target"
+                </button>
+                {move || water_said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
             <form class="hydrate-counted" on:submit=save>
                 <p class="hint">{lines::HYDRATE_COUNTED_HINT}</p>
                 <div class="row">

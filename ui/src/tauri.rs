@@ -17,7 +17,8 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::{Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, HydrateTargetForm, ProfileForm,
+    UsualDayForm,
 };
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
@@ -445,6 +446,14 @@ pub async fn add_drink(
 
 pub async fn remove_drink(name: &str) -> Result<Vec<Drink>, Failure> {
     call("remove_drink", Naming { name }, broken).await
+}
+
+pub async fn set_hydrate_target(form: &HydrateTargetForm) -> Result<Option<InForce<f64>>, Failure> {
+    call("set_hydrate_target", Form { form }, broken).await
+}
+
+pub async fn hydrate_target_on(date: &str) -> Result<Option<InForce<f64>>, Failure> {
+    call("hydrate_target_on", OnDay { date }, broken).await
 }
 
 pub async fn set_hydrate_counted(form: &HydrateCountedForm) -> Result<bool, Failure> {

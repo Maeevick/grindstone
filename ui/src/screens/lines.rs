@@ -639,8 +639,27 @@ pub const RECOMMENDATIONS_DISCLAIMER: &str = "Recommendations for health, made f
     as your logs show what your body does: logging, monitoring, adjusting, enjoying. No activity multiplier inflates \
     the energy band: it only counts the workouts you log.";
 
-pub const RECOMMENDATION_FILLED: &str =
-    "Filled from the recommendation. Check it, adjust it, then keep it.";
+/// Whose values a card shows.
+pub fn whose(recommended: bool) -> &'static str {
+    if recommended {
+        "The recommendation, followed as your body changes."
+    } else {
+        "Your own values, kept as typed."
+    }
+}
+
+pub fn recommendation_kept(from: &str) -> String {
+    format!("Filed: the recommendation is followed from {from}, as your body changes.")
+}
+
+pub const NOTHING_TO_RECOMMEND_FOR: &str =
+    "Filed, though I have nothing to recommend for yet: tell me about the rusty you first.";
+
+pub fn water_target_kept(from: &str) -> String {
+    format!("Filed: this water target is kept from {from}, each kcal burnt adding a millilitre.")
+}
+
+pub const NO_WATER_TYPED: &str = "Type the water a day first, in millilitres.";
 
 pub fn healthy_ranges(advised: &Recommendations) -> String {
     let (lightest, heaviest) = advised.healthy_mass_kg;

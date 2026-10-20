@@ -3597,7 +3597,7 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
     });
     settled().await;
 
-    let healthy = text_of(&screen, "form.goals p.hint");
+    let healthy = text_of(&screen, "form.goals p.healthy");
 
     assert!(
         healthy.starts_with("Healthy at your height and age: 59.9 kg to 80.7 kg")
