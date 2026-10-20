@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, burn_on};
+use crate::burn_week::BurnWeek;
 use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
 use crate::failure::Failure;
@@ -66,6 +67,16 @@ pub fn burn_day(
     date: &str,
 ) -> Result<Burn, Failure> {
     burn_of_the_day(gather, burn, day(date)?)
+}
+
+/// The week's sum-up up to a day: its seven days, the day included.
+pub fn burn_week(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    date: &str,
+) -> Result<Option<BurnWeek>, Failure> {
+    let _ = (gather, burn, date);
+    Ok(None)
 }
 
 pub fn log_workout(
@@ -230,6 +241,47 @@ mod tests {
             sets: Some(1),
             load_kg: Some(0.0),
         }
+    }
+
+    #[test]
+    fn the_weeks_sum_up_runs_over_the_seven_days_up_to_the_day_the_day_included() {
+        let gather = GatherRecordsInMemory::default();
+        log_measurement(&gather, "2026-10-01", 80.0, None).expect("a measurement logs");
+        let burn = a_catalog_with_walking();
+        for (date, minutes) in [
+            ("2026-10-03", 30.0),
+            ("2026-10-04", 60.0),
+            ("2026-10-10", 30.0),
+        ] {
+            log_workout(&gather, &burn, &walking(date, minutes)).expect("a workout logs");
+        }
+
+        let week = burn_week(&gather, &burn, "2026-10-10");
+
+        assert_eq!(
+            week.ok().flatten().map(|week| {
+                (
+                    week.active_days,
+                    week.exercises
+                        .iter()
+                        .map(|summed| (summed.exercise.clone(), summed.times, summed.minutes))
+                        .collect::<Vec<_>>(),
+                )
+            }),
+            Some((2, vec![("Walking".to_string(), 2, 90.0)]))
+        );
+    }
+
+    #[test]
+    fn a_week_up_to_a_day_the_calendar_does_not_have_is_refused() {
+        assert_eq!(
+            burn_week(
+                &GatherRecordsInMemory::default(),
+                &BurnRecordsInMemory::default(),
+                "2026-02-30"
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
     }
 
     #[test]
