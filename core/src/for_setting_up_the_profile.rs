@@ -222,28 +222,6 @@ pub fn hydrate_target_on(
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct HydrateCountedForm {
-    pub from: String,
-    pub counted: bool,
-}
-
-pub fn set_hydrate_counted(
-    hydrate: &impl ForStoringHydrateRecords,
-    form: &HydrateCountedForm,
-) -> Result<bool, Failure> {
-    hydrate.save_counted(day(&form.from)?, form.counted)?;
-    Ok(form.counted)
-}
-
-pub fn hydrate_counted_on(
-    hydrate: &impl ForStoringHydrateRecords,
-    date: &str,
-) -> Result<bool, Failure> {
-    let day = day(date)?;
-    Ok(counted_on(day, &hydrate.hydrate_records()?.counted_from))
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BurnTargetForm {
     pub from: String,
     pub kept: Kept<f64>,
@@ -942,27 +920,6 @@ mod tests {
     }
 
     #[test]
-    fn hydrate_counts_until_left_out_from_a_date() {
-        let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        set_hydrate_counted(
-            &hydrate,
-            &HydrateCountedForm {
-                from: "2026-10-12".into(),
-                counted: false,
-            },
-        )
-        .expect("a switch sets");
-
-        assert_eq!(
-            (
-                hydrate_counted_on(&hydrate, "2026-10-11"),
-                hydrate_counted_on(&hydrate, "2026-10-12")
-            ),
-            (Ok(true), Ok(false))
-        );
-    }
-
-    #[test]
     fn a_burn_target_set_from_a_date_is_the_one_in_force_from_that_date_the_recommendation_before_it()
      {
         let (gather, burn) = (
@@ -1100,34 +1057,41 @@ mod tests {
 
     #[test]
     fn a_hydrate_switch_on_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
-        let left_out_on = |from: &str| HydrateCountedForm {
-            from: from.into(),
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::BurnRecordsInMemory::default(),
+            crate::testing::FuelRecordsInMemory::default(),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+        let left_out_on = |from: &str| HydrateTargetForm {
             counted: false,
+            ..water_kept(from, Kept::Recommended)
         };
 
         assert_eq!(
-            set_hydrate_counted(
-                &crate::testing::HydrateRecordsInMemory::default(),
-                &left_out_on("2026-02-30")
-            ),
+            set_hydrate_target(&gather, &hydrate, &left_out_on("2026-02-30")),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
-            hydrate_counted_on(
-                &crate::testing::HydrateRecordsInMemory::default(),
-                "2026-02-30"
-            ),
+            scope_on(&gather, &burn, &fuel, &hydrate, "2026-02-30"),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
-            set_hydrate_counted(
+            set_hydrate_target(
+                &gather,
                 &crate::testing::BrokenHydrateRecords,
                 &left_out_on("2026-03-01")
             ),
             Err(Failure::Broken("the disk is full".into()))
         );
         assert_eq!(
-            hydrate_counted_on(&crate::testing::BrokenHydrateRecords, "2026-10-10"),
+            scope_on(
+                &gather,
+                &burn,
+                &fuel,
+                &crate::testing::BrokenHydrateRecords,
+                "2026-10-10"
+            ),
             Err(Failure::Broken("the disk is full".into()))
         );
     }

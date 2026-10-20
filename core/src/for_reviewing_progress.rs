@@ -919,10 +919,12 @@ mod tests {
         fn hydrate_left_out_from_a_date_leaves_its_days_on_the_other_three_ticks() {
             let records = a_man_at_his_desk();
             for (from, counted) in [("2026-03-01", false), ("2026-10-10", true)] {
-                crate::for_setting_up_the_profile::set_hydrate_counted(
+                crate::for_setting_up_the_profile::set_hydrate_target(
+                    &records.gather,
                     &records.hydrate,
-                    &crate::for_setting_up_the_profile::HydrateCountedForm {
+                    &crate::for_setting_up_the_profile::HydrateTargetForm {
                         from: from.into(),
+                        kept: crate::kept::Kept::Recommended,
                         counted,
                     },
                 )
