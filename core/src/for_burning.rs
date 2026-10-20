@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, burn_on};
-use crate::burn_week::BurnWeek;
+use crate::burn_week::{BurnWeek, burn_week_of};
 use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
 use crate::failure::Failure;
@@ -10,6 +10,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
 use crate::volitional::volitional;
+use crate::week::the_seven_days_up_to;
 use crate::workout::{Workout, workout};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -75,8 +76,13 @@ pub fn burn_week(
     burn: &impl ForStoringBurnRecords,
     date: &str,
 ) -> Result<Option<BurnWeek>, Failure> {
-    let _ = (gather, burn, date);
-    Ok(None)
+    let last = day(date)?;
+    let (measurements, burnt) = (gather.gather_records()?.measurements, burn.burn_records()?);
+    let days: Vec<Burn> = the_seven_days_up_to(last)
+        .into_iter()
+        .map(|day| burn_on(day, &burnt, &measurements))
+        .collect();
+    Ok(burn_week_of(&days))
 }
 
 pub fn log_workout(
