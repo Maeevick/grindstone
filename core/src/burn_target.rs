@@ -23,8 +23,7 @@ pub fn target_on(
         targets
             .iter()
             .filter(|(from, _)| *from <= day)
-            .max_by_key(|(from, _)| *from)
-            .map(|(_, kept)| kept),
+            .max_by_key(|(from, _)| *from),
         || {
             body_mass_kg.map(|kg| {
                 (MODERATE_MET - 1.0) * kg * MODERATE_MINUTES_A_WEEK / DAYS_A_WEEK / MINUTES_AN_HOUR

@@ -16,7 +16,7 @@ use crate::profile::Profile;
 use crate::recommendations::recommended;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
-use crate::version::version_in_force_on;
+use crate::version::{dated_version_in_force_on, version_in_force_on};
 use crate::volitional::Volitional;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -246,7 +246,7 @@ pub(crate) fn fuel_targets_in_force(
     profiles: &[(NaiveDate, Profile)],
     body_mass_kg: Option<f64>,
 ) -> Option<InForce<FuelTargets>> {
-    in_force(version_in_force_on(targets, day), || {
+    in_force(dated_version_in_force_on(targets, day), || {
         version_in_force_on(profiles, day)
             .map(|profile| recommended(profile, day, body_mass_kg).fuel)
     })

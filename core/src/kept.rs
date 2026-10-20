@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 /// What a card keeps from a day: the recommendation, followed as the body changes, or values of its own.
@@ -24,13 +25,13 @@ pub struct InForce<T> {
     pub recommended: bool,
 }
 
-/// What applies under the version kept, if any: its own values, else the recommendation when there is one to
-/// follow.
+/// What applies under the version kept, if any, with the day it is kept from: its own values, else the
+/// recommendation when there is one to follow.
 pub fn in_force<T: Copy>(
-    kept: Option<&Kept<T>>,
+    kept: Option<&(NaiveDate, Kept<T>)>,
     recommendation: impl FnOnce() -> Option<T>,
 ) -> Option<InForce<T>> {
-    match kept {
+    match kept.map(|(_, kept)| kept) {
         Some(Kept::Own(values)) => Some(InForce {
             values: *values,
             recommended: false,
@@ -50,6 +51,13 @@ mod tests {
         Some(77.0)
     }
 
+    fn from_the_15th<T>(kept: Kept<T>) -> (NaiveDate, Kept<T>) {
+        (
+            NaiveDate::from_ymd_opt(2026, 10, 15).expect("a real day"),
+            kept,
+        )
+    }
+
     #[test]
     fn own_values_are_told_apart_from_the_recommendation() {
         assert_eq!(
@@ -61,7 +69,7 @@ mod tests {
     #[test]
     fn own_values_kept_are_in_force_as_they_are() {
         assert_eq!(
-            in_force(Some(&Kept::Own(80.0)), the_recommendation),
+            in_force(Some(&from_the_15th(Kept::Own(80.0))), the_recommendation),
             Some(InForce {
                 values: 80.0,
                 recommended: false
@@ -78,7 +86,7 @@ mod tests {
 
         assert_eq!(
             [
-                in_force(Some(&Kept::Recommended), the_recommendation),
+                in_force(Some(&from_the_15th(Kept::Recommended)), the_recommendation),
                 in_force(None, the_recommendation)
             ],
             [recommended, recommended]
@@ -89,8 +97,8 @@ mod tests {
     fn own_values_stand_even_without_a_recommendation_but_nothing_else_does() {
         assert_eq!(
             [
-                in_force(Some(&Kept::Own(80.0)), || None),
-                in_force(Some(&Kept::Recommended), || None),
+                in_force(Some(&from_the_15th(Kept::Own(80.0))), || None),
+                in_force(Some(&from_the_15th(Kept::Recommended)), || None),
                 in_force(None, || None::<f64>)
             ],
             [

@@ -8,7 +8,7 @@ use crate::kept::{InForce, Kept, in_force};
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::recommendations::recommended;
-use crate::version::version_in_force_on;
+use crate::version::{dated_version_in_force_on, version_in_force_on};
 use crate::volitional::Volitional;
 use crate::workout::{Workout, burnt_by};
 
@@ -47,7 +47,7 @@ pub(crate) fn usual_day_in_force(
     usual_days: &[(NaiveDate, Kept<Volitional>)],
     profiles: &[(NaiveDate, Profile)],
 ) -> Option<InForce<Volitional>> {
-    in_force(version_in_force_on(usual_days, day), || {
+    in_force(dated_version_in_force_on(usual_days, day), || {
         version_in_force_on(profiles, day).map(|profile| recommended(profile, day, None).usual_day)
     })
 }

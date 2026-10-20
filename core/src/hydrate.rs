@@ -13,7 +13,7 @@ use crate::hydrate_records::HydrateRecords;
 use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::ledger;
 use crate::verdict::{Verdict, verdict_of};
-use crate::version::version_in_force_on;
+use crate::version::{dated_version_in_force_on, version_in_force_on};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Hydrate {
@@ -84,7 +84,7 @@ pub(crate) fn water_target_in_force(
     records: &HydrateRecords,
     gather: &GatherRecords,
 ) -> Option<InForce<f64>> {
-    in_force(version_in_force_on(&records.targets, day), || {
+    in_force(dated_version_in_force_on(&records.targets, day), || {
         Some(match lean_kg_on(day, gather) {
             Some(lean_kg) => SHARE_LEFT_TO_DRINKS * turned_over_ml(lean_kg),
             None => default_base_ml(

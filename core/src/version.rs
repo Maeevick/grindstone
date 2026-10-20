@@ -1,12 +1,20 @@
 use chrono::NaiveDate;
 
 pub fn version_in_force_on<V>(versions: &[(NaiveDate, V)], day: NaiveDate) -> Option<&V> {
+    dated_version_in_force_on(versions, day).map(|(_, version)| version)
+}
+
+/// The version in force on a day with the day it is in force from: the latest up to it, the earliest before
+/// any.
+pub fn dated_version_in_force_on<V>(
+    versions: &[(NaiveDate, V)],
+    day: NaiveDate,
+) -> Option<&(NaiveDate, V)> {
     versions
         .iter()
         .filter(|(from, _)| *from <= day)
         .max_by_key(|(from, _)| *from)
         .or_else(|| versions.iter().min_by_key(|(from, _)| *from))
-        .map(|(_, version)| version)
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@ use crate::goals::Goals;
 use crate::heading::Aim;
 use crate::kept::{InForce, in_force};
 use crate::recommendations::recommended;
-use crate::version::version_in_force_on;
+use crate::version::{dated_version_in_force_on, version_in_force_on};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Aims {
@@ -41,7 +41,7 @@ impl Aims {
 /// or the healthy weight and fat recommended for the profile in force (WHO's body mass index, Gallagher's
 /// fat); never kept, the recommendation; nothing without a profile to recommend for.
 pub(crate) fn goals_in_force(day: NaiveDate, gathered: &GatherRecords) -> Option<InForce<Goals>> {
-    in_force(version_in_force_on(&gathered.goals, day), || {
+    in_force(dated_version_in_force_on(&gathered.goals, day), || {
         version_in_force_on(&gathered.profiles, day).map(|profile| {
             let advised = recommended(profile, day, None);
             Goals {
