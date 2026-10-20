@@ -600,12 +600,20 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
+/// The seven days up to the tab's day summed up, the day included: each exercise in all and a time.
+#[component]
+pub fn BurnWeekCard(day: RwSignal<String>) -> impl IntoView {
+    let _ = day;
+    view! { <section class="card week"></section> }
+}
+
 #[component]
 pub fn BurnTab() -> impl IntoView {
     let day = RwSignal::new(today());
     view! {
         <DayCard day=day />
         <BurnDay day=day />
+        <BurnWeekCard day=day />
         <BurnLastDays day=day />
         <GrimoireBesideTheNumbers grimoire="/burn/grimoire" />
     }

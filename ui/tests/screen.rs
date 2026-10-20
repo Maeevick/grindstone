@@ -2,7 +2,7 @@
 
 use grind_ui::app::App;
 use grind_ui::screens::Recorded;
-use grind_ui::screens::burn::BurnDay;
+use grind_ui::screens::burn::{BurnDay, BurnWeekCard};
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::fuel::{FuelDay, FuelWeekCard};
@@ -1348,6 +1348,76 @@ async fn a_hydrate_week_without_a_finished_logged_day_says_there_is_nothing_to_a
     assert!(said.contains("No finished day"), "{said}");
 }
 
+fn the_burn_week(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <BurnWeekCard day=day />
+            </Router>
+        }
+    })
+}
+
+const A_BURN_WEEK: &str = r#"{ "active_days": 3, "burnt_kcal": 458.0, "target_kcal": 308.0, "exercises": [
+    { "exercise": "Walking", "times": 2, "minutes": 90.0, "reps": null, "burnt_kcal": 378.0 },
+    { "exercise": "Push up", "times": 2, "minutes": 3.0, "reps": 72.0, "burnt_kcal": 80.0 } ] }"#;
+
+#[wasm_bindgen_test]
+async fn burns_week_sum_up_totals_each_exercise_with_its_average_a_time_beneath() {
+    answering(&format!(r#"{{ "burn_week": {A_BURN_WEEK} }}"#));
+    let screen = screen();
+    let _mounted = the_burn_week(&screen);
+    settled().await;
+
+    assert_eq!(text_of(&screen, ".week h2"), "The week's sum-up");
+    assert_eq!(
+        texts_in_order(&screen, ".week tbody td:first-child"),
+        ["Walking", "Push up"]
+    );
+    assert_eq!(
+        texts_in_order(&screen, ".week tbody td:nth-child(2)"),
+        ["2", "2"]
+    );
+    assert_eq!(
+        texts_in_order(&screen, ".week tbody .total"),
+        ["90", "–", "378", "3", "72", "80"]
+    );
+    assert_eq!(
+        texts_in_order(&screen, ".week tbody .a-time"),
+        ["45", "", "189", "1.5", "36", "40"]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn burns_week_sum_up_holds_the_weeks_burn_against_its_target_over_its_active_days() {
+    answering(&format!(r#"{{ "burn_week": {A_BURN_WEEK} }}"#));
+    let screen = screen();
+    let _mounted = the_burn_week(&screen);
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, ".week p.week-burn"),
+        "458 kcal burnt against the week's 308 kcal target, over 3 active days."
+    );
+    assert_eq!(
+        attributes_of(&screen, ".week p.week-burn span", "class"),
+        ["good"]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_week_without_a_workout_says_there_is_nothing_to_sum_up_yet() {
+    answering(r#"{ "burn_week": null }"#);
+    let screen = screen();
+    let _mounted = the_burn_week(&screen);
+    settled().await;
+
+    let said = text_of(&screen, ".week p.empty");
+
+    assert!(said.contains("No workout"), "{said}");
+}
+
 fn focused(screen: &Element, name: &str) {
     found::<HtmlInputElement>(screen, &format!("input[name={name}]"))
         .dispatch_event(&Event::new("focus").expect("a focus event"))
@@ -2082,7 +2152,7 @@ const A_HOME: &str = r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "M
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
                  "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#;
 
-const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null, "hydrate_week": null,
+const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null, "hydrate_week": null, "burn_week": null,
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
         "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
 
@@ -2210,6 +2280,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Burn",
                 "Where the day stands",
                 "The day's expenditures",
+                "The week's sum-up",
                 "The last days",
                 "📚 Open the grimoire | 🎱 Explore the numbers"
             ],
