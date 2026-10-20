@@ -376,9 +376,9 @@ pub fn HydrateCountedCard() -> impl IntoView {
         let form = HydrateTargetForm {
             from: water_from.get_untracked(),
             kept,
-            counted: true,
+            counted: water_counted.get_untracked(),
         };
-        let filed = filed(&form.from);
+        let filed = lines::filed_with_its_tick(filed(&form.from), form.counted);
         keep_and_show(
             async move { tauri::set_hydrate_target(&form).await },
             show_water,

@@ -143,9 +143,9 @@ fn GoalsCard() -> impl IntoView {
         let form = GoalsForm {
             from: from.get_untracked(),
             kept,
-            counted: true,
+            counted: counted.get_untracked(),
         };
-        let filed = filed(&form.from);
+        let filed = lines::filed_with_its_tick(filed(&form.from), form.counted);
         keep_and_show(
             async move { tauri::set_goals(&form).await },
             show,
@@ -297,9 +297,9 @@ fn BurnTargetCard() -> impl IntoView {
         let form = BurnTargetForm {
             from: from.get_untracked(),
             kept,
-            counted: true,
+            counted: counted.get_untracked(),
         };
-        let filed = filed(&form.from);
+        let filed = lines::filed_with_its_tick(filed(&form.from), form.counted);
         keep_and_show(
             async move { tauri::set_burn_target(&form).await },
             show,
@@ -373,9 +373,9 @@ fn FuelTargetsCard() -> impl IntoView {
         let form = FuelTargetsForm {
             from: from.get_untracked(),
             kept,
-            counted: true,
+            counted: counted.get_untracked(),
         };
-        let filed = filed(&form.from);
+        let filed = lines::filed_with_its_tick(filed(&form.from), form.counted);
         keep_and_show(
             async move { tauri::set_fuel_targets(&form).await },
             show,

@@ -652,6 +652,15 @@ pub fn recommendation_kept(from: &str) -> String {
     format!("Filed: the recommendation is followed from {from}, as your body changes.")
 }
 
+/// What a card filed, and its tick staying out of the streak when it does.
+pub fn filed_with_its_tick(filed: String, counted: bool) -> String {
+    if counted {
+        filed
+    } else {
+        format!("{filed} Its tick stays out of the streak from that day.")
+    }
+}
+
 pub const NOTHING_TO_RECOMMEND_FOR: &str =
     "Filed, though I have nothing to recommend for yet: tell me about the rusty you first.";
 
