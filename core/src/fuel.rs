@@ -531,6 +531,57 @@ mod tests {
         assert_eq!(fuelled.budget, Some(budget));
     }
 
+    /// What a body would spend on a desk day before eating, priced on what today's body is to eat.
+    fn spent_before_eating_by(lean_kg: f64, fat_kg: f64) -> f64 {
+        let (todays_lean_kg, _) = the_body();
+        daily_energy_budget(
+            41,
+            lean_kg,
+            fat_kg,
+            Gender::Male,
+            A_DESK_DAY,
+            Deficit {
+                trailing_deficit_kcal: 0.0,
+                weeks_in_deficit: 0,
+            },
+            Eaten {
+                energy: 0.0,
+                macros: Macro {
+                    protein: 2.0 * 80.0,
+                    fat: 0.9 * 80.0,
+                    fib: 28.0,
+                    carb: (3.0 * todays_lean_kg).max(130.0),
+                },
+            },
+        )
+        .kcal()
+    }
+
+    #[test]
+    fn a_gain_may_go_as_high_as_what_the_goal_body_would_spend() {
+        let gaining = GatherRecords {
+            goals: vec![(
+                day("2026-03-01"),
+                Kept::Own(Goals {
+                    body_mass_kg: 95.0,
+                    fat_ratio: 0.2,
+                }),
+            )],
+            ..a_mans_records(HIS_WAIST_CM)
+        };
+
+        let fuelled = fuel_on("2026-10-10", &gaining, &a_desk_job(), &aiming());
+
+        let (lean_kg, fat_kg) = the_body();
+        assert_eq!(
+            fuelled.band.map(|band| (band.floor_kcal, band.cap_kcal)),
+            Some((
+                spent_before_eating_by(lean_kg, fat_kg),
+                spent_before_eating_by(95.0 * 0.8, 95.0 * 0.2)
+            ))
+        );
+    }
+
     #[test]
     fn a_cut_may_go_as_low_as_alperts_deficit_on_the_fat_left_to_lose() {
         let (_, fat_kg) = the_body();
