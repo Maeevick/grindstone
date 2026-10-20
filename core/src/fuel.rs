@@ -131,8 +131,9 @@ fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eate
     }
 }
 
-/// The day's band: the budget plus the burn caps it; the floor is what the fat left to lose, above the fat of
-/// the goals, can spare below the cap, never under a minimum per kilo of lean mass plus the burn.
+/// The day's band around its maintenance, the budget plus the burn: the floor is what the fat left to lose,
+/// above the fat of the goals, can spare below it; the cap, what the body of the goals would spend, when more.
+/// Neither end falls under a minimum per kilo of lean mass plus the burn.
 ///
 /// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005),
 ///   *A limit on the energy transfer rate from the human fat store in hypophagia*, J Theor Biol 233(1):1-13.
@@ -160,13 +161,24 @@ fn band_for(
         deficit,
         digested,
     );
-    let cap_kcal = (budget.kcal() + burnt_kcal).max(minimum_kcal);
+    let maintenance_kcal = budget.kcal() + burnt_kcal;
+    let goals_kcal = daily_energy_budget(
+        body.age,
+        aims.lean_mass_kg,
+        aims.fat_mass_kg(),
+        body.gender,
+        off_the_clock,
+        deficit,
+        digested,
+    )
+    .kcal()
+        + burnt_kcal;
+    let fat_left_kg = (body.fat_kg - aims.fat_mass_kg()).max(0.0);
     let band = Band {
         minimum_kcal_per_kg_of_lean_mass,
         minimum_kcal,
-        floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * (body.fat_kg - aims.fat_mass_kg()))
-            .max(minimum_kcal),
-        cap_kcal,
+        floor_kcal: (maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg).max(minimum_kcal),
+        cap_kcal: maintenance_kcal.max(goals_kcal).max(minimum_kcal),
     };
     (band, budget)
 }
