@@ -710,6 +710,12 @@ a.references {
 	margin-top: 10px;
 }
 
+.a-time {
+	display: block;
+	font-size: 0.75rem;
+	color: var(--mut);
+}
+
 table.pot {
 	min-width: 32rem;
 }

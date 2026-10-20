@@ -747,6 +747,27 @@ pub fn hydrate_week_said(week: &HydrateWeek) -> String {
     }
 }
 
+pub const NO_WORKOUT_THIS_WEEK: &str = "No workout in the week yet. A rest week counts too, if it was decided rather than drifted into.";
+
+pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
+
+/// What the week's burn stands against, after its figure: the sum of its days' targets when known, and its
+/// active days.
+pub fn burnt_against(target_kcal: Option<f64>, active_days: usize) -> String {
+    let active = if active_days == 1 {
+        "1 active day".to_string()
+    } else {
+        format!("{active_days} active days")
+    };
+    match target_kcal {
+        Some(target) => format!(
+            " burnt against the week's {} target, over {active}.",
+            shown(Figure::Energy(target))
+        ),
+        None => format!(" burnt over {active}."),
+    }
+}
+
 pub const NO_PACE_YET: &str =
     "Too few weigh-ins for a pace yet. Patience is half the hunt. The other half is also patience.";
 

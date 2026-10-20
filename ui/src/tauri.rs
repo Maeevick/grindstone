@@ -1,4 +1,5 @@
 use grind_core::burn::Burn;
+use grind_core::burn_week::BurnWeek;
 use grind_core::circuit::Circuit;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::exercise::Exercise;
@@ -155,6 +156,10 @@ struct Cataloguing<'a> {
 
 pub async fn burn_day(date: &str) -> Result<Burn, Failure> {
     call("burn_day", OnDay { date }, broken).await
+}
+
+pub async fn burn_week(date: &str) -> Result<Option<BurnWeek>, Failure> {
+    call("burn_week", OnDay { date }, broken).await
 }
 
 pub async fn log_workout(form: &WorkoutForm) -> Result<Burn, Failure> {

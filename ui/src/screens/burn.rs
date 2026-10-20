@@ -1,6 +1,7 @@
 use std::cmp::Reverse;
 
 use grind_core::burn::{Burn, BurntWorkout};
+use grind_core::burn_week::ExerciseWeek;
 use grind_core::circuit::{Circuit, StepForm, burnt_per_set};
 use grind_core::exercise::{Exercise, exercise as exercise_of};
 use grind_core::failure::Failure;
@@ -600,11 +601,89 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
+fn in_all_and_a_time(
+    total: Option<f64>,
+    a_time: Option<f64>,
+    figure: fn(f64) -> Figure,
+) -> impl IntoView {
+    view! {
+        <td>
+            <span class="total">{total.map_or_else(|| "–".to_string(), |total| bare(figure(total)))}</span>
+            <span class="a-time">{a_time.map(|a_time| bare(figure(a_time))).unwrap_or_default()}</span>
+        </td>
+    }
+}
+
+fn summed_up(exercise: ExerciseWeek) -> impl IntoView {
+    view! {
+        <tr>
+            <td>{exercise.exercise.clone()}</td>
+            <td>{exercise.times}</td>
+            {in_all_and_a_time(Some(exercise.minutes), Some(exercise.minutes_a_time()), Figure::Duration)}
+            {in_all_and_a_time(exercise.reps, exercise.reps_a_time(), Figure::Count)}
+            {in_all_and_a_time(exercise.burnt_kcal, exercise.burnt_kcal_a_time(), Figure::Energy)}
+        </tr>
+    }
+}
+
 /// The seven days up to the tab's day summed up, the day included: each exercise in all and a time.
 #[component]
 pub fn BurnWeekCard(day: RwSignal<String>) -> impl IntoView {
-    let _ = day;
-    view! { <section class="card week"></section> }
+    let recorded = Recorded::here();
+    let week = LocalResource::new(move || {
+        recorded.heard();
+        let date = day.get();
+        async move { tauri::burn_week(&date).await }
+    });
+    view! {
+        <section class="card week">
+            <h2>"The week's sum-up"</h2>
+            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
+                {move || {
+                    week.get()
+                        .map(|answer| match answer {
+                            Ok(Some(week)) => {
+                                let held = match week.on_target() {
+                                    Some(true) => "good",
+                                    Some(false) => "low",
+                                    None => "",
+                                };
+                                view! {
+                                    <p class="week-burn">
+                                        <span class=held>
+                                            {week
+                                                .burnt_kcal
+                                                .map_or_else(|| "–".to_string(), |kcal| shown(Figure::Energy(kcal)))}
+                                        </span>
+                                        {lines::burnt_against(week.target_kcal, week.active_days)}
+                                    </p>
+                                    <table class="workouts">
+                                        <thead>
+                                            <tr>
+                                                <th>"Exercise"</th>
+                                                <th>"Times"</th>
+                                                <th>"Min"</th>
+                                                <th>"Reps"</th>
+                                                <th>"kcal"</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>{week.exercises.into_iter().map(summed_up).collect_view()}</tbody>
+                                    </table>
+                                    <p class="hint">{lines::A_TIME_BENEATH}</p>
+                                }
+                                    .into_any()
+                            }
+                            Ok(None) => {
+                                view! { <p class="empty">{lines::NO_WORKOUT_THIS_WEEK}</p> }.into_any()
+                            }
+                            Err(failure) => {
+                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
+                            }
+                        })
+                }}
+            </Transition>
+        </section>
+    }
 }
 
 #[component]
