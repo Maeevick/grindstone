@@ -154,7 +154,7 @@ pub struct EnergyGauge {
 
 pub fn energy_gauge_of(
     eaten: f64,
-    (minimum, floor, _maintenance, cap): (f64, f64, f64, f64),
+    (minimum, floor, maintenance, cap): (f64, f64, f64, f64),
     width: f64,
 ) -> EnergyGauge {
     let spare = 0.1 * (cap - minimum).max(0.1 * cap);
@@ -162,7 +162,7 @@ pub fn energy_gauge_of(
     EnergyGauge {
         minimum_at: placed(minimum, scale, width),
         floor_at: placed(floor, scale, width),
-        maintenance_at: 0.0,
+        maintenance_at: placed(maintenance, scale, width),
         cap_at: placed(cap, scale, width),
         eaten_at: placed(eaten, scale, width).clamp(0.0, width),
     }
