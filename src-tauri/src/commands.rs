@@ -432,8 +432,8 @@ pub fn set_hydrate_target(
     records: State<Records>,
     form: HydrateTargetForm,
 ) -> Result<Option<InForce<f64>>, Failure> {
-    let _ = (records, form);
-    Ok(None)
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::set_hydrate_target(&*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -441,8 +441,8 @@ pub fn hydrate_target_on(
     records: State<Records>,
     date: String,
 ) -> Result<Option<InForce<f64>>, Failure> {
-    let _ = (records, date);
-    Ok(None)
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::hydrate_target_on(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
