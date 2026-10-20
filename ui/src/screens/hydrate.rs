@@ -350,66 +350,65 @@ pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) 
 }
 
 #[component]
-pub fn HydrateCountedCard() -> impl IntoView {
+pub fn HydrateTargetCard() -> impl IntoView {
     let recorded = Recorded::here();
-    let water_from = RwSignal::new(today());
+    let from = RwSignal::new(today());
     let water = RwSignal::new(String::new());
-    let water_whose = RwSignal::new(None::<bool>);
-    let water_counted = RwSignal::new(true);
-    let water_said = RwSignal::new(None::<String>);
-    let show_water = move |ml: f64| water.set(typed_back(ml));
+    let whose = RwSignal::new(None::<bool>);
+    let counted = RwSignal::new(true);
+    let said = RwSignal::new(None::<String>);
+    let show = move |ml: f64| water.set(typed_back(ml));
     shown_in_force(
         async { tauri::hydrate_target_on(&today()).await },
-        show_water,
-        water_whose,
+        show,
+        whose,
     );
-    shown_counted(water_counted, |scope| scope.hydrated);
-    let keep_water = move |kept: Kept<f64>, filed: fn(&str) -> String| {
+    shown_counted(counted, |scope| scope.hydrated);
+    let keep = move |kept: Kept<f64>, filed: fn(&str) -> String| {
         let form = HydrateTargetForm {
-            from: water_from.get_untracked(),
+            from: from.get_untracked(),
             kept,
-            counted: water_counted.get_untracked(),
+            counted: counted.get_untracked(),
         };
         let filed = lines::filed_with_its_tick(filed(&form.from), form.counted);
         keep_and_show(
             async move { tauri::set_hydrate_target(&form).await },
-            show_water,
-            water_whose,
-            water_said,
+            show,
+            whose,
+            said,
             (filed, recorded),
         );
     };
-    let recommend_water =
-        Callback::new(move |()| keep_water(Kept::Recommended, lines::recommendation_kept));
-    let save_water = move |event: leptos::ev::SubmitEvent| {
+    let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
+    let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some([typed]) = figures_typed([&water.get_untracked()]) else {
-            water_said.set(Some(lines::UNREADABLE.into()));
+            said.set(Some(lines::UNREADABLE.into()));
             return;
         };
         let Some(ml) = typed else {
-            water_said.set(Some(lines::NO_WATER_TYPED.into()));
+            said.set(Some(lines::NO_WATER_TYPED.into()));
             return;
         };
-        keep_water(Kept::Own(ml), lines::water_target_kept);
+        keep(Kept::Own(ml), lines::water_target_kept);
     };
     view! {
         <section class="card">
             <h2>"Hydrate the material"</h2>
-            <p class="hint">{lines::HYDRATE_COUNTED_HINT}</p>
-            <form class="water-target" on:submit=save_water>
+            <p class="hint">{lines::HYDRATE_TARGET_HINT}</p>
+            <form class="water-target" on:submit=save>
                 <div class="row">
-                    <DateField label="From" name="water_target_from" value=water_from />
+                    <DateField label="From" name="water_target_from" value=from />
                     <FigureField label="Water a day (mL)" name="water_target" value=water />
                 </div>
-                <Whose whose=water_whose />
-                <Counted counted=water_counted />
-                <Recommend keep=recommend_water />
+                <Whose whose=whose />
+                <Counted counted=counted />
+                <Recommend keep=recommend />
                 <button class="cta" type="submit">
                     "Keep this target"
                 </button>
                 <ReferencesLink topic=Topic::Water />
-                {move || water_said.get().map(|line| view! { <p class="said">{line}</p> })}
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
     }

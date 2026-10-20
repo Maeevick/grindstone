@@ -453,7 +453,7 @@ pub const PAST_THE_CAP: &str = "Past the cap. Under normal activity, kidneys cle
 pub const NO_DRINKING: &str =
     "Not a drop filed on this day yet. The archive is drier than its oldest scroll.";
 
-pub const HYDRATE_COUNTED_HINT: &str = "The band follows your lean mass and the day's burn, food \
+pub const HYDRATE_TARGET_HINT: &str = "The band follows your lean mass and the day's burn, food \
     bringing a tenth of the water. Leave Hydrate out of the streak from a day your drinks went unfiled.";
 
 pub fn month_name(month: &str) -> String {
