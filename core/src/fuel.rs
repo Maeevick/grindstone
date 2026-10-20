@@ -367,7 +367,7 @@ impl<'records> Ledgers<'records> {
         logged.iter().fold(Vec::new(), |mut gaps, logged| {
             let fuelled = self.fuel_on(*logged, &gaps);
             if let Some(band) = fuelled.band {
-                gaps.push((*logged, band.cap_kcal - fuelled.eaten.energy_kcal));
+                gaps.push((*logged, band.maintenance_kcal - fuelled.eaten.energy_kcal));
             }
             gaps
         })
