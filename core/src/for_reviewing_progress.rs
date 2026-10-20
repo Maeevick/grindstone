@@ -1198,7 +1198,7 @@ mod tests {
         }
 
         #[test]
-        fn the_balance_of_a_day_is_what_was_eaten_minus_its_cap() {
+        fn the_balance_of_a_day_is_what_was_eaten_against_its_maintenance() {
             let (gather, burn, fuel) = a_logged_man();
 
             let explored = explore(
@@ -1216,7 +1216,7 @@ mod tests {
             let balance = explored.one.last().map(|(_, kcal)| *kcal);
             let expected = fuelled
                 .band
-                .map(|band| fuelled.eaten.energy_kcal - band.cap_kcal);
+                .map(|band| fuelled.eaten.energy_kcal - band.maintenance_kcal);
             assert_eq!(balance, expected);
         }
     }
