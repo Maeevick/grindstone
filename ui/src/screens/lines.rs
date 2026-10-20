@@ -386,7 +386,7 @@ pub fn measure_name(measure: Measure) -> &'static str {
         Measure::FatRatio => "Fat ratio",
         Measure::LeanMass => "Lean mass",
         Measure::Eaten => "Energy eaten",
-        Measure::Balance => "Eaten minus the cap",
+        Measure::Balance => "Eaten minus maintenance",
         Measure::Protein => "Protein",
         Measure::Carbs => "Carbs",
         Measure::Fat => "Fat",
