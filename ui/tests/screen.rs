@@ -1183,7 +1183,7 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
     "intakes": [[1, { "day": "2026-10-10", "food": "Skyr", "unit": "Gram", "quantity": 200.0,
         "nutrients": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 } }]],
     "eaten": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "maintenance_kcal": 2650.2 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "maintenance_kcal": 2424.8 },
     "energy": "Low",
     "macros": {
         "protein": { "eaten_g": 19.0, "floor_g": 160.0, "ceiling_g": 9.0, "verdict": "Low" },
@@ -1626,8 +1626,7 @@ async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_q
 }
 
 #[wasm_bindgen_test]
-async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_maintenance_alpert_labelled_under_its_tick()
- {
+async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
     ));
@@ -1643,19 +1642,19 @@ async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_main
     let gauge = text_of(&screen, ".fuel-gauge");
     assert!(
         gauge.contains("EA25 1768")
-            && gauge.contains("Alpert 2199")
-            && gauge.contains("Maintenance 2650"),
+            && gauge.contains("Maintenance 2425")
+            && !gauge.contains("Alpert"),
         "{gauge}"
     );
     found::<Element>(&screen, ".fuel-gauge line.minimum");
     found::<Element>(&screen, ".fuel-gauge rect.band");
     found::<Element>(&screen, ".fuel-gauge circle.eaten");
-    let floor_at: f64 = found::<Element>(&screen, ".fuel-gauge line.tick")
+    let maintenance_at: f64 = found::<Element>(&screen, ".fuel-gauge line.maintenance")
         .get_attribute("x1")
         .and_then(|x| x.parse().ok())
-        .expect("the floor's tick");
-    let floor_label: Element = found(&screen, ".fuel-gauge .floor-label");
-    let left: f64 = floor_label
+        .expect("maintenance's tick");
+    let maintenance_label: Element = found(&screen, ".fuel-gauge .maintenance-label");
+    let left: f64 = maintenance_label
         .get_attribute("style")
         .and_then(|style| {
             style
@@ -1666,12 +1665,12 @@ async fn the_days_energy_sits_on_a_gauge_from_its_minimum_through_alpert_to_main
         })
         .expect("the label's place");
     assert_eq!(
-        floor_label.text_content().unwrap_or_default(),
-        "Alpert 2199"
+        maintenance_label.text_content().unwrap_or_default(),
+        "Maintenance 2425"
     );
     assert!(
-        (left - 100.0 * floor_at / 360.0).abs() < 1e-9,
-        "{left}% under {floor_at}"
+        (left - 100.0 * maintenance_at / 360.0).abs() < 1e-9,
+        "{left}% under {maintenance_at}"
     );
 }
 
