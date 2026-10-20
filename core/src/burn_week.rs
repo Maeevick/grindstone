@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::burn::Burn;
+use crate::burn::{Burn, BurntWorkout};
+use crate::verdict::within_grace;
 
 /// An exercise over the week: how many times it was done, and its minutes, reps and burn in all.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -14,15 +15,43 @@ pub struct ExerciseWeek {
 
 impl ExerciseWeek {
     pub fn minutes_a_time(&self) -> f64 {
-        0.0
+        self.minutes / self.times as f64
     }
 
     pub fn reps_a_time(&self) -> Option<f64> {
-        None
+        self.reps.map(|reps| reps / self.times as f64)
     }
 
     pub fn burnt_kcal_a_time(&self) -> Option<f64> {
-        None
+        self.burnt_kcal.map(|kcal| kcal / self.times as f64)
+    }
+
+    fn of(done: &BurntWorkout) -> Self {
+        let sets = f64::from(done.workout.sets);
+        Self {
+            exercise: done.workout.exercise.clone(),
+            times: 1,
+            minutes: sets * done.workout.minutes,
+            reps: done.workout.reps.map(|reps| sets * f64::from(reps)),
+            burnt_kcal: done.burnt_kcal,
+        }
+    }
+
+    fn and(self, again: Self) -> Self {
+        Self {
+            times: self.times + again.times,
+            minutes: self.minutes + again.minutes,
+            reps: self
+                .reps
+                .into_iter()
+                .chain(again.reps)
+                .reduce(|one, other| one + other),
+            burnt_kcal: self
+                .burnt_kcal
+                .zip(again.burnt_kcal)
+                .map(|(one, other)| one + other),
+            ..self
+        }
     }
 }
 
@@ -39,18 +68,42 @@ pub struct BurnWeek {
 impl BurnWeek {
     /// Whether the week's burn holds the sum of its days' targets, from 95% of it as the streak's tick does.
     pub fn on_target(&self) -> Option<bool> {
-        None
+        Some(within_grace(
+            self.burnt_kcal?,
+            self.target_kcal?,
+            f64::INFINITY,
+        ))
     }
 }
 
 /// The week's burn, summed up from its days; nothing without a workout.
 pub fn burn_week_of(days: &[Burn]) -> Option<BurnWeek> {
-    let _ = days;
-    Some(BurnWeek {
-        active_days: 0,
-        burnt_kcal: None,
-        target_kcal: None,
-        exercises: vec![],
+    let active: Vec<&Burn> = days.iter().filter(|day| !day.workouts.is_empty()).collect();
+    let mut exercises = active
+        .iter()
+        .flat_map(|day| &day.workouts)
+        .map(ExerciseWeek::of)
+        .fold(Vec::<ExerciseWeek>::new(), |mut summed, done| {
+            match summed
+                .iter()
+                .position(|known| known.exercise == done.exercise)
+            {
+                Some(at) => summed[at] = summed[at].clone().and(done),
+                None => summed.push(done),
+            }
+            summed
+        });
+    exercises.sort_by(|one, other| {
+        other
+            .burnt_kcal
+            .unwrap_or_default()
+            .total_cmp(&one.burnt_kcal.unwrap_or_default())
+    });
+    (!active.is_empty()).then(|| BurnWeek {
+        active_days: active.len(),
+        burnt_kcal: active.iter().map(|day| day.burnt_kcal).sum(),
+        target_kcal: days.iter().map(|day| day.target_kcal).sum(),
+        exercises,
     })
 }
 
