@@ -282,7 +282,7 @@ mod tests {
 
         let spent_kcal = fuel_on(day("2026-10-10"), &gather, &burn, &fuel)
             .band
-            .map(|band| band.cap_kcal)
+            .map(|band| band.maintenance_kcal)
             .expect("a band for a measured body");
         assert!(about(hydrate.floor_ml, 0.9 * spent_kcal));
     }
