@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 32] = [
+pub const REFERENCES: [Reference; 33] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -165,7 +165,7 @@ pub const REFERENCES: [Reference; 32] = [
         title: "A limit on the energy transfer rate from the human fat store in hypophagia",
         published_in: "Journal of Theoretical Biology 233(1):1-13",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/15615615/"),
-        used_for: "The band's floor and the safe weekly loss: what the fat store can spare in a day, 290 kJ (about 69.3 kcal) per kilo",
+        used_for: "The band's floor, on the fat left to lose above the goal's, and the safe weekly loss: what the fat store can spare in a day, 290 kJ (about 69.3 kcal) per kilo",
     },
     Reference {
         topic: Topic::Energy,
@@ -175,6 +175,15 @@ pub const REFERENCES: [Reference; 32] = [
         published_in: "Journal of Sports Sciences 29(sup1):S7-S15",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/21793767/"),
         used_for: "The band's minimum per kilo of lean mass, plus the burn",
+    },
+    Reference {
+        topic: Topic::Energy,
+        authors: "Helms E. R., Spence A.-J., Sousa C., et al.",
+        year: 2023,
+        title: "Effect of small and large energy surpluses on strength, muscle, and skinfold thickness in resistance-trained individuals: a parallel groups design",
+        published_in: "Sports Medicine - Open 9:102",
+        page: Some("https://pubmed.ncbi.nlm.nih.gov/37914977/"),
+        used_for: "The band's cap in a gain, what the body of the goals would spend: a small surplus, as a large one mostly adds fat",
     },
     Reference {
         topic: Topic::Activity,
