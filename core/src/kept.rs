@@ -10,7 +10,10 @@ pub enum Kept<T> {
 impl<T> Kept<T> {
     /// Its own values, if it keeps any.
     pub fn own(&self) -> Option<&T> {
-        None
+        match self {
+            Kept::Own(values) => Some(values),
+            Kept::Recommended => None,
+        }
     }
 }
 
