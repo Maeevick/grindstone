@@ -3,8 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::burn_records::BurnRecords;
 use crate::burn_target::target_on;
-use crate::kept::Kept;
+use crate::gather_records::GatherRecords;
+use crate::kept::{InForce, Kept, in_force};
 use crate::measurement::Measurement;
+use crate::profile::Profile;
+use crate::recommendations::recommended;
 use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
 use crate::workout::{Workout, burnt_by};
@@ -36,8 +39,21 @@ pub(crate) fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]
     version_in_force_on(&masses, day).copied()
 }
 
-pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measurement]) -> Burn {
-    let body_mass_kg = body_mass_in_force_on(day, measurements);
+/// The usual day off the clock in force on a day: the one kept from the latest day up to it (the earliest
+/// before any), its own or the recommendation for the age in force; never kept, the recommendation; nothing
+/// without a profile to recommend for.
+pub(crate) fn usual_day_in_force(
+    day: NaiveDate,
+    usual_days: &[(NaiveDate, Kept<Volitional>)],
+    profiles: &[(NaiveDate, Profile)],
+) -> Option<InForce<Volitional>> {
+    in_force(version_in_force_on(usual_days, day), || {
+        version_in_force_on(profiles, day).map(|profile| recommended(profile, day, None).usual_day)
+    })
+}
+
+pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) -> Burn {
+    let body_mass_kg = body_mass_in_force_on(day, &gather.measurements);
     let workouts: Vec<BurntWorkout> = records
         .workouts
         .iter()
@@ -61,9 +77,7 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
             .sum::<Option<f64>>(),
         workouts,
         off_the_clock: own_day.or_else(|| {
-            version_in_force_on(&records.usual_days, day)
-                .and_then(Kept::own)
-                .copied()
+            usual_day_in_force(day, &records.usual_days, &gather.profiles).map(|usual| usual.values)
         }),
         off_the_clock_is_usual: own_day.is_none(),
         body_mass_kg,
@@ -75,6 +89,13 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
 mod tests {
     use super::*;
     use crate::workout::burnt_by;
+
+    fn gathered(measurements: &[Measurement]) -> GatherRecords {
+        GatherRecords {
+            measurements: measurements.to_vec(),
+            ..GatherRecords::default()
+        }
+    }
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
@@ -119,8 +140,8 @@ mod tests {
 
         assert_eq!(
             (
-                burn_on(day("2026-10-10"), &records, &measurements).target_kcal,
-                burn_on(day("2026-10-20"), &records, &measurements).target_kcal
+                burn_on(day("2026-10-10"), &records, &gathered(&measurements)).target_kcal,
+                burn_on(day("2026-10-20"), &records, &gathered(&measurements)).target_kcal
             ),
             (
                 crate::burn_target::target_on(day("2026-10-10"), &[], Some(72.0))
@@ -144,7 +165,7 @@ mod tests {
         let burn = burn_on(
             day("2026-10-10"),
             &records,
-            &[weighed("2026-10-01", 80.0), weighed("2026-10-11", 79.0)],
+            &gathered(&[weighed("2026-10-01", 80.0), weighed("2026-10-11", 79.0)]),
         );
 
         let expected = burnt_by(&walked("2026-10-10", 30.0), 80.0)
@@ -163,7 +184,11 @@ mod tests {
             ..BurnRecords::default()
         };
 
-        let burn = burn_on(day("2026-09-01"), &records, &[weighed("2026-10-01", 80.0)]);
+        let burn = burn_on(
+            day("2026-09-01"),
+            &records,
+            &gathered(&[weighed("2026-10-01", 80.0)]),
+        );
 
         assert_eq!(
             burn.burnt_kcal,
@@ -178,7 +203,7 @@ mod tests {
             ..BurnRecords::default()
         };
 
-        let burn = burn_on(day("2026-10-10"), &records, &[]);
+        let burn = burn_on(day("2026-10-10"), &records, &gathered(&[]));
 
         assert_eq!(burn.burnt_kcal, None);
         assert_eq!(
@@ -191,8 +216,12 @@ mod tests {
     fn a_day_carries_the_body_mass_its_workouts_are_priced_on_and_none_without_a_weigh_in() {
         let weighed_in = [weighed("2026-10-01", 80.0), weighed("2026-10-11", 79.0)];
 
-        let priced = burn_on(day("2026-10-10"), &BurnRecords::default(), &weighed_in);
-        let unweighed = burn_on(day("2026-10-10"), &BurnRecords::default(), &[]);
+        let priced = burn_on(
+            day("2026-10-10"),
+            &BurnRecords::default(),
+            &gathered(&weighed_in),
+        );
+        let unweighed = burn_on(day("2026-10-10"), &BurnRecords::default(), &gathered(&[]));
 
         assert_eq!(
             (priced.body_mass_kg, unweighed.body_mass_kg),
@@ -202,7 +231,7 @@ mod tests {
 
     #[test]
     fn a_day_without_workouts_burns_nothing_beyond_its_day_off_the_clock() {
-        let burn = burn_on(day("2026-10-10"), &BurnRecords::default(), &[]);
+        let burn = burn_on(day("2026-10-10"), &BurnRecords::default(), &gathered(&[]));
 
         assert_eq!(burn.burnt_kcal, Some(0.0));
     }
@@ -220,8 +249,8 @@ mod tests {
             ..BurnRecords::default()
         };
 
-        let saturday = burn_on(day("2026-10-10"), &records, &[]);
-        let sunday = burn_on(day("2026-10-11"), &records, &[]);
+        let saturday = burn_on(day("2026-10-10"), &records, &gathered(&[]));
+        let sunday = burn_on(day("2026-10-11"), &records, &gathered(&[]));
 
         assert_eq!(
             (saturday.off_the_clock, saturday.off_the_clock_is_usual),

@@ -260,7 +260,7 @@ impl Ledgers<'_> {
             .copied()
             .unwrap_or(DEFAULT_FUEL_TARGETS);
         let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
-            let burnt = burn_on(day, self.burn, &self.gather.measurements);
+            let burnt = burn_on(day, self.burn, self.gather);
             let (band, budget) = band_for(
                 &body,
                 burnt.burnt_kcal.unwrap_or(0.0),

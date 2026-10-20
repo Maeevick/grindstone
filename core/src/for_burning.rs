@@ -58,8 +58,11 @@ fn burn_of_the_day(
     burn: &impl ForStoringBurnRecords,
     day: NaiveDate,
 ) -> Result<Burn, Failure> {
-    let measurements = gather.gather_records()?.measurements;
-    Ok(burn_on(day, &burn.burn_records()?, &measurements))
+    Ok(burn_on(
+        day,
+        &burn.burn_records()?,
+        &gather.gather_records()?,
+    ))
 }
 
 pub fn burn_day(
@@ -77,10 +80,10 @@ pub fn burn_week(
     date: &str,
 ) -> Result<Option<BurnWeek>, Failure> {
     let last = day(date)?;
-    let (measurements, burnt) = (gather.gather_records()?.measurements, burn.burn_records()?);
+    let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
     let days: Vec<Burn> = the_seven_days_up_to(last)
         .into_iter()
-        .map(|day| burn_on(day, &burnt, &measurements))
+        .map(|day| burn_on(day, &burnt, &gathered))
         .collect();
     Ok(burn_week_of(&days))
 }

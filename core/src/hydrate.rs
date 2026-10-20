@@ -87,9 +87,7 @@ fn hydrated(
         .cloned()
         .collect();
     let drunk_ml: f64 = drinkings.iter().map(|(_, drunk)| drunk.volume_ml).sum();
-    let burnt_kcal = burn_on(day, burn, &gather.measurements)
-        .burnt_kcal
-        .unwrap_or(0.0);
+    let burnt_kcal = burn_on(day, burn, gather).burnt_kcal.unwrap_or(0.0);
     let lean_kg = body_on(
         day,
         &ledger(&gather.measurements, &gather.profiles),

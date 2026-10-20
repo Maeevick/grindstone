@@ -161,7 +161,7 @@ pub fn burn_chart(
     let days = days_within(burnt.workouts.iter().map(|(_, done)| done.day), span);
     let burns: Vec<Burn> = days
         .iter()
-        .map(|day| burn_on(*day, &burnt, &gathered.measurements))
+        .map(|day| burn_on(*day, &burnt, &gathered))
         .collect();
     Ok(BurnChart {
         burnt: burns
@@ -235,7 +235,7 @@ pub fn insights(
     );
     let burns: Vec<f64> = days_within(worked_out, span)
         .iter()
-        .filter_map(|day| burn_on(*day, &burnt, &gathered.measurements).burnt_kcal)
+        .filter_map(|day| burn_on(*day, &burnt, &gathered).burnt_kcal)
         .collect();
     let tally_of = |verdicts: Vec<Verdict>| Tally {
         low: verdicts
@@ -447,7 +447,7 @@ pub fn burn_month(
         rows: days
             .iter()
             .map(|day| {
-                let of_the_day = burn_on(*day, &burnt, &gathered.measurements);
+                let of_the_day = burn_on(*day, &burnt, &gathered);
                 let mut by_exercise: Vec<(String, f64)> = Vec::new();
                 for done in &of_the_day.workouts {
                     let kcal = done.burnt_kcal.unwrap_or(0.0);
@@ -695,7 +695,7 @@ mod tests {
         let burnt = logged.burn.burn_records().expect("burn records");
         let measured = logged.gather.gather_records().expect("gather records");
         let target_on = |date: &str| {
-            burn_on(day(date), &burnt, &measured.measurements)
+            burn_on(day(date), &burnt, &measured)
                 .target_kcal
                 .map(|kcal| (day(date), kcal))
         };

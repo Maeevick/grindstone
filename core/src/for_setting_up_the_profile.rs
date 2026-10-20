@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::burn::body_mass_in_force_on;
+use crate::burn::{body_mass_in_force_on, usual_day_in_force};
 use crate::burn_target::target_on;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
@@ -116,13 +116,11 @@ pub fn usual_day_on(
     date: &str,
 ) -> Result<Option<InForce<Volitional>>, Failure> {
     let day = day(date)?;
-    let _ = gather;
-    Ok(version_in_force_on(&burn.burn_records()?.usual_days, day)
-        .and_then(Kept::own)
-        .map(|usual| InForce {
-            values: *usual,
-            recommended: false,
-        }))
+    Ok(usual_day_in_force(
+        day,
+        &burn.burn_records()?.usual_days,
+        &gather.gather_records()?.profiles,
+    ))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

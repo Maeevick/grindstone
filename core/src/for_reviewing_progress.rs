@@ -11,12 +11,12 @@ use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, fuel_over};
+use crate::gather_records::GatherRecords;
 use crate::hydrate::hydrate_over;
 use crate::hydrate_counted::counted_on;
 use crate::kept::Kept;
 use crate::ledger::Day;
 use crate::ledger::ledger;
-use crate::measurement::Measurement;
 use crate::progress::{Progress, progress_towards};
 use crate::refusal::Refusal;
 use crate::stats::{Measure, Summary, correlation, paired, summary};
@@ -124,7 +124,7 @@ pub fn streak(
                             band.cap_kcal,
                         )
                     })),
-                    worked_out: Some(worked_out(*day, &burnt, &gathered.measurements)),
+                    worked_out: Some(worked_out(*day, &burnt, &gathered)),
                     hydrated: counted_on(*day, &hydrated.counted_from).then(|| {
                         within_grace(
                             hydrated_day.drunk_ml,
@@ -141,8 +141,8 @@ pub fn streak(
 
 /// A day's workouts reach its burn target, within the streak's grace; before any weigh-in prices them, a
 /// single workout will do.
-fn worked_out(day: NaiveDate, burnt: &BurnRecords, measurements: &[Measurement]) -> bool {
-    let burn = burn_on(day, burnt, measurements);
+fn worked_out(day: NaiveDate, burnt: &BurnRecords, gathered: &GatherRecords) -> bool {
+    let burn = burn_on(day, burnt, gathered);
     !burn.workouts.is_empty()
         && match (
             burn.burnt_kcal,
@@ -197,7 +197,7 @@ pub fn explore(
     let burn_days: Vec<(NaiveDate, Option<f64>)> =
         days_logged(burnt.workouts.iter().map(|(_, done)| done.day).collect())
             .into_iter()
-            .map(|day| (day, burn_on(day, &burnt, &gathered.measurements).burnt_kcal))
+            .map(|day| (day, burn_on(day, &burnt, &gathered).burnt_kcal))
             .collect();
     let series_of = |measure: Measure| -> Vec<(NaiveDate, f64)> {
         let from_body = |read: fn(&Day) -> Option<f64>| {
