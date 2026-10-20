@@ -443,7 +443,7 @@ pub fn ProfileScreen() -> impl IntoView {
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     spawn_local(async move {
-        if let Ok(Some(profile)) = tauri::profile_on(&today()).await {
+        if let Ok(Some((_, profile))) = tauri::profile_on(&today()).await {
             birthday.set(profile.birthday.to_string());
             gender.set(profile.gender);
             height.set(profile.height_cm.to_string());

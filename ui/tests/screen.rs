@@ -397,7 +397,7 @@ fn value_of(screen: &Element, name: &str) -> String {
 #[wasm_bindgen_test]
 async fn the_profile_and_goals_in_force_today_fill_their_forms() {
     answering(
-        r#"{ "profile_on": { "birthday": "1990-06-01", "gender": "Female", "height_cm": 165.0, "neck_cm": 33.0, "hip_cm": 98.0 },
+        r#"{ "profile_on": ["2026-03-01", { "birthday": "1990-06-01", "gender": "Female", "height_cm": 165.0, "neck_cm": 33.0, "hip_cm": 98.0 }],
              "goals_on": { "values": { "body_mass_kg": 60.0, "fat_ratio": 0.22 }, "recommended": false } }"#,
     );
     let screen = screen();
@@ -2137,7 +2137,7 @@ async fn the_plate_waits_in_fuel_while_the_cook_checks_another_tab() {
     );
 }
 
-const A_HOME: &str = r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
+const A_HOME: &str = r#"{ "profile_on": ["2026-03-01", { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }],
              "gather_card": { "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
              "streak": { "days": 2, "longest": 5, "at_risk": true, "history": [
                  { "day": "2026-10-08", "status": "Success", "ticks": { "weighed": true, "fuelled": true, "worked_out": true, "hydrated": null } },
@@ -3549,7 +3549,7 @@ const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg
 async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_its_targets_from_the_start()
  {
     answering(&format!(
-        r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
+        r#"{{ "profile_on": ["2026-03-01", {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }}],
              "goals_on": {{ "values": {{ "body_mass_kg": 68.0, "fat_ratio": 0.1 }}, "recommended": false }}, "fuel_targets_on": null,
              "usual_day_on": null, "recommended_on": {RECOMMENDED} }}"#
     ));
@@ -3573,12 +3573,12 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
     );
 }
 
-const IN_FORCE_ON_EVERY_CARD: &str = r#""profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
-    "goals_on": { "values": { "body_mass_kg": 68.0, "fat_ratio": 0.12 }, "recommended": false },
-    "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.31 }, "recommended": true },
-    "usual_day_on": { "values": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "recommended": true },
-    "burn_target_on": { "values": 77.14, "recommended": true },
-    "hydrate_target_on": { "values": 2800.0, "recommended": false }"#;
+const IN_FORCE_ON_EVERY_CARD: &str = r#""profile_on": ["2026-03-01", { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }],
+    "goals_on": { "values": { "body_mass_kg": 68.0, "fat_ratio": 0.12 }, "recommended": false, "from": "2026-10-10" },
+    "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.31 }, "recommended": true, "from": null },
+    "usual_day_on": { "values": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "recommended": true, "from": "2026-09-01" },
+    "burn_target_on": { "values": 77.14, "recommended": true, "from": null },
+    "hydrate_target_on": { "values": 2800.0, "recommended": false, "from": "2026-10-12" }"#;
 
 const KEPT_AS_RECOMMENDED: &str = r#""set_goals": { "values": { "body_mass_kg": 70.308, "fat_ratio": 0.165 }, "recommended": true },
     "set_fuel_targets": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.31 }, "recommended": true },
@@ -3640,6 +3640,37 @@ async fn each_goal_card_shows_what_is_in_force_and_whose_it_is() {
             OWN,
             RECOMMENDED_AND_FOLLOWED,
             RECOMMENDED_AND_FOLLOWED
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn each_card_opens_on_the_day_its_values_were_kept_from_today_while_nothing_is_kept() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    let today = grind_ui::screens::today();
+    assert_eq!(
+        [
+            "from",
+            "goals_from",
+            "targets_from",
+            "water_target_from",
+            "burn_target_from",
+            "usual_from"
+        ]
+        .map(|name| value_of(&screen, name)),
+        [
+            "2026-03-01",
+            "2026-10-10",
+            &today,
+            "2026-10-12",
+            &today,
+            "2026-09-01"
         ]
     );
 }

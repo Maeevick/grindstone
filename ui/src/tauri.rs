@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use grind_core::burn::Burn;
 use grind_core::burn_week::BurnWeek;
 use grind_core::circuit::Circuit;
@@ -111,7 +112,7 @@ pub async fn remove_measurement(date: &str) -> Result<GatherWeek, Failure> {
     call("remove_measurement", OnDay { date }, broken).await
 }
 
-pub async fn profile_on(date: &str) -> Result<Option<Profile>, Failure> {
+pub async fn profile_on(date: &str) -> Result<Option<(NaiveDate, Profile)>, Failure> {
     call("profile_on", OnDay { date }, broken).await
 }
 
