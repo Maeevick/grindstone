@@ -192,7 +192,7 @@ fn band_for(
         minimum_kcal,
         floor_kcal: floor_kcal.max(minimum_kcal),
         cap_kcal: cap_kcal.max(minimum_kcal),
-        maintenance_kcal: 0.0,
+        maintenance_kcal,
     };
     (band, budget)
 }
