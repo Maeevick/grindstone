@@ -153,7 +153,7 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_imp
 async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_figures() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }, "recommended": false },
              "hydrate_counted_on": true }"#,
     );
     let screen = screen();
@@ -190,7 +190,7 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
 async fn the_profile_ends_past_a_divider_on_the_settings_the_drafts_records_then_the_danger_zone() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }, "recommended": false },
              "hydrate_counted_on": true, "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -221,7 +221,7 @@ async fn the_profile_ends_past_a_divider_on_the_settings_the_drafts_records_then
 async fn the_profile_asks_the_aches_the_day_owes_before_the_forgotten_bucket_of_sweat() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }, "recommended": false },
              "hydrate_counted_on": true, "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -279,7 +279,7 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_it
 {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }, "recommended": false },
              "hydrate_counted_on": true }"#,
     );
     let screen = screen();
@@ -292,7 +292,13 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_it
     });
     settled().await;
 
-    for card in [".goals", ".fuel-targets", ".usual-day", ".burn-target"] {
+    for card in [
+        ".goals",
+        ".fuel-targets",
+        ".water-target",
+        ".usual-day",
+        ".burn-target",
+    ] {
         found::<Element>(
             &screen,
             &format!("{card} button.recommend ~ button[type=submit]"),
@@ -360,7 +366,7 @@ async fn a_saved_profile_says_from_which_day_it_is_kept() {
 #[wasm_bindgen_test]
 async fn saved_goals_say_from_which_day_they_are_kept() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "set_goals": { "body_mass_kg": 70.0, "fat_ratio": 0.1 } }"#,
+        r#"{ "profile_on": null, "goals_on": null, "set_goals": { "values": { "body_mass_kg": 70.0, "fat_ratio": 0.1 }, "recommended": false } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -394,7 +400,7 @@ fn value_of(screen: &Element, name: &str) -> String {
 async fn the_profile_and_goals_in_force_today_fill_their_forms() {
     answering(
         r#"{ "profile_on": { "birthday": "1990-06-01", "gender": "Female", "height_cm": 165.0, "neck_cm": 33.0, "hip_cm": 98.0 },
-             "goals_on": { "body_mass_kg": 60.0, "fat_ratio": 0.22 } }"#,
+             "goals_on": { "values": { "body_mass_kg": 60.0, "fat_ratio": 0.22 }, "recommended": false } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -3577,7 +3583,7 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
  {
     answering(&format!(
         r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
-             "goals_on": {{ "body_mass_kg": 68.0, "fat_ratio": 0.1 }}, "fuel_targets_on": null,
+             "goals_on": {{ "values": {{ "body_mass_kg": 68.0, "fat_ratio": 0.1 }}, "recommended": false }}, "fuel_targets_on": null,
              "usual_day_on": null, "hydrate_counted_on": true,
              "recommended_on": {RECOMMENDED} }}"#
     ));
@@ -3601,75 +3607,161 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
     );
 }
 
-#[wasm_bindgen_test]
-async fn the_recommendation_fills_each_card_on_demand() {
-    answering(&format!(
-        r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
-             "goals_on": null, "fuel_targets_on": {{ "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
-             "usual_day_on": null, "hydrate_counted_on": true,
-             "recommended_on": {RECOMMENDED} }}"#
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+const IN_FORCE_ON_EVERY_CARD: &str = r#""profile_on": { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null },
+    "goals_on": { "values": { "body_mass_kg": 68.0, "fat_ratio": 0.12 }, "recommended": false },
+    "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.31 }, "recommended": true },
+    "usual_day_on": { "values": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "recommended": true },
+    "burn_target_on": { "values": 77.14, "recommended": true },
+    "hydrate_target_on": { "values": 2800.0, "recommended": false },
+    "hydrate_counted_on": true"#;
+
+const KEPT_AS_RECOMMENDED: &str = r#""set_goals": { "values": { "body_mass_kg": 70.308, "fat_ratio": 0.165 }, "recommended": true },
+    "set_fuel_targets": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8, "fibre_g_per_kg": 0.31 }, "recommended": true },
+    "set_usual_day": { "values": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "recommended": true },
+    "set_burn_target": { "values": 77.14, "recommended": true },
+    "set_hydrate_target": { "values": 2600.0, "recommended": true }"#;
+
+fn the_profile_screen(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
                 <ProfileScreen />
             </Router>
         }
-    });
-    settled().await;
+    })
+}
 
-    for card in [".goals", ".fuel-targets", ".usual-day"] {
-        found::<web_sys::HtmlElement>(&screen, &format!("{card} button.recommend")).click();
-    }
+const OWN: &str = "Your own values, kept as typed.";
+const RECOMMENDED_AND_FOLLOWED: &str = "The recommendation, followed as your body changes.";
+
+#[wasm_bindgen_test]
+async fn each_goal_card_shows_what_is_in_force_and_whose_it_is() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
     settled().await;
 
     assert_eq!(
         [
-            value_of(&screen, "target_mass"),
-            value_of(&screen, "target_fat"),
-            value_of(&screen, "target_protein"),
-            value_of(&screen, "usual_sitting"),
-            value_of(&screen, "usual_moving"),
-        ],
-        ["70.31", "16.5", "1.6", "480", "6"]
+            "target_mass",
+            "target_fat",
+            "target_protein",
+            "target_fat_g",
+            "target_fibre",
+            "water_target",
+            "usual_sitting",
+            "usual_moving",
+            "burn_target"
+        ]
+        .map(|name| value_of(&screen, name)),
+        [
+            "68", "12", "1.6", "0.8", "0.31", "2800", "480", "6", "77.14"
+        ]
     );
-    let said = screen.text_content().unwrap_or_default();
-    assert!(
-        said.contains("59.9 kg to 80.7 kg") && said.contains("11.0% to 22.0%"),
-        "{said}"
+    assert_eq!(
+        [
+            "form.goals",
+            "form.fuel-targets",
+            "form.water-target",
+            "form.usual-day",
+            "form.burn-target"
+        ]
+        .map(|form| text_of(&screen, &format!("{form} .whose"))),
+        [
+            OWN,
+            RECOMMENDED_AND_FOLLOWED,
+            OWN,
+            RECOMMENDED_AND_FOLLOWED,
+            RECOMMENDED_AND_FOLLOWED
+        ]
     );
-    assert!(said.contains("not medical advice"), "{said}");
 }
 
 #[wasm_bindgen_test]
-async fn the_burn_target_card_fills_from_the_recommendation_and_keeps_from_a_date() {
+async fn use_the_recommendation_keeps_it_from_the_cards_day_and_shows_it_followed() {
     answering(&format!(
-        r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null, "hydrate_counted_on": true,
-             "fuel_targets_on": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
-             "burn_target_on": null, "recommended_on": {RECOMMENDED}, "set_burn_target": 77.14 }}"#
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
     ));
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <ProfileScreen />
-            </Router>
-        }
-    });
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+    typed_into(&screen, "goals_from", "2026-10-15");
+
+    let mut kept = Vec::new();
+    for (form, command) in [
+        ("form.goals", "set_goals"),
+        ("form.fuel-targets", "set_fuel_targets"),
+        ("form.water-target", "set_hydrate_target"),
+        ("form.usual-day", "set_usual_day"),
+        ("form.burn-target", "set_burn_target"),
+    ] {
+        clicked(&screen, &format!("{form} button.recommend"));
+        settled().await;
+        kept.push((
+            asked(command).contains(r#""kept":"Recommended""#),
+            text_of(&screen, &format!("{form} .whose")),
+        ));
+    }
+
+    assert!(
+        kept.iter()
+            .all(|(recommended, whose)| *recommended && whose == RECOMMENDED_AND_FOLLOWED),
+        "{kept:?}"
+    );
+    assert!(asked("set_goals").contains(r#""from":"2026-10-15""#));
+    assert_eq!(
+        [
+            value_of(&screen, "target_mass"),
+            value_of(&screen, "target_fat")
+        ],
+        ["70.31", "16.5"]
+    );
+}
+
+#[wasm_bindgen_test]
+async fn hydrates_card_keeps_a_water_target_of_your_own() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
+             "set_hydrate_target": {{ "values": 3000.0, "recommended": false }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
     settled().await;
 
-    clicked(&screen, ".burn-target button.recommend");
+    typed_into(&screen, "water_target", "3000");
+    found::<HtmlFormElement>(&screen, "form.water-target")
+        .request_submit()
+        .expect("the water target is kept");
     settled().await;
-    let filled = value_of(&screen, "burn_target");
+
+    assert!(
+        asked("set_hydrate_target").contains(r#""kept":{"Own":3000}"#),
+        "{}",
+        asked("set_hydrate_target")
+    );
+    assert_eq!(text_of(&screen, "form.water-target .whose"), OWN);
+}
+
+#[wasm_bindgen_test]
+async fn the_burn_target_card_keeps_its_own_kcal_from_a_date() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
+             "set_burn_target": {{ "values": 80.0, "recommended": false }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
     typed_into(&screen, "burn_target_from", "2026-10-15");
+    typed_into(&screen, "burn_target", "80");
     found::<HtmlFormElement>(&screen, "form.burn-target")
         .request_submit()
         .expect("the target is kept");
     settled().await;
 
-    assert_eq!(filled, "77.14");
-    assert!(asked("set_burn_target").contains(r#""kcal":77.14"#));
+    assert!(asked("set_burn_target").contains(r#""kept":{"Own":80}"#));
     let said = text_of(&screen, "form.burn-target .said");
     assert!(said.contains("kept from 2026-10-15"), "{said}");
 }
@@ -3678,7 +3770,7 @@ async fn the_burn_target_card_fills_from_the_recommendation_and_keeps_from_a_dat
 async fn before_any_weigh_in_the_burn_target_card_says_a_single_workout_holds_the_tick() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null, "hydrate_counted_on": true,
-             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }, "recommended": false },
              "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -3730,7 +3822,7 @@ async fn the_scientific_references_cite_each_source_under_its_topic_with_its_pub
 async fn each_profile_card_points_to_its_scientific_references() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 },
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }, "recommended": false },
              "hydrate_counted_on": true }"#,
     );
     let screen = screen();
@@ -3773,7 +3865,7 @@ fn spoken_on(screen: &Element) -> String {
 async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     answering(&format!(
         r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }},
+             "fuel_targets_on": {{ "values": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }}, "recommended": false }},
              "hydrate_counted_on": true,
              "foods": [], "meals": [], "exercises": [], "circuits": [], "priced_circuits": [],
              "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
