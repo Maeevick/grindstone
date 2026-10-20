@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::aims::{Aims, aims_on};
 use crate::body::{Body, body_on};
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
@@ -130,8 +131,8 @@ fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eate
     }
 }
 
-/// The day's band: the budget plus the burn caps it; the floor is what the fat store can spare
-/// below the cap, never under a minimum per kilo of lean mass plus the burn.
+/// The day's band: the budget plus the burn caps it; the floor is what the fat left to lose, above the fat of
+/// the goals, can spare below the cap, never under a minimum per kilo of lean mass plus the burn.
 ///
 /// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005),
 ///   *A limit on the energy transfer rate from the human fat store in hypophagia*, J Theor Biol 233(1):1-13.
@@ -139,6 +140,7 @@ fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eate
 ///   *Energy availability in athletes*, J Sports Sci 29(sup1):S7-S15.
 fn band_for(
     body: &Body,
+    aims: &Aims,
     burnt_kcal: f64,
     off_the_clock: Volitional,
     deficit: Deficit,
@@ -162,7 +164,8 @@ fn band_for(
     let band = Band {
         minimum_kcal_per_kg_of_lean_mass,
         minimum_kcal,
-        floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
+        floor_kcal: (cap_kcal - SPARED_KCAL_PER_KG_OF_FAT * (body.fat_kg - aims.fat_mass_kg()))
+            .max(minimum_kcal),
         cap_kcal,
     };
     (band, budget)
@@ -272,7 +275,9 @@ impl Ledgers<'_> {
     fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Fuel {
         let intakes = self.intakes_on(day);
         let eaten = added_up(&intakes);
-        let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
+        let in_force =
+            body_on(day, &self.days, &self.gather.profiles).zip(aims_on(day, self.gather));
+        let banded = in_force.map(|(body, aims)| {
             let targets = fuel_targets_in_force(
                 day,
                 &self.fuel.targets,
@@ -283,6 +288,7 @@ impl Ledgers<'_> {
             let burnt = burn_on(day, self.burn, self.gather);
             let (band, budget) = band_for(
                 &body,
+                &aims,
                 burnt.burnt_kcal.unwrap_or(0.0),
                 burnt.off_the_clock.unwrap_or_default(),
                 deficit_before(day, gaps),
