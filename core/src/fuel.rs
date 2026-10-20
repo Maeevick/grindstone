@@ -101,6 +101,9 @@ const FIBRE_BEFORE_EATING_G: f64 = 28.0;
 const CARBS_FLOOR_G: f64 = 130.0;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
+/// The narrowest band, a tenth of the maintenance: five percent either side at the goal, the streak's grace on
+/// top, since neither the maintenance nor a food log is more precise.
+const NARROWEST_BAND_SHARE: f64 = 0.1;
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
     summed(intakes.iter().map(|(_, eaten)| eaten.nutrients))
@@ -133,7 +136,8 @@ fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eate
 
 /// The day's band around its maintenance, the budget plus the burn: the floor is what the fat left to lose,
 /// above the fat of the goals, can spare below it; the cap, what the body of the goals would spend, when more.
-/// Neither end falls under a minimum per kilo of lean mass plus the burn.
+/// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
+/// minimum per kilo of lean mass plus the burn.
 ///
 /// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005),
 ///   *A limit on the energy transfer rate from the human fat store in hypophagia*, J Theor Biol 233(1):1-13.
@@ -174,13 +178,26 @@ fn band_for(
     .kcal()
         + burnt_kcal;
     let fat_left_kg = (body.fat_kg - aims.fat_mass_kg()).max(0.0);
+    let (floor_kcal, cap_kcal) = widened(
+        (
+            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg,
+            maintenance_kcal.max(goals_kcal),
+        ),
+        NARROWEST_BAND_SHARE * maintenance_kcal,
+    );
     let band = Band {
         minimum_kcal_per_kg_of_lean_mass,
         minimum_kcal,
-        floor_kcal: (maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg).max(minimum_kcal),
-        cap_kcal: maintenance_kcal.max(goals_kcal).max(minimum_kcal),
+        floor_kcal: floor_kcal.max(minimum_kcal),
+        cap_kcal: cap_kcal.max(minimum_kcal),
     };
     (band, budget)
+}
+
+/// A band no narrower than its narrowest, widened around its middle.
+fn widened((floor_kcal, cap_kcal): (f64, f64), narrowest_kcal: f64) -> (f64, f64) {
+    let either_side = (narrowest_kcal - (cap_kcal - floor_kcal)).max(0.0) / 2.0;
+    (floor_kcal - either_side, cap_kcal + either_side)
 }
 
 fn mean(gaps: &[f64]) -> Option<f64> {
