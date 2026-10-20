@@ -18,11 +18,13 @@ impl<T> Kept<T> {
     }
 }
 
-/// What applies on a day, and whether it is the recommendation.
+/// What applies on a day, whether it is the recommendation, and the day it is kept from: none while nothing
+/// is kept, the recommendation followed from the start.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InForce<T> {
     pub values: T,
     pub recommended: bool,
+    pub from: Option<NaiveDate>,
 }
 
 /// What applies under the version kept, if any, with the day it is kept from: its own values, else the
@@ -35,10 +37,12 @@ pub fn in_force<T: Copy>(
         Some(Kept::Own(values)) => Some(InForce {
             values: *values,
             recommended: false,
+            from: None,
         }),
         _ => recommendation().map(|values| InForce {
             values,
             recommended: true,
+            from: None,
         }),
     }
 }
@@ -72,7 +76,8 @@ mod tests {
             in_force(Some(&from_the_15th(Kept::Own(80.0))), the_recommendation),
             Some(InForce {
                 values: 80.0,
-                recommended: false
+                recommended: false,
+                from: None,
             })
         );
     }
@@ -82,6 +87,7 @@ mod tests {
         let recommended = Some(InForce {
             values: 77.0,
             recommended: true,
+            from: None,
         });
 
         assert_eq!(
@@ -104,7 +110,8 @@ mod tests {
             [
                 Some(InForce {
                     values: 80.0,
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 }),
                 None,
                 None

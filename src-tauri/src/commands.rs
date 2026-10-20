@@ -747,8 +747,11 @@ mod tests {
         let set = invoke(&screen, "set_goals", json!({ "form": form }));
         let in_force = invoke(&screen, "goals_on", json!({ "date": "2026-10-12" }));
 
-        let expected =
-            json!({ "values": { "body_mass_kg": 70.0, "fat_ratio": 0.1 }, "recommended": false });
+        let expected = json!({
+            "values": { "body_mass_kg": 70.0, "fat_ratio": 0.1 },
+            "recommended": false,
+            "from": null
+        });
         assert_eq!(set, Ok(expected.clone()));
         assert_eq!(in_force, Ok(expected));
     }
@@ -951,7 +954,7 @@ mod tests {
         );
         let in_force = invoke(&screen, "usual_day_on", json!({ "date": "2026-10-10" }));
 
-        let kept = json!({ "values": usual, "recommended": false });
+        let kept = json!({ "values": usual, "recommended": false, "from": null });
         assert_eq!(set, Ok(kept.clone()));
         assert_eq!(in_force, Ok(kept));
     }
@@ -1056,7 +1059,7 @@ mod tests {
         );
         let in_force = invoke(&screen, "fuel_targets_on", json!({ "date": "2026-10-10" }));
 
-        let kept = json!({ "values": aims, "recommended": false });
+        let kept = json!({ "values": aims, "recommended": false, "from": null });
         assert_eq!(set, Ok(kept.clone()));
         assert_eq!(in_force, Ok(kept));
     }
@@ -1436,8 +1439,8 @@ mod tests {
         assert_eq!(
             (set, in_force, before),
             (
-                Ok(json!({ "values": 150.0, "recommended": false })),
-                Ok(json!({ "values": 150.0, "recommended": false })),
+                Ok(json!({ "values": 150.0, "recommended": false, "from": null })),
+                Ok(json!({ "values": 150.0, "recommended": false, "from": null })),
                 Ok(json!(null))
             )
         );
@@ -1466,9 +1469,9 @@ mod tests {
         assert_eq!(
             (own, recommended, in_force),
             (
-                Ok(json!({ "values": 2800.0, "recommended": false })),
-                Ok(json!({ "values": 2000.0, "recommended": true })),
-                Ok(json!({ "values": 2000.0, "recommended": true }))
+                Ok(json!({ "values": 2800.0, "recommended": false, "from": null })),
+                Ok(json!({ "values": 2000.0, "recommended": true, "from": null })),
+                Ok(json!({ "values": 2000.0, "recommended": true, "from": null }))
             )
         );
     }

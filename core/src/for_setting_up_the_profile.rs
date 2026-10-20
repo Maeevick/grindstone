@@ -352,7 +352,8 @@ mod tests {
                     body_mass_kg: 70.0,
                     fat_ratio: 0.1
                 },
-                recommended: false
+                recommended: false,
+                from: None,
             }))
         );
     }
@@ -386,6 +387,7 @@ mod tests {
                 fat_ratio: advised.goal_fat_ratio,
             },
             recommended: true,
+            from: None,
         }
     }
 
@@ -431,7 +433,8 @@ mod tests {
                         body_mass_kg: 70.0,
                         fat_ratio: 0.1
                     },
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 }),
                 Some(the_recommended_goals("1966-10-15", "2026-10-11")),
                 Some(the_recommended_goals("1966-10-15", "2026-10-16"))
@@ -516,6 +519,7 @@ mod tests {
                 moving_km,
             },
             recommended: true,
+            from: None,
         }
     }
 
@@ -544,7 +548,8 @@ mod tests {
             usual_day_on(&gather, &burn, "2026-10-10"),
             Ok(Some(InForce {
                 values: a_desk_day(),
-                recommended: false
+                recommended: false,
+                from: None,
             }))
         );
     }
@@ -591,7 +596,8 @@ mod tests {
             [
                 Some(InForce {
                     values: a_desk_day(),
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 }),
                 Some(the_recommended_usual_day(6.0)),
                 Some(the_recommended_usual_day(4.5))
@@ -641,6 +647,7 @@ mod tests {
                 fibre_g_per_kg,
             },
             recommended: true,
+            from: None,
         }
     }
 
@@ -669,7 +676,8 @@ mod tests {
             fuel_targets_on(&gather, &fuel, "2026-10-10"),
             Ok(Some(InForce {
                 values: own_targets(),
-                recommended: false
+                recommended: false,
+                from: None,
             }))
         );
     }
@@ -718,7 +726,8 @@ mod tests {
             [
                 Some(InForce {
                     values: own_targets(),
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 }),
                 Some(the_recommended_targets(0.31)),
                 Some(the_recommended_targets(0.4))
@@ -755,6 +764,7 @@ mod tests {
         Some(InForce {
             values,
             recommended: true,
+            from: None,
         })
     }
 
@@ -823,7 +833,8 @@ mod tests {
             (
                 Ok(Some(InForce {
                     values: 2800.0,
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 })),
                 Ok(recommended_ml(2000.0))
             )
@@ -853,6 +864,74 @@ mod tests {
                 Err(Failure::Refused(Refusal::NotAVolume)),
                 Err(Failure::Refused(Refusal::NotAVolume))
             ]
+        );
+    }
+
+    fn kept_from<T>(reading: Result<Option<InForce<T>>, Failure>) -> Option<String> {
+        reading
+            .ok()
+            .flatten()
+            .and_then(|in_force| in_force.from)
+            .map(|day| day.to_string())
+    }
+
+    #[test]
+    fn each_card_tells_the_day_its_values_were_kept_from_none_while_nothing_is_kept() {
+        let (gather, burn, fuel, hydrate) = (
+            born("1985-04-12"),
+            crate::testing::BurnRecordsInMemory::default(),
+            crate::testing::FuelRecordsInMemory::default(),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 72.0, None)
+            .expect("a measurement logs");
+        let kept_on_the_20th = || {
+            [
+                kept_from(goals_on(&gather, "2026-10-20")),
+                kept_from(fuel_targets_on(&gather, &fuel, "2026-10-20")),
+                kept_from(hydrate_target_on(&gather, &hydrate, "2026-10-20")),
+                kept_from(burn_target_on(&gather, &burn, "2026-10-20")),
+                kept_from(usual_day_on(&gather, &burn, "2026-10-20")),
+            ]
+        };
+        let never_kept = kept_on_the_20th();
+
+        set_goals(&gather, &goals_kept("2026-10-10", 70.0, 10.0)).expect("the goals keep");
+        set_fuel_targets(
+            &gather,
+            &fuel,
+            &fuel_targets_kept("2026-10-11", Kept::Recommended),
+        )
+        .expect("the targets keep");
+        set_hydrate_target(
+            &gather,
+            &hydrate,
+            &water_kept("2026-10-12", Kept::Own(2800.0)),
+        )
+        .expect("the water target keeps");
+        set_burn_target(
+            &gather,
+            &burn,
+            &BurnTargetForm {
+                from: "2026-10-13".into(),
+                kept: Kept::Recommended,
+                counted: true,
+            },
+        )
+        .expect("the burn target keeps");
+        set_usual_day(&gather, &burn, &a_desk_day_from("2026-10-14")).expect("the usual day keeps");
+
+        assert_eq!(never_kept, [None, None, None, None, None]);
+        assert_eq!(
+            kept_on_the_20th(),
+            [
+                "2026-10-10",
+                "2026-10-11",
+                "2026-10-12",
+                "2026-10-13",
+                "2026-10-14"
+            ]
+            .map(|day| Some(day.to_string()))
         );
     }
 
@@ -954,11 +1033,13 @@ mod tests {
             (
                 Ok(Some(InForce {
                     values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
-                    recommended: true
+                    recommended: true,
+                    from: None,
                 })),
                 Ok(Some(InForce {
                     values: 150.0,
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 }))
             )
         );
@@ -1002,15 +1083,18 @@ mod tests {
             [
                 Some(InForce {
                     values: 150.0,
-                    recommended: false
+                    recommended: false,
+                    from: None,
                 }),
                 Some(InForce {
                     values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
-                    recommended: true
+                    recommended: true,
+                    from: None,
                 }),
                 Some(InForce {
                     values: 3.0 * 80.0 * 150.0 / 7.0 / 60.0,
-                    recommended: true
+                    recommended: true,
+                    from: None,
                 })
             ]
         );

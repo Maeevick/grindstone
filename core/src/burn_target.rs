@@ -62,7 +62,8 @@ mod tests {
             target_on(day("2026-10-20"), &kept, None),
             Some(InForce {
                 values: 150.0,
-                recommended: false
+                recommended: false,
+                from: None,
             })
         );
         assert!(about(
