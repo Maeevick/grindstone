@@ -101,7 +101,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                 {ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
-            <div class="gauge-floor">
+            <div class="gauge-under-ticks">
                 <span
                     class="acc maintenance-label"
                     style=format!("left: {}%", 100.0 * placed.maintenance_at / 360.0)

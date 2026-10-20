@@ -437,13 +437,13 @@ hr.divider {
     color: #9aa0a6;
 }
 
-.gauge-floor {
+.gauge-under-ticks {
     position: relative;
     height: 1.2rem;
     font-size: 0.8rem;
 }
 
-.gauge-floor span {
+.gauge-under-ticks span {
     position: absolute;
     transform: translateX(-50%);
     white-space: nowrap;
