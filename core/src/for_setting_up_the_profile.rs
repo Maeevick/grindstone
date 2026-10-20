@@ -53,13 +53,14 @@ pub fn set_profile(
     Ok(profile)
 }
 
+/// The profile in force on a day, with the day it was set from.
 pub fn profile_on(
     records: &impl ForStoringGatherRecords,
     date: &str,
-) -> Result<Option<Profile>, Failure> {
+) -> Result<Option<(NaiveDate, Profile)>, Failure> {
     let day = day(date)?;
     let gathered = records.gather_records()?;
-    Ok(version_in_force_on(&gathered.profiles, day).copied())
+    Ok(version_in_force_on(&gathered.profiles, day).map(|profile| (day, *profile)))
 }
 
 /// Goals as typed: a body mass and a fat percentage.
@@ -323,12 +324,18 @@ mod tests {
     }
 
     #[test]
-    fn a_profile_set_from_a_day_is_in_force_from_that_day() {
+    fn a_profile_set_from_a_day_is_in_force_from_that_day_and_tells_it() {
         let records = GatherRecordsInMemory::default();
 
         let set = set_profile(&records, &a_mans_form("2026-10-10"));
 
-        assert_eq!(profile_on(&records, "2026-10-12"), set.map(Some));
+        assert_eq!(
+            profile_on(&records, "2026-10-12"),
+            set.map(|profile| Some((
+                NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+                profile
+            )))
+        );
     }
 
     #[test]
