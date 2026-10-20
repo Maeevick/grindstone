@@ -122,6 +122,30 @@ mod tests {
     }
 
     #[test]
+    fn a_loss_under_the_healthy_mass_or_fat_is_judged_by_the_aim_the_healthy_ranges_being_the_profiles_word()
+     {
+        let losing_towards_a_lower_aim = Week {
+            safe_loss_kg: 0.47,
+            ..a_week(-0.3, Some(60.0))
+        };
+
+        assert_eq!(
+            [
+                judgement_of(&Week {
+                    healthy_mass_from_kg: Some(A_BODY_KG + 1.0),
+                    ..losing_towards_a_lower_aim
+                }),
+                judgement_of(&Week {
+                    fat_ratio: Some(0.107),
+                    healthy_fat_ratio_from: Some(0.11),
+                    ..losing_towards_a_lower_aim
+                }),
+            ],
+            [Judgement::VeryGood, Judgement::VeryGood]
+        );
+    }
+
+    #[test]
     fn losing_right_at_the_healthy_mass_or_fat_is_not_yet_under_them() {
         let losing = a_week(-1.0, None);
 

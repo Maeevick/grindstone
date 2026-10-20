@@ -272,16 +272,18 @@ mod tests {
     }
 
     #[test]
-    fn losing_under_the_healthy_mass_or_fat_is_dangerous_whatever_the_aim() {
+    fn a_loss_under_the_healthy_mass_or_fat_for_the_age_is_judged_by_the_aim_and_the_safe_lane_alone()
+     {
         let under_the_healthy_mass = aiming_at(55.0, a_man_with_a_waist_weighed(72.0, 59.0, -0.02));
-        let under_the_healthy_fat = aiming_at(70.0, a_man_with_a_waist_weighed(70.0, 76.0, -0.02));
+        let under_the_healthy_fat_for_the_age =
+            aiming_at(68.0, a_man_with_a_waist_weighed(79.0, 71.0, -0.043));
 
         assert_eq!(
             (
                 judged(&under_the_healthy_mass),
-                judged(&under_the_healthy_fat)
+                judged(&under_the_healthy_fat_for_the_age)
             ),
-            (Judgement::UnderHealthyMass, Judgement::UnderHealthyFat)
+            (Judgement::VeryGood, Judgement::VeryGood)
         );
     }
 
