@@ -258,11 +258,13 @@ pub async fn remove_food(name: &str) -> Result<Vec<Food>, Failure> {
     call("remove_food", Naming { name }, broken).await
 }
 
-pub async fn set_fuel_targets(form: &FuelTargetsForm) -> Result<FuelTargets, Failure> {
+pub async fn set_fuel_targets(
+    form: &FuelTargetsForm,
+) -> Result<Option<InForce<FuelTargets>>, Failure> {
     call("set_fuel_targets", Form { form }, broken).await
 }
 
-pub async fn fuel_targets_on(date: &str) -> Result<FuelTargets, Failure> {
+pub async fn fuel_targets_on(date: &str) -> Result<Option<InForce<FuelTargets>>, Failure> {
     call("fuel_targets_on", OnDay { date }, broken).await
 }
 

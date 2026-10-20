@@ -3,6 +3,7 @@ use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
     BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
 };
+use grind_core::fuel_records::FuelTargets;
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
 use grind_core::kept::Kept;
@@ -265,10 +266,10 @@ fn FuelTargetsCard() -> impl IntoView {
         fibre.set(typed_back(advised.fuel.fibre_g_per_kg));
     });
     spawn_local(async move {
-        if let Ok(targets) = tauri::fuel_targets_on(&today()).await {
-            protein.set(targets.protein_g_per_kg.to_string());
-            fat.set(targets.fat_g_per_kg.to_string());
-            fibre.set(targets.fibre_g_per_kg.to_string());
+        if let Ok(Some(targets)) = tauri::fuel_targets_on(&today()).await {
+            protein.set(targets.values.protein_g_per_kg.to_string());
+            fat.set(targets.values.fat_g_per_kg.to_string());
+            fibre.set(targets.values.fibre_g_per_kg.to_string());
         }
     });
     let save = move |event: leptos::ev::SubmitEvent| {
@@ -283,9 +284,11 @@ fn FuelTargetsCard() -> impl IntoView {
         };
         let form = FuelTargetsForm {
             from: from.get_untracked(),
-            protein_g_per_kg: protein_g_per_kg.unwrap_or(0.0),
-            fat_g_per_kg: fat_g_per_kg.unwrap_or(0.0),
-            fibre_g_per_kg: fibre_g_per_kg.unwrap_or(0.0),
+            kept: Kept::Own(FuelTargets {
+                protein_g_per_kg: protein_g_per_kg.unwrap_or(0.0),
+                fat_g_per_kg: fat_g_per_kg.unwrap_or(0.0),
+                fibre_g_per_kg: fibre_g_per_kg.unwrap_or(0.0),
+            }),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_fuel_targets(&form).await {

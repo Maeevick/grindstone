@@ -251,15 +251,18 @@ pub fn remove_food(records: State<Records>, name: String) -> Result<Vec<Food>, F
 pub fn set_fuel_targets(
     records: State<Records>,
     form: FuelTargetsForm,
-) -> Result<FuelTargets, Failure> {
+) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_fuel_targets(&*records, &form)
+    for_setting_up_the_profile::set_fuel_targets(&*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn fuel_targets_on(records: State<Records>, date: String) -> Result<FuelTargets, Failure> {
+pub fn fuel_targets_on(
+    records: State<Records>,
+    date: String,
+) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::fuel_targets_on(&*records, &date)
+    for_setting_up_the_profile::fuel_targets_on(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -1033,12 +1036,13 @@ mod tests {
         let set = invoke(
             &screen,
             "set_fuel_targets",
-            json!({ "form": { "from": "2026-03-01", "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 } }),
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": aims } } }),
         );
         let in_force = invoke(&screen, "fuel_targets_on", json!({ "date": "2026-10-10" }));
 
-        assert_eq!(set, Ok(aims.clone()));
-        assert_eq!(in_force, Ok(aims));
+        let kept = json!({ "values": aims, "recommended": false });
+        assert_eq!(set, Ok(kept.clone()));
+        assert_eq!(in_force, Ok(kept));
     }
 
     #[test]
