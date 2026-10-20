@@ -78,6 +78,8 @@ pub fn run() {
             commands::drinks,
             commands::add_drink,
             commands::remove_drink,
+            commands::set_hydrate_target,
+            commands::hydrate_target_on,
             commands::set_hydrate_counted,
             commands::hydrate_counted_on,
             commands::set_burn_target,

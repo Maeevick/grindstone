@@ -21,7 +21,8 @@ use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, ProfileForm, UsualDayForm,
+    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, HydrateTargetForm,
+    ProfileForm, UsualDayForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -427,6 +428,24 @@ pub fn burn_target_on(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn set_hydrate_target(
+    records: State<Records>,
+    form: HydrateTargetForm,
+) -> Result<Option<InForce<f64>>, Failure> {
+    let _ = (records, form);
+    Ok(None)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_target_on(
+    records: State<Records>,
+    date: String,
+) -> Result<Option<InForce<f64>>, Failure> {
+    let _ = (records, date);
+    Ok(None)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn set_hydrate_counted(
     records: State<Records>,
     form: HydrateCountedForm,
@@ -591,6 +610,8 @@ mod tests {
                 drinks,
                 add_drink,
                 remove_drink,
+                set_hydrate_target,
+                hydrate_target_on,
                 set_hydrate_counted,
                 hydrate_counted_on,
                 set_burn_target,
@@ -1427,6 +1448,36 @@ mod tests {
                 Ok(json!({ "values": 150.0, "recommended": false })),
                 Ok(json!({ "values": 150.0, "recommended": false })),
                 Ok(json!(null))
+            )
+        );
+    }
+
+    #[test]
+    fn a_water_target_kept_from_the_screen_is_its_own_then_the_recommendation_once_that_is_kept() {
+        let (_app, screen) = launched();
+
+        let own = invoke(
+            &screen,
+            "set_hydrate_target",
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": 2800.0 } } }),
+        );
+        let recommended = invoke(
+            &screen,
+            "set_hydrate_target",
+            json!({ "form": { "from": "2026-10-10", "kept": "Recommended" } }),
+        );
+        let in_force = invoke(
+            &screen,
+            "hydrate_target_on",
+            json!({ "date": "2026-10-12" }),
+        );
+
+        assert_eq!(
+            (own, recommended, in_force),
+            (
+                Ok(json!({ "values": 2800.0, "recommended": false })),
+                Ok(json!({ "values": 2000.0, "recommended": true })),
+                Ok(json!({ "values": 2000.0, "recommended": true }))
             )
         );
     }
