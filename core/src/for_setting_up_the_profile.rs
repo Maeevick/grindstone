@@ -19,7 +19,7 @@ use crate::kept::{InForce, Kept};
 use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
 use crate::refusal::Refusal;
-use crate::version::version_in_force_on;
+use crate::version::{dated_version_in_force_on, version_in_force_on};
 use crate::volitional::{Volitional, volitional};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -60,7 +60,7 @@ pub fn profile_on(
 ) -> Result<Option<(NaiveDate, Profile)>, Failure> {
     let day = day(date)?;
     let gathered = records.gather_records()?;
-    Ok(version_in_force_on(&gathered.profiles, day).map(|profile| (day, *profile)))
+    Ok(dated_version_in_force_on(&gathered.profiles, day).copied())
 }
 
 /// Goals as typed: a body mass and a fat percentage.
