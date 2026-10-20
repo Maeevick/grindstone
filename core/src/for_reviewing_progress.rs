@@ -224,7 +224,7 @@ pub fn explore(
             Measure::Balance => from_fuel(|fuelled| {
                 fuelled
                     .band
-                    .map(|band| fuelled.eaten.energy_kcal - band.cap_kcal)
+                    .map(|band| fuelled.eaten.energy_kcal - band.maintenance_kcal)
             }),
             Measure::Protein => from_fuel(|fuelled| Some(fuelled.eaten.protein_g)),
             Measure::Carbs => from_fuel(|fuelled| Some(fuelled.eaten.carbs_g)),
