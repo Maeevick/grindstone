@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
 use grind_core::burn::Burn;
+use grind_core::burn_week::BurnWeek;
 use grind_core::circuit::Circuit;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::exercise::Exercise;
@@ -122,6 +123,12 @@ pub fn import_draft(
 pub fn burn_day(records: State<Records>, date: String) -> Result<Burn, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_burning::burn_day(&*records, &*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn burn_week(records: State<Records>, date: String) -> Result<Option<BurnWeek>, Failure> {
+    let _ = (records, date);
+    Ok(None)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -528,6 +535,7 @@ mod tests {
                 gather_card,
                 import_draft,
                 burn_day,
+                burn_week,
                 log_workout,
                 remove_workout,
                 set_day_off_the_clock,
@@ -808,6 +816,25 @@ mod tests {
             json!({ "form": { "date": "2026-10-10", "exercise": "Walking", "minutes": minutes,
                               "reps": null, "sets": 1, "load_kg": 0.0 } }),
         )
+    }
+
+    #[test]
+    fn the_weeks_sum_up_crosses_to_the_screen_with_its_active_days_and_exercises() {
+        let (_app, screen) = launched();
+        with_walking_in_the_catalog(&screen);
+        walked(&screen, 30.0).expect("a workout logs");
+
+        let answer = invoke(&screen, "burn_week", json!({ "date": "2026-10-10" }));
+
+        assert_eq!(
+            answer.map(|week| {
+                (
+                    week["active_days"].clone(),
+                    week["exercises"][0]["exercise"].clone(),
+                )
+            }),
+            Ok((json!(1), json!("Walking")))
+        );
     }
 
     #[test]

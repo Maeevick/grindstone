@@ -30,6 +30,7 @@ pub fn run() {
             commands::gather_card,
             commands::import_draft,
             commands::burn_day,
+            commands::burn_week,
             commands::log_workout,
             commands::remove_workout,
             commands::set_day_off_the_clock,
