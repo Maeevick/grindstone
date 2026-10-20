@@ -43,20 +43,7 @@ pub fn judgement_of(week: &Week) -> Judgement {
     let at_the_aim = week
         .aim_kg
         .is_some_and(|aim| (week.body_mass_kg - aim).abs() <= AT_THE_AIM_SHARE * aim);
-    if losing
-        && week
-            .healthy_mass_from_kg
-            .is_some_and(|healthy| week.body_mass_kg < healthy)
-    {
-        Judgement::UnderHealthyMass
-    } else if losing
-        && week
-            .healthy_fat_ratio_from
-            .zip(week.fat_ratio)
-            .is_some_and(|(healthy, fat_ratio)| fat_ratio < healthy)
-    {
-        Judgement::UnderHealthyFat
-    } else if -week.per_week > week.safe_loss_kg {
+    if -week.per_week > week.safe_loss_kg {
         Judgement::LosingTooFast
     } else if towards_a_lower_aim && -week.per_week >= week.safe_loss_kg / 2.0 {
         Judgement::VeryGood
