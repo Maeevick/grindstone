@@ -5,6 +5,7 @@ pub mod body;
 pub mod burn;
 pub mod burn_records;
 pub mod burn_target;
+pub mod burn_week;
 pub mod circuit;
 pub mod composition;
 pub mod drink;
