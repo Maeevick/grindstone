@@ -127,8 +127,8 @@ pub fn burn_day(records: State<Records>, date: String) -> Result<Burn, Failure> 
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn burn_week(records: State<Records>, date: String) -> Result<Option<BurnWeek>, Failure> {
-    let _ = (records, date);
-    Ok(None)
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::burn_week(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
