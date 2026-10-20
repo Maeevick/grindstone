@@ -1,6 +1,7 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::aims::aims_on;
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::burn_target::target_on;
@@ -14,7 +15,6 @@ use crate::fuel::{Fuel, fuel_over};
 use crate::gather_records::GatherRecords;
 use crate::hydrate::hydrate_over;
 use crate::hydrate_counted::counted_on;
-use crate::kept::Kept;
 use crate::ledger::Day;
 use crate::ledger::ledger;
 use crate::progress::{Progress, progress_towards};
@@ -23,7 +23,6 @@ use crate::stats::{Measure, Summary, correlation, paired, summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
 use crate::verdict::within_grace;
-use crate::version::version_in_force_on;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -63,9 +62,7 @@ pub fn gather_card(
         .into_iter()
         .filter(|(day, _)| is_in_window(day))
         .collect();
-    let target_kg = version_in_force_on(&gathered.goals, today)
-        .and_then(Kept::own)
-        .map(|goals| goals.body_mass_kg);
+    let target_kg = aims_on(today, &gathered).map(|aims| aims.body_mass_kg);
     let compositions: Vec<Composition> = ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
         .filter(|day| is_in_window(&day.day))

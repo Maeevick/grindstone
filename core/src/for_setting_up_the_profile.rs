@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::aims::goals_in_force;
 use crate::burn::{body_mass_in_force_on, usual_day_in_force};
 use crate::burn_target::target_on;
 use crate::failure::Failure;
@@ -93,13 +94,7 @@ pub fn goals_on(
     date: &str,
 ) -> Result<Option<InForce<Goals>>, Failure> {
     let day = day(date)?;
-    let gathered = records.gather_records()?;
-    Ok(version_in_force_on(&gathered.goals, day)
-        .and_then(Kept::own)
-        .map(|goals| InForce {
-            values: *goals,
-            recommended: false,
-        }))
+    Ok(goals_in_force(day, &records.gather_records()?))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

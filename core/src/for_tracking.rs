@@ -1,17 +1,15 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use crate::aims::{Aims, aims_on};
+use crate::aims::{Aims, aims_on, goals_in_force};
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
-use crate::kept::Kept;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
 use crate::pace::{Pace, pace_on};
 use crate::refusal::Refusal;
 use crate::tendency::{Tendency, tendency_of};
-use crate::version::version_in_force_on;
 
 const DAYS_BEFORE_IN_A_WEEK: u64 = 6;
 
@@ -39,7 +37,9 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         day: days.first().filter(|measured| measured.day == day).copied(),
         tendency: tendency_of(
             &days,
-            version_in_force_on(&gathered.goals, day).and_then(Kept::own),
+            goals_in_force(day, gathered)
+                .map(|goals| goals.values)
+                .as_ref(),
         ),
         days,
         aims: aims_on(day, gathered),
@@ -80,6 +80,7 @@ mod tests {
     use super::*;
     use crate::gender::Gender;
     use crate::goals::Goals;
+    use crate::kept::Kept;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
     use crate::tendency::Heading;

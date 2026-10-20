@@ -2,8 +2,9 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
+use crate::goals::Goals;
 use crate::heading::Aim;
-use crate::kept::Kept;
+use crate::kept::{InForce, in_force};
 use crate::recommendations::recommended;
 use crate::version::version_in_force_on;
 
@@ -36,24 +37,29 @@ impl Aims {
     }
 }
 
-/// The body mass and the lean mass a day aims for: the goals in force, else the healthy weight and fat
-/// recommended for the profile in force (WHO's body mass index, Gallagher's fat), the lean mass being what
-/// their fat ratio leaves of their body mass.
-pub fn aims_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Aims> {
-    let aiming = |body_mass_kg: f64, fat_ratio: f64, recommended: bool| Aims {
-        body_mass_kg,
-        lean_mass_kg: body_mass_kg * (1.0 - fat_ratio),
-        recommended,
-    };
-    version_in_force_on(&gathered.goals, day)
-        .and_then(Kept::own)
-        .map(|goals| aiming(goals.body_mass_kg, goals.fat_ratio, false))
-        .or_else(|| {
-            version_in_force_on(&gathered.profiles, day).map(|profile| {
-                let advised = recommended(profile, day, None);
-                aiming(advised.goal_mass_kg, advised.goal_fat_ratio, true)
-            })
+/// The goals in force on a day: those kept from the latest day up to it (the earliest before any), their own
+/// or the healthy weight and fat recommended for the profile in force (WHO's body mass index, Gallagher's
+/// fat); never kept, the recommendation; nothing without a profile to recommend for.
+pub(crate) fn goals_in_force(day: NaiveDate, gathered: &GatherRecords) -> Option<InForce<Goals>> {
+    in_force(version_in_force_on(&gathered.goals, day), || {
+        version_in_force_on(&gathered.profiles, day).map(|profile| {
+            let advised = recommended(profile, day, None);
+            Goals {
+                body_mass_kg: advised.goal_mass_kg,
+                fat_ratio: advised.goal_fat_ratio,
+            }
         })
+    })
+}
+
+/// The body mass and the lean mass a day aims for, from the goals in force, the lean mass being what their
+/// fat ratio leaves of their body mass.
+pub fn aims_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Aims> {
+    goals_in_force(day, gathered).map(|goals| Aims {
+        body_mass_kg: goals.values.body_mass_kg,
+        lean_mass_kg: goals.values.body_mass_kg * (1.0 - goals.values.fat_ratio),
+        recommended: goals.recommended,
+    })
 }
 
 #[cfg(test)]
@@ -61,6 +67,7 @@ mod tests {
     use super::*;
     use crate::gender::Gender;
     use crate::goals::Goals;
+    use crate::kept::Kept;
     use crate::profile::Profile;
 
     fn day(date: &str) -> NaiveDate {

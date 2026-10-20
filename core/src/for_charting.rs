@@ -1,6 +1,7 @@
 use chrono::{Months, NaiveDate};
 use serde::{Deserialize, Serialize};
 
+use crate::aims::aims_on;
 use crate::burn::{Burn, burn_on};
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
@@ -13,11 +14,9 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{MacroRow, Macros, fuel_over};
 use crate::hydrate::{Hydrate, hydrate_over};
-use crate::kept::Kept;
 use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
 use crate::verdict::Verdict;
-use crate::version::version_in_force_on;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct GatherChart {
@@ -67,7 +66,7 @@ pub fn gather_chart(
         .into_iter()
         .filter(|measured| (first..=last).contains(&measured.day))
         .collect();
-    let goals = version_in_force_on(&gathered.goals, last).and_then(Kept::own);
+    let aims = aims_on(last, &gathered);
     Ok(GatherChart {
         masses: days
             .iter()
@@ -81,8 +80,8 @@ pub fn gather_chart(
                     .map(|split| (measured.day, split.lean_mass_kg))
             })
             .collect(),
-        goal_kg: goals.map(|goals| goals.body_mass_kg),
-        goal_lean_kg: goals.map(|goals| goals.body_mass_kg * (1.0 - goals.fat_ratio)),
+        goal_kg: aims.map(|aims| aims.body_mass_kg),
+        goal_lean_kg: aims.map(|aims| aims.lean_mass_kg),
     })
 }
 
