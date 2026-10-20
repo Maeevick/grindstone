@@ -83,13 +83,16 @@ pub fn profile_on(records: State<Records>, date: String) -> Result<Option<Profil
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_goals(records: State<Records>, form: GoalsForm) -> Result<Goals, Failure> {
+pub fn set_goals(
+    records: State<Records>,
+    form: GoalsForm,
+) -> Result<Option<InForce<Goals>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::set_goals(&*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn goals_on(records: State<Records>, date: String) -> Result<Option<Goals>, Failure> {
+pub fn goals_on(records: State<Records>, date: String) -> Result<Option<InForce<Goals>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::goals_on(&*records, &date)
 }
@@ -727,12 +730,13 @@ mod tests {
     #[test]
     fn goals_set_from_the_screen_are_the_ones_in_force_from_their_day() {
         let (_app, screen) = launched();
-        let form = json!({ "from": "2026-10-10", "body_mass_kg": 70.0, "fat_percentage": 10.0 });
+        let form = json!({ "from": "2026-10-10", "kept": { "Own": { "body_mass_kg": 70.0, "fat_percentage": 10.0 } } });
 
         let set = invoke(&screen, "set_goals", json!({ "form": form }));
         let in_force = invoke(&screen, "goals_on", json!({ "date": "2026-10-12" }));
 
-        let expected = json!({ "body_mass_kg": 70.0, "fat_ratio": 0.1 });
+        let expected =
+            json!({ "values": { "body_mass_kg": 70.0, "fat_ratio": 0.1 }, "recommended": false });
         assert_eq!(set, Ok(expected.clone()));
         assert_eq!(in_force, Ok(expected));
     }

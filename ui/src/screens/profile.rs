@@ -1,7 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
-    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, TypedGoals, UsualDayForm,
 };
 use grind_core::fuel_records::FuelTargets;
 use grind_core::gender::Gender;
@@ -55,8 +55,8 @@ fn GoalsCard() -> impl IntoView {
     });
     spawn_local(async move {
         if let Ok(Some(goals)) = tauri::goals_on(&today()).await {
-            target_mass.set(goals.body_mass_kg.to_string());
-            target_fat.set(fat_percentage(&goals).to_string());
+            target_mass.set(goals.values.body_mass_kg.to_string());
+            target_fat.set(fat_percentage(&goals.values).to_string());
         }
     });
     spawn_local(async move {
@@ -74,8 +74,10 @@ fn GoalsCard() -> impl IntoView {
         };
         let form = GoalsForm {
             from: from.get_untracked(),
-            body_mass_kg: body_mass_kg.unwrap_or(0.0),
-            fat_percentage: fat_percentage.unwrap_or(0.0),
+            kept: Kept::Own(TypedGoals {
+                body_mass_kg: body_mass_kg.unwrap_or(0.0),
+                fat_percentage: fat_percentage.unwrap_or(0.0),
+            }),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_goals(&form).await {

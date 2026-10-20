@@ -533,8 +533,10 @@ mod tests {
             &logged.gather,
             &GoalsForm {
                 from: "2026-03-01".into(),
-                body_mass_kg: 70.0,
-                fat_percentage: 10.0,
+                kept: crate::kept::Kept::Own(crate::for_setting_up_the_profile::TypedGoals {
+                    body_mass_kg: 70.0,
+                    fat_percentage: 10.0,
+                }),
             },
         )
         .expect("goals set");
@@ -622,6 +624,34 @@ mod tests {
                 .goal_lean_kg
                 .is_some_and(|kg| (kg - 63.0).abs() < 1e-9)
         );
+    }
+
+    #[test]
+    fn a_gather_chart_never_given_goals_draws_the_recommended_ones() {
+        let gather = GatherRecordsInMemory::default();
+        let profile = ProfileForm {
+            from: "2026-03-01".into(),
+            birthday: "1985-04-12".into(),
+            gender: Gender::Male,
+            height_cm: 180.0,
+            neck_cm: 38.5,
+            hip_cm: None,
+        };
+        set_profile(&gather, &profile).expect("a profile set");
+        log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");
+
+        let chart = gather_chart(&gather, "2026-10-10", Window::Days30).expect("a chart");
+
+        let aims = crate::aims::aims_on(
+            day("2026-10-10"),
+            &gather.gather_records().expect("records"),
+        )
+        .expect("the recommended aims");
+        assert_eq!(
+            (chart.goal_kg, chart.goal_lean_kg),
+            (Some(aims.body_mass_kg), Some(aims.lean_mass_kg))
+        );
+        assert!(aims.recommended);
     }
 
     #[test]

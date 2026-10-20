@@ -334,8 +334,10 @@ mod tests {
             &records,
             &GoalsForm {
                 from: "2026-03-01".into(),
-                body_mass_kg: 70.0,
-                fat_percentage: 10.0,
+                kept: crate::kept::Kept::Own(crate::for_setting_up_the_profile::TypedGoals {
+                    body_mass_kg: 70.0,
+                    fat_percentage: 10.0,
+                }),
             },
         )
         .expect("goals set");
@@ -356,6 +358,36 @@ mod tests {
             card.progress
                 .is_some_and(|progress| (progress.per_week + 0.5).abs() < 1e-9)
         );
+    }
+
+    #[test]
+    fn the_card_reads_the_rate_towards_the_recommended_mass_when_no_goals_were_kept() {
+        let records = GatherRecordsInMemory::default();
+        crate::for_setting_up_the_profile::set_profile(
+            &records,
+            &crate::for_setting_up_the_profile::ProfileForm {
+                from: "2026-03-01".into(),
+                birthday: "1985-04-12".into(),
+                gender: crate::gender::Gender::Male,
+                height_cm: 180.0,
+                neck_cm: 38.5,
+                hip_cm: None,
+            },
+        )
+        .expect("a profile set");
+        measured(&records, &[("2026-10-03", 79.0), ("2026-10-10", 78.5)]);
+
+        let card = gather_card(&records, "2026-10-10", Window::Days30).expect("a card");
+
+        assert_eq!(
+            card.target_kg,
+            crate::aims::aims_on(
+                NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
+                &records.gather_records().expect("records")
+            )
+            .map(|aims| aims.body_mass_kg)
+        );
+        assert!(card.target_kg.is_some());
     }
 
     #[test]

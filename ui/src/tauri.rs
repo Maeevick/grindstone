@@ -119,11 +119,11 @@ pub async fn set_profile(form: &ProfileForm) -> Result<Profile, Failure> {
     call("set_profile", Form { form }, broken).await
 }
 
-pub async fn goals_on(date: &str) -> Result<Option<Goals>, Failure> {
+pub async fn goals_on(date: &str) -> Result<Option<InForce<Goals>>, Failure> {
     call("goals_on", OnDay { date }, broken).await
 }
 
-pub async fn set_goals(form: &GoalsForm) -> Result<Goals, Failure> {
+pub async fn set_goals(form: &GoalsForm) -> Result<Option<InForce<Goals>>, Failure> {
     call("set_goals", Form { form }, broken).await
 }
 

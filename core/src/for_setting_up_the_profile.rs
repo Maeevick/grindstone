@@ -60,32 +60,46 @@ pub fn profile_on(
     Ok(version_in_force_on(&gathered.profiles, day).copied())
 }
 
+/// Goals as typed: a body mass and a fat percentage.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TypedGoals {
+    pub body_mass_kg: f64,
+    pub fat_percentage: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GoalsForm {
     pub from: String,
-    pub body_mass_kg: f64,
-    pub fat_percentage: f64,
+    pub kept: Kept<TypedGoals>,
 }
 
 pub fn set_goals(
     records: &impl ForStoringGatherRecords,
     form: &GoalsForm,
-) -> Result<Goals, Failure> {
+) -> Result<Option<InForce<Goals>>, Failure> {
     let from = day(&form.from)?;
-    let goals = goals(form.body_mass_kg, form.fat_percentage).map_err(Failure::Refused)?;
-    records.save_goals(from, &Kept::Own(goals))?;
-    Ok(goals)
+    let kept = match form.kept {
+        Kept::Own(typed) => {
+            Kept::Own(goals(typed.body_mass_kg, typed.fat_percentage).map_err(Failure::Refused)?)
+        }
+        Kept::Recommended => Kept::Recommended,
+    };
+    records.save_goals(from, &kept)?;
+    goals_on(records, &form.from)
 }
 
 pub fn goals_on(
     records: &impl ForStoringGatherRecords,
     date: &str,
-) -> Result<Option<Goals>, Failure> {
+) -> Result<Option<InForce<Goals>>, Failure> {
     let day = day(date)?;
     let gathered = records.gather_records()?;
     Ok(version_in_force_on(&gathered.goals, day)
         .and_then(Kept::own)
-        .copied())
+        .map(|goals| InForce {
+            values: *goals,
+            recommended: false,
+        }))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -274,16 +288,99 @@ mod tests {
     fn goals_set_from_a_day_are_in_force_from_that_day() {
         let records = GatherRecordsInMemory::default();
 
-        let set = set_goals(
-            &records,
+        let set = set_goals(&records, &goals_kept("2026-10-10", 70.0, 10.0));
+
+        assert_eq!(goals_on(&records, "2026-10-12"), set);
+        assert_eq!(
+            set,
+            Ok(Some(InForce {
+                values: Goals {
+                    body_mass_kg: 70.0,
+                    fat_ratio: 0.1
+                },
+                recommended: false
+            }))
+        );
+    }
+
+    fn goals_kept(from: &str, body_mass_kg: f64, fat_percentage: f64) -> GoalsForm {
+        GoalsForm {
+            from: from.into(),
+            kept: Kept::Own(TypedGoals {
+                body_mass_kg,
+                fat_percentage,
+            }),
+        }
+    }
+
+    fn the_recommended_goals(birthday: &str, date: &str) -> InForce<Goals> {
+        let advised = recommended(
+            &Profile {
+                birthday: NaiveDate::parse_from_str(birthday, "%Y-%m-%d").expect("a day"),
+                gender: Gender::Male,
+                height_cm: 180.0,
+                neck_cm: 38.5,
+                hip_cm: None,
+            },
+            NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a day"),
+            None,
+        );
+        InForce {
+            values: Goals {
+                body_mass_kg: advised.goal_mass_kg,
+                fat_ratio: advised.goal_fat_ratio,
+            },
+            recommended: true,
+        }
+    }
+
+    #[test]
+    fn goals_never_kept_follow_the_recommendation_for_the_height_and_age_none_without_a_profile() {
+        assert_eq!(
+            (
+                goals_on(&born("1985-04-12"), "2026-10-10"),
+                goals_on(&GatherRecordsInMemory::default(), "2026-10-10")
+            ),
+            (
+                Ok(Some(the_recommended_goals("1985-04-12", "2026-10-10"))),
+                Ok(None)
+            )
+        );
+    }
+
+    #[test]
+    fn the_goals_recommendation_kept_from_a_day_follows_the_age_own_goals_holding_before_it() {
+        let gather = born("1966-10-15");
+        set_goals(&gather, &goals_kept("2026-03-01", 70.0, 10.0)).expect("goals keep");
+        set_goals(
+            &gather,
             &GoalsForm {
                 from: "2026-10-10".into(),
-                body_mass_kg: 70.0,
-                fat_percentage: 10.0,
+                kept: Kept::Recommended,
             },
-        );
+        )
+        .expect("the recommendation keeps");
 
-        assert_eq!(goals_on(&records, "2026-10-12"), set.map(Some));
+        let in_force = |date| goals_on(&gather, date).ok().flatten();
+
+        assert_eq!(
+            [
+                in_force("2026-10-05"),
+                in_force("2026-10-11"),
+                in_force("2026-10-16")
+            ],
+            [
+                Some(InForce {
+                    values: Goals {
+                        body_mass_kg: 70.0,
+                        fat_ratio: 0.1
+                    },
+                    recommended: false
+                }),
+                Some(the_recommended_goals("1966-10-15", "2026-10-11")),
+                Some(the_recommended_goals("1966-10-15", "2026-10-16"))
+            ]
+        );
     }
 
     #[test]
@@ -293,11 +390,7 @@ mod tests {
             height_cm: 0.0,
             ..a_mans_form("2026-10-10")
         };
-        let refused_goals = GoalsForm {
-            from: "2026-10-10".into(),
-            body_mass_kg: 70.0,
-            fat_percentage: 100.0,
-        };
+        let refused_goals = goals_kept("2026-10-10", 70.0, 100.0);
 
         assert_eq!(
             set_profile(&records, &refused_profile),
@@ -327,11 +420,7 @@ mod tests {
     #[test]
     fn records_that_cannot_be_written_or_read_come_back_broken() {
         let broken = Failure::Broken("the disk is full".into());
-        let goals_form = GoalsForm {
-            from: "2026-10-10".into(),
-            body_mass_kg: 70.0,
-            fat_percentage: 10.0,
-        };
+        let goals_form = goals_kept("2026-10-10", 70.0, 10.0);
 
         assert_eq!(
             set_profile(&BrokenGatherRecords, &a_mans_form("2026-10-10")),
