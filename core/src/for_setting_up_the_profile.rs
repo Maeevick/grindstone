@@ -89,6 +89,7 @@ pub fn set_goals(
         Kept::Recommended => Kept::Recommended,
     };
     records.save_goals(from, &kept)?;
+    records.save_counted(from, form.counted)?;
     goals_on(records, &form.from)
 }
 
@@ -162,6 +163,7 @@ pub fn set_fuel_targets(
         Kept::Recommended => Kept::Recommended,
     };
     fuel.save_targets(from, &kept)?;
+    fuel.save_counted(from, form.counted)?;
     fuel_targets_on(gather, fuel, &form.from)
 }
 
@@ -202,6 +204,7 @@ pub fn set_hydrate_target(
         return Err(Failure::Refused(Refusal::NotAVolume));
     }
     hydrate.save_hydrate_target(from, form.kept)?;
+    hydrate.save_counted(from, form.counted)?;
     hydrate_target_on(gather, hydrate, &form.from)
 }
 
@@ -262,6 +265,7 @@ pub fn set_burn_target(
         return Err(Failure::Refused(Refusal::NotAnEnergy));
     }
     burn.save_burn_target(from, form.kept)?;
+    burn.save_counted(from, form.counted)?;
     burn_target_on(gather, burn, &form.from)
 }
 
@@ -295,12 +299,12 @@ pub fn scope_on(
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
 ) -> Result<Scope, Failure> {
-    let _ = (gather, burn, fuel, hydrate, day(date)?);
+    let day = day(date)?;
     Ok(Scope {
-        weighed: true,
-        fuelled: true,
-        worked_out: true,
-        hydrated: true,
+        weighed: counted_on(day, &gather.gather_records()?.counted_from),
+        fuelled: counted_on(day, &fuel.fuel_records()?.counted_from),
+        worked_out: counted_on(day, &burn.burn_records()?.counted_from),
+        hydrated: counted_on(day, &hydrate.hydrate_records()?.counted_from),
     })
 }
 
