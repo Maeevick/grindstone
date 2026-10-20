@@ -599,6 +599,18 @@ mod tests {
                 },
             )
             .expect("targets set");
+            set_goals(
+                &records.gather,
+                &GoalsForm {
+                    from: "2026-03-01".into(),
+                    kept: crate::kept::Kept::Own(crate::for_setting_up_the_profile::TypedGoals {
+                        body_mass_kg: 70.0,
+                        fat_percentage: 10.0,
+                    }),
+                    counted: true,
+                },
+            )
+            .expect("goals set");
             add_exercise(&records.burn, "Walking", 4.0, "").expect("an exercise adds");
             add_food(&records.fuel, &plate("Plate", 35.0)).expect("a food adds");
             add_food(&records.fuel, &plate("Fibreless plate", 5.0)).expect("a food adds");
@@ -614,6 +626,9 @@ mod tests {
         }
 
         const A_WALK_MINUTES: f64 = 30.0;
+
+        /// A waist that leaves him well above the fat of his goals: a cut.
+        const HIS_WAIST_CM: f64 = 90.0;
 
         fn a_full_day(records: &Records, date: &str, plate: &str) {
             a_full_day_walking(records, date, plate, A_WALK_MINUTES);
@@ -640,7 +655,8 @@ mod tests {
         }
 
         fn a_dry_day_walking(records: &Records, date: &str, plate: &str, minutes: f64) {
-            log_measurement(&records.gather, date, 80.0, Some(80.0)).expect("a measurement logs");
+            log_measurement(&records.gather, date, 80.0, Some(HIS_WAIST_CM))
+                .expect("a measurement logs");
             log_workout(
                 &records.gather,
                 &records.burn,
@@ -734,7 +750,7 @@ mod tests {
         #[test]
         fn from_the_profiles_first_day_every_tick_counts_a_tracker_without_a_log_failing_it() {
             let records = a_man_at_his_desk();
-            log_measurement(&records.gather, "2026-10-05", 80.0, Some(80.0))
+            log_measurement(&records.gather, "2026-10-05", 80.0, Some(HIS_WAIST_CM))
                 .expect("a measurement logs");
             a_full_day(&records, "2026-10-10", "Plate");
 
@@ -871,7 +887,7 @@ mod tests {
         fn a_day_without_a_workout_reads_its_workout_tick_open() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-08", "Plate");
-            log_measurement(&records.gather, "2026-10-09", 80.0, Some(80.0))
+            log_measurement(&records.gather, "2026-10-09", 80.0, Some(HIS_WAIST_CM))
                 .expect("a measurement logs");
             a_full_day(&records, "2026-10-10", "Plate");
 
