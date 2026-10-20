@@ -889,12 +889,8 @@ mod tests {
         );
     }
 
-    fn kept_from<T>(reading: Result<Option<InForce<T>>, Failure>) -> Option<String> {
-        reading
-            .ok()
-            .flatten()
-            .and_then(|in_force| in_force.from)
-            .map(|day| day.to_string())
+    fn kept_from<T>(reading: Result<Option<InForce<T>>, Failure>) -> Option<NaiveDate> {
+        reading.ok().flatten().and_then(|in_force| in_force.from)
     }
 
     #[test]
@@ -953,7 +949,7 @@ mod tests {
                 "2026-10-13",
                 "2026-10-14"
             ]
-            .map(|day| Some(day.to_string()))
+            .map(since)
         );
     }
 
