@@ -194,6 +194,7 @@ mod tests {
                 })
                 .collect(),
             goals: vec![],
+            counted_from: vec![],
         }
     }
 

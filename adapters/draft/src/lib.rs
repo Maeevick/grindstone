@@ -233,6 +233,7 @@ pub fn gather_from_draft(backup: &str) -> Result<GatherRecords, DraftRefusal> {
             .collect::<Result<_, _>>()?,
         profiles: profile_versions(&backup),
         goals: goal_versions(&backup),
+        counted_from: vec![],
     })
 }
 
@@ -336,6 +337,7 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
             .collect(),
         circuits: Vec::new(),
         targets: Vec::new(),
+        counted_from: vec![],
     })
 }
 
@@ -425,6 +427,7 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
             .map(|(from, aims)| (from, Kept::Own(aims)))
             .collect(),
         meals: vec![],
+        counted_from: vec![],
     })
 }
 

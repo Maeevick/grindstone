@@ -12,6 +12,7 @@ pub trait ForStoringGatherRecords {
     fn remove_measurement(&self, day: NaiveDate) -> Result<(), Broken>;
     fn save_profile(&self, from: NaiveDate, profile: &Profile) -> Result<(), Broken>;
     fn save_goals(&self, from: NaiveDate, goals: &Kept<Goals>) -> Result<(), Broken>;
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken>;
     fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken>;
     fn gather_records(&self) -> Result<GatherRecords, Broken>;
 }

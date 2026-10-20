@@ -13,6 +13,7 @@ pub trait ForStoringFuelRecords {
     fn save_intake(&self, intake: &Intake) -> Result<(), Broken>;
     fn remove_intake(&self, id: i64) -> Result<(), Broken>;
     fn save_targets(&self, from: NaiveDate, targets: &Kept<FuelTargets>) -> Result<(), Broken>;
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken>;
     fn save_meal(&self, meal: &Meal) -> Result<(), Broken>;
     fn remove_meal(&self, name: &str) -> Result<(), Broken>;
     fn replace_fuel_records(&self, records: &FuelRecords) -> Result<(), Broken>;

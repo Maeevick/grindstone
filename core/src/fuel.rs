@@ -403,6 +403,7 @@ mod tests {
                 },
             )],
             goals: vec![],
+            counted_from: vec![],
         }
     }
 
@@ -662,6 +663,7 @@ mod tests {
                 },
             )],
             goals: vec![],
+            counted_from: vec![],
         };
 
         let mut burn = a_desk_job();

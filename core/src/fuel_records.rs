@@ -44,4 +44,5 @@ pub struct FuelRecords {
     pub intakes: Vec<(i64, Intake)>,
     pub targets: Vec<(NaiveDate, Kept<FuelTargets>)>,
     pub meals: Vec<Meal>,
+    pub counted_from: Vec<(NaiveDate, bool)>,
 }

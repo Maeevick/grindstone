@@ -240,6 +240,10 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
+    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
+        Ok(())
+    }
+
     fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
@@ -323,6 +327,7 @@ impl ForStoringGatherRecords for Sqlite {
             measurements,
             profiles,
             goals,
+            counted_from: vec![],
         })
     }
 }
@@ -531,6 +536,10 @@ impl ForStoringBurnRecords for Sqlite {
         )
     }
 
+    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
+        Ok(())
+    }
+
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
@@ -574,6 +583,7 @@ impl ForStoringBurnRecords for Sqlite {
             targets: self.rows(BURN_TARGETS, |row| {
                 Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
             })?,
+            counted_from: vec![],
         })
     }
 
@@ -796,6 +806,10 @@ impl ForStoringFuelRecords for Sqlite {
         )
     }
 
+    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
+        Ok(())
+    }
+
     fn save_meal(&self, meal: &Meal) -> Result<(), Broken> {
         let written = serde_json::to_string(meal).map_err(|error| Broken(error.to_string()))?;
         self.run(
@@ -837,6 +851,7 @@ impl ForStoringFuelRecords for Sqlite {
             intakes: self.rows(INTAKES, intake_read)?,
             targets: self.rows(FUEL_TARGETS, targets_read)?,
             meals: self.rows(MEALS, meal_read)?,
+            counted_from: vec![],
         })
     }
 }
@@ -982,7 +997,7 @@ impl ForStoringHydrateRecords for Sqlite {
             self.save_drinking(drinking)?;
         }
         for (from, counted) in &records.counted_from {
-            self.save_counted(*from, *counted)?;
+            ForStoringHydrateRecords::save_counted(self, *from, *counted)?;
         }
         for (from, base_ml) in &records.targets {
             self.save_hydrate_target(*from, *base_ml)?;
@@ -1099,6 +1114,27 @@ mod tests {
     }
 
     #[test]
+    fn gather_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
+        honouring_for_storing_gather_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn fuel_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
+        honouring_for_storing_fuel_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn burn_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
+        honouring_for_storing_burn_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+            &database(),
+        );
+    }
+
+    #[test]
     fn goals_kept_as_the_recommendation_come_back_kept_so() {
         honouring_for_storing_gather_records::goals_kept_as_the_recommendation_come_back_kept_so(
             &database(),
@@ -1174,6 +1210,7 @@ mod tests {
                 },
             )],
             goals: vec![],
+            counted_from: vec![],
         };
 
         assert!(records.replace_gather_records(&half_valid).is_err());

@@ -236,6 +236,7 @@ mod tests {
                 },
             )],
             goals: vec![],
+            counted_from: vec![],
         }
     }
 

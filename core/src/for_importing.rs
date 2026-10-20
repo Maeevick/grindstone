@@ -128,6 +128,7 @@ mod tests {
                     fat_ratio: 0.10,
                 }),
             )],
+            counted_from: vec![],
         }
     }
 

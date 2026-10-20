@@ -10,4 +10,5 @@ pub struct GatherRecords {
     pub measurements: Vec<Measurement>,
     pub profiles: Vec<(NaiveDate, Profile)>,
     pub goals: Vec<(NaiveDate, Kept<Goals>)>,
+    pub counted_from: Vec<(NaiveDate, bool)>,
 }

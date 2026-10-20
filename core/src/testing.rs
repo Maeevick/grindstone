@@ -60,6 +60,15 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
         Ok(())
     }
 
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records
+            .counted_from
+            .retain(|(kept_from, _)| *kept_from != from);
+        records.counted_from.push((from, counted));
+        Ok(())
+    }
+
     fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
         *self.0.borrow_mut() = records.clone();
         Ok(())
@@ -70,6 +79,7 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
         gathered.measurements.sort_by_key(|measured| measured.day);
         gathered.profiles.sort_by_key(|(from, _)| *from);
         gathered.goals.sort_by_key(|(from, _)| *from);
+        gathered.counted_from.sort_by_key(|(from, _)| *from);
         Ok(gathered)
     }
 }
@@ -90,6 +100,10 @@ impl ForStoringGatherRecords for BrokenGatherRecords {
     }
 
     fn save_goals(&self, _: NaiveDate, _: &Kept<Goals>) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -173,6 +187,15 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         Ok(())
     }
 
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records
+            .counted_from
+            .retain(|(kept_from, _)| *kept_from != from);
+        records.counted_from.push((from, counted));
+        Ok(())
+    }
+
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
         let mut replaced = records.clone();
         for (id, (kept_id, _)) in (1..).zip(replaced.workouts.iter_mut()) {
@@ -191,6 +214,7 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         burnt.days_off_the_clock.sort_by_key(|(day, _)| *day);
         burnt.usual_days.sort_by_key(|(from, _)| *from);
         burnt.targets.sort_by_key(|(from, _)| *from);
+        burnt.counted_from.sort_by_key(|(from, _)| *from);
         burnt
             .circuits
             .sort_by(|one, other| one.name.cmp(&other.name));
@@ -244,6 +268,10 @@ impl ForStoringBurnRecords for BrokenBurnRecords {
         Err(Broken("the disk is full".into()))
     }
 
+    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
     fn replace_burn_records(&self, _: &BurnRecords) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
@@ -263,6 +291,25 @@ impl ForStoringBurnRecords for BrokenBurnRecords {
 
 pub mod honouring_for_storing_burn_records {
     use super::*;
+
+    pub fn streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        for (from, counted) in [
+            ("2026-09-01", false),
+            ("2026-03-01", true),
+            ("2026-09-01", true),
+        ] {
+            records
+                .save_counted(day(from), counted)
+                .expect("a switch saves");
+        }
+
+        assert_eq!(
+            records.burn_records().map(|records| records.counted_from),
+            Ok(vec![(day("2026-03-01"), true), (day("2026-09-01"), true)])
+        );
+    }
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
@@ -504,6 +551,7 @@ pub mod honouring_for_storing_burn_records {
             usual_days: vec![(day("2026-03-01"), usual(480.0))],
             circuits: vec![morning_rust()],
             targets: vec![(day("2026-03-01"), Kept::Own(120.0))],
+            counted_from: vec![(day("2026-03-01"), false)],
         };
 
         records
@@ -517,6 +565,7 @@ pub mod honouring_for_storing_burn_records {
         assert_eq!(burnt.usual_days, replacement.usual_days);
         assert_eq!(burnt.circuits, replacement.circuits);
         assert_eq!(burnt.targets, replacement.targets);
+        assert_eq!(burnt.counted_from, replacement.counted_from);
     }
 
     fn step(
@@ -662,6 +711,15 @@ impl ForStoringFuelRecords for FuelRecordsInMemory {
         Ok(())
     }
 
+    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records
+            .counted_from
+            .retain(|(kept_from, _)| *kept_from != from);
+        records.counted_from.push((from, counted));
+        Ok(())
+    }
+
     fn save_meal(&self, meal: &Meal) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
         records.meals.retain(|kept| kept.name != meal.name);
@@ -690,6 +748,7 @@ impl ForStoringFuelRecords for FuelRecordsInMemory {
             .sort_by(|one, other| one.name.cmp(&other.name));
         fuelled.intakes.sort_by_key(|(id, eaten)| (eaten.day, *id));
         fuelled.targets.sort_by_key(|(from, _)| *from);
+        fuelled.counted_from.sort_by_key(|(from, _)| *from);
         fuelled
             .meals
             .sort_by(|one, other| one.name.cmp(&other.name));
@@ -720,6 +779,10 @@ impl ForStoringFuelRecords for BrokenFuelRecords {
         Err(Broken("the disk is full".into()))
     }
 
+    fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
     fn save_meal(&self, _: &Meal) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
@@ -739,6 +802,25 @@ impl ForStoringFuelRecords for BrokenFuelRecords {
 
 pub mod honouring_for_storing_fuel_records {
     use super::*;
+
+    pub fn streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+        records: &impl ForStoringFuelRecords,
+    ) {
+        for (from, counted) in [
+            ("2026-09-01", false),
+            ("2026-03-01", true),
+            ("2026-09-01", true),
+        ] {
+            records
+                .save_counted(day(from), counted)
+                .expect("a switch saves");
+        }
+
+        assert_eq!(
+            records.fuel_records().map(|records| records.counted_from),
+            Ok(vec![(day("2026-03-01"), true), (day("2026-09-01"), true)])
+        );
+    }
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
@@ -965,6 +1047,7 @@ pub mod honouring_for_storing_fuel_records {
             intakes: vec![(0, eaten("2026-08-02", "Muesli", 1.0))],
             targets: vec![(day("2026-03-01"), aiming(2.025))],
             meals: vec![cooked("Dal", 600.0)],
+            counted_from: vec![(day("2026-03-01"), false)],
         };
 
         records
@@ -975,6 +1058,7 @@ pub mod honouring_for_storing_fuel_records {
         assert_eq!(fuelled.foods, replacement.foods);
         assert_eq!(without_ids(&fuelled), without_ids(&replacement));
         assert_eq!(fuelled.targets, replacement.targets);
+        assert_eq!(fuelled.counted_from, replacement.counted_from);
         assert_eq!(fuelled.meals, replacement.meals);
     }
 }
@@ -1047,6 +1131,25 @@ pub mod honouring_for_storing_switch_over {
 
 pub mod honouring_for_storing_gather_records {
     use super::*;
+
+    pub fn streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+        records: &impl ForStoringGatherRecords,
+    ) {
+        for (from, counted) in [
+            ("2026-09-01", false),
+            ("2026-03-01", true),
+            ("2026-09-01", true),
+        ] {
+            records
+                .save_counted(day(from), counted)
+                .expect("a switch saves");
+        }
+
+        assert_eq!(
+            records.gather_records().map(|records| records.counted_from),
+            Ok(vec![(day("2026-03-01"), true), (day("2026-09-01"), true)])
+        );
+    }
     use crate::gender::Gender;
 
     fn day(date: &str) -> NaiveDate {
@@ -1119,6 +1222,7 @@ pub mod honouring_for_storing_gather_records {
                     (day("2026-03-01"), targeting(72.0)),
                     (day("2026-09-01"), targeting(70.0))
                 ],
+                counted_from: vec![],
             })
         );
     }
@@ -1197,6 +1301,7 @@ pub mod honouring_for_storing_gather_records {
             measurements: vec![measured("2026-06-22", 76.4, Some(84.0))],
             profiles: vec![(day("2026-06-01"), a_man(38.0))],
             goals: vec![(day("2026-06-01"), targeting(70.0))],
+            counted_from: vec![(day("2026-03-01"), false)],
         };
 
         records
@@ -1543,6 +1648,27 @@ pub mod honouring_for_storing_hydrate_records {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gather_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
+        honouring_for_storing_gather_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+            &GatherRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn fuel_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
+        honouring_for_storing_fuel_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn burn_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
+        honouring_for_storing_burn_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
+            &BurnRecordsInMemory::default(),
+        );
+    }
 
     #[test]
     fn gather_records_come_back_in_the_order_of_their_days() {
