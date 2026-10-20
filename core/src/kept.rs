@@ -7,6 +7,13 @@ pub enum Kept<T> {
     Own(T),
 }
 
+impl<T> Kept<T> {
+    /// Its own values, if it keeps any.
+    pub fn own(&self) -> Option<&T> {
+        None
+    }
+}
+
 /// What applies on a day, and whether it is the recommendation.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InForce<T> {
@@ -38,6 +45,14 @@ mod tests {
 
     fn the_recommendation() -> Option<f64> {
         Some(77.0)
+    }
+
+    #[test]
+    fn own_values_are_told_apart_from_the_recommendation() {
+        assert_eq!(
+            (Kept::Own(80.0).own(), Kept::<f64>::Recommended.own()),
+            (Some(&80.0), None)
+        );
     }
 
     #[test]
