@@ -21,8 +21,8 @@ use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, HydrateTargetForm,
-    ProfileForm, Scope, UsualDayForm,
+    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, Scope,
+    UsualDayForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -452,21 +452,6 @@ pub fn scope_on(records: State<Records>, date: String) -> Result<Scope, Failure>
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_hydrate_counted(
-    records: State<Records>,
-    form: HydrateCountedForm,
-) -> Result<bool, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_hydrate_counted(&*records, &form)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn hydrate_counted_on(records: State<Records>, date: String) -> Result<bool, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::hydrate_counted_on(&*records, &date)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn gather_chart(
     records: State<Records>,
     today: String,
@@ -619,8 +604,6 @@ mod tests {
                 set_hydrate_target,
                 hydrate_target_on,
                 scope_on,
-                set_hydrate_counted,
-                hydrate_counted_on,
                 set_burn_target,
                 burn_target_on,
                 gather_chart,
@@ -1504,32 +1487,6 @@ mod tests {
         assert_eq!(
             scope,
             Ok(json!({ "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true }))
-        );
-    }
-
-    #[test]
-    fn hydrate_left_out_from_the_screen_is_left_out_from_its_day() {
-        let (_app, screen) = launched();
-        let before = invoke(
-            &screen,
-            "hydrate_counted_on",
-            json!({ "date": "2026-10-12" }),
-        );
-
-        let set = invoke(
-            &screen,
-            "set_hydrate_counted",
-            json!({ "form": { "from": "2026-10-10", "counted": false } }),
-        );
-        let in_force = invoke(
-            &screen,
-            "hydrate_counted_on",
-            json!({ "date": "2026-10-12" }),
-        );
-
-        assert_eq!(
-            (before, set, in_force),
-            (Ok(json!(true)), Ok(json!(false)), Ok(json!(false)))
         );
     }
 

@@ -81,8 +81,6 @@ pub fn run() {
             commands::set_hydrate_target,
             commands::hydrate_target_on,
             commands::scope_on,
-            commands::set_hydrate_counted,
-            commands::hydrate_counted_on,
             commands::set_burn_target,
             commands::burn_target_on,
         ])
