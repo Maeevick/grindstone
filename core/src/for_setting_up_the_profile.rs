@@ -176,6 +176,46 @@ pub fn fuel_targets_on(
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HydrateTargetForm {
+    pub from: String,
+    pub kept: Kept<f64>,
+}
+
+pub fn set_hydrate_target(
+    gather: &impl ForStoringGatherRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    form: &HydrateTargetForm,
+) -> Result<Option<InForce<f64>>, Failure> {
+    let from = day(&form.from)?;
+    if form
+        .kept
+        .own()
+        .is_some_and(|ml| !(ml.is_finite() && *ml > 0.0))
+    {
+        return Err(Failure::Refused(Refusal::NotAVolume));
+    }
+    hydrate.save_hydrate_target(from, form.kept)?;
+    hydrate_target_on(gather, hydrate, &form.from)
+}
+
+pub fn hydrate_target_on(
+    gather: &impl ForStoringGatherRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    date: &str,
+) -> Result<Option<InForce<f64>>, Failure> {
+    let day = day(date)?;
+    let _ = gather;
+    Ok(
+        version_in_force_on(&hydrate.hydrate_records()?.targets, day)
+            .and_then(Kept::own)
+            .map(|ml| InForce {
+                values: *ml,
+                recommended: false,
+            }),
+    )
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct HydrateCountedForm {
     pub from: String,
     pub counted: bool,
@@ -679,6 +719,122 @@ mod tests {
         );
 
         assert_eq!(refused, Err(Failure::Refused(Refusal::NotANutrient)));
+    }
+
+    fn water_kept(from: &str, kept: Kept<f64>) -> HydrateTargetForm {
+        HydrateTargetForm {
+            from: from.into(),
+            kept,
+        }
+    }
+
+    fn recommended_ml(values: f64) -> Option<InForce<f64>> {
+        Some(InForce {
+            values,
+            recommended: true,
+        })
+    }
+
+    fn the_lean_masss_turnover_share_ml(gather: &GatherRecordsInMemory) -> f64 {
+        let lean_kg = crate::ledger::ledger(
+            &gather.gather_records().expect("records").measurements,
+            &gather.gather_records().expect("records").profiles,
+        )
+        .last()
+        .and_then(|measured| measured.composition)
+        .map(|split| split.lean_mass_kg)
+        .expect("a lean mass");
+        0.9 * (lean_kg * 0.732 * 0.07 * 1000.0)
+    }
+
+    fn about(actual: Option<InForce<f64>>, expected: Option<InForce<f64>>) -> bool {
+        match (actual, expected) {
+            (Some(actual), Some(expected)) => {
+                (actual.values - expected.values).abs() < 1e-9
+                    && actual.recommended == expected.recommended
+            }
+            (actual, expected) => actual == expected,
+        }
+    }
+
+    #[test]
+    fn a_water_target_never_kept_follows_the_recommendation_efsas_base_before_a_lean_mass_its_turnover_after()
+     {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        let without_a_waist = born("1985-04-12");
+        let with_a_waist = born("1985-04-12");
+        crate::for_tracking::log_measurement(&with_a_waist, "2026-10-01", 80.0, Some(82.0))
+            .expect("a measurement logs");
+
+        let unweighed = hydrate_target_on(&without_a_waist, &hydrate, "2026-10-10");
+        let lean = hydrate_target_on(&with_a_waist, &hydrate, "2026-10-10");
+
+        assert_eq!(unweighed, Ok(recommended_ml(2000.0)));
+        assert!(
+            about(
+                lean.clone().ok().flatten(),
+                recommended_ml(the_lean_masss_turnover_share_ml(&with_a_waist))
+            ),
+            "{lean:?}"
+        );
+    }
+
+    #[test]
+    fn the_water_targets_recommendation_kept_from_a_day_follows_the_body_own_values_holding_before_it()
+     {
+        let (gather, hydrate) = (
+            born("1985-04-12"),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+        for (from, kept) in [
+            ("2026-03-01", Kept::Own(2800.0)),
+            ("2026-10-10", Kept::Recommended),
+        ] {
+            set_hydrate_target(&gather, &hydrate, &water_kept(from, kept)).expect("a target keeps");
+        }
+        let before_a_waist = hydrate_target_on(&gather, &hydrate, "2026-10-11");
+        crate::for_tracking::log_measurement(&gather, "2026-10-12", 80.0, Some(82.0))
+            .expect("a measurement logs");
+
+        assert_eq!(
+            (
+                hydrate_target_on(&gather, &hydrate, "2026-10-05"),
+                before_a_waist
+            ),
+            (
+                Ok(Some(InForce {
+                    values: 2800.0,
+                    recommended: false
+                })),
+                Ok(recommended_ml(2000.0))
+            )
+        );
+        assert!(about(
+            hydrate_target_on(&gather, &hydrate, "2026-10-12")
+                .ok()
+                .flatten(),
+            recommended_ml(the_lean_masss_turnover_share_ml(&gather))
+        ));
+    }
+
+    #[test]
+    fn a_water_target_of_nothing_or_less_is_refused() {
+        let (gather, hydrate) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+
+        assert_eq!(
+            [0.0, -500.0].map(|ml| set_hydrate_target(
+                &gather,
+                &hydrate,
+                &water_kept("2026-10-10", Kept::Own(ml))
+            )),
+            [
+                Err(Failure::Refused(Refusal::NotAVolume)),
+                Err(Failure::Refused(Refusal::NotAVolume))
+            ]
+        );
     }
 
     #[test]

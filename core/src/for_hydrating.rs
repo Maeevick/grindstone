@@ -217,6 +217,61 @@ mod tests {
     }
 
     #[test]
+    fn an_own_water_target_is_a_base_plus_a_millilitre_per_kcal_burnt_its_band_a_fifth_either_side()
+    {
+        let (gather, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            HydrateRecordsInMemory::default(),
+        );
+        log_measurement(&gather, "2026-10-01", 80.0, None).expect("a measurement logs");
+        let burn = BurnRecordsInMemory::default();
+        burn.save_exercise(&Exercise {
+            name: "Walking".into(),
+            met: 4.0,
+            description: String::new(),
+        })
+        .expect("an exercise saves");
+        log_workout(
+            &gather,
+            &burn,
+            &WorkoutForm {
+                date: "2026-10-10".into(),
+                exercise: "Walking".into(),
+                minutes: Some(60.0),
+                reps: None,
+                sets: Some(1),
+                load_kg: Some(0.0),
+            },
+        )
+        .expect("a walk logs");
+        crate::for_setting_up_the_profile::set_hydrate_target(
+            &gather,
+            &hydrate,
+            &crate::for_setting_up_the_profile::HydrateTargetForm {
+                from: "2026-03-01".into(),
+                kept: crate::kept::Kept::Own(2800.0),
+            },
+        )
+        .expect("a water target keeps");
+
+        let hydrated =
+            hydrate_day(&gather, &burn, &fuel, &hydrate, "2026-10-10").expect("a hydrate");
+
+        let target_ml = 2800.0 + 252.0;
+        assert!(
+            [
+                (hydrated.target_ml, target_ml),
+                (hydrated.floor_ml, 0.8 * target_ml),
+                (hydrated.cap_ml, 1.2 * target_ml)
+            ]
+            .iter()
+            .all(|(actual, expected)| (actual - expected).abs() < 1e-6),
+            "{hydrated:?}"
+        );
+    }
+
+    #[test]
     fn a_drink_missing_from_the_catalog_is_refused() {
         let refused = log_drink(
             &GatherRecordsInMemory::default(),
