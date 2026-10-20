@@ -10,6 +10,7 @@ use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 use crate::hydrate_base::default_base_ml;
 use crate::hydrate_records::HydrateRecords;
+use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::ledger;
 use crate::verdict::{Verdict, verdict_of};
 use crate::version::version_in_force_on;
@@ -62,10 +63,42 @@ pub fn hydrate_over(
         .collect()
 }
 
-/// The day's drinks against its band. Once a lean mass is known, the target is the water that mass
-/// turns over in a day plus 1.25 mL per kcal burnt, and the floor a millilitre per kcal the day spends
-/// (its budget and burn) but never above the target, each nine tenths from drinks, food bringing the
-/// rest; before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth under it.
+fn lean_kg_on(day: NaiveDate, gather: &GatherRecords) -> Option<f64> {
+    body_on(
+        day,
+        &ledger(&gather.measurements, &gather.profiles),
+        &gather.profiles,
+    )
+    .map(|body| body.lean_kg)
+}
+
+fn turned_over_ml(lean_kg: f64) -> f64 {
+    lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
+}
+
+/// The water target in force on a day: kept from the latest day up to it (the earliest before any), its own
+/// base or the recommendation; never kept, the recommendation: once a lean mass is known, nine tenths of the
+/// water it turns over in a day, before, EFSA's base.
+pub(crate) fn water_target_in_force(
+    day: NaiveDate,
+    records: &HydrateRecords,
+    gather: &GatherRecords,
+) -> Option<InForce<f64>> {
+    in_force(version_in_force_on(&records.targets, day), || {
+        Some(match lean_kg_on(day, gather) {
+            Some(lean_kg) => SHARE_LEFT_TO_DRINKS * turned_over_ml(lean_kg),
+            None => default_base_ml(
+                version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
+            ),
+        })
+    })
+}
+
+/// The day's drinks against its band. A water target of one's own is a base: it plus a millilitre per kcal
+/// burnt, the band a fifth either side. Otherwise, once a lean mass is known, the target is the water that
+/// mass turns over in a day plus 1.25 mL per kcal burnt, and the floor a millilitre per kcal the day spends
+/// (its budget and burn) but never above the target, each nine tenths from drinks, food bringing the rest;
+/// before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth under it.
 ///
 /// - Lean mass is 73.2% water: Wang Z. et al. (1999), *Hydration of fat-free body mass: new
 ///   physiological modeling approach*, Am J Physiol Endocrinol Metab 276(6):E995-E1003.
@@ -88,17 +121,17 @@ fn hydrated(
         .collect();
     let drunk_ml: f64 = drinkings.iter().map(|(_, drunk)| drunk.volume_ml).sum();
     let burnt_kcal = burn_on(day, burn, gather).burnt_kcal.unwrap_or(0.0);
-    let lean_kg = body_on(
-        day,
-        &ledger(&gather.measurements, &gather.profiles),
-        &gather.profiles,
-    )
-    .map(|body| body.lean_kg);
-    let (target_ml, floor_ml) = match (lean_kg, fuelled.band) {
-        (Some(lean_kg), Some(band)) => {
+    let own_base_ml = version_in_force_on(&records.targets, day)
+        .and_then(Kept::own)
+        .copied();
+    let (target_ml, floor_ml) = match (own_base_ml, lean_kg_on(day, gather), fuelled.band) {
+        (Some(base_ml), _, _) => {
+            let target_ml = base_ml + burnt_kcal * ML_PER_KCAL_SPENT;
+            (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
+        }
+        (None, Some(lean_kg), Some(band)) => {
             let target_ml = SHARE_LEFT_TO_DRINKS
-                * (lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
-                    + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
+                * (turned_over_ml(lean_kg) + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
             let floor_ml = SHARE_LEFT_TO_DRINKS * band.cap_kcal * ML_PER_KCAL_SPENT;
             (target_ml, floor_ml.min(target_ml))
         }

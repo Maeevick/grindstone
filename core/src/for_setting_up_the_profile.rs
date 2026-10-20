@@ -13,6 +13,7 @@ use crate::fuel::fuel_targets_in_force;
 use crate::fuel_records::{FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
+use crate::hydrate::water_target_in_force;
 use crate::hydrate_counted::counted_on;
 use crate::kept::{InForce, Kept};
 use crate::profile::{Profile, profile};
@@ -204,15 +205,11 @@ pub fn hydrate_target_on(
     date: &str,
 ) -> Result<Option<InForce<f64>>, Failure> {
     let day = day(date)?;
-    let _ = gather;
-    Ok(
-        version_in_force_on(&hydrate.hydrate_records()?.targets, day)
-            .and_then(Kept::own)
-            .map(|ml| InForce {
-                values: *ml,
-                recommended: false,
-            }),
-    )
+    Ok(water_target_in_force(
+        day,
+        &hydrate.hydrate_records()?,
+        &gather.gather_records()?,
+    ))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
