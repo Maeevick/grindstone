@@ -22,7 +22,7 @@ use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
     self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateCountedForm, HydrateTargetForm,
-    ProfileForm, UsualDayForm,
+    ProfileForm, Scope, UsualDayForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -446,6 +446,12 @@ pub fn hydrate_target_on(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn scope_on(records: State<Records>, date: String) -> Result<Scope, Failure> {
+    let _ = (records, date);
+    Err(Failure::Broken("not yet".into()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn set_hydrate_counted(
     records: State<Records>,
     form: HydrateCountedForm,
@@ -612,6 +618,7 @@ mod tests {
                 remove_drink,
                 set_hydrate_target,
                 hydrate_target_on,
+                scope_on,
                 set_hydrate_counted,
                 hydrate_counted_on,
                 set_burn_target,
@@ -1479,6 +1486,24 @@ mod tests {
                 Ok(json!({ "values": 2000.0, "recommended": true })),
                 Ok(json!({ "values": 2000.0, "recommended": true }))
             )
+        );
+    }
+
+    #[test]
+    fn the_streaks_scope_crosses_to_the_screen_with_each_cards_switch() {
+        let (_app, screen) = launched();
+        invoke(
+            &screen,
+            "set_burn_target",
+            json!({ "form": { "from": "2026-10-10", "kept": "Recommended", "counted": false } }),
+        )
+        .expect("a burn target keeps");
+
+        let scope = invoke(&screen, "scope_on", json!({ "date": "2026-10-12" }));
+
+        assert_eq!(
+            scope,
+            Ok(json!({ "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true }))
         );
     }
 
