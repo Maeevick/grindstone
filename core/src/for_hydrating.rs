@@ -8,6 +8,7 @@ use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::hydrate::{Hydrate, hydrate_on};
+use crate::hydrate_week::HydrateWeek;
 use crate::refusal::Refusal;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -45,6 +46,19 @@ pub fn hydrate_day(
     date: &str,
 ) -> Result<Hydrate, Failure> {
     hydrate_of_the_day(gather, burn, fuel, hydrate, day(date)?)
+}
+
+/// The week's average up to a day: its logged days of the seven, today left out while under way.
+pub fn hydrate_week(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    date: &str,
+    today: &str,
+) -> Result<Option<HydrateWeek>, Failure> {
+    let _ = (gather, burn, fuel, hydrate, date, today);
+    Ok(None)
 }
 
 pub fn log_drink(
@@ -140,6 +154,53 @@ mod tests {
 
         assert_eq!(volumes(&hydrated), vec![300.0]);
         assert_eq!(hydrated.drunk_ml, 300.0);
+    }
+
+    #[test]
+    fn a_weeks_average_runs_over_the_logged_days_of_the_seven_up_to_the_day_today_left_out_until_it_is_over()
+     {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            a_catalog_with_tea(),
+        );
+        for date in ["2026-10-02", "2026-10-04", "2026-10-06", "2026-10-10"] {
+            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
+        }
+
+        let under_way = hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-10-10", "2026-10-10");
+        let over = hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-10-10", "2026-10-11");
+
+        assert_eq!(
+            [under_way, over].map(|week| {
+                week.ok()
+                    .flatten()
+                    .map(|week| (week.logged_days, week.drunk.per_day))
+            }),
+            [Some((2, 400.0)), Some((3, 400.0))]
+        );
+    }
+
+    #[test]
+    fn a_week_up_to_a_day_the_calendar_does_not_have_is_refused() {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            HydrateRecordsInMemory::default(),
+        );
+
+        assert_eq!(
+            [
+                hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-02-30", "2026-10-10"),
+                hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-10-10", "2026-02-30")
+            ],
+            [
+                Err(Failure::Refused(Refusal::NotADate)),
+                Err(Failure::Refused(Refusal::NotADate))
+            ]
+        );
     }
 
     #[test]
