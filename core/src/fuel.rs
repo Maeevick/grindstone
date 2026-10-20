@@ -26,6 +26,8 @@ pub struct Band {
     pub minimum_kcal: f64,
     pub floor_kcal: f64,
     pub cap_kcal: f64,
+    /// What the day spends, the budget plus the burn, wherever the band runs.
+    pub maintenance_kcal: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -190,6 +192,7 @@ fn band_for(
         minimum_kcal,
         floor_kcal: floor_kcal.max(minimum_kcal),
         cap_kcal: cap_kcal.max(minimum_kcal),
+        maintenance_kcal: 0.0,
     };
     (band, budget)
 }
@@ -513,7 +516,8 @@ mod tests {
     }
 
     #[test]
-    fn before_anything_is_eaten_the_cap_is_the_budget_priced_on_the_targets_plus_the_burn() {
+    fn before_anything_is_eaten_maintenance_is_the_budget_priced_on_the_targets_plus_the_burn_capping_a_cut()
+     {
         let (lean_kg, fat_kg) = the_body();
         let mut burn = a_desk_job();
         let walking = Exercise {
@@ -552,11 +556,10 @@ mod tests {
             },
         );
         let burnt = burnt_by(&walked, 80.0);
-        assert!(
-            fuelled
-                .band
-                .is_some_and(|band| about(band.cap_kcal, budget.kcal() + burnt))
-        );
+        assert!(fuelled.band.is_some_and(|band| {
+            about(band.maintenance_kcal, budget.kcal() + burnt)
+                && about(band.cap_kcal, budget.kcal() + burnt)
+        }));
         assert_eq!(fuelled.budget, Some(budget));
     }
 
