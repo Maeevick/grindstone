@@ -91,14 +91,22 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.floor_at y="9" width=placed.cap_at - placed.floor_at height="6" />
                 <line class="minimum" x1=placed.minimum_at x2=placed.minimum_at y1="3" y2="21" />
-                <line class="tick" x1=placed.floor_at x2=placed.floor_at y1="3" y2="21" />
-                <line class="tick" x1=placed.cap_at x2=placed.cap_at y1="3" y2="21" />
+                <line
+                    class="maintenance"
+                    x1=placed.maintenance_at
+                    x2=placed.maintenance_at
+                    y1="3"
+                    y2="21"
+                />
                 {ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
             <div class="gauge-floor">
-                <span class="acc floor-label" style=format!("left: {}%", 100.0 * placed.floor_at / 360.0)>
-                    {format!("Alpert {}", bare(Figure::Energy(band.floor_kcal)))}
+                <span
+                    class="acc maintenance-label"
+                    style=format!("left: {}%", 100.0 * placed.maintenance_at / 360.0)
+                >
+                    {format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal)))}
                 </span>
             </div>
             <div class="gauge-labels">
@@ -108,9 +116,6 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                         bare(Figure::Count(band.minimum_kcal_per_kg_of_lean_mass)),
                         bare(Figure::Energy(band.minimum_kcal)),
                     )}
-                </span>
-                <span class="acc">
-                    {format!("Maintenance {}", bare(Figure::Energy(band.cap_kcal)))}
                 </span>
             </div>
         </div>

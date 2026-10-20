@@ -648,7 +648,7 @@ hr.divider {
 	vector-effect: non-scaling-stroke;
 }
 
-.fuel-gauge .tick {
+.fuel-gauge .maintenance {
 	stroke: var(--acc);
 	stroke-width: 2;
 	vector-effect: non-scaling-stroke;
