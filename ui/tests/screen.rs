@@ -7,7 +7,7 @@ use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::fuel::{FuelDay, FuelWeekCard};
 use grind_ui::screens::gather::GatherTab;
-use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay};
+use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay, HydrateWeekCard};
 use grind_ui::screens::last_days::FuelLastDays;
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
@@ -1297,6 +1297,57 @@ async fn a_week_without_a_finished_logged_day_says_there_is_nothing_to_average_y
     assert!(said.contains("No finished day"), "{said}");
 }
 
+fn the_hydrate_week(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <HydrateWeekCard day=day />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_it_and_how_far_it_runs_short()
+ {
+    answering(
+        r#"{ "hydrate_week": { "logged_days": 6,
+            "drunk": { "per_day": 1900.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 } } }"#,
+    );
+    let screen = screen();
+    let _mounted = the_hydrate_week(&screen);
+    settled().await;
+
+    assert_eq!(text_of(&screen, ".week h2"), "The week's average");
+    assert_eq!(
+        cells_by_row(&screen, ".week tbody tr"),
+        [["Drinks (mL)", "1900", "2000–2400", "3/6"]]
+    );
+    assert_eq!(
+        attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
+        ["low"]
+    );
+    assert_eq!(text_of(&screen, ".week p.hint"), "Over 6 logged days.");
+    let tip = text_of(&screen, ".week p.tip");
+    assert!(
+        tip.starts_with("“Short of the band by 100 mL a day. ") && tip.ends_with('”'),
+        "{tip}"
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_hydrate_week_without_a_finished_logged_day_says_there_is_nothing_to_average_yet() {
+    answering(r#"{ "hydrate_week": null }"#);
+    let screen = screen();
+    let _mounted = the_hydrate_week(&screen);
+    settled().await;
+
+    let said = text_of(&screen, ".week p.empty");
+
+    assert!(said.contains("No finished day"), "{said}");
+}
+
 fn focused(screen: &Element, name: &str) {
     found::<HtmlInputElement>(screen, &format!("input[name={name}]"))
         .dispatch_event(&Event::new("focus").expect("a focus event"))
@@ -2031,7 +2082,7 @@ const A_HOME: &str = r#"{ "profile_on": { "birthday": "1985-04-12", "gender": "M
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
                  "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#;
 
-const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null,
+const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null, "hydrate_week": null,
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
         "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
 
@@ -2149,6 +2200,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Hydrate",
                 "Where the day stands",
                 "The day's drinks",
+                "The week's average",
                 "The last days",
                 "📚 Open the grimoire | 🎱 Explore the numbers"
             ],

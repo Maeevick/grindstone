@@ -413,12 +413,20 @@ pub fn HydrateCountedCard() -> impl IntoView {
     }
 }
 
+/// The week up to the tab's day, a logged day's drinks on average, against the band.
+#[component]
+pub fn HydrateWeekCard(day: RwSignal<String>) -> impl IntoView {
+    let _ = day;
+    view! { <section class="card week"></section> }
+}
+
 #[component]
 pub fn HydrateTab() -> impl IntoView {
     let day = RwSignal::new(today());
     view! {
         <DayCard day=day />
         <HydrateDay day=day />
+        <HydrateWeekCard day=day />
         <HydrateLastDays day=day />
         <GrimoireBesideTheNumbers grimoire="/hydrate/grimoire" />
     }
