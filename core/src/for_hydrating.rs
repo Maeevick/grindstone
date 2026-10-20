@@ -251,6 +251,7 @@ mod tests {
             &crate::for_setting_up_the_profile::HydrateTargetForm {
                 from: "2026-03-01".into(),
                 kept: crate::kept::Kept::Own(2800.0),
+                counted: true,
             },
         )
         .expect("a water target keeps");

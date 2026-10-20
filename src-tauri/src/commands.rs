@@ -751,7 +751,7 @@ mod tests {
     #[test]
     fn goals_set_from_the_screen_are_the_ones_in_force_from_their_day() {
         let (_app, screen) = launched();
-        let form = json!({ "from": "2026-10-10", "kept": { "Own": { "body_mass_kg": 70.0, "fat_percentage": 10.0 } } });
+        let form = json!({ "from": "2026-10-10", "kept": { "Own": { "body_mass_kg": 70.0, "fat_percentage": 10.0 } }, "counted": true });
 
         let set = invoke(&screen, "set_goals", json!({ "form": form }));
         let in_force = invoke(&screen, "goals_on", json!({ "date": "2026-10-12" }));
@@ -1061,7 +1061,7 @@ mod tests {
         let set = invoke(
             &screen,
             "set_fuel_targets",
-            json!({ "form": { "from": "2026-03-01", "kept": { "Own": aims } } }),
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": aims }, "counted": true } }),
         );
         let in_force = invoke(&screen, "fuel_targets_on", json!({ "date": "2026-10-10" }));
 
@@ -1437,7 +1437,7 @@ mod tests {
         let set = invoke(
             &screen,
             "set_burn_target",
-            json!({ "form": { "from": "2026-10-15", "kept": { "Own": 150.0 } } }),
+            json!({ "form": { "from": "2026-10-15", "kept": { "Own": 150.0 }, "counted": true } }),
         );
         let in_force = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-20" }));
         let before = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-10" }));
@@ -1459,12 +1459,12 @@ mod tests {
         let own = invoke(
             &screen,
             "set_hydrate_target",
-            json!({ "form": { "from": "2026-03-01", "kept": { "Own": 2800.0 } } }),
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": 2800.0 }, "counted": true } }),
         );
         let recommended = invoke(
             &screen,
             "set_hydrate_target",
-            json!({ "form": { "from": "2026-10-10", "kept": "Recommended" } }),
+            json!({ "form": { "from": "2026-10-10", "kept": "Recommended", "counted": true } }),
         );
         let in_force = invoke(
             &screen,

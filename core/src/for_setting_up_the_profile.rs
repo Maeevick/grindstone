@@ -73,6 +73,8 @@ pub struct TypedGoals {
 pub struct GoalsForm {
     pub from: String,
     pub kept: Kept<TypedGoals>,
+    /// Whether the card's tick counts in the streak from the same day.
+    pub counted: bool,
 }
 
 pub fn set_goals(
@@ -138,6 +140,8 @@ pub fn usual_day_on(
 pub struct FuelTargetsForm {
     pub from: String,
     pub kept: Kept<FuelTargets>,
+    /// Whether the card's tick counts in the streak from the same day.
+    pub counted: bool,
 }
 
 pub fn set_fuel_targets(
@@ -180,6 +184,8 @@ pub fn fuel_targets_on(
 pub struct HydrateTargetForm {
     pub from: String,
     pub kept: Kept<f64>,
+    /// Whether the card's tick counts in the streak from the same day.
+    pub counted: bool,
 }
 
 pub fn set_hydrate_target(
@@ -238,6 +244,8 @@ pub fn hydrate_counted_on(
 pub struct BurnTargetForm {
     pub from: String,
     pub kept: Kept<f64>,
+    /// Whether the card's tick counts in the streak from the same day.
+    pub counted: bool,
 }
 
 pub fn set_burn_target(
@@ -269,6 +277,31 @@ pub fn burn_target_on(
         &burn.burn_records()?.targets,
         body_mass_in_force_on(day, &measurements),
     ))
+}
+
+/// Which ticks count in the streak on a day, as each card left them.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Scope {
+    pub weighed: bool,
+    pub fuelled: bool,
+    pub worked_out: bool,
+    pub hydrated: bool,
+}
+
+pub fn scope_on(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    date: &str,
+) -> Result<Scope, Failure> {
+    let _ = (gather, burn, fuel, hydrate, day(date)?);
+    Ok(Scope {
+        weighed: true,
+        fuelled: true,
+        worked_out: true,
+        hydrated: true,
+    })
 }
 
 pub fn recommended_on(
@@ -342,6 +375,7 @@ mod tests {
                 body_mass_kg,
                 fat_percentage,
             }),
+            counted: true,
         }
     }
 
@@ -389,6 +423,7 @@ mod tests {
             &GoalsForm {
                 from: "2026-10-10".into(),
                 kept: Kept::Recommended,
+                counted: true,
             },
         )
         .expect("the recommendation keeps");
@@ -624,6 +659,7 @@ mod tests {
         FuelTargetsForm {
             from: from.into(),
             kept,
+            counted: true,
         }
     }
 
@@ -722,6 +758,7 @@ mod tests {
         HydrateTargetForm {
             from: from.into(),
             kept,
+            counted: true,
         }
     }
 
@@ -831,6 +868,76 @@ mod tests {
     }
 
     #[test]
+    fn a_card_kept_with_its_tick_left_out_takes_it_out_of_the_streak_from_its_day() {
+        let (gather, burn, fuel, hydrate) = (
+            born("1985-04-12"),
+            crate::testing::BurnRecordsInMemory::default(),
+            crate::testing::FuelRecordsInMemory::default(),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+        let from = "2026-10-10";
+        set_goals(
+            &gather,
+            &GoalsForm {
+                from: from.into(),
+                kept: Kept::Recommended,
+                counted: false,
+            },
+        )
+        .expect("the goals keep");
+        set_fuel_targets(
+            &gather,
+            &fuel,
+            &FuelTargetsForm {
+                from: from.into(),
+                kept: Kept::Recommended,
+                counted: false,
+            },
+        )
+        .expect("the targets keep");
+        set_burn_target(
+            &gather,
+            &burn,
+            &BurnTargetForm {
+                from: from.into(),
+                kept: Kept::Recommended,
+                counted: true,
+            },
+        )
+        .expect("the target keeps");
+        set_hydrate_target(
+            &gather,
+            &hydrate,
+            &HydrateTargetForm {
+                from: from.into(),
+                kept: Kept::Recommended,
+                counted: false,
+            },
+        )
+        .expect("the water target keeps");
+
+        let scope = |date| scope_on(&gather, &burn, &fuel, &hydrate, date);
+
+        assert_eq!(
+            (scope("2026-10-09"), scope("2026-10-10")),
+            (
+                Ok(Scope {
+                    weighed: true,
+                    fuelled: true,
+                    worked_out: true,
+                    hydrated: true
+                }),
+                Ok(Scope {
+                    weighed: false,
+                    fuelled: false,
+                    worked_out: true,
+                    hydrated: false
+                })
+            )
+        );
+    }
+
+    #[test]
     fn hydrate_counts_until_left_out_from_a_date() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
         set_hydrate_counted(
@@ -866,6 +973,7 @@ mod tests {
             &BurnTargetForm {
                 from: "2026-10-15".into(),
                 kept: Kept::Own(150.0),
+                counted: true,
             },
         )
         .expect("a target sets");
@@ -909,6 +1017,7 @@ mod tests {
                 &BurnTargetForm {
                     from: from.into(),
                     kept,
+                    counted: true,
                 },
             )
             .expect("a target keeps");
@@ -944,6 +1053,7 @@ mod tests {
         let target = |from: &str, kcal: f64| BurnTargetForm {
             from: from.into(),
             kept: Kept::Own(kcal),
+            counted: true,
         };
         let (gather, burn) = (
             GatherRecordsInMemory::default(),

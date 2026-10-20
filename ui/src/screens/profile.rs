@@ -100,6 +100,7 @@ fn GoalsCard() -> impl IntoView {
         let form = GoalsForm {
             from: from.get_untracked(),
             kept,
+            counted: true,
         };
         let filed = filed(&form.from);
         keep_and_show(
@@ -250,6 +251,7 @@ fn BurnTargetCard() -> impl IntoView {
         let form = BurnTargetForm {
             from: from.get_untracked(),
             kept,
+            counted: true,
         };
         let filed = filed(&form.from);
         keep_and_show(
@@ -322,6 +324,7 @@ fn FuelTargetsCard() -> impl IntoView {
         let form = FuelTargetsForm {
             from: from.get_untracked(),
             kept,
+            counted: true,
         };
         let filed = filed(&form.from);
         keep_and_show(

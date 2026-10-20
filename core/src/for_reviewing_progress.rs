@@ -338,6 +338,7 @@ mod tests {
                     body_mass_kg: 70.0,
                     fat_percentage: 10.0,
                 }),
+                counted: true,
             },
         )
         .expect("goals set");
@@ -594,6 +595,7 @@ mod tests {
                         fat_g_per_kg: 0.9,
                         fibre_g_per_kg: 0.4,
                     }),
+                    counted: true,
                 },
             )
             .expect("targets set");

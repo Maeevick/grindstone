@@ -372,6 +372,7 @@ pub fn HydrateCountedCard() -> impl IntoView {
         let form = HydrateTargetForm {
             from: water_from.get_untracked(),
             kept,
+            counted: true,
         };
         let filed = filed(&form.from);
         keep_and_show(
