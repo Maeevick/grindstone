@@ -26,6 +26,7 @@ use grind_core::fuel_week::FuelWeek;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
+use grind_core::kept::InForce;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
@@ -207,11 +208,11 @@ pub async fn usual_day_on(date: &str) -> Result<Option<Volitional>, Failure> {
     call("usual_day_on", OnDay { date }, broken).await
 }
 
-pub async fn set_burn_target(form: &BurnTargetForm) -> Result<f64, Failure> {
+pub async fn set_burn_target(form: &BurnTargetForm) -> Result<Option<InForce<f64>>, Failure> {
     call("set_burn_target", Form { form }, broken).await
 }
 
-pub async fn burn_target_on(date: &str) -> Result<Option<f64>, Failure> {
+pub async fn burn_target_on(date: &str) -> Result<Option<InForce<f64>>, Failure> {
     call("burn_target_on", OnDay { date }, broken).await
 }
 

@@ -12,7 +12,7 @@ use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate_counted::counted_on;
-use crate::kept::Kept;
+use crate::kept::{InForce, Kept};
 use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
 use crate::refusal::Refusal;
@@ -175,33 +175,42 @@ pub fn hydrate_counted_on(
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BurnTargetForm {
     pub from: String,
-    pub kcal: f64,
+    pub kept: Kept<f64>,
 }
 
 pub fn set_burn_target(
+    gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     form: &BurnTargetForm,
-) -> Result<f64, Failure> {
+) -> Result<Option<InForce<f64>>, Failure> {
     let from = day(&form.from)?;
-    if !(form.kcal.is_finite() && form.kcal >= 0.0) {
+    if form
+        .kept
+        .own()
+        .is_some_and(|kcal| !(kcal.is_finite() && *kcal >= 0.0))
+    {
         return Err(Failure::Refused(Refusal::NotAnEnergy));
     }
-    burn.save_burn_target(from, Kept::Own(form.kcal))?;
-    Ok(form.kcal)
+    burn.save_burn_target(from, form.kept)?;
+    burn_target_on(gather, burn, &form.from)
 }
 
 pub fn burn_target_on(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     date: &str,
-) -> Result<Option<f64>, Failure> {
+) -> Result<Option<InForce<f64>>, Failure> {
     let day = day(date)?;
     let measurements = gather.gather_records()?.measurements;
     Ok(target_on(
         day,
         &burn.burn_records()?.targets,
         body_mass_in_force_on(day, &measurements),
-    ))
+    )
+    .map(|kcal| InForce {
+        values: kcal,
+        recommended: false,
+    }))
 }
 
 pub fn recommended_on(
@@ -434,7 +443,8 @@ mod tests {
     }
 
     #[test]
-    fn a_burn_target_set_from_a_date_is_the_one_in_force_from_that_date() {
+    fn a_burn_target_set_from_a_date_is_the_one_in_force_from_that_date_the_recommendation_before_it()
+     {
         let (gather, burn) = (
             GatherRecordsInMemory::default(),
             crate::testing::BurnRecordsInMemory::default(),
@@ -442,10 +452,11 @@ mod tests {
         crate::for_tracking::log_measurement(&gather, "2026-10-01", 72.0, None)
             .expect("a measurement logs");
         set_burn_target(
+            &gather,
             &burn,
             &BurnTargetForm {
                 from: "2026-10-15".into(),
-                kcal: 150.0,
+                kept: Kept::Own(150.0),
             },
         )
         .expect("a target sets");
@@ -456,13 +467,66 @@ mod tests {
                 burn_target_on(&gather, &burn, "2026-10-20")
             ),
             (
-                Ok(crate::burn_target::target_on(
-                    NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
-                    &[],
-                    Some(72.0)
-                )),
-                Ok(Some(150.0))
+                Ok(Some(InForce {
+                    values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
+                    recommended: true
+                })),
+                Ok(Some(InForce {
+                    values: 150.0,
+                    recommended: false
+                }))
             )
+        );
+    }
+
+    #[test]
+    fn the_burn_targets_recommendation_kept_from_a_day_follows_the_body_as_it_changes_own_values_holding_before_it()
+     {
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 72.0, None)
+            .expect("a measurement logs");
+        crate::for_tracking::log_measurement(&gather, "2026-10-12", 80.0, None)
+            .expect("a measurement logs");
+        for (from, kept) in [
+            ("2026-10-01", Kept::Own(150.0)),
+            ("2026-10-10", Kept::Recommended),
+        ] {
+            set_burn_target(
+                &gather,
+                &burn,
+                &BurnTargetForm {
+                    from: from.into(),
+                    kept,
+                },
+            )
+            .expect("a target keeps");
+        }
+
+        let in_force = |date| burn_target_on(&gather, &burn, date).ok().flatten();
+
+        assert_eq!(
+            [
+                in_force("2026-10-05"),
+                in_force("2026-10-11"),
+                in_force("2026-10-12")
+            ],
+            [
+                Some(InForce {
+                    values: 150.0,
+                    recommended: false
+                }),
+                Some(InForce {
+                    values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
+                    recommended: true
+                }),
+                Some(InForce {
+                    values: 3.0 * 80.0 * 150.0 / 7.0 / 60.0,
+                    recommended: true
+                })
+            ]
         );
     }
 
@@ -470,16 +534,19 @@ mod tests {
     fn a_burn_target_below_nothing_a_day_the_calendar_lacks_or_broken_records_set_nothing() {
         let target = |from: &str, kcal: f64| BurnTargetForm {
             from: from.into(),
-            kcal,
+            kept: Kept::Own(kcal),
         };
-        let burn = crate::testing::BurnRecordsInMemory::default();
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
 
         assert_eq!(
-            set_burn_target(&burn, &target("2026-10-15", -10.0)),
+            set_burn_target(&gather, &burn, &target("2026-10-15", -10.0)),
             Err(Failure::Refused(Refusal::NotAnEnergy))
         );
         assert_eq!(
-            set_burn_target(&burn, &target("2026-02-30", 150.0)),
+            set_burn_target(&gather, &burn, &target("2026-02-30", 150.0)),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
@@ -488,6 +555,7 @@ mod tests {
         );
         assert_eq!(
             set_burn_target(
+                &gather,
                 &crate::testing::BrokenBurnRecords,
                 &target("2026-10-15", 150.0)
             ),

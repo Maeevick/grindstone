@@ -32,6 +32,7 @@ use grind_core::fuel_week::FuelWeek;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
+use grind_core::kept::InForce;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
@@ -396,13 +397,19 @@ pub fn remove_drink(records: State<Records>, name: String) -> Result<Vec<Drink>,
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_burn_target(records: State<Records>, form: BurnTargetForm) -> Result<f64, Failure> {
+pub fn set_burn_target(
+    records: State<Records>,
+    form: BurnTargetForm,
+) -> Result<Option<InForce<f64>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_burn_target(&*records, &form)
+    for_setting_up_the_profile::set_burn_target(&*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn burn_target_on(records: State<Records>, date: String) -> Result<Option<f64>, Failure> {
+pub fn burn_target_on(
+    records: State<Records>,
+    date: String,
+) -> Result<Option<InForce<f64>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::burn_target_on(&*records, &*records, &date)
 }
@@ -1394,14 +1401,18 @@ mod tests {
         let set = invoke(
             &screen,
             "set_burn_target",
-            json!({ "form": { "from": "2026-10-15", "kcal": 150.0 } }),
+            json!({ "form": { "from": "2026-10-15", "kept": { "Own": 150.0 } } }),
         );
         let in_force = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-20" }));
         let before = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-10" }));
 
         assert_eq!(
             (set, in_force, before),
-            (Ok(json!(150.0)), Ok(json!(150.0)), Ok(json!(null)))
+            (
+                Ok(json!({ "values": 150.0, "recommended": false })),
+                Ok(json!({ "values": 150.0, "recommended": false })),
+                Ok(json!(null))
+            )
         );
     }
 

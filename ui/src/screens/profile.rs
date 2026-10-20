@@ -5,6 +5,7 @@ use grind_core::for_setting_up_the_profile::{
 };
 use grind_core::gender::Gender;
 use grind_core::goals::fat_percentage;
+use grind_core::kept::Kept;
 use grind_core::recommendations::Recommendations;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -193,7 +194,7 @@ fn BurnTargetCard() -> impl IntoView {
     });
     spawn_local(async move {
         match tauri::burn_target_on(&today()).await {
-            Ok(Some(target)) => kcal.set(typed_back(target)),
+            Ok(Some(target)) => kcal.set(typed_back(target.values)),
             Ok(None) => unweighed.set(true),
             Err(_) => {}
         }
@@ -210,7 +211,7 @@ fn BurnTargetCard() -> impl IntoView {
         };
         let form = BurnTargetForm {
             from: from.get_untracked(),
-            kcal,
+            kept: Kept::Own(kcal),
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_burn_target(&form).await {
