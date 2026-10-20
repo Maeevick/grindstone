@@ -595,6 +595,43 @@ mod tests {
     }
 
     #[test]
+    fn a_band_narrower_than_a_tenth_of_maintenance_widens_around_its_middle_five_percent_either_side_at_the_goal()
+     {
+        let (lean_kg, fat_kg) = the_body();
+        let band_aiming_at = |body_mass_kg: f64, goal_fat_kg: f64| {
+            let aiming_at = GatherRecords {
+                goals: vec![(
+                    day("2026-03-01"),
+                    Kept::Own(Goals {
+                        body_mass_kg,
+                        fat_ratio: goal_fat_kg / body_mass_kg,
+                    }),
+                )],
+                ..a_mans_records(HIS_WAIST_CM)
+            };
+            fuel_on("2026-10-10", &aiming_at, &a_desk_job(), &aiming())
+                .band
+                .map(|band| (band.floor_kcal, band.cap_kcal))
+                .expect("a band")
+        };
+        let maintenance = spent_before_eating_by(lean_kg, fat_kg);
+
+        let at_the_goal = band_aiming_at(80.0, fat_kg);
+        let a_kilo_of_fat_away = band_aiming_at(79.0, fat_kg - 1.0);
+
+        let middle = maintenance - 290.0 / 4.184 / 2.0;
+        assert!(
+            about(at_the_goal.0, 0.95 * maintenance) && about(at_the_goal.1, 1.05 * maintenance),
+            "{at_the_goal:?}"
+        );
+        assert!(
+            about(a_kilo_of_fat_away.0, middle - 0.05 * maintenance)
+                && about(a_kilo_of_fat_away.1, middle + 0.05 * maintenance),
+            "{a_kilo_of_fat_away:?}"
+        );
+    }
+
+    #[test]
     fn a_cut_may_go_as_low_as_alperts_deficit_on_the_fat_left_to_lose() {
         let (_, fat_kg) = the_body();
         let his_goals_fat_kg = 70.0 * 0.1;
