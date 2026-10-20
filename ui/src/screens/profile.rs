@@ -4,7 +4,7 @@ use grind_core::bibliography::Topic;
 use grind_core::failure::Failure;
 use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
-    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, TypedGoals, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, Scope, TypedGoals, UsualDayForm,
 };
 use grind_core::fuel_records::FuelTargets;
 use grind_core::gender::Gender;
@@ -39,6 +39,47 @@ pub fn Recommend(keep: Callback<()>) -> impl IntoView {
             "Use the recommendation"
         </button>
     }
+}
+
+const SWITCHES: [(bool, &str, &str); 2] = [
+    (true, "Counted", "counted"),
+    (false, "Left out", "left-out"),
+];
+
+/// Whether a card's tick counts in the streak, kept with its values from the card's day.
+#[component]
+pub fn Counted(counted: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <div class="field streak">
+            "Streak"
+            <div class="pills">
+                {SWITCHES
+                    .into_iter()
+                    .map(|(on, label, named)| {
+                        view! {
+                            <button
+                                type="button"
+                                class=format!("pill {named}")
+                                class:chosen=move || counted.get() == on
+                                on:click=move |_| counted.set(on)
+                            >
+                                {label}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </div>
+        </div>
+    }
+}
+
+/// Whether the card's tick counts today, read from the streak's scope.
+pub fn shown_counted(counted: RwSignal<bool>, tick: fn(&Scope) -> bool) {
+    spawn_local(async move {
+        if let Ok(scope) = tauri::scope_on(&today()).await {
+            counted.set(tick(&scope));
+        }
+    });
 }
 
 /// A card's choice kept: once filed, what is in force fills the card and says whose it is.
@@ -84,6 +125,7 @@ fn GoalsCard() -> impl IntoView {
     let target_fat = RwSignal::new(String::new());
     let healthy = RwSignal::new(None::<String>);
     let whose = RwSignal::new(None::<bool>);
+    let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let show = move |goals: Goals| {
@@ -91,6 +133,7 @@ fn GoalsCard() -> impl IntoView {
         target_fat.set(typed_back(fat_percentage(&goals)));
     };
     shown_in_force(async { tauri::goals_on(&today()).await }, show, whose);
+    shown_counted(counted, |scope| scope.weighed);
     spawn_local(async move {
         if let Ok(advised) = tauri::recommended_on(&today()).await {
             healthy.set(Some(lines::healthy_ranges(&advised)));
@@ -141,6 +184,7 @@ fn GoalsCard() -> impl IntoView {
                 </div>
                 <Whose whose=whose />
                 {move || healthy.get().map(|line| view! { <p class="hint healthy">{line}</p> })}
+                <Counted counted=counted />
                 <Recommend keep=recommend />
                 <button class="cta" type="submit">
                     "Keep these goals"
@@ -234,6 +278,7 @@ fn BurnTargetCard() -> impl IntoView {
     let kcal = RwSignal::new(String::new());
     let unweighed = RwSignal::new(false);
     let whose = RwSignal::new(None::<bool>);
+    let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let show = move |target: f64| kcal.set(typed_back(target));
@@ -247,6 +292,7 @@ fn BurnTargetCard() -> impl IntoView {
             Err(_) => {}
         }
     });
+    shown_counted(counted, |scope| scope.worked_out);
     let keep = move |kept: Kept<f64>, filed: fn(&str) -> String| {
         let form = BurnTargetForm {
             from: from.get_untracked(),
@@ -290,6 +336,7 @@ fn BurnTargetCard() -> impl IntoView {
                     <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />
                 </div>
                 <Whose whose=whose />
+                <Counted counted=counted />
                 <Recommend keep=recommend />
                 <button class="cta" type="submit">
                     "Keep this target"
@@ -308,6 +355,7 @@ fn FuelTargetsCard() -> impl IntoView {
     let fat = RwSignal::new(String::new());
     let fibre = RwSignal::new(String::new());
     let whose = RwSignal::new(None::<bool>);
+    let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let show = move |targets: FuelTargets| {
@@ -320,6 +368,7 @@ fn FuelTargetsCard() -> impl IntoView {
         show,
         whose,
     );
+    shown_counted(counted, |scope| scope.fuelled);
     let keep = move |kept: Kept<FuelTargets>, filed: fn(&str) -> String| {
         let form = FuelTargetsForm {
             from: from.get_untracked(),
@@ -371,6 +420,7 @@ fn FuelTargetsCard() -> impl IntoView {
                     <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
                 </div>
                 <Whose whose=whose />
+                <Counted counted=counted />
                 <Recommend keep=recommend />
                 <button class="cta" type="submit">
                     "Keep these targets"

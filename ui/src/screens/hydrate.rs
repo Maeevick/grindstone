@@ -17,7 +17,9 @@ use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEn
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::HydrateLastDays;
-use crate::screens::profile::{Recommend, Whose, keep_and_show, shown_in_force};
+use crate::screens::profile::{
+    Counted, Recommend, Whose, keep_and_show, shown_counted, shown_in_force,
+};
 use crate::screens::references::ReferencesLink;
 use crate::screens::tab::{DayCard, GrimoireBesideTheNumbers};
 use crate::screens::{Recorded, lines, today};
@@ -361,6 +363,7 @@ pub fn HydrateCountedCard() -> impl IntoView {
     let water_from = RwSignal::new(today());
     let water = RwSignal::new(String::new());
     let water_whose = RwSignal::new(None::<bool>);
+    let water_counted = RwSignal::new(true);
     let water_said = RwSignal::new(None::<String>);
     let show_water = move |ml: f64| water.set(typed_back(ml));
     shown_in_force(
@@ -368,6 +371,7 @@ pub fn HydrateCountedCard() -> impl IntoView {
         show_water,
         water_whose,
     );
+    shown_counted(water_counted, |scope| scope.hydrated);
     let keep_water = move |kept: Kept<f64>, filed: fn(&str) -> String| {
         let form = HydrateTargetForm {
             from: water_from.get_untracked(),
@@ -429,6 +433,7 @@ pub fn HydrateCountedCard() -> impl IntoView {
                     <FigureField label="Water a day (mL)" name="water_target" value=water />
                 </div>
                 <Whose whose=water_whose />
+                <Counted counted=water_counted />
                 <Recommend keep=recommend_water />
                 <button class="cta" type="submit">
                     "Keep this target"
