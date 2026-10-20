@@ -744,14 +744,10 @@ mod tests {
         0.9 * (lean_kg * 0.732 * 0.07 * 1000.0)
     }
 
-    fn about(actual: Option<InForce<f64>>, expected: Option<InForce<f64>>) -> bool {
-        match (actual, expected) {
-            (Some(actual), Some(expected)) => {
-                (actual.values - expected.values).abs() < 1e-9
-                    && actual.recommended == expected.recommended
-            }
-            (actual, expected) => actual == expected,
-        }
+    fn following(actual: Option<InForce<f64>>, recommended_ml: f64) -> bool {
+        actual.is_some_and(|actual| {
+            (actual.values - recommended_ml).abs() < 1e-9 && actual.recommended
+        })
     }
 
     #[test]
@@ -768,9 +764,9 @@ mod tests {
 
         assert_eq!(unweighed, Ok(recommended_ml(2000.0)));
         assert!(
-            about(
+            following(
                 lean.clone().ok().flatten(),
-                recommended_ml(the_lean_masss_turnover_share_ml(&with_a_waist))
+                the_lean_masss_turnover_share_ml(&with_a_waist)
             ),
             "{lean:?}"
         );
@@ -806,11 +802,11 @@ mod tests {
                 Ok(recommended_ml(2000.0))
             )
         );
-        assert!(about(
+        assert!(following(
             hydrate_target_on(&gather, &hydrate, "2026-10-12")
                 .ok()
                 .flatten(),
-            recommended_ml(the_lean_masss_turnover_share_ml(&gather))
+            the_lean_masss_turnover_share_ml(&gather)
         ));
     }
 
