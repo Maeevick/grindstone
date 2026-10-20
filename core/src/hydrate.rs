@@ -132,7 +132,7 @@ fn hydrated(
         (None, Some(lean_kg), Some(band)) => {
             let target_ml = SHARE_LEFT_TO_DRINKS
                 * (turned_over_ml(lean_kg) + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
-            let floor_ml = SHARE_LEFT_TO_DRINKS * band.cap_kcal * ML_PER_KCAL_SPENT;
+            let floor_ml = SHARE_LEFT_TO_DRINKS * band.maintenance_kcal * ML_PER_KCAL_SPENT;
             (target_ml, floor_ml.min(target_ml))
         }
         _ => {
