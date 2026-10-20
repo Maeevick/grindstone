@@ -618,6 +618,25 @@ mod tests {
     }
 
     #[test]
+    fn a_gains_cap_adds_the_days_burn_to_what_the_goal_body_would_spend() {
+        let mut burn = a_desk_job();
+        let walking = Exercise {
+            name: "Walking".into(),
+            met: 4.0,
+            description: String::new(),
+        };
+        let walked = workout("2026-10-10", &walking, 60.0, None, 1, 0.0).expect("a workout");
+        burn.workouts.push((1, walked.clone()));
+
+        let fuelled = fuel_on("2026-10-10", &gaining(), &burn, &aiming());
+
+        assert!(fuelled.band.is_some_and(|band| about(
+            band.cap_kcal,
+            spent_before_eating_by(95.0 * 0.8, 95.0 * 0.2) + burnt_by(&walked, 80.0)
+        )));
+    }
+
+    #[test]
     fn a_band_narrower_than_a_tenth_of_maintenance_widens_around_its_middle_five_percent_either_side_at_the_goal()
      {
         let (lean_kg, fat_kg) = the_body();
