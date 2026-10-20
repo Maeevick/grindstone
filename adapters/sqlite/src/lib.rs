@@ -98,7 +98,30 @@ const MIGRATIONS: &[&str] = &[
     "alter table foods add column description text not null default ''",
     "alter table drinks add column description text not null default ''",
     "alter table exercises add column description text not null default ''",
+    "alter table goals add column recommended integer not null default 0;
+     alter table usual_days add column recommended integer not null default 0;
+     alter table fuel_targets add column recommended integer not null default 0;
+     alter table burn_targets add column recommended integer not null default 0;
+     create table hydrate_targets (
+         effective_from text primary key, base_ml real not null, recommended integer not null
+     );",
 ];
+
+/// A version as kept: the recommendation is written as a flag over values nobody reads.
+fn written<T: Copy>(kept: &Kept<T>, unread: T) -> (T, bool) {
+    match kept {
+        Kept::Own(values) => (*values, false),
+        Kept::Recommended => (unread, true),
+    }
+}
+
+fn kept<T>(recommended: bool, own: T) -> Kept<T> {
+    if recommended {
+        Kept::Recommended
+    } else {
+        Kept::Own(own)
+    }
+}
 
 pub struct Sqlite(Connection);
 
@@ -197,15 +220,21 @@ impl ForStoringGatherRecords for Sqlite {
     }
 
     fn save_goals(&self, from: NaiveDate, goals: &Kept<Goals>) -> Result<(), Broken> {
-        let Kept::Own(goals) = goals else {
-            return Ok(());
-        };
+        let (goals, recommended) = written(
+            goals,
+            Goals {
+                body_mass_kg: 0.0,
+                fat_ratio: 0.0,
+            },
+        );
         self.0
             .execute(
-                "insert into goals (effective_from, body_mass_kg, fat_ratio) values (?1, ?2, ?3)
+                "insert into goals (effective_from, body_mass_kg, fat_ratio, recommended)
+                 values (?1, ?2, ?3, ?4)
                  on conflict (effective_from) do update
-                 set body_mass_kg = excluded.body_mass_kg, fat_ratio = excluded.fat_ratio",
-                params![from, goals.body_mass_kg, goals.fat_ratio],
+                 set body_mass_kg = excluded.body_mass_kg, fat_ratio = excluded.fat_ratio,
+                     recommended = excluded.recommended",
+                params![from, goals.body_mass_kg, goals.fat_ratio, recommended],
             )
             .map(|_| ())
             .map_err(broken)
@@ -270,17 +299,21 @@ impl ForStoringGatherRecords for Sqlite {
         let goals = self
             .0
             .prepare(
-                "select effective_from, body_mass_kg, fat_ratio from goals order by effective_from",
+                "select effective_from, body_mass_kg, fat_ratio, recommended from goals
+                 order by effective_from",
             )
             .and_then(|mut statement| {
                 statement
                     .query_map([], |row| {
                         Ok((
                             row.get(0)?,
-                            Kept::Own(Goals {
-                                body_mass_kg: row.get(1)?,
-                                fat_ratio: row.get(2)?,
-                            }),
+                            kept(
+                                row.get(3)?,
+                                Goals {
+                                    body_mass_kg: row.get(1)?,
+                                    fat_ratio: row.get(2)?,
+                                },
+                            ),
                         ))
                     })?
                     .collect()
@@ -356,8 +389,10 @@ const EXERCISES: &str = "select name, met, description from exercises order by n
 const WORKOUTS: &str = "select id, day, exercise, met, minutes, reps, sets, load_kg, circuit from workouts order by day, id";
 const DAYS_OFF_THE_CLOCK: &str =
     "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day";
-const USUAL_DAYS: &str = "select effective_from, sitting_min, standing_min, moving_km from usual_days order by effective_from";
-const BURN_TARGETS: &str = "select effective_from, kcal from burn_targets order by effective_from";
+const USUAL_DAYS: &str = "select effective_from, sitting_min, standing_min, moving_km, recommended
+     from usual_days order by effective_from";
+const BURN_TARGETS: &str =
+    "select effective_from, kcal, recommended from burn_targets order by effective_from";
 
 fn exercise_read(row: &rusqlite::Row) -> rusqlite::Result<Exercise> {
     Ok(Exercise {
@@ -469,31 +504,30 @@ impl ForStoringBurnRecords for Sqlite {
     }
 
     fn save_usual_day(&self, from: NaiveDate, usual: &Kept<Volitional>) -> Result<(), Broken> {
-        let Kept::Own(volitional) = usual else {
-            return Ok(());
-        };
+        let (volitional, recommended) = written(usual, Volitional::default());
         self.run(
-            "insert into usual_days (effective_from, sitting_min, standing_min, moving_km)
-             values (?1, ?2, ?3, ?4)
+            "insert into usual_days (effective_from, sitting_min, standing_min, moving_km, recommended)
+             values (?1, ?2, ?3, ?4, ?5)
              on conflict (effective_from) do update set sitting_min = excluded.sitting_min,
-                 standing_min = excluded.standing_min, moving_km = excluded.moving_km",
+                 standing_min = excluded.standing_min, moving_km = excluded.moving_km,
+                 recommended = excluded.recommended",
             params![
                 from,
                 volitional.sitting_min,
                 volitional.standing_min,
-                volitional.moving_km
+                volitional.moving_km,
+                recommended
             ],
         )
     }
 
     fn save_burn_target(&self, from: NaiveDate, kcal: Kept<f64>) -> Result<(), Broken> {
-        let Kept::Own(kcal) = kcal else {
-            return Ok(());
-        };
+        let (kcal, recommended) = written(&kcal, 0.0);
         self.run(
-            "insert into burn_targets (effective_from, kcal) values (?1, ?2)
-             on conflict (effective_from) do update set kcal = excluded.kcal",
-            params![from, kcal],
+            "insert into burn_targets (effective_from, kcal, recommended) values (?1, ?2, ?3)
+             on conflict (effective_from) do update
+             set kcal = excluded.kcal, recommended = excluded.recommended",
+            params![from, kcal, recommended],
         )
     }
 
@@ -532,14 +566,13 @@ impl ForStoringBurnRecords for Sqlite {
             exercises: self.rows(EXERCISES, exercise_read)?,
             workouts: self.rows(WORKOUTS, workout_read)?,
             days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
-            usual_days: self
-                .rows(USUAL_DAYS, volitional_read)?
-                .into_iter()
-                .map(|(from, usual)| (from, Kept::Own(usual)))
-                .collect(),
+            usual_days: self.rows(USUAL_DAYS, |row| {
+                let (from, usual) = volitional_read(row)?;
+                Ok((from, kept(row.get(4)?, usual)))
+            })?,
             circuits: self.circuits()?,
             targets: self.rows(BURN_TARGETS, |row| {
-                Ok((row.get(0)?, Kept::Own(row.get(1)?)))
+                Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
             })?,
         })
     }
@@ -585,7 +618,8 @@ const FOODS: &str =
 const INTAKES: &str =
     "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
      from intakes order by day, id";
-const FUEL_TARGETS: &str = "select effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg
+const FUEL_TARGETS: &str =
+    "select effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg, recommended
      from fuel_targets order by effective_from";
 const MEALS: &str = "select meal from meals order by name";
 
@@ -615,11 +649,14 @@ fn intake_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Intake)> {
 fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Kept<FuelTargets>)> {
     Ok((
         row.get(0)?,
-        Kept::Own(FuelTargets {
-            protein_g_per_kg: row.get(1)?,
-            fat_g_per_kg: row.get(2)?,
-            fibre_g_per_kg: row.get(3)?,
-        }),
+        kept(
+            row.get(4)?,
+            FuelTargets {
+                protein_g_per_kg: row.get(1)?,
+                fat_g_per_kg: row.get(2)?,
+                fibre_g_per_kg: row.get(3)?,
+            },
+        ),
     ))
 }
 
@@ -734,19 +771,27 @@ impl ForStoringFuelRecords for Sqlite {
     }
 
     fn save_targets(&self, from: NaiveDate, targets: &Kept<FuelTargets>) -> Result<(), Broken> {
-        let Kept::Own(targets) = targets else {
-            return Ok(());
-        };
+        let (targets, recommended) = written(
+            targets,
+            FuelTargets {
+                protein_g_per_kg: 0.0,
+                fat_g_per_kg: 0.0,
+                fibre_g_per_kg: 0.0,
+            },
+        );
         self.run(
-            "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg)
-             values (?1, ?2, ?3, ?4)
+            "insert into fuel_targets
+                 (effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg, recommended)
+             values (?1, ?2, ?3, ?4, ?5)
              on conflict (effective_from) do update set protein_g_per_kg = excluded.protein_g_per_kg,
-                 fat_g_per_kg = excluded.fat_g_per_kg, fibre_g_per_kg = excluded.fibre_g_per_kg",
+                 fat_g_per_kg = excluded.fat_g_per_kg, fibre_g_per_kg = excluded.fibre_g_per_kg,
+                 recommended = excluded.recommended",
             params![
                 from,
                 targets.protein_g_per_kg,
                 targets.fat_g_per_kg,
-                targets.fibre_g_per_kg
+                targets.fibre_g_per_kg,
+                recommended
             ],
         )
     }
@@ -839,6 +884,8 @@ fn kind_read(word: &str) -> rusqlite::Result<DrinkKind> {
 }
 const HYDRATE_COUNTED: &str =
     "select effective_from, counted from hydrate_counted order by effective_from";
+const HYDRATE_TARGETS: &str =
+    "select effective_from, base_ml, recommended from hydrate_targets order by effective_from";
 
 fn drink_read(row: &rusqlite::Row) -> rusqlite::Result<Drink> {
     Ok(Drink {
@@ -910,15 +957,22 @@ impl ForStoringHydrateRecords for Sqlite {
         )
     }
 
-    fn save_hydrate_target(&self, _: NaiveDate, _: Kept<f64>) -> Result<(), Broken> {
-        Ok(())
+    fn save_hydrate_target(&self, from: NaiveDate, base_ml: Kept<f64>) -> Result<(), Broken> {
+        let (base_ml, recommended) = written(&base_ml, 0.0);
+        self.run(
+            "insert into hydrate_targets (effective_from, base_ml, recommended) values (?1, ?2, ?3)
+             on conflict (effective_from) do update
+             set base_ml = excluded.base_ml, recommended = excluded.recommended",
+            params![from, base_ml, recommended],
+        )
     }
 
     fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
-                "delete from drinks; delete from drinkings; delete from hydrate_counted;",
+                "delete from drinks; delete from drinkings; delete from hydrate_counted;
+                 delete from hydrate_targets;",
             )
             .map_err(broken)?;
         for drink in &records.drinks {
@@ -930,6 +984,9 @@ impl ForStoringHydrateRecords for Sqlite {
         for (from, counted) in &records.counted_from {
             self.save_counted(*from, *counted)?;
         }
+        for (from, base_ml) in &records.targets {
+            self.save_hydrate_target(*from, *base_ml)?;
+        }
         replacing.commit().map_err(broken)
     }
 
@@ -938,7 +995,9 @@ impl ForStoringHydrateRecords for Sqlite {
             drinks: self.rows(DRINKS, drink_read)?,
             drinkings: self.rows(DRINKINGS, drinking_read)?,
             counted_from: self.rows(HYDRATE_COUNTED, counted_read)?,
-            targets: vec![],
+            targets: self.rows(HYDRATE_TARGETS, |row| {
+                Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
+            })?,
         })
     }
 }
@@ -951,6 +1010,7 @@ mod tests {
     const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
     const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
     const BEFORE_THE_HYDRATE_SWITCHES: usize = 14;
+    const BEFORE_THE_RECOMMENDATIONS: usize = 20;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
@@ -1671,6 +1731,77 @@ mod tests {
                 (NaiveDate::from_ymd_opt(2026, 3, 1).expect("a day"), false),
                 (NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"), true)
             ]
+        );
+    }
+
+    #[test]
+    fn the_goals_targets_and_usual_days_already_on_the_phone_come_back_as_own_values() {
+        let file = std::env::temp_dir().join(format!(
+            "grind-sqlite-recommendations-{}.sqlite",
+            std::process::id()
+        ));
+        let before = Connection::open(&file).expect("a database before the recommendations");
+        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..BEFORE_THE_RECOMMENDATIONS]) {
+            before
+                .execute_batch(migration)
+                .expect("an earlier migration");
+            before
+                .pragma_update(None, "user_version", version)
+                .expect("its version");
+        }
+        before
+            .execute_batch(
+                "insert into goals (effective_from, body_mass_kg, fat_ratio) values ('2026-03-01', 70.0, 0.1);
+                 insert into usual_days (effective_from, sitting_min, standing_min, moving_km)
+                     values ('2026-03-01', 480.0, 120.0, 6.0);
+                 insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg)
+                     values ('2026-03-01', 1.6, 0.9, 0.4);
+                 insert into burn_targets (effective_from, kcal) values ('2026-03-01', 77.0);",
+            )
+            .expect("versions kept before");
+        drop(before);
+
+        let reopened = Sqlite::open(&file).expect("the database migrates");
+        let kept = (
+            reopened.gather_records().map(|gathered| gathered.goals),
+            reopened
+                .burn_records()
+                .map(|burnt| (burnt.usual_days, burnt.targets)),
+            reopened.fuel_records().map(|fuelled| fuelled.targets),
+        );
+
+        std::fs::remove_file(&file).expect("the test database is removed");
+        let from = NaiveDate::from_ymd_opt(2026, 3, 1).expect("a day");
+        assert_eq!(
+            kept,
+            (
+                Ok(vec![(
+                    from,
+                    Kept::Own(Goals {
+                        body_mass_kg: 70.0,
+                        fat_ratio: 0.1
+                    })
+                )]),
+                Ok((
+                    vec![(
+                        from,
+                        Kept::Own(Volitional {
+                            sitting_min: 480.0,
+                            standing_min: 120.0,
+                            moving_km: 6.0
+                        })
+                    )],
+                    vec![(from, Kept::Own(77.0))]
+                )),
+                Ok(vec![(
+                    from,
+                    Kept::Own(FuelTargets {
+                        protein_g_per_kg: 1.6,
+                        fat_g_per_kg: 0.9,
+                        fibre_g_per_kg: 0.4
+                    })
+                )])
+            )
         );
     }
 }
