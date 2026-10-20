@@ -3573,6 +3573,35 @@ const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg
     "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "burn_target_kcal": 77.14 }"#;
 
 #[wasm_bindgen_test]
+async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_its_targets_from_the_start()
+ {
+    answering(&format!(
+        r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
+             "goals_on": {{ "body_mass_kg": 68.0, "fat_ratio": 0.1 }}, "fuel_targets_on": null,
+             "usual_day_on": null, "hydrate_counted_on": true,
+             "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let healthy = text_of(&screen, "form.goals p.hint");
+
+    assert!(
+        healthy.starts_with("Healthy at your height and age: 59.9 kg to 80.7 kg")
+            && healthy.contains("11.0% to 22.0% body fat")
+            && healthy.contains("ask a doctor"),
+        "{healthy}"
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_recommendation_fills_each_card_on_demand() {
     answering(&format!(
         r#"{{ "profile_on": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }},
