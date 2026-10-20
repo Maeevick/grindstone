@@ -77,7 +77,12 @@ pub fn BurnGauge(burnt: f64, target: f64, ghost: Option<f64>) -> impl IntoView {
 
 #[component]
 pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
-    let bounds = (band.minimum_kcal, band.floor_kcal, band.cap_kcal);
+    let bounds = (
+        band.minimum_kcal,
+        band.floor_kcal,
+        band.maintenance_kcal,
+        band.cap_kcal,
+    );
     let placed = energy_gauge_of(eaten, bounds, 360.0);
     let ghost_at = ghost.map(|kcal| energy_gauge_of(kcal, bounds, 360.0).eaten_at);
     view! {
