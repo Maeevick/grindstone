@@ -54,6 +54,11 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
     })
 }
 
+/// The seven days up to the last, oldest first.
+pub fn the_seven_days_up_to(last: NaiveDate) -> Vec<NaiveDate> {
+    vec![last]
+}
+
 /// The days logged in the seven up to the last, each once and oldest first, leaving out those from a day on:
 /// today, while it is still under way.
 pub fn logged_in_the_week(
@@ -129,6 +134,23 @@ mod tests {
         );
 
         assert_eq!(week, [day("2026-10-04"), day("2026-10-06")]);
+    }
+
+    #[test]
+    fn the_seven_days_up_to_the_last_run_oldest_first() {
+        assert_eq!(
+            the_seven_days_up_to(day("2026-10-02")),
+            [
+                "2026-09-26",
+                "2026-09-27",
+                "2026-09-28",
+                "2026-09-29",
+                "2026-09-30",
+                "2026-10-01",
+                "2026-10-02"
+            ]
+            .map(day)
+        );
     }
 
     #[test]
