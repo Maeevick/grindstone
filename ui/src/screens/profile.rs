@@ -104,16 +104,30 @@ pub fn keep_and_show<T: 'static>(
     });
 }
 
-/// What is in force today, shown in the card with whose it is.
+/// What is in force, shown in the card with whose it is and, once kept, the day it was kept from.
+pub fn shown<T>(
+    in_force: InForce<T>,
+    show: impl Fn(T),
+    whose: RwSignal<Option<bool>>,
+    from: RwSignal<String>,
+) {
+    show(in_force.values);
+    whose.set(Some(in_force.recommended));
+    if let Some(kept_from) = in_force.from {
+        from.set(kept_from.to_string());
+    }
+}
+
+/// What is in force today, shown in the card.
 pub fn shown_in_force<T: 'static>(
     reading: impl Future<Output = Result<Option<InForce<T>>, Failure>> + 'static,
     show: impl Fn(T) + 'static,
     whose: RwSignal<Option<bool>>,
+    from: RwSignal<String>,
 ) {
     spawn_local(async move {
         if let Ok(Some(in_force)) = reading.await {
-            show(in_force.values);
-            whose.set(Some(in_force.recommended));
+            shown(in_force, show, whose, from);
         }
     });
 }
@@ -132,7 +146,7 @@ fn GoalsCard() -> impl IntoView {
         target_mass.set(typed_back(goals.body_mass_kg));
         target_fat.set(typed_back(fat_percentage(&goals)));
     };
-    shown_in_force(async { tauri::goals_on(&today()).await }, show, whose);
+    shown_in_force(async { tauri::goals_on(&today()).await }, show, whose, from);
     shown_counted(counted, |scope| scope.weighed);
     spawn_local(async move {
         if let Ok(advised) = tauri::recommended_on(&today()).await {
@@ -210,7 +224,12 @@ fn UsualDayCard() -> impl IntoView {
         standing.set(typed_back(usual.standing_min));
         moving.set(typed_back(usual.moving_km));
     };
-    shown_in_force(async { tauri::usual_day_on(&today()).await }, show, whose);
+    shown_in_force(
+        async { tauri::usual_day_on(&today()).await },
+        show,
+        whose,
+        from,
+    );
     let keep = move |kept: Kept<Volitional>, filed: fn(&str) -> String| {
         let form = UsualDayForm {
             from: from.get_untracked(),
@@ -284,10 +303,7 @@ fn BurnTargetCard() -> impl IntoView {
     let show = move |target: f64| kcal.set(typed_back(target));
     spawn_local(async move {
         match tauri::burn_target_on(&today()).await {
-            Ok(Some(target)) => {
-                show(target.values);
-                whose.set(Some(target.recommended));
-            }
+            Ok(Some(target)) => shown(target, show, whose, from),
             Ok(None) => unweighed.set(true),
             Err(_) => {}
         }
@@ -367,6 +383,7 @@ fn FuelTargetsCard() -> impl IntoView {
         async { tauri::fuel_targets_on(&today()).await },
         show,
         whose,
+        from,
     );
     shown_counted(counted, |scope| scope.fuelled);
     let keep = move |kept: Kept<FuelTargets>, filed: fn(&str) -> String| {
@@ -443,7 +460,8 @@ pub fn ProfileScreen() -> impl IntoView {
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     spawn_local(async move {
-        if let Ok(Some((_, profile))) = tauri::profile_on(&today()).await {
+        if let Ok(Some((kept_from, profile))) = tauri::profile_on(&today()).await {
+            from.set(kept_from.to_string());
             birthday.set(profile.birthday.to_string());
             gender.set(profile.gender);
             height.set(profile.height_cm.to_string());

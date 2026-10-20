@@ -362,6 +362,7 @@ pub fn HydrateTargetCard() -> impl IntoView {
         async { tauri::hydrate_target_on(&today()).await },
         show,
         whose,
+        from,
     );
     shown_counted(counted, |scope| scope.hydrated);
     let keep = move |kept: Kept<f64>, filed: fn(&str) -> String| {
