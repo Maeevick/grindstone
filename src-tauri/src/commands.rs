@@ -447,8 +447,8 @@ pub fn hydrate_target_on(
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn scope_on(records: State<Records>, date: String) -> Result<Scope, Failure> {
-    let _ = (records, date);
-    Err(Failure::Broken("not yet".into()))
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_setting_up_the_profile::scope_on(&*records, &*records, &*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
