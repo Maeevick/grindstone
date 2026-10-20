@@ -724,7 +724,7 @@ mod tests {
     }
 
     #[test]
-    fn a_profile_set_from_the_screen_is_the_one_in_force_from_its_day() {
+    fn a_profile_set_from_the_screen_is_the_one_in_force_from_its_day_and_tells_it() {
         let (_app, screen) = launched();
         let form = json!({
             "from": "2026-10-10", "birthday": "1985-04-12", "gender": "Male",
@@ -736,7 +736,7 @@ mod tests {
 
         let expected = json!({ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null });
         assert_eq!(set, Ok(expected.clone()));
-        assert_eq!(in_force, Ok(expected));
+        assert_eq!(in_force, Ok(json!(["2026-10-10", expected])));
     }
 
     #[test]
