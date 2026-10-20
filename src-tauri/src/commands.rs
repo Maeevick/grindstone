@@ -30,6 +30,7 @@ use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::FuelWeek;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
+use grind_core::hydrate_week::HydrateWeek;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
@@ -336,6 +337,16 @@ pub fn hydrate_day(records: State<Records>, date: String) -> Result<Hydrate, Fai
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_week(
+    records: State<Records>,
+    date: String,
+    today: String,
+) -> Result<Option<HydrateWeek>, Failure> {
+    let _ = (records, date, today);
+    Ok(None)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn log_drink(records: State<Records>, form: DrinkingForm) -> Result<Hydrate, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_hydrating::log_drink(&*records, &*records, &*records, &*records, &form)
@@ -547,6 +558,7 @@ mod tests {
                 log_circuit,
                 log_session,
                 hydrate_day,
+                hydrate_week,
                 log_drink,
                 remove_drinking,
                 drinks,
@@ -1237,6 +1249,26 @@ mod tests {
                 "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }]],
                 "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1600.0, "cap_ml": 2400.0, "verdict": "Low"
             }))
+        );
+    }
+
+    #[test]
+    fn the_weeks_drinks_cross_to_the_screen_with_their_logged_days_and_average() {
+        let (_app, screen) = with_tea_in_the_catalog();
+        invoke(&screen, "log_drink", tea(400.0)).expect("a drink logs");
+
+        let answer = invoke(
+            &screen,
+            "hydrate_week",
+            json!({ "date": "2026-10-10", "today": "2026-10-11" }),
+        );
+
+        assert_eq!(
+            answer.map(|week| (
+                week["logged_days"].clone(),
+                week["drunk"]["per_day"].clone()
+            )),
+            Ok((json!(1), json!(400.0)))
         );
     }
 

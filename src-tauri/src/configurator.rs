@@ -71,6 +71,7 @@ pub fn run() {
             commands::log_circuit,
             commands::log_session,
             commands::hydrate_day,
+            commands::hydrate_week,
             commands::log_drink,
             commands::remove_drinking,
             commands::drinks,
