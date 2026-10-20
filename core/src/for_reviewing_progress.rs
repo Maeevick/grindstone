@@ -877,6 +877,40 @@ mod tests {
         }
 
         #[test]
+        fn a_card_left_out_of_the_streak_from_a_day_takes_its_tick_out_from_that_day() {
+            let records = a_man_at_his_desk();
+            for date in ["2026-10-08", "2026-10-09", "2026-10-10"] {
+                a_full_day(&records, date, "Plate");
+            }
+            let from = day("2026-10-10");
+            records
+                .gather
+                .save_counted(from, false)
+                .expect("a switch saves");
+            records
+                .fuel
+                .save_counted(from, false)
+                .expect("a switch saves");
+            records
+                .burn
+                .save_counted(from, false)
+                .expect("a switch saves");
+
+            let three_ticks = |date| {
+                ticks_on(&records, "2026-10-10", date)
+                    .map(|ticks| (ticks.weighed, ticks.fuelled, ticks.worked_out))
+            };
+
+            assert_eq!(
+                (three_ticks("2026-10-09"), three_ticks("2026-10-10")),
+                (
+                    Some((Some(true), Some(true), Some(true))),
+                    Some((None, None, None))
+                )
+            );
+        }
+
+        #[test]
         fn hydrate_left_out_from_a_date_leaves_its_days_on_the_other_three_ticks() {
             let records = a_man_at_his_desk();
             for (from, counted) in [("2026-03-01", false), ("2026-10-10", true)] {
