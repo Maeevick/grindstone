@@ -566,22 +566,15 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
     }
     assert!(pace.contains("-0.4 kg a week"), "{pace}");
     assert!(pace.contains("inside the safe lane"), "{pace}");
+    assert!(attributes_of(&screen, ".pace li", "class").is_empty());
+    assert!(attributes_of(&screen, ".pace li > span", "class").is_empty());
     assert_eq!(
-        (
-            attributes_of(&screen, ".pace li", "class"),
-            attributes_of(&screen, ".pace li span:first-child", "class"),
-            attributes_of(&screen, ".pace li span:last-child", "class"),
-        ),
-        (
-            vec![],
-            vec![],
-            vec![
-                "toward".to_string(),
-                "away".to_string(),
-                "toward".to_string(),
-                "steady".to_string()
-            ]
-        )
+        texts_in_order(&screen, ".pace li span span"),
+        ["-0.4 kg", "-0.1 kg", "-0.3 kg", "steady"]
+    );
+    assert_eq!(
+        attributes_of(&screen, ".pace li span span", "class"),
+        ["toward", "away", "toward", "steady"]
     );
     let tip = text_of(&screen, ".pace p");
     assert_eq!(attributes_of(&screen, ".pace p", "class"), ["tip"]);
