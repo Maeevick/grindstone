@@ -56,6 +56,11 @@ fn GoalsCard() -> impl IntoView {
             target_fat.set(fat_percentage(&goals).to_string());
         }
     });
+    spawn_local(async move {
+        if let Ok(advised) = tauri::recommended_on(&today()).await {
+            healthy.set(Some(lines::healthy_ranges(&advised)));
+        }
+    });
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some([body_mass_kg, fat_percentage]) =

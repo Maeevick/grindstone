@@ -646,7 +646,9 @@ pub fn healthy_ranges(advised: &Recommendations) -> String {
     let (lightest, heaviest) = advised.healthy_mass_kg;
     let (leanest, fattest) = advised.healthy_fat_ratio;
     format!(
-        "Healthy at your height and age: {} to {} (a body mass index of 18.5 to 24.9), {} to {} body fat.",
+        "Healthy at your height and age: {} to {} (a body mass index of 18.5 to 24.9) and {} to {} body fat. \
+        A goal beyond them is yours to set; if you are not sure, ask a doctor or a coach first. \
+        I only have a quill, and it has never seen a patient.",
         shown(Figure::Mass(lightest)),
         shown(Figure::Mass(heaviest)),
         shown(Figure::Ratio(leanest)),
