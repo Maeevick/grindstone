@@ -825,16 +825,6 @@ pub fn pace_said(pace: &Pace) -> String {
                 .into()
         }
         Judgement::LosingTooFast => losing_too_fast(pace),
-        Judgement::UnderHealthyMass => {
-            "Under the healthy mass for your height. Stop losing, eat to \
-            maintenance, and see a doctor if it keeps dropping."
-                .into()
-        }
-        Judgement::UnderHealthyFat => {
-            "Under the healthy body fat for your age. Stop losing, eat to \
-            maintenance, and see a doctor if it keeps dropping."
-                .into()
-        }
     }
 }
 

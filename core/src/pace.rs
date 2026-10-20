@@ -9,10 +9,8 @@ use crate::heading::{Aim, heading_of};
 use crate::judgement::{Judgement, Week, judgement_of};
 use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
-use crate::recommendations::recommended;
 use crate::tendency::{Change, Heading};
 use crate::trend::seven_day_trend;
-use crate::version::version_in_force_on;
 
 /// What sets the safe weekly loss: what the fat store can spare, 1% of the body mass, or a kilo.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,14 +131,9 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
     let body = body_on(day, &days, &gathered.profiles);
     let (safe_loss_kg, safe_loss_by) =
         safe_loss_of(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
-    let healthy = version_in_force_on(&gathered.profiles, day)
-        .map(|profile| recommended(profile, day, Some(body_mass_kg)));
     let judgement = judgement_of(&Week {
         per_week,
         body_mass_kg,
-        fat_ratio: body.as_ref().map(|body| body.fat_kg / body.mass_kg),
-        healthy_mass_from_kg: healthy.map(|healthy| healthy.healthy_mass_kg.0),
-        healthy_fat_ratio_from: healthy.map(|healthy| healthy.healthy_fat_ratio.0),
         safe_loss_kg,
         aim_kg: aims.map(|aims| aims.body_mass_kg),
     });
