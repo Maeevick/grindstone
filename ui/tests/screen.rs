@@ -3680,6 +3680,29 @@ async fn each_goal_card_shows_what_is_in_force_and_whose_it_is() {
 }
 
 #[wasm_bindgen_test]
+async fn each_goal_card_shows_whether_its_tick_counts_in_the_streak_and_the_usual_day_has_none() {
+    answering_all(&[
+        &format!(r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#),
+        r#"{ "scope_on": { "weighed": true, "fuelled": false, "worked_out": true, "hydrated": false } }"#,
+    ]);
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    assert_eq!(
+        [
+            "form.goals",
+            "form.fuel-targets",
+            "form.water-target",
+            "form.burn-target"
+        ]
+        .map(|form| texts_in_order(&screen, &format!("{form} .pill.chosen")).concat()),
+        ["Counted", "Left out", "Left out", "Counted"]
+    );
+    assert!(texts_in_order(&screen, "form.usual-day .pill").is_empty());
+}
+
+#[wasm_bindgen_test]
 async fn use_the_recommendation_keeps_it_from_the_cards_day_and_shows_it_followed() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
