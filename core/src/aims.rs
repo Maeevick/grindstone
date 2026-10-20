@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
 use crate::heading::Aim;
+use crate::kept::Kept;
 use crate::recommendations::recommended;
 use crate::version::version_in_force_on;
 
@@ -45,6 +46,7 @@ pub fn aims_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Aims> {
         recommended,
     };
     version_in_force_on(&gathered.goals, day)
+        .and_then(Kept::own)
         .map(|goals| aiming(goals.body_mass_kg, goals.fat_ratio, false))
         .or_else(|| {
             version_in_force_on(&gathered.profiles, day).map(|profile| {
@@ -86,10 +88,10 @@ mod tests {
         let gathered = GatherRecords {
             goals: vec![(
                 day("2026-03-01"),
-                Goals {
+                Kept::Own(Goals {
                     body_mass_kg: 70.0,
                     fat_ratio: 0.12,
-                },
+                }),
             )],
             ..a_man()
         };

@@ -12,6 +12,7 @@ use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate_counted::counted_on;
+use crate::kept::Kept;
 use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
 use crate::refusal::Refusal;
@@ -71,7 +72,7 @@ pub fn set_goals(
 ) -> Result<Goals, Failure> {
     let from = day(&form.from)?;
     let goals = goals(form.body_mass_kg, form.fat_percentage).map_err(Failure::Refused)?;
-    records.save_goals(from, &goals)?;
+    records.save_goals(from, &Kept::Own(goals))?;
     Ok(goals)
 }
 
@@ -81,7 +82,9 @@ pub fn goals_on(
 ) -> Result<Option<Goals>, Failure> {
     let day = day(date)?;
     let gathered = records.gather_records()?;
-    Ok(version_in_force_on(&gathered.goals, day).copied())
+    Ok(version_in_force_on(&gathered.goals, day)
+        .and_then(Kept::own)
+        .copied())
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -99,7 +102,7 @@ pub fn set_usual_day(
     let from = day(&form.from)?;
     let usual = volitional(form.sitting_min, form.standing_min, form.moving_km)
         .map_err(Failure::Refused)?;
-    burn.save_usual_day(from, &usual)?;
+    burn.save_usual_day(from, &Kept::Own(usual))?;
     Ok(usual)
 }
 
@@ -108,7 +111,9 @@ pub fn usual_day_on(
     date: &str,
 ) -> Result<Option<Volitional>, Failure> {
     let day = day(date)?;
-    Ok(version_in_force_on(&burn.burn_records()?.usual_days, day).copied())
+    Ok(version_in_force_on(&burn.burn_records()?.usual_days, day)
+        .and_then(Kept::own)
+        .copied())
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -130,7 +135,7 @@ pub fn set_fuel_targets(
         form.fibre_g_per_kg,
     )
     .map_err(Failure::Refused)?;
-    fuel.save_targets(from, &targets)?;
+    fuel.save_targets(from, &Kept::Own(targets))?;
     Ok(targets)
 }
 
@@ -140,6 +145,7 @@ pub fn fuel_targets_on(
 ) -> Result<FuelTargets, Failure> {
     let day = day(date)?;
     Ok(version_in_force_on(&fuel.fuel_records()?.targets, day)
+        .and_then(Kept::own)
         .copied()
         .unwrap_or(DEFAULT_FUEL_TARGETS))
 }
@@ -180,7 +186,7 @@ pub fn set_burn_target(
     if !(form.kcal.is_finite() && form.kcal >= 0.0) {
         return Err(Failure::Refused(Refusal::NotAnEnergy));
     }
-    burn.save_burn_target(from, form.kcal)?;
+    burn.save_burn_target(from, Kept::Own(form.kcal))?;
     Ok(form.kcal)
 }
 

@@ -126,6 +126,7 @@ fn hydrated(
 mod tests {
     use super::*;
     use crate::gender::Gender;
+    use crate::kept::Kept;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
     use crate::volitional::Volitional;
@@ -259,11 +260,11 @@ mod tests {
         let walking_thirty_km_a_day = BurnRecords {
             usual_days: vec![(
                 day("2026-03-01"),
-                Volitional {
+                Kept::Own(Volitional {
                     sitting_min: 480.0,
                     standing_min: 120.0,
                     moving_km: 30.0,
-                },
+                }),
             )],
             ..BurnRecords::default()
         };

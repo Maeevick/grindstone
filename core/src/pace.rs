@@ -163,6 +163,7 @@ pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kept::Kept;
 
     use crate::gender::Gender;
     use crate::measurement::Measurement;
@@ -211,10 +212,10 @@ mod tests {
         GatherRecords {
             goals: vec![(
                 day("2026-03-01"),
-                crate::goals::Goals {
+                Kept::Own(crate::goals::Goals {
                     body_mass_kg,
                     fat_ratio: 0.12,
-                },
+                }),
             )],
             ..gathered
         }

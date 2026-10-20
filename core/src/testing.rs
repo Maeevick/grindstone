@@ -17,6 +17,7 @@ use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
 use crate::hydrate_records::HydrateRecords;
 use crate::intake::Intake;
+use crate::kept::Kept;
 use crate::meal::Meal;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
@@ -52,7 +53,7 @@ impl ForStoringGatherRecords for GatherRecordsInMemory {
         Ok(())
     }
 
-    fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
+    fn save_goals(&self, from: NaiveDate, goals: &Kept<Goals>) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
         records.goals.retain(|(kept_from, _)| *kept_from != from);
         records.goals.push((from, *goals));
@@ -88,7 +89,7 @@ impl ForStoringGatherRecords for BrokenGatherRecords {
         Err(Broken("the disk is full".into()))
     }
 
-    fn save_goals(&self, _: NaiveDate, _: &Goals) -> Result<(), Broken> {
+    fn save_goals(&self, _: NaiveDate, _: &Kept<Goals>) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -156,12 +157,16 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         Ok(())
     }
 
-    fn save_usual_day(&self, from: NaiveDate, volitional: &Volitional) -> Result<(), Broken> {
-        keeping_one_per_day(&mut self.0.borrow_mut().usual_days, from, volitional);
+    fn save_usual_day(&self, from: NaiveDate, usual: &Kept<Volitional>) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records
+            .usual_days
+            .retain(|(kept_from, _)| *kept_from != from);
+        records.usual_days.push((from, *usual));
         Ok(())
     }
 
-    fn save_burn_target(&self, from: NaiveDate, kcal: f64) -> Result<(), Broken> {
+    fn save_burn_target(&self, from: NaiveDate, kcal: Kept<f64>) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
         records.targets.retain(|(kept_from, _)| *kept_from != from);
         records.targets.push((from, kcal));
@@ -231,11 +236,11 @@ impl ForStoringBurnRecords for BrokenBurnRecords {
         Err(Broken("the disk is full".into()))
     }
 
-    fn save_usual_day(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
+    fn save_usual_day(&self, _: NaiveDate, _: &Kept<Volitional>) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
-    fn save_burn_target(&self, _: NaiveDate, _: f64) -> Result<(), Broken> {
+    fn save_burn_target(&self, _: NaiveDate, _: Kept<f64>) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -284,6 +289,10 @@ pub mod honouring_for_storing_burn_records {
         }
     }
 
+    fn usual(sitting_min: f64) -> Kept<Volitional> {
+        Kept::Own(sitting(sitting_min))
+    }
+
     fn sitting(sitting_min: f64) -> Volitional {
         Volitional {
             sitting_min,
@@ -321,16 +330,16 @@ pub mod honouring_for_storing_burn_records {
             .save_day_off_the_clock(day("2026-10-09"), &sitting(500.0))
             .expect("a day off the clock saves");
         records
-            .save_usual_day(day("2026-09-01"), &sitting(420.0))
+            .save_usual_day(day("2026-09-01"), &usual(420.0))
             .expect("a usual day saves");
         records
-            .save_usual_day(day("2026-03-01"), &sitting(480.0))
+            .save_usual_day(day("2026-03-01"), &usual(480.0))
             .expect("a usual day saves");
         records
-            .save_burn_target(day("2026-10-15"), 150.0)
+            .save_burn_target(day("2026-10-15"), Kept::Own(150.0))
             .expect("a target saves");
         records
-            .save_burn_target(day("2026-03-01"), 80.0)
+            .save_burn_target(day("2026-03-01"), Kept::Own(80.0))
             .expect("a target saves");
 
         let burnt = records.burn_records().expect("the records read");
@@ -357,13 +366,49 @@ pub mod honouring_for_storing_burn_records {
         assert_eq!(
             burnt.usual_days,
             vec![
-                (day("2026-03-01"), sitting(480.0)),
-                (day("2026-09-01"), sitting(420.0))
+                (day("2026-03-01"), usual(480.0)),
+                (day("2026-09-01"), usual(420.0))
             ]
         );
         assert_eq!(
             burnt.targets,
-            vec![(day("2026-03-01"), 80.0), (day("2026-10-15"), 150.0)]
+            vec![
+                (day("2026-03-01"), Kept::Own(80.0)),
+                (day("2026-10-15"), Kept::Own(150.0))
+            ]
+        );
+    }
+
+    pub fn a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so(
+        records: &impl ForStoringBurnRecords,
+    ) {
+        records
+            .save_usual_day(day("2026-03-01"), &usual(480.0))
+            .expect("a usual day saves");
+        records
+            .save_usual_day(day("2026-09-01"), &Kept::Recommended)
+            .expect("a usual day saves");
+        records
+            .save_burn_target(day("2026-03-01"), Kept::Own(80.0))
+            .expect("a target saves");
+        records
+            .save_burn_target(day("2026-09-01"), Kept::Recommended)
+            .expect("a target saves");
+
+        let burnt = records.burn_records().expect("the records read");
+
+        assert_eq!(
+            (burnt.usual_days, burnt.targets),
+            (
+                vec![
+                    (day("2026-03-01"), usual(480.0)),
+                    (day("2026-09-01"), Kept::Recommended)
+                ],
+                vec![
+                    (day("2026-03-01"), Kept::Own(80.0)),
+                    (day("2026-09-01"), Kept::Recommended)
+                ]
+            )
         );
     }
 
@@ -377,7 +422,7 @@ pub mod honouring_for_storing_burn_records {
             .save_day_off_the_clock(day("2026-10-10"), &sitting(600.0))
             .expect("a day off the clock saves");
         records
-            .save_usual_day(day("2026-03-01"), &sitting(480.0))
+            .save_usual_day(day("2026-03-01"), &usual(480.0))
             .expect("a usual day saves");
 
         records
@@ -387,23 +432,23 @@ pub mod honouring_for_storing_burn_records {
             .save_day_off_the_clock(day("2026-10-10"), &sitting(300.0))
             .expect("a day off the clock saves");
         records
-            .save_usual_day(day("2026-03-01"), &sitting(420.0))
+            .save_usual_day(day("2026-03-01"), &usual(420.0))
             .expect("a usual day saves");
         records
-            .save_burn_target(day("2026-03-01"), 80.0)
+            .save_burn_target(day("2026-03-01"), Kept::Own(80.0))
             .expect("a target saves");
         records
-            .save_burn_target(day("2026-03-01"), 150.0)
+            .save_burn_target(day("2026-03-01"), Kept::Own(150.0))
             .expect("a target saves");
 
         let burnt = records.burn_records().expect("the records read");
         assert_eq!(burnt.exercises, vec![named("Walking", 4.0)]);
-        assert_eq!(burnt.targets, vec![(day("2026-03-01"), 150.0)]);
+        assert_eq!(burnt.targets, vec![(day("2026-03-01"), Kept::Own(150.0))]);
         assert_eq!(
             burnt.days_off_the_clock,
             vec![(day("2026-10-10"), sitting(300.0))]
         );
-        assert_eq!(burnt.usual_days, vec![(day("2026-03-01"), sitting(420.0))]);
+        assert_eq!(burnt.usual_days, vec![(day("2026-03-01"), usual(420.0))]);
     }
 
     pub fn removing_a_workout_or_an_exercise_leaves_the_others(
@@ -456,9 +501,9 @@ pub mod honouring_for_storing_burn_records {
             exercises: vec![named("Biking", 8.0)],
             workouts: vec![(0, done("2026-06-22", "Biking", 45.0))],
             days_off_the_clock: vec![(day("2026-06-22"), sitting(500.0))],
-            usual_days: vec![(day("2026-03-01"), sitting(480.0))],
+            usual_days: vec![(day("2026-03-01"), usual(480.0))],
             circuits: vec![morning_rust()],
-            targets: vec![(day("2026-03-01"), 120.0)],
+            targets: vec![(day("2026-03-01"), Kept::Own(120.0))],
         };
 
         records
@@ -610,7 +655,7 @@ impl ForStoringFuelRecords for FuelRecordsInMemory {
         Ok(())
     }
 
-    fn save_targets(&self, from: NaiveDate, targets: &FuelTargets) -> Result<(), Broken> {
+    fn save_targets(&self, from: NaiveDate, targets: &Kept<FuelTargets>) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
         records.targets.retain(|(kept_from, _)| *kept_from != from);
         records.targets.push((from, *targets));
@@ -671,7 +716,7 @@ impl ForStoringFuelRecords for BrokenFuelRecords {
         Err(Broken("the disk is full".into()))
     }
 
-    fn save_targets(&self, _: NaiveDate, _: &FuelTargets) -> Result<(), Broken> {
+    fn save_targets(&self, _: NaiveDate, _: &Kept<FuelTargets>) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -728,12 +773,12 @@ pub mod honouring_for_storing_fuel_records {
         }
     }
 
-    fn aiming(protein_g_per_kg: f64) -> FuelTargets {
-        FuelTargets {
+    fn aiming(protein_g_per_kg: f64) -> Kept<FuelTargets> {
+        Kept::Own(FuelTargets {
             protein_g_per_kg,
             fat_g_per_kg: 0.9,
             fibre_g_per_kg: 0.4,
-        }
+        })
     }
 
     fn without_ids(records: &FuelRecords) -> Vec<Intake> {
@@ -785,6 +830,25 @@ pub mod honouring_for_storing_fuel_records {
                 (day("2026-03-01"), aiming(1.8)),
                 (day("2026-09-01"), aiming(2.0))
             ]
+        );
+    }
+
+    pub fn targets_kept_as_the_recommendation_come_back_kept_so(
+        records: &impl ForStoringFuelRecords,
+    ) {
+        records
+            .save_targets(day("2026-03-01"), &aiming(1.8))
+            .expect("targets save");
+        records
+            .save_targets(day("2026-09-01"), &Kept::Recommended)
+            .expect("targets save");
+
+        assert_eq!(
+            records.fuel_records().map(|fuelled| fuelled.targets),
+            Ok(vec![
+                (day("2026-03-01"), aiming(1.8)),
+                (day("2026-09-01"), Kept::Recommended)
+            ])
         );
     }
 
@@ -1007,11 +1071,11 @@ pub mod honouring_for_storing_gather_records {
         }
     }
 
-    fn targeting(body_mass_kg: f64) -> Goals {
-        Goals {
+    fn targeting(body_mass_kg: f64) -> Kept<Goals> {
+        Kept::Own(Goals {
             body_mass_kg,
             fat_ratio: 0.10,
-        }
+        })
     }
 
     pub fn gather_records_come_back_in_the_order_of_their_days(
@@ -1142,6 +1206,25 @@ pub mod honouring_for_storing_gather_records {
         assert_eq!(records.gather_records(), Ok(replacement));
     }
 
+    pub fn goals_kept_as_the_recommendation_come_back_kept_so(
+        records: &impl ForStoringGatherRecords,
+    ) {
+        records
+            .save_goals(day("2026-03-01"), &targeting(72.0))
+            .expect("goals save");
+        records
+            .save_goals(day("2026-09-01"), &Kept::Recommended)
+            .expect("goals save");
+
+        assert_eq!(
+            records.gather_records().map(|gathered| gathered.goals),
+            Ok(vec![
+                (day("2026-03-01"), targeting(72.0)),
+                (day("2026-09-01"), Kept::Recommended)
+            ])
+        );
+    }
+
     pub fn a_womans_profile_comes_back_with_her_hip(records: &impl ForStoringGatherRecords) {
         let a_woman = Profile {
             birthday: day("1990-06-01"),
@@ -1208,6 +1291,13 @@ impl ForStoringHydrateRecords for HydrateRecordsInMemory {
         Ok(())
     }
 
+    fn save_hydrate_target(&self, from: NaiveDate, base_ml: Kept<f64>) -> Result<(), Broken> {
+        let mut records = self.0.borrow_mut();
+        records.targets.retain(|(kept_from, _)| *kept_from != from);
+        records.targets.push((from, base_ml));
+        Ok(())
+    }
+
     fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken> {
         let mut replaced = records.clone();
         for (id, (kept_id, _)) in (1..).zip(replaced.drinkings.iter_mut()) {
@@ -1224,6 +1314,7 @@ impl ForStoringHydrateRecords for HydrateRecordsInMemory {
             .drinkings
             .sort_by_key(|(id, drinking)| (drinking.day, *id));
         drunk.counted_from.sort_by_key(|(from, _)| *from);
+        drunk.targets.sort_by_key(|(from, _)| *from);
         Ok(drunk)
     }
 }
@@ -1248,6 +1339,10 @@ impl ForStoringHydrateRecords for BrokenHydrateRecords {
     }
 
     fn save_counted(&self, _: NaiveDate, _: bool) -> Result<(), Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn save_hydrate_target(&self, _: NaiveDate, _: Kept<f64>) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -1337,6 +1432,28 @@ pub mod honouring_for_storing_hydrate_records {
         );
     }
 
+    pub fn water_targets_come_back_in_the_order_of_their_days_as_kept_the_latest_of_a_day_standing(
+        records: &impl ForStoringHydrateRecords,
+    ) {
+        records
+            .save_hydrate_target(day("2026-09-01"), Kept::Own(2800.0))
+            .expect("a target saves");
+        records
+            .save_hydrate_target(day("2026-03-01"), Kept::Recommended)
+            .expect("a target saves");
+        records
+            .save_hydrate_target(day("2026-09-01"), Kept::Own(2600.0))
+            .expect("a target saves");
+
+        assert_eq!(
+            records.hydrate_records().map(|drunk| drunk.targets),
+            Ok(vec![
+                (day("2026-03-01"), Kept::Recommended),
+                (day("2026-09-01"), Kept::Own(2600.0))
+            ])
+        );
+    }
+
     pub fn a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one(
         records: &impl ForStoringHydrateRecords,
     ) {
@@ -1408,6 +1525,7 @@ pub mod honouring_for_storing_hydrate_records {
             drinks: vec![served("Expresso", 80.0)],
             drinkings: vec![(0, drunk("2026-06-22", "Expresso", 80.0))],
             counted_from: vec![(day("2026-03-01"), false)],
+            targets: vec![(day("2026-03-01"), Kept::Own(2600.0))],
         };
 
         records
@@ -1418,6 +1536,7 @@ pub mod honouring_for_storing_hydrate_records {
         assert_eq!(drunk_so_far.drinks, replacement.drinks);
         assert_eq!(without_ids(&drunk_so_far), without_ids(&replacement));
         assert_eq!(drunk_so_far.counted_from, replacement.counted_from);
+        assert_eq!(drunk_so_far.targets, replacement.targets);
     }
 }
 
@@ -1457,6 +1576,34 @@ mod tests {
     fn replacing_the_gather_records_leaves_only_the_new_ones() {
         honouring_for_storing_gather_records::replacing_the_gather_records_leaves_only_the_new_ones(
             &GatherRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn goals_kept_as_the_recommendation_come_back_kept_so() {
+        honouring_for_storing_gather_records::goals_kept_as_the_recommendation_come_back_kept_so(
+            &GatherRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so() {
+        honouring_for_storing_burn_records::a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so(
+            &BurnRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn targets_kept_as_the_recommendation_come_back_kept_so() {
+        honouring_for_storing_fuel_records::targets_kept_as_the_recommendation_come_back_kept_so(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn water_targets_come_back_in_the_order_of_their_days_as_kept_the_latest_of_a_day_standing() {
+        honouring_for_storing_hydrate_records::water_targets_come_back_in_the_order_of_their_days_as_kept_the_latest_of_a_day_standing(
+            &HydrateRecordsInMemory::default(),
         );
     }
 

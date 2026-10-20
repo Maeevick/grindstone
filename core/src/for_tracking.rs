@@ -5,6 +5,7 @@ use crate::aims::{Aims, aims_on};
 use crate::failure::Failure;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
+use crate::kept::Kept;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
 use crate::pace::{Pace, pace_on};
@@ -36,7 +37,10 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         .collect();
     GatherWeek {
         day: days.first().filter(|measured| measured.day == day).copied(),
-        tendency: tendency_of(&days, version_in_force_on(&gathered.goals, day)),
+        tendency: tendency_of(
+            &days,
+            version_in_force_on(&gathered.goals, day).and_then(Kept::own),
+        ),
         days,
         aims: aims_on(day, gathered),
         pace: pace_on(day, gathered),
@@ -184,10 +188,10 @@ mod tests {
         records
             .save_goals(
                 day("2026-09-01"),
-                &Goals {
+                &Kept::Own(Goals {
                     body_mass_kg: 75.0,
                     fat_ratio: 0.15,
-                },
+                }),
             )
             .expect("goals save");
         log_measurement(&records, "2026-10-01", 80.0, None).expect("a measurement logs");
@@ -212,10 +216,10 @@ mod tests {
         records
             .save_goals(
                 day("2026-09-01"),
-                &Goals {
+                &Kept::Own(Goals {
                     body_mass_kg: 75.0,
                     fat_ratio: 0.15,
-                },
+                }),
             )
             .expect("goals save");
 

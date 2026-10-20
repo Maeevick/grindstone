@@ -87,6 +87,7 @@ mod tests {
     use super::*;
     use crate::gender::Gender;
     use crate::goals::Goals;
+    use crate::kept::Kept;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
     use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory};
@@ -122,10 +123,10 @@ mod tests {
             )],
             goals: vec![(
                 day("2026-03-01"),
-                Goals {
+                Kept::Own(Goals {
                     body_mass_kg: 70.0,
                     fat_ratio: 0.10,
-                },
+                }),
             )],
         }
     }
@@ -411,6 +412,7 @@ mod tests {
             ],
             drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],
             counted_from: vec![],
+            targets: vec![],
         }
     }
 

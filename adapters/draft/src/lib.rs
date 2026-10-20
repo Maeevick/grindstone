@@ -12,6 +12,7 @@ use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::hydrate_records::HydrateRecords;
 use grind_core::intake::Intake;
+use grind_core::kept::Kept;
 use grind_core::measurement::measurement;
 use grind_core::profile::Profile;
 use grind_core::refusal::Refusal;
@@ -203,14 +204,14 @@ fn profile_versions(backup: &Backup) -> Vec<(NaiveDate, Profile)> {
     }))
 }
 
-fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Goals)> {
+fn goal_versions(backup: &Backup) -> Vec<(NaiveDate, Kept<Goals>)> {
     versions_where_they_change(logged_days(backup).map(|(day, log)| {
         (
             day,
-            Goals {
+            Kept::Own(Goals {
                 body_mass_kg: log.weight_target,
                 fat_ratio: log.fat_target / 100.0,
-            },
+            }),
         )
     }))
 }
@@ -330,7 +331,7 @@ pub fn burn_from_draft(backup: &str) -> Result<BurnRecords, DraftRefusal> {
         days_off_the_clock,
         usual_days: started_at
             .zip(backup.workout_bases)
-            .map(|(from, bases)| (from, off_the_clock(bases)))
+            .map(|(from, bases)| (from, Kept::Own(off_the_clock(bases))))
             .into_iter()
             .collect(),
         circuits: Vec::new(),
@@ -419,7 +420,10 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
     Ok(FuelRecords {
         foods,
         intakes,
-        targets: versions_where_they_change(targets.into_iter()),
+        targets: versions_where_they_change(targets.into_iter())
+            .into_iter()
+            .map(|(from, aims)| (from, Kept::Own(aims)))
+            .collect(),
         meals: vec![],
     })
 }
@@ -483,6 +487,7 @@ pub fn hydrate_from_draft(backup: &str) -> Result<HydrateRecords, DraftRefusal> 
         drinks,
         drinkings,
         counted_from: vec![],
+        targets: vec![],
     })
 }
 
@@ -570,17 +575,17 @@ mod tests {
             Ok(vec![
                 (
                     day("2026-03-01"),
-                    Goals {
+                    Kept::Own(Goals {
                         body_mass_kg: 72.0,
                         fat_ratio: 0.12,
-                    }
+                    })
                 ),
                 (
                     day("2026-06-22"),
-                    Goals {
+                    Kept::Own(Goals {
                         body_mass_kg: 70.0,
                         fat_ratio: 0.10,
-                    }
+                    })
                 ),
             ])
         );
@@ -712,7 +717,10 @@ mod tests {
         );
         assert_eq!(
             records.usual_days,
-            vec![(day("2026-03-01"), off_the_clock(300.0, 300.0, 4.23))]
+            vec![(
+                day("2026-03-01"),
+                Kept::Own(off_the_clock(300.0, 300.0, 4.23))
+            )]
         );
     }
 
@@ -795,7 +803,10 @@ mod tests {
             records
                 .targets
                 .into_iter()
-                .map(|(from, aims)| (from, aims.protein_g_per_kg, aims.fibre_g_per_kg))
+                .filter_map(|(from, aims)| {
+                    aims.own()
+                        .map(|aims| (from, aims.protein_g_per_kg, aims.fibre_g_per_kg))
+                })
                 .collect::<Vec<_>>()
         });
 

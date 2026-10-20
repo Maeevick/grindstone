@@ -1,5 +1,7 @@
 use chrono::NaiveDate;
 
+use crate::kept::Kept;
+
 const MODERATE_MINUTES_A_WEEK: f64 = 150.0;
 const MODERATE_MET: f64 = 4.0;
 const DAYS_A_WEEK: f64 = 7.0;
@@ -14,14 +16,14 @@ const MINUTES_AN_HOUR: f64 = 60.0;
 /// behaviour*, Br J Sports Med 54(24):1451-1462.
 pub fn target_on(
     day: NaiveDate,
-    targets: &[(NaiveDate, f64)],
+    targets: &[(NaiveDate, Kept<f64>)],
     body_mass_kg: Option<f64>,
 ) -> Option<f64> {
     targets
         .iter()
         .filter(|(from, _)| *from <= day)
         .max_by_key(|(from, _)| *from)
-        .map(|(_, kcal)| *kcal)
+        .and_then(|(_, kept)| kept.own().copied())
         .or_else(|| {
             body_mass_kg.map(|kg| {
                 (MODERATE_MET - 1.0) * kg * MODERATE_MINUTES_A_WEEK / DAYS_A_WEEK / MINUTES_AN_HOUR
@@ -53,7 +55,7 @@ mod tests {
 
     #[test]
     fn a_target_kept_from_a_day_stands_from_that_day_and_the_default_before_it() {
-        let kept = [(day("2026-10-15"), 150.0)];
+        let kept = [(day("2026-10-15"), Kept::Own(150.0))];
 
         assert_eq!(target_on(day("2026-10-20"), &kept, None), Some(150.0));
         assert!(about(

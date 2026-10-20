@@ -13,6 +13,7 @@ use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, fuel_over};
 use crate::hydrate::hydrate_over;
 use crate::hydrate_counted::counted_on;
+use crate::kept::Kept;
 use crate::ledger::Day;
 use crate::ledger::ledger;
 use crate::measurement::Measurement;
@@ -62,7 +63,9 @@ pub fn gather_card(
         .into_iter()
         .filter(|(day, _)| is_in_window(day))
         .collect();
-    let target_kg = version_in_force_on(&gathered.goals, today).map(|goals| goals.body_mass_kg);
+    let target_kg = version_in_force_on(&gathered.goals, today)
+        .and_then(Kept::own)
+        .map(|goals| goals.body_mass_kg);
     let compositions: Vec<Composition> = ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
         .filter(|day| is_in_window(&day.day))

@@ -13,6 +13,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{MacroRow, Macros, fuel_over};
 use crate::hydrate::{Hydrate, hydrate_over};
+use crate::kept::Kept;
 use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
 use crate::verdict::Verdict;
@@ -66,7 +67,7 @@ pub fn gather_chart(
         .into_iter()
         .filter(|measured| (first..=last).contains(&measured.day))
         .collect();
-    let goals = version_in_force_on(&gathered.goals, last);
+    let goals = version_in_force_on(&gathered.goals, last).and_then(Kept::own);
     Ok(GatherChart {
         masses: days
             .iter()

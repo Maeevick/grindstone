@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::burn_records::BurnRecords;
 use crate::burn_target::target_on;
+use crate::kept::Kept;
 use crate::measurement::Measurement;
 use crate::version::version_in_force_on;
 use crate::volitional::Volitional;
@@ -59,7 +60,11 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, measurements: &[Measuremen
             .map(|done| done.burnt_kcal)
             .sum::<Option<f64>>(),
         workouts,
-        off_the_clock: own_day.or_else(|| version_in_force_on(&records.usual_days, day).copied()),
+        off_the_clock: own_day.or_else(|| {
+            version_in_force_on(&records.usual_days, day)
+                .and_then(Kept::own)
+                .copied()
+        }),
         off_the_clock_is_usual: own_day.is_none(),
         body_mass_kg,
         target_kcal: target_on(day, &records.targets, body_mass_kg),
@@ -107,7 +112,7 @@ mod tests {
     #[test]
     fn a_days_burn_carries_the_target_in_force_on_its_body_mass() {
         let records = BurnRecords {
-            targets: vec![(day("2026-10-15"), 150.0)],
+            targets: vec![(day("2026-10-15"), Kept::Own(150.0))],
             ..BurnRecords::default()
         };
         let measurements = [weighed("2026-10-01", 72.0)];
@@ -210,7 +215,7 @@ mod tests {
         };
         let records = BurnRecords {
             days_off_the_clock: vec![(day("2026-10-11"), lazy_sunday)],
-            usual_days: vec![(day("2026-03-01"), a_desk_day())],
+            usual_days: vec![(day("2026-03-01"), Kept::Own(a_desk_day()))],
             ..BurnRecords::default()
         };
 

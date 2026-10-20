@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 
 use crate::goals::Goals;
+use crate::kept::Kept;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 
@@ -8,5 +9,5 @@ use crate::profile::Profile;
 pub struct GatherRecords {
     pub measurements: Vec<Measurement>,
     pub profiles: Vec<(NaiveDate, Profile)>,
-    pub goals: Vec<(NaiveDate, Goals)>,
+    pub goals: Vec<(NaiveDate, Kept<Goals>)>,
 }

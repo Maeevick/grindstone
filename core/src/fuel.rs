@@ -9,6 +9,7 @@ use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
+use crate::kept::Kept;
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
 pub use crate::verdict::Verdict;
@@ -255,6 +256,7 @@ impl Ledgers<'_> {
         let intakes = self.intakes_on(day);
         let eaten = added_up(&intakes);
         let targets = version_in_force_on(&self.fuel.targets, day)
+            .and_then(Kept::own)
             .copied()
             .unwrap_or(DEFAULT_FUEL_TARGETS);
         let banded = body_on(day, &self.days, &self.gather.profiles).map(|body| {
@@ -386,14 +388,14 @@ mod tests {
 
     fn a_desk_job() -> BurnRecords {
         BurnRecords {
-            usual_days: vec![(day("2026-03-01"), A_DESK_DAY)],
+            usual_days: vec![(day("2026-03-01"), Kept::Own(A_DESK_DAY))],
             ..BurnRecords::default()
         }
     }
 
     fn aiming() -> FuelRecords {
         FuelRecords {
-            targets: vec![(day("2026-03-01"), AIMS)],
+            targets: vec![(day("2026-03-01"), Kept::Own(AIMS))],
             ..FuelRecords::default()
         }
     }
@@ -894,11 +896,11 @@ mod tests {
         let mut fuel = FuelRecords {
             targets: vec![(
                 day("2026-03-01"),
-                FuelTargets {
+                Kept::Own(FuelTargets {
                     protein_g_per_kg: 0.1,
                     fat_g_per_kg: 0.1,
                     fibre_g_per_kg: 0.01,
-                },
+                }),
             )],
             ..FuelRecords::default()
         };

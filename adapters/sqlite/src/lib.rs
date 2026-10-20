@@ -19,6 +19,7 @@ use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::hydrate_records::HydrateRecords;
 use grind_core::intake::Intake;
+use grind_core::kept::Kept;
 use grind_core::meal::{Ingredient, MASS_KEPT, Meal};
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
@@ -195,7 +196,10 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
-    fn save_goals(&self, from: NaiveDate, goals: &Goals) -> Result<(), Broken> {
+    fn save_goals(&self, from: NaiveDate, goals: &Kept<Goals>) -> Result<(), Broken> {
+        let Kept::Own(goals) = goals else {
+            return Ok(());
+        };
         self.0
             .execute(
                 "insert into goals (effective_from, body_mass_kg, fat_ratio) values (?1, ?2, ?3)
@@ -273,10 +277,10 @@ impl ForStoringGatherRecords for Sqlite {
                     .query_map([], |row| {
                         Ok((
                             row.get(0)?,
-                            Goals {
+                            Kept::Own(Goals {
                                 body_mass_kg: row.get(1)?,
                                 fat_ratio: row.get(2)?,
-                            },
+                            }),
                         ))
                     })?
                     .collect()
@@ -464,7 +468,10 @@ impl ForStoringBurnRecords for Sqlite {
         )
     }
 
-    fn save_usual_day(&self, from: NaiveDate, volitional: &Volitional) -> Result<(), Broken> {
+    fn save_usual_day(&self, from: NaiveDate, usual: &Kept<Volitional>) -> Result<(), Broken> {
+        let Kept::Own(volitional) = usual else {
+            return Ok(());
+        };
         self.run(
             "insert into usual_days (effective_from, sitting_min, standing_min, moving_km)
              values (?1, ?2, ?3, ?4)
@@ -479,7 +486,10 @@ impl ForStoringBurnRecords for Sqlite {
         )
     }
 
-    fn save_burn_target(&self, from: NaiveDate, kcal: f64) -> Result<(), Broken> {
+    fn save_burn_target(&self, from: NaiveDate, kcal: Kept<f64>) -> Result<(), Broken> {
+        let Kept::Own(kcal) = kcal else {
+            return Ok(());
+        };
         self.run(
             "insert into burn_targets (effective_from, kcal) values (?1, ?2)
              on conflict (effective_from) do update set kcal = excluded.kcal",
@@ -522,9 +532,15 @@ impl ForStoringBurnRecords for Sqlite {
             exercises: self.rows(EXERCISES, exercise_read)?,
             workouts: self.rows(WORKOUTS, workout_read)?,
             days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
-            usual_days: self.rows(USUAL_DAYS, volitional_read)?,
+            usual_days: self
+                .rows(USUAL_DAYS, volitional_read)?
+                .into_iter()
+                .map(|(from, usual)| (from, Kept::Own(usual)))
+                .collect(),
             circuits: self.circuits()?,
-            targets: self.rows(BURN_TARGETS, |row| Ok((row.get(0)?, row.get(1)?)))?,
+            targets: self.rows(BURN_TARGETS, |row| {
+                Ok((row.get(0)?, Kept::Own(row.get(1)?)))
+            })?,
         })
     }
 
@@ -596,14 +612,14 @@ fn intake_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Intake)> {
     ))
 }
 
-fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, FuelTargets)> {
+fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Kept<FuelTargets>)> {
     Ok((
         row.get(0)?,
-        FuelTargets {
+        Kept::Own(FuelTargets {
             protein_g_per_kg: row.get(1)?,
             fat_g_per_kg: row.get(2)?,
             fibre_g_per_kg: row.get(3)?,
-        },
+        }),
     ))
 }
 
@@ -717,7 +733,10 @@ impl ForStoringFuelRecords for Sqlite {
         self.run("delete from intakes where id = ?1", params![id])
     }
 
-    fn save_targets(&self, from: NaiveDate, targets: &FuelTargets) -> Result<(), Broken> {
+    fn save_targets(&self, from: NaiveDate, targets: &Kept<FuelTargets>) -> Result<(), Broken> {
+        let Kept::Own(targets) = targets else {
+            return Ok(());
+        };
         self.run(
             "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg)
              values (?1, ?2, ?3, ?4)
@@ -891,6 +910,10 @@ impl ForStoringHydrateRecords for Sqlite {
         )
     }
 
+    fn save_hydrate_target(&self, _: NaiveDate, _: Kept<f64>) -> Result<(), Broken> {
+        Ok(())
+    }
+
     fn replace_hydrate_records(&self, records: &HydrateRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
@@ -915,6 +938,7 @@ impl ForStoringHydrateRecords for Sqlite {
             drinks: self.rows(DRINKS, drink_read)?,
             drinkings: self.rows(DRINKINGS, drinking_read)?,
             counted_from: self.rows(HYDRATE_COUNTED, counted_read)?,
+            targets: vec![],
         })
     }
 }
@@ -1012,6 +1036,34 @@ mod tests {
     #[test]
     fn removing_a_measured_day_leaves_the_others() {
         honouring_for_storing_gather_records::removing_a_measured_day_leaves_the_others(&database());
+    }
+
+    #[test]
+    fn goals_kept_as_the_recommendation_come_back_kept_so() {
+        honouring_for_storing_gather_records::goals_kept_as_the_recommendation_come_back_kept_so(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so() {
+        honouring_for_storing_burn_records::a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn targets_kept_as_the_recommendation_come_back_kept_so() {
+        honouring_for_storing_fuel_records::targets_kept_as_the_recommendation_come_back_kept_so(
+            &database(),
+        );
+    }
+
+    #[test]
+    fn water_targets_come_back_in_the_order_of_their_days_as_kept_the_latest_of_a_day_standing() {
+        honouring_for_storing_hydrate_records::water_targets_come_back_in_the_order_of_their_days_as_kept_the_latest_of_a_day_standing(
+            &database(),
+        );
     }
 
     #[test]
