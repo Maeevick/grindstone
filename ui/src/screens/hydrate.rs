@@ -4,7 +4,7 @@ use grind_core::drinking::Drinking;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
-use grind_core::for_setting_up_the_profile::{HydrateCountedForm, HydrateTargetForm};
+use grind_core::for_setting_up_the_profile::HydrateTargetForm;
 use grind_core::hydrate::Hydrate;
 use grind_core::kept::Kept;
 use grind_core::verdict::Verdict;
@@ -349,16 +349,8 @@ pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) 
     }
 }
 
-const SWITCHES: [(bool, &str, &str); 2] = [
-    (true, "Counted", "counted"),
-    (false, "Left out", "left-out"),
-];
-
 #[component]
 pub fn HydrateCountedCard() -> impl IntoView {
-    let from = RwSignal::new(today());
-    let counted = RwSignal::new(true);
-    let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let water_from = RwSignal::new(today());
     let water = RwSignal::new(String::new());
@@ -401,32 +393,10 @@ pub fn HydrateCountedCard() -> impl IntoView {
         };
         keep_water(Kept::Own(ml), lines::water_target_kept);
     };
-    spawn_local(async move {
-        if let Ok(in_force) = tauri::hydrate_counted_on(&today()).await {
-            counted.set(in_force);
-        }
-    });
-    let save = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        let form = HydrateCountedForm {
-            from: from.get_untracked(),
-            counted: counted.get_untracked(),
-        };
-        spawn_local(async move {
-            let kept = tauri::set_hydrate_counted(&form).await;
-            if kept.is_ok() {
-                recorded.told();
-            }
-            said.set(Some(match kept {
-                Ok(true) => lines::hydrate_counted_from(&form.from),
-                Ok(false) => lines::hydrate_left_out_from(&form.from),
-                Err(failure) => lines::failure(&failure),
-            }));
-        });
-    };
     view! {
         <section class="card">
             <h2>"Hydrate the material"</h2>
+            <p class="hint">{lines::HYDRATE_COUNTED_HINT}</p>
             <form class="water-target" on:submit=save_water>
                 <div class="row">
                     <DateField label="From" name="water_target_from" value=water_from />
@@ -438,35 +408,8 @@ pub fn HydrateCountedCard() -> impl IntoView {
                 <button class="cta" type="submit">
                     "Keep this target"
                 </button>
-                {move || water_said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-            <form class="hydrate-counted" on:submit=save>
-                <p class="hint">{lines::HYDRATE_COUNTED_HINT}</p>
-                <div class="row">
-                    <DateField label="From" name="hydrate_counted_from" value=from />
-                </div>
-                <div class="pills">
-                    {SWITCHES
-                        .into_iter()
-                        .map(|(on, label, named)| {
-                            view! {
-                                <button
-                                    type="button"
-                                    class=format!("pill {named}")
-                                    class:chosen=move || counted.get() == on
-                                    on:click=move |_| counted.set(on)
-                                >
-                                    {label}
-                                </button>
-                            }
-                        })
-                        .collect_view()}
-                </div>
-                <button class="cta" type="submit">
-                    "Keep from this day"
-                </button>
                 <ReferencesLink topic=Topic::Water />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+                {move || water_said.get().map(|line| view! { <p class="said">{line}</p> })}
             </form>
         </section>
     }

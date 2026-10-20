@@ -456,14 +456,6 @@ pub const NO_DRINKING: &str =
 pub const HYDRATE_COUNTED_HINT: &str = "The band follows your lean mass and the day's burn, food \
     bringing a tenth of the water. Leave Hydrate out of the streak from a day your drinks went unfiled.";
 
-pub fn hydrate_counted_from(from: &str) -> String {
-    format!("Filed. Hydrate counts in the streak from {from}.")
-}
-
-pub fn hydrate_left_out_from(from: &str) -> String {
-    format!("Filed. Hydrate stays out of the streak from {from}.")
-}
-
 pub fn month_name(month: &str) -> String {
     chrono::NaiveDate::parse_from_str(&format!("{month}-01"), "%Y-%m-%d")
         .map(|first| first.format("%B %Y").to_string())

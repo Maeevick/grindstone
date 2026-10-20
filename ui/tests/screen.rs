@@ -7,7 +7,7 @@ use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::fuel::{FuelDay, FuelWeekCard};
 use grind_ui::screens::gather::GatherTab;
-use grind_ui::screens::hydrate::{HydrateCountedCard, HydrateDay, HydrateWeekCard};
+use grind_ui::screens::hydrate::{HydrateDay, HydrateWeekCard};
 use grind_ui::screens::last_days::FuelLastDays;
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
@@ -307,7 +307,7 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_it
     for card in [
         ".goals",
         ".fuel-targets",
-        ".hydrate-counted",
+        ".water-target",
         ".usual-day",
         ".burn-target",
     ] {
@@ -3176,37 +3176,6 @@ async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
     assert!(!rows.contains("Expresso") && rows.contains("Tea"), "{rows}");
 }
 
-fn the_hydrate_card_in(screen: &Element) -> impl Drop {
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <HydrateCountedCard />
-            </Router>
-        }
-    })
-}
-
-#[wasm_bindgen_test]
-async fn the_profile_card_switches_hydrate_on_or_off_from_a_date() {
-    answering(r#"{ "hydrate_counted_on": true, "set_hydrate_counted": false }"#);
-    let screen = screen();
-    let _mounted = the_hydrate_card_in(&screen);
-    settled().await;
-    let in_force = text_of(&screen, "form.hydrate-counted .pill.chosen");
-
-    clicked(&screen, "form.hydrate-counted .pill.left-out");
-    typed_into(&screen, "hydrate_counted_from", "2026-03-01");
-    found::<HtmlFormElement>(&screen, "form.hydrate-counted")
-        .request_submit()
-        .expect("the switch is kept");
-    settled().await;
-
-    assert_eq!(in_force, "Counted");
-    assert!(asked("set_hydrate_counted").contains(r#""counted":false"#));
-    let said = text_of(&screen, "form.hydrate-counted .said");
-    assert!(said.contains("out of the streak from 2026-03-01"), "{said}");
-}
-
 #[wasm_bindgen_test]
 async fn drinking_past_the_cap_says_to_spread_the_cups_out() {
     answering(&format!(
@@ -3714,6 +3683,7 @@ async fn either_button_keeps_the_cards_switch_from_its_day_and_says_when_its_tic
     clicked(&screen, "form.goals .pill.left-out");
     clicked(&screen, "form.goals button.recommend");
     clicked(&screen, "form.water-target .pill.left-out");
+    typed_into(&screen, "water_target_from", "2026-03-01");
     found::<HtmlFormElement>(&screen, "form.water-target")
         .request_submit()
         .expect("the water target is kept");
@@ -3722,7 +3692,8 @@ async fn either_button_keeps_the_cards_switch_from_its_day_and_says_when_its_tic
 
     assert!(
         asked("set_goals").contains(r#""kept":"Recommended","counted":false"#)
-            && asked("set_hydrate_target").contains(r#""kept":{"Own":2800},"counted":false"#)
+            && asked("set_hydrate_target")
+                .contains(r#""from":"2026-03-01","kept":{"Own":2800},"counted":false"#)
             && asked("set_burn_target").contains(r#""counted":true"#),
         "{} {} {}",
         asked("set_goals"),
