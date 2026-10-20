@@ -2551,6 +2551,18 @@ async fn stats_draw_two_measures_on_their_own_y_axes_and_tell_how_they_move_toge
     );
 }
 
+#[wasm_bindgen_test]
+async fn stats_offer_the_balance_as_what_was_eaten_against_maintenance() {
+    answering(&format!(r#"{{ "explore": {TWO_MEASURES_EXPLORED} }}"#));
+    let screen = screen();
+    let _mounted = the_stats(&screen);
+    settled().await;
+
+    let offered = texts_of(&screen, "select option[value=Balance]");
+
+    assert_eq!(offered, ["Eaten minus maintenance"; 2]);
+}
+
 const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on YouTube, the rusty goblin channel.", "steps": [
     { "exercise": "Push up", "met": 3.8, "reps": 12, "minutes": 0.5, "load_kg": 0.0 },
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
