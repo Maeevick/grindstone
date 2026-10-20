@@ -108,20 +108,23 @@ pub fn streak(
             (
                 *day,
                 Ticks {
-                    weighed: Some(
+                    weighed: counted_on(*day, &gathered.counted_from).then(|| {
                         gathered
                             .measurements
                             .iter()
-                            .any(|measured| measured.day == *day),
-                    ),
-                    fuelled: Some(fuelled_day.band.is_some_and(|band| {
-                        within_grace(
-                            fuelled_day.eaten.energy_kcal,
-                            band.floor_kcal,
-                            band.cap_kcal,
-                        )
-                    })),
-                    worked_out: Some(worked_out(*day, &burnt, &gathered)),
+                            .any(|measured| measured.day == *day)
+                    }),
+                    fuelled: counted_on(*day, &fuelled.counted_from).then(|| {
+                        fuelled_day.band.is_some_and(|band| {
+                            within_grace(
+                                fuelled_day.eaten.energy_kcal,
+                                band.floor_kcal,
+                                band.cap_kcal,
+                            )
+                        })
+                    }),
+                    worked_out: counted_on(*day, &burnt.counted_from)
+                        .then(|| worked_out(*day, &burnt, &gathered)),
                     hydrated: counted_on(*day, &hydrated.counted_from).then(|| {
                         within_grace(
                             hydrated_day.drunk_ml,
