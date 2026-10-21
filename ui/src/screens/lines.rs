@@ -257,9 +257,9 @@ pub fn energy_line(fuel: &Fuel) -> String {
     let eaten = shown(Figure::Energy(fuel.eaten.energy_kcal));
     match fuel.band {
         Some(band) => format!(
-            "{eaten} eaten, the band runs from {} to {} kcal.",
-            shown(Figure::Energy(band.floor_kcal)).trim_end_matches(" kcal"),
-            shown(Figure::Energy(band.cap_kcal)).trim_end_matches(" kcal")
+            "{eaten} eaten, the band runs from {} to {}.",
+            bare(Figure::Energy(band.floor_kcal)),
+            shown(Figure::Energy(band.cap_kcal))
         ),
         None => format!("{eaten} eaten."),
     }
