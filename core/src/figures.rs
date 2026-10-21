@@ -68,6 +68,17 @@ pub fn bare(figure: Figure) -> String {
     parts(figure).0
 }
 
+/// How far apart two energies stand as they are shown, so the gap adds up with them on screen: 372 kcal and
+/// 76.5 kcal show as 372 and 77, 295 kcal apart rather than the 296 their own gap would show.
+pub fn energy_apart(_one_kcal: f64, _other_kcal: f64) -> Figure {
+    Figure::Energy(0.0)
+}
+
+/// How far apart two masses stand as they are shown, so the gap adds up with them on screen.
+pub fn mass_apart(_one_kg: f64, _other_kg: f64) -> Figure {
+    Figure::Mass(0.0)
+}
+
 /// A change, showing which way it went; one that rounds to nothing shows no sign.
 pub fn signed(figure: Figure) -> String {
     let number = bare(figure);
@@ -220,6 +231,18 @@ mod tests {
             [
                 "0.0 kg", "0.0 cm", "0.0%", "0 kcal", "0 min", "0 km", "0 g", "0", "0 g", "0 mL"
             ]
+        );
+    }
+
+    #[test]
+    fn a_gap_between_two_figures_adds_up_with_them_as_they_are_shown() {
+        assert_eq!(
+            [
+                shown(energy_apart(372.0, 76.5)),
+                shown(energy_apart(76.5, 372.0)),
+                shown(mass_apart(60.84, 61.56)),
+            ],
+            ["295 kcal", "295 kcal", "0.8 kg"]
         );
     }
 
