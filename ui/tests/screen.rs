@@ -7,6 +7,7 @@ use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
 use grind_ui::screens::fuel::{FuelDay, FuelWeekCard};
 use grind_ui::screens::gather::GatherTab;
+use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
 use grind_ui::screens::hydrate::{HydrateDay, HydrateWeekCard};
 use grind_ui::screens::last_days::FuelLastDays;
 use grind_ui::screens::plate::PlateInProgress;
@@ -1177,6 +1178,89 @@ async fn the_burn_shelf_adds_an_exercise_from_its_form_card_its_chip_showing_the
         ["Kettlebell swing", "Both hands, a hip hinge"]
     );
     assert_eq!(value_of(&screen, "exercise_name"), "");
+}
+
+#[wasm_bindgen_test]
+async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_to_stay_on_the_gauge()
+ {
+    let a_cut = grind_core::fuel::Band {
+        minimum_kcal_per_kg_of_lean_mass: 25.0,
+        minimum_kcal: 1767.5,
+        floor_kcal: 2199.4,
+        cap_kcal: 2650.2,
+        maintenance_kcal: 2650.2,
+    };
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
+        view! {
+            <AimGauge
+                label="Body mass"
+                amount=80.0
+                aim=grind_core::heading::Aim::Reach(75.0)
+                recommended=false
+            />
+            <BurnGauge burnt=60.0 target=80.0 ghost=None />
+            <Gauge
+                amount=1500.0
+                floor=1800.0
+                optimal=2000.0
+                cap=2200.0
+                shown_as=grind_core::figures::Figure::Volume
+            />
+            <FuelGauge eaten=108.0 band=a_cut ghost=None />
+        }
+    });
+    settled().await;
+
+    let gauges = screen.query_selector_all(".gauge").expect("the gauges");
+    let labelled: Vec<(String, bool, String, String)> = (0..gauges.length())
+        .filter_map(|at| gauges.item(at))
+        .map(|gauge| {
+            let gauge: Element = gauge.unchecked_into();
+            let share = 100.0
+                * found::<Element>(&gauge, "line.optimal, line.maintenance")
+                    .get_attribute("x1")
+                    .and_then(|x| x.parse::<f64>().ok())
+                    .expect("a tick")
+                / 360.0;
+            let label = gauge
+                .query_selector(".gauge-under-ticks .tick-label")
+                .ok()
+                .flatten();
+            (
+                label
+                    .as_ref()
+                    .and_then(|label| label.text_content())
+                    .unwrap_or_default(),
+                label
+                    .as_ref()
+                    .is_some_and(|label| label.class_list().contains("acc")),
+                label
+                    .and_then(|label| label.get_attribute("style"))
+                    .unwrap_or_default(),
+                format!("left: {share}%; transform: translateX(-{share}%)"),
+            )
+        })
+        .collect();
+
+    assert_eq!(
+        labelled
+            .iter()
+            .map(|(text, ..)| text.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "Goal 75.0 kg",
+            "Target 80 kcal",
+            "Optimal 2000 mL",
+            "Maintenance 2650"
+        ]
+    );
+    assert!(
+        labelled
+            .iter()
+            .all(|(_, gold, style, under_its_tick)| *gold && style == under_its_tick),
+        "{labelled:?}"
+    );
 }
 
 const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
