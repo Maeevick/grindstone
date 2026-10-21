@@ -22,7 +22,7 @@ use crate::refusal::Refusal;
 use crate::stats::{Measure, Summary, correlation, paired, summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
-use crate::verdict::within_grace;
+use crate::verdict::{Verdict, within_grace};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -114,24 +114,12 @@ pub fn streak(
                             .iter()
                             .any(|measured| measured.day == *day)
                     }),
-                    fuelled: counted_on(*day, &fuelled.counted_from).then(|| {
-                        fuelled_day.band.is_some_and(|band| {
-                            within_grace(
-                                fuelled_day.eaten.energy_kcal,
-                                band.floor_kcal,
-                                band.cap_kcal,
-                            )
-                        })
-                    }),
+                    fuelled: counted_on(*day, &fuelled.counted_from)
+                        .then(|| fuelled_day.energy == Some(Verdict::InBand)),
                     worked_out: counted_on(*day, &burnt.counted_from)
                         .then(|| worked_out(*day, &burnt, &gathered)),
-                    hydrated: counted_on(*day, &hydrated.counted_from).then(|| {
-                        within_grace(
-                            hydrated_day.drunk_ml,
-                            hydrated_day.floor_ml,
-                            hydrated_day.cap_ml,
-                        )
-                    }),
+                    hydrated: counted_on(*day, &hydrated.counted_from)
+                        .then(|| hydrated_day.verdict == Verdict::InBand),
                 },
             )
         })
