@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, BurntWorkout};
-use crate::verdict::within_grace;
 
 /// An exercise over the week: how many times it was done, and its minutes, reps and burn in all.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -66,13 +65,9 @@ pub struct BurnWeek {
 }
 
 impl BurnWeek {
-    /// Whether the week's burn holds the sum of its days' targets, from 95% of it as the streak's tick does.
+    /// Whether the week's burn reaches the sum of its days' targets.
     pub fn on_target(&self) -> Option<bool> {
-        Some(within_grace(
-            self.burnt_kcal?,
-            self.target_kcal?,
-            f64::INFINITY,
-        ))
+        Some(self.burnt_kcal? >= self.target_kcal?)
     }
 }
 
