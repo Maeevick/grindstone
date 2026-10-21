@@ -541,6 +541,44 @@ async fn where_you_stand_tells_the_body_masss_band_and_how_far_the_lean_mass_sta
     );
 }
 
+#[wasm_bindgen_test]
+async fn the_gap_a_line_tells_adds_up_with_the_figures_it_shows() {
+    answering(&format!(
+        r#"{{ "exercises": [], "circuits": [], "fuel_day": {A_DAY_NOT_FUELLED_YET},
+             "burn_day": {} }}"#,
+        A_BURN_SHORT_OF_ITS_TARGET
+            .replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 372.0"#)
+            .replace(r#""target_kcal": 80.0"#, r#""target_kcal": 76.5"#)
+    ));
+    let burnt_on = screen();
+    let burnt = the_burn_day(&burnt_on);
+    settled().await;
+    let burn_said = text_of(&burnt_on, ".bands p.figures");
+    drop(burnt);
+    answering(
+        r#"{ "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 70.5, "waist_cm": 80.0, "age": 41,
+                 "composition": { "fat_ratio": 0.137, "fat_mass_kg": 9.66, "lean_mass_kg": 60.84 } },
+              "days": [{ "day": "2026-10-10", "body_mass_kg": 70.5, "waist_cm": 80.0, "age": 41,
+                 "composition": { "fat_ratio": 0.137, "fat_mass_kg": 9.66, "lean_mass_kg": 60.84 } }],
+              "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null },
+              "aims": { "body_mass_kg": 70.0, "lean_mass_kg": 61.56, "recommended": false } } }"#,
+    );
+    let gathered_on = screen();
+    let _gathered = the_gather_tab(&gathered_on);
+    settled().await;
+    let lean_said = texts_in_order(&gathered_on, ".aim-gauge .gauge-title")
+        .pop()
+        .unwrap_or_default();
+
+    assert_eq!(
+        [burn_said, lean_said],
+        [
+            "372 kcal burnt in workouts, 295 kcal past the 77 kcal target.",
+            "Lean mass: 60.8 kg, 0.8 kg to reach the 61.6 kg goal."
+        ]
+    );
+}
+
 async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
