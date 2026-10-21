@@ -70,13 +70,13 @@ pub fn bare(figure: Figure) -> String {
 
 /// How far apart two energies stand as they are shown, so the gap adds up with them on screen: 372 kcal and
 /// 76.5 kcal show as 372 and 77, 295 kcal apart rather than the 296 their own gap would show.
-pub fn energy_apart(_one_kcal: f64, _other_kcal: f64) -> Figure {
-    Figure::Energy(0.0)
+pub fn energy_apart(one_kcal: f64, other_kcal: f64) -> Figure {
+    Figure::Energy((one_kcal.round() - other_kcal.round()).abs())
 }
 
 /// How far apart two masses stand as they are shown, so the gap adds up with them on screen.
-pub fn mass_apart(_one_kg: f64, _other_kg: f64) -> Figure {
-    Figure::Mass(0.0)
+pub fn mass_apart(one_kg: f64, other_kg: f64) -> Figure {
+    Figure::Mass((to_the_tenth(one_kg) - to_the_tenth(other_kg)).abs())
 }
 
 /// A change, showing which way it went; one that rounds to nothing shows no sign.
