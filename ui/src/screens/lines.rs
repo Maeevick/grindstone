@@ -355,9 +355,6 @@ pub fn with_the_plate(kcal: f64) -> String {
     format!("With the plate: {}", shown(Figure::Energy(kcal)))
 }
 
-pub const STREAK_GRACE: &str = "Each tick holds within 5% of its band, a mercy the gauges never \
-    show. Aim for the gauges: the 5% is for the days that wobble.";
-
 pub fn streak_remark(streak: &Streak) -> &'static str {
     if streak.at_risk {
         "Yesterday was a joker: today must be complete, or the streak goes back to the archive."

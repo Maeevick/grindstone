@@ -50,7 +50,6 @@ fn StreakCard() -> impl IntoView {
                         })
                 }}
             </Transition>
-            <p class="hint">{lines::STREAK_GRACE}</p>
         </section>
     }
 }
