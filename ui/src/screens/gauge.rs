@@ -79,7 +79,7 @@ pub fn BurnGauge(burnt: f64, target: f64, ghost: Option<f64>) -> impl IntoView {
         <div class="gauge burn-gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">
                 <rect class="track" x="0" y="9" width="360" height="6" />
-                <rect class="band" x=placed.grace_from y="9" width=360.0 - placed.grace_from height="6" />
+                <rect class="band" x=placed.band_from y="9" width=360.0 - placed.band_from height="6" />
                 <line class="optimal" x1=placed.target_at x2=placed.target_at y1="4" y2="20" />
                 {placed.ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="amount" cx=placed.burnt_at cy="12" r="5" />

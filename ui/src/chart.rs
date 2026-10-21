@@ -78,7 +78,7 @@ pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64)
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BurnGauge {
-    pub grace_from: f64,
+    pub band_from: f64,
     pub target_at: f64,
     pub burnt_at: f64,
     pub ghost_at: Option<f64>,
@@ -97,7 +97,7 @@ pub fn burn_gauge_of(burnt: f64, target: f64, ghost: Option<f64>, width: f64) ->
         (ROOM_PAST_THE_LARGER * larger / ROUNDED_UP_TO_KCAL).ceil() * ROUNDED_UP_TO_KCAL;
     let scale = (0.0, stretched.max(BURN_GAUGE_KCAL));
     BurnGauge {
-        grace_from: placed(target, scale, width),
+        band_from: placed(target, scale, width),
         target_at: placed(target, scale, width),
         burnt_at: placed(burnt, scale, width),
         ghost_at: ghost.map(|kcal| placed(kcal, scale, width)),
@@ -284,7 +284,7 @@ mod tests {
         assert_eq!(
             burn_gauge_of(60.0, 80.0, None, 400.0),
             BurnGauge {
-                grace_from: 160.0,
+                band_from: 160.0,
                 target_at: 160.0,
                 burnt_at: 120.0,
                 ghost_at: None,
@@ -298,7 +298,7 @@ mod tests {
         assert_eq!(
             burn_gauge_of(60.0, 80.0, Some(300.0), 400.0),
             BurnGauge {
-                grace_from: 80.0,
+                band_from: 80.0,
                 target_at: 80.0,
                 burnt_at: 60.0,
                 ghost_at: Some(300.0),
