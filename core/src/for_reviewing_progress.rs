@@ -848,6 +848,39 @@ mod tests {
         }
 
         #[test]
+        fn a_burn_that_reaches_its_target_as_shown_holds_the_tick() {
+            let records = a_man_at_his_desk();
+            let target_kcal = target_on(
+                NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
+                &[],
+                Some(80.0),
+            )
+            .expect("a target on a weighed body")
+            .values;
+            let walking = crate::exercise::Exercise {
+                name: "Walking".into(),
+                met: 4.0,
+                description: String::new(),
+            };
+            let a_minute = crate::workout::burnt_by(
+                &crate::workout::workout("2026-10-10", &walking, 1.0, None, 1, 0.0)
+                    .expect("a workout"),
+                80.0,
+            );
+            a_full_day_walking(
+                &records,
+                "2026-10-10",
+                "Plate",
+                (target_kcal - 0.1) / a_minute,
+            );
+
+            assert_eq!(
+                ticks_on(&records, "2026-10-10", "2026-10-10").and_then(|ticks| ticks.worked_out),
+                Some(true)
+            );
+        }
+
+        #[test]
         fn before_any_weigh_in_a_single_workout_holds_the_workout_tick() {
             let records = a_man_at_his_desk();
             log_workout(
