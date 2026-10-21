@@ -66,13 +66,24 @@ pub const NO_WORKOUT: &str = "No workout on this day. A brisk half-hour walk wil
 pub const NO_EXERCISE: &str = "The catalog is empty. Add an exercise and its MET \
     (the 2024 Compendium of Physical Activities lists them), or import the draft's.";
 
+/// The workouts' burn, and how far it stands from the day's target: what is left to reach it, or how far past.
 pub fn burnt(burn: &Burn) -> String {
-    match burn.burnt_kcal {
-        Some(kcal) => format!(
-            "{} burnt beyond the day off the clock.",
-            shown(Figure::Energy(kcal))
+    let energy = |kcal| shown(Figure::Energy(kcal));
+    match (burn.burnt_kcal, burn.target_kcal) {
+        (Some(kcal), Some(target)) if kcal < target => format!(
+            "{} burnt in workouts, {} to reach the {} target.",
+            energy(kcal),
+            energy(target - kcal),
+            energy(target)
         ),
-        None => {
+        (Some(kcal), Some(target)) => format!(
+            "{} burnt in workouts, {} past the {} target.",
+            energy(kcal),
+            energy(kcal - target),
+            energy(target)
+        ),
+        (Some(kcal), None) => format!("{} burnt in workouts.", energy(kcal)),
+        (None, _) => {
             "Weigh in first: I price a workout on the body that did it, not on a stand-in.".into()
         }
     }
