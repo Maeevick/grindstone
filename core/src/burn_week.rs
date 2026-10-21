@@ -248,12 +248,12 @@ mod tests {
     }
 
     #[test]
-    fn the_weeks_burn_holds_its_target_from_95_percent_of_the_sum_of_its_days_targets() {
+    fn the_weeks_burn_holds_its_target_once_it_reaches_the_sum_of_its_days_targets() {
         assert_eq!(
             [
-                a_week(Some(95.0), Some(100.0)).on_target(),
-                a_week(Some(94.0), Some(100.0)).on_target(),
-                a_week(Some(95.0), None).on_target(),
+                a_week(Some(100.0), Some(100.0)).on_target(),
+                a_week(Some(99.0), Some(100.0)).on_target(),
+                a_week(Some(100.0), None).on_target(),
                 a_week(None, Some(100.0)).on_target()
             ],
             [Some(true), Some(false), None, None]
