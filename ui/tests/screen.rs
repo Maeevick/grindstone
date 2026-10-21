@@ -822,6 +822,34 @@ const A_BURN_SHORT_OF_ITS_TARGET: &str = r#"{ "day": "2026-10-10", "workouts": [
     "body_mass_kg": 80.0, "target_kcal": 80.0 }"#;
 
 #[wasm_bindgen_test]
+async fn the_days_burn_says_what_its_workouts_burnt_and_how_far_it_stands_from_its_target() {
+    let said_of = |burn_day: String| async move {
+        answering(&format!(
+            r#"{{ "exercises": [], "circuits": [], "burn_day": {burn_day},
+                 "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+        ));
+        let screen = screen();
+        let _mounted = the_burn_day(&screen);
+        settled().await;
+        text_of(&screen, ".bands p.figures")
+    };
+
+    let short = said_of(A_BURN_SHORT_OF_ITS_TARGET.to_string()).await;
+    let past = said_of(
+        A_BURN_SHORT_OF_ITS_TARGET.replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 100.0"#),
+    )
+    .await;
+
+    assert_eq!(
+        [short, past],
+        [
+            "60 kcal burnt in workouts, 20 kcal to reach the 80 kcal target.",
+            "100 kcal burnt in workouts, 20 kcal past the 80 kcal target."
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_the_grace_in_green() {
     answering(&format!(
         r#"{{ "exercises": [], "circuits": [], "burn_day": {A_BURN_SHORT_OF_ITS_TARGET},
