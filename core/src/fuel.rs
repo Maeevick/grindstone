@@ -103,8 +103,8 @@ const FIBRE_BEFORE_EATING_G: f64 = 28.0;
 const CARBS_FLOOR_G: f64 = 130.0;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
-/// The narrowest band, a tenth of the maintenance: five percent either side at the goal, the streak's grace on
-/// top, since neither the maintenance nor a food log is more precise.
+/// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
+/// maintenance nor a food log is more precise.
 const NARROWEST_BAND_SHARE: f64 = 0.1;
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
