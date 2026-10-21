@@ -1,7 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, bare, shown, signed};
+use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown, signed};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
@@ -71,16 +71,11 @@ pub const NO_EXERCISE: &str = "The catalog is empty. Add an exercise and its MET
 pub fn burnt(burn: &Burn) -> String {
     let energy = |kcal| shown(Figure::Energy(kcal));
     match (burn.burnt_kcal, burn.target_kcal) {
-        (Some(kcal), Some(target)) if kcal < target => format!(
-            "{} burnt in workouts, {} to reach the {} target.",
-            energy(kcal),
-            energy(target - kcal),
-            energy(target)
-        ),
         (Some(kcal), Some(target)) => format!(
-            "{} burnt in workouts, {} past the {} target.",
+            "{} burnt in workouts, {} {} the {} target.",
             energy(kcal),
-            energy(kcal - target),
+            shown(energy_apart(kcal, target)),
+            if kcal < target { "to reach" } else { "past" },
             energy(target)
         ),
         (Some(kcal), None) => format!("{} burnt in workouts.", energy(kcal)),
@@ -465,15 +460,11 @@ pub fn aim_line(label: &str, amount: f64, aim: Aim, recommended: bool) -> String
             } else {
                 format!("the {} goal", mass(value))
             };
-            let (gap, standing) = if amount < value {
-                (value - amount, "to reach")
-            } else {
-                (amount - value, "above")
-            };
+            let standing = if amount < value { "to reach" } else { "above" };
             format!(
                 "{label}: {}, {} {standing} {floor}.",
                 mass(amount),
-                mass(gap)
+                shown(mass_apart(amount, value))
             )
         }
     }
