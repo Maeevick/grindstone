@@ -281,11 +281,11 @@ mod tests {
     }
 
     #[test]
-    fn a_burn_gauge_runs_from_nothing_to_200_kcal_and_turns_green_at_95_percent_of_its_target() {
+    fn a_burn_gauge_runs_from_nothing_to_200_kcal_and_turns_green_at_its_target() {
         assert_eq!(
             burn_gauge_of(60.0, 80.0, None, 400.0),
             BurnGauge {
-                grace_from: 152.0,
+                grace_from: 160.0,
                 target_at: 160.0,
                 burnt_at: 120.0,
                 ghost_at: None,
