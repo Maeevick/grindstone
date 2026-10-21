@@ -3024,7 +3024,7 @@ async fn a_drink_nothing_matches_turns_the_hydrate_form_into_a_new_one_added_the
 }
 
 #[wasm_bindgen_test]
-async fn the_days_drinks_add_up_against_its_target() {
+async fn the_days_drinks_add_up_against_its_band_as_fuels_energy_does() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS} }}"#
     ));
@@ -3033,8 +3033,17 @@ async fn the_days_drinks_add_up_against_its_target() {
     let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
     settled().await;
 
-    let day = screen.text_content().unwrap_or_default();
-    assert!(day.contains("280 mL of 2252 mL"), "{day}");
+    let line: Element = found(&screen, ".bands p.figures");
+    assert_eq!(
+        (
+            line.text_content().unwrap_or_default(),
+            line.class_list().contains("low")
+        ),
+        (
+            "280 mL drunk, the band runs from 2027 to 2477 mL.".to_string(),
+            true
+        )
+    );
     let listed: Element = found(&screen, "tbody");
     assert!(
         listed
