@@ -2563,7 +2563,7 @@ async fn a_food_added_in_the_grimoire_is_offered_by_the_fuel_form() {
 }
 
 #[wasm_bindgen_test]
-async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_gauges_strict_bands() {
+async fn the_streak_card_holds_its_ticks_to_the_gauges_bands_and_tells_of_no_grace() {
     answering(A_HOME);
     let screen = screen();
     let _mounted = the_app(&screen);
@@ -2571,7 +2571,7 @@ async fn the_streak_card_says_each_tick_holds_within_5_percent_of_the_gauges_str
     settled().await;
 
     let card = text_of(&screen, "section.card.streak");
-    assert!(card.contains("within 5% of its band"), "{card}");
+    assert!(!card.contains("5%"), "{card}");
 }
 
 #[wasm_bindgen_test]
