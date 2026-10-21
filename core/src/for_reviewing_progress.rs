@@ -22,7 +22,7 @@ use crate::refusal::Refusal;
 use crate::stats::{Measure, Summary, correlation, paired, summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
-use crate::verdict::{Verdict, within_grace};
+use crate::verdict::Verdict;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -127,8 +127,7 @@ pub fn streak(
     Ok(streak_of(&ticked, today))
 }
 
-/// A day's workouts reach its burn target, within the streak's grace; before any weigh-in prices them, a
-/// single workout will do.
+/// A day's workouts reach its burn target; before any weigh-in prices them, a single workout will do.
 fn worked_out(day: NaiveDate, burnt: &BurnRecords, gathered: &GatherRecords) -> bool {
     let burn = burn_on(day, burnt, gathered);
     !burn.workouts.is_empty()
@@ -136,7 +135,7 @@ fn worked_out(day: NaiveDate, burnt: &BurnRecords, gathered: &GatherRecords) -> 
             burn.burnt_kcal,
             target_on(day, &burnt.targets, burn.body_mass_kg).map(|target| target.values),
         ) {
-            (Some(kcal), Some(target)) => within_grace(kcal, target, f64::INFINITY),
+            (Some(kcal), Some(target)) => kcal >= target,
             _ => true,
         }
 }
