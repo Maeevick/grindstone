@@ -930,7 +930,7 @@ async fn the_days_burn_says_what_its_workouts_burnt_and_how_far_it_stands_from_i
 }
 
 #[wasm_bindgen_test]
-async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_the_grace_in_green() {
+async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_green_from_the_target_on() {
     answering(&format!(
         r#"{{ "exercises": [], "circuits": [], "burn_day": {A_BURN_SHORT_OF_ITS_TARGET},
              "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
@@ -941,7 +941,7 @@ async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_the_grace
 
     let band: Element = found(&screen, ".burn-gauge svg .band");
 
-    assert_eq!(band.get_attribute("x").as_deref(), Some("136.8"));
+    assert_eq!(band.get_attribute("x").as_deref(), Some("144"));
     assert_eq!(
         text_of(&screen, ".burn-gauge .tick-label"),
         "Target 80 kcal"
