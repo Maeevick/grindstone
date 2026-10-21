@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::burn::{Burn, BurntWorkout};
+use crate::verdict::{Verdict, verdict_of};
 
 /// An exercise over the week: how many times it was done, and its minutes, reps and burn in all.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -65,9 +66,9 @@ pub struct BurnWeek {
 }
 
 impl BurnWeek {
-    /// Whether the week's burn reaches the sum of its days' targets.
+    /// Whether the week's burn reaches the sum of its days' targets, as both are shown.
     pub fn on_target(&self) -> Option<bool> {
-        Some(self.burnt_kcal? >= self.target_kcal?)
+        Some(verdict_of(self.burnt_kcal?, self.target_kcal?, f64::INFINITY) == Verdict::InBand)
     }
 }
 
