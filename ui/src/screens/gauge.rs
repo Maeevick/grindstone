@@ -5,6 +5,23 @@ use leptos::prelude::*;
 
 use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
 
+/// A tick's label under it, in gold: anchored at the share of itself its tick takes of the line, so it stays
+/// under its tick without leaving the gauge.
+#[component]
+fn TickLabel(at: f64, label: String) -> impl IntoView {
+    let share = 100.0 * at / 360.0;
+    view! {
+        <div class="gauge-under-ticks">
+            <span
+                class="acc tick-label"
+                style=format!("left: {share}%; transform: translateX(-{share}%)")
+            >
+                {label}
+            </span>
+        </div>
+    }
+}
+
 #[component]
 pub fn Gauge(
     amount: f64,
@@ -22,10 +39,10 @@ pub fn Gauge(
                 <line class="optimal" x1=placed.optimal_at x2=placed.optimal_at y1="4" y2="20" />
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
+            <TickLabel at=placed.optimal_at label=format!("Optimal {}", shown(shown_as(optimal))) />
             <div class="gauge-labels">
-                <span class="low">{format!("min {}", shown(shown_as(floor)))}</span>
-                <span>{format!("optimal {}", shown(shown_as(optimal)))}</span>
-                <span class="high">{format!("max {}", shown(shown_as(cap)))}</span>
+                <span class="low">{format!("Min {}", shown(shown_as(floor)))}</span>
+                <span class="high">{format!("Max {}", shown(shown_as(cap)))}</span>
             </div>
         </div>
     }
@@ -35,7 +52,7 @@ pub fn Gauge(
 pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -> impl IntoView {
     let placed = aim_gauge_of(amount, aim, 360.0);
     let (Aim::Reach(value) | Aim::Floor(value)) = aim;
-    let aimed = if recommended { "healthy" } else { "goal" };
+    let aimed = if recommended { "Healthy" } else { "Goal" };
     view! {
         <div class="gauge aim-gauge">
             <p class="gauge-title">{format!("{label}: {}", shown(Figure::Mass(amount)))}</p>
@@ -45,9 +62,9 @@ pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -
                 <line class="optimal" x1=placed.aim_at x2=placed.aim_at y1="4" y2="20" />
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
+            <TickLabel at=placed.aim_at label=format!("{aimed} {}", shown(Figure::Mass(value))) />
             <div class="gauge-labels">
                 <span>{shown(Figure::Mass(placed.from))}</span>
-                <span>{format!("{aimed} {}", shown(Figure::Mass(value)))}</span>
                 <span>{shown(Figure::Mass(placed.up_to))}</span>
             </div>
         </div>
@@ -66,9 +83,9 @@ pub fn BurnGauge(burnt: f64, target: f64, ghost: Option<f64>) -> impl IntoView {
                 {placed.ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="amount" cx=placed.burnt_at cy="12" r="5" />
             </svg>
+            <TickLabel at=placed.target_at label=format!("Target {}", shown(Figure::Energy(target))) />
             <div class="gauge-labels">
                 <span>{shown(Figure::Energy(0.0))}</span>
-                <span>{format!("target {}", shown(Figure::Energy(target)))}</span>
                 <span>{shown(Figure::Energy(placed.up_to_kcal))}</span>
             </div>
         </div>
@@ -101,14 +118,10 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                 {ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
-            <div class="gauge-under-ticks">
-                <span
-                    class="acc maintenance-label"
-                    style=format!("left: {}%", 100.0 * placed.maintenance_at / 360.0)
-                >
-                    {format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal)))}
-                </span>
-            </div>
+            <TickLabel
+                at=placed.maintenance_at
+                label=format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal)))
+            />
             <div class="gauge-labels">
                 <span class="low">
                     {format!(

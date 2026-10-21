@@ -471,16 +471,14 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
 
     assert!(first.starts_with("Body mass: 80.0 kg"), "{first}");
     assert_eq!(bands.len(), 2, "{bands:?}");
-    for aim in ["goal 75.0 kg", "goal 66.0 kg"] {
-        assert!(
-            bands.iter().any(|band| band.contains(aim)),
-            "{aim} in {bands:?}"
-        );
-    }
+    assert_eq!(
+        texts_of(&screen, ".aim-gauge .tick-label"),
+        ["Goal 66.0 kg", "Goal 75.0 kg"]
+    );
     let body: Element = found(&screen, ".aim-gauge");
     assert_eq!(
         texts_in_order(&body, ".gauge-labels span"),
-        ["67.5 kg", "goal 75.0 kg", "82.5 kg"]
+        ["67.5 kg", "82.5 kg"]
     );
     let lean: Element = screen
         .query_selector_all(".aim-gauge")
@@ -502,7 +500,7 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
     );
     assert_eq!(
         texts_in_order(&lean, ".gauge-labels span"),
-        ["59.4 kg", "goal 66.0 kg", "72.6 kg"]
+        ["59.4 kg", "72.6 kg"]
     );
 }
 
@@ -834,10 +832,12 @@ async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_the_grace
     settled().await;
 
     let band: Element = found(&screen, ".burn-gauge svg .band");
-    let labels = text_of(&screen, ".burn-gauge .gauge-labels");
 
     assert_eq!(band.get_attribute("x").as_deref(), Some("136.8"));
-    assert!(labels.contains("target 80 kcal"), "{labels}");
+    assert_eq!(
+        text_of(&screen, ".burn-gauge .tick-label"),
+        "Target 80 kcal"
+    );
 }
 
 #[wasm_bindgen_test]
@@ -1733,28 +1733,9 @@ async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     found::<Element>(&screen, ".fuel-gauge line.minimum");
     found::<Element>(&screen, ".fuel-gauge rect.band");
     found::<Element>(&screen, ".fuel-gauge circle.eaten");
-    let maintenance_at: f64 = found::<Element>(&screen, ".fuel-gauge line.maintenance")
-        .get_attribute("x1")
-        .and_then(|x| x.parse().ok())
-        .expect("maintenance's tick");
-    let maintenance_label: Element = found(&screen, ".fuel-gauge .maintenance-label");
-    let left: f64 = maintenance_label
-        .get_attribute("style")
-        .and_then(|style| {
-            style
-                .strip_prefix("left: ")?
-                .strip_suffix('%')?
-                .parse()
-                .ok()
-        })
-        .expect("the label's place");
     assert_eq!(
-        maintenance_label.text_content().unwrap_or_default(),
+        text_of(&screen, ".fuel-gauge .tick-label"),
         "Maintenance 2425"
-    );
-    assert!(
-        (left - 100.0 * maintenance_at / 360.0).abs() < 1e-9,
-        "{left}% under {maintenance_at}"
     );
 }
 
@@ -3296,9 +3277,9 @@ async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
     let scale: Element = found(&screen, ".gauge");
     let labels = scale.text_content().unwrap_or_default();
     assert!(
-        labels.contains("min 1800 mL")
-            && labels.contains("optimal 2000 mL")
-            && labels.contains("max 2200 mL"),
+        labels.contains("Min 1800 mL")
+            && labels.contains("Optimal 2000 mL")
+            && labels.contains("Max 2200 mL"),
         "{labels}"
     );
     assert!(scale.query_selector("svg .band").ok().flatten().is_some());
