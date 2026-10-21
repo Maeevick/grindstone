@@ -816,7 +816,7 @@ mod tests {
         }
 
         #[test]
-        fn a_burn_within_five_percent_of_its_target_still_holds_the_tick() {
+        fn a_burn_short_of_its_target_by_any_margin_misses_the_tick() {
             let records = a_man_at_his_desk();
             let target_kcal = target_on(
                 NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
@@ -844,7 +844,7 @@ mod tests {
 
             assert_eq!(
                 ticks_on(&records, "2026-10-10", "2026-10-10").and_then(|ticks| ticks.worked_out),
-                Some(true)
+                Some(false)
             );
         }
 
