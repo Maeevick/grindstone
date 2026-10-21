@@ -504,6 +504,43 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
     );
 }
 
+#[wasm_bindgen_test]
+async fn where_you_stand_tells_the_body_masss_band_and_how_far_the_lean_mass_stands_from_its_goal()
+{
+    let titles_aiming_at = |aims: &'static str| async move {
+        answering(&format!(
+            r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
+                  "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
+                  "aims": {aims} }} }}"#
+        ));
+        let screen = screen();
+        let _mounted = the_gather_tab(&screen);
+        settled().await;
+        texts_in_order(&screen, ".aim-gauge .gauge-title")
+    };
+
+    let own_goals =
+        titles_aiming_at(r#"{ "body_mass_kg": 70.0, "lean_mass_kg": 61.6, "recommended": false }"#)
+            .await;
+    let recommended =
+        titles_aiming_at(r#"{ "body_mass_kg": 80.0, "lean_mass_kg": 72.0, "recommended": true }"#)
+            .await;
+
+    assert_eq!(
+        [own_goals, recommended],
+        [
+            [
+                "Body mass: 80.0 kg, the band runs from 69.3 to 70.7 kg.",
+                "Lean mass: 70.7 kg, 9.1 kg above the 61.6 kg goal."
+            ],
+            [
+                "Body mass: 80.0 kg, the band runs from 79.2 to 80.8 kg.",
+                "Lean mass: 70.7 kg, 1.3 kg to reach the healthy 72.0 kg."
+            ]
+        ]
+    );
+}
+
 async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
