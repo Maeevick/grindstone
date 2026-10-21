@@ -256,6 +256,11 @@ mod tests {
     }
 
     #[test]
+    fn the_weeks_burn_reaching_its_target_as_shown_holds_it() {
+        assert_eq!(a_week(Some(99.6), Some(100.0)).on_target(), Some(true));
+    }
+
+    #[test]
     fn a_week_without_a_workout_has_nothing_to_sum_up() {
         assert_eq!(
             [
