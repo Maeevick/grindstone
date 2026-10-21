@@ -66,16 +66,15 @@ fn DrinkingsOfTheDay(
     hydrate: RwSignal<Option<Hydrate>>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
-    let total = lines::drunk_against_target(&of_the_day);
+    let total = lines::drunk_line(&of_the_day);
+    let verdict_class = lines::verdict_class(of_the_day.verdict);
     let reached = of_the_day.verdict == Verdict::InBand;
     let past_the_cap = of_the_day.verdict == Verdict::High;
     let dry = of_the_day.drinkings.is_empty();
     view! {
         <section class="card bands">
             <h2>"Where the day stands"</h2>
-            <p class="figures" class:good=reached>
-                {total}
-            </p>
+            <p class=format!("figures {verdict_class}")>{total}</p>
             <Gauge
                 amount=of_the_day.drunk_ml
                 floor=of_the_day.floor_ml

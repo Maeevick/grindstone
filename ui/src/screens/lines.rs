@@ -1,7 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, shown, signed};
+use grind_core::figures::{Figure, bare, shown, signed};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
@@ -437,11 +437,12 @@ pub fn circuit_logged(name: &str, sets: u32) -> String {
     )
 }
 
-pub fn drunk_against_target(hydrate: &Hydrate) -> String {
+pub fn drunk_line(hydrate: &Hydrate) -> String {
     format!(
-        "{} of {}",
+        "{} drunk, the band runs from {} to {}.",
         shown(Figure::Volume(hydrate.drunk_ml)),
-        shown(Figure::Volume(hydrate.target_ml))
+        bare(Figure::Volume(hydrate.floor_ml)),
+        shown(Figure::Volume(hydrate.cap_ml))
     )
 }
 

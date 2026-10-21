@@ -3067,7 +3067,10 @@ async fn the_days_hydrate_reloads_when_the_day_changes() {
     settled().await;
 
     let shown = screen.text_content().unwrap_or_default();
-    assert!(shown.contains("0 mL of 2000 mL"), "{shown}");
+    assert!(
+        shown.contains("0 mL drunk, the band runs from 1800 to 2200 mL."),
+        "{shown}"
+    );
 }
 
 #[wasm_bindgen_test]
