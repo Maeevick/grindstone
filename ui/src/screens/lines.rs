@@ -6,9 +6,10 @@ use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_week::{FuelWeek, Gap};
+use grind_core::heading::Aim;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
-use grind_core::judgement::Judgement;
+use grind_core::judgement::{AT_THE_AIM_SHARE, Judgement};
 use grind_core::meal::Ingredient;
 use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
@@ -446,6 +447,36 @@ pub fn circuit_logged(name: &str, sets: u32) -> String {
         "Fire in the hole! {name}, {}, filed in the ledger.",
         counted(sets as usize, "set", "sets")
     )
+}
+
+/// A mass against its aim: one to reach tells its band, a floor how far the mass stands from it.
+pub fn aim_line(label: &str, amount: f64, aim: Aim, recommended: bool) -> String {
+    let mass = |kg| shown(Figure::Mass(kg));
+    match aim {
+        Aim::Reach(value) => format!(
+            "{label}: {}, the band runs from {} to {}.",
+            mass(amount),
+            bare(Figure::Mass((1.0 - AT_THE_AIM_SHARE) * value)),
+            mass((1.0 + AT_THE_AIM_SHARE) * value)
+        ),
+        Aim::Floor(value) => {
+            let floor = if recommended {
+                format!("the healthy {}", mass(value))
+            } else {
+                format!("the {} goal", mass(value))
+            };
+            let (gap, standing) = if amount < value {
+                (value - amount, "to reach")
+            } else {
+                (amount - value, "above")
+            };
+            format!(
+                "{label}: {}, {} {standing} {floor}.",
+                mass(amount),
+                mass(gap)
+            )
+        }
+    }
 }
 
 pub fn drunk_line(hydrate: &Hydrate) -> String {

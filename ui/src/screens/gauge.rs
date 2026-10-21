@@ -4,6 +4,7 @@ use grind_core::heading::Aim;
 use leptos::prelude::*;
 
 use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
+use crate::screens::lines;
 
 /// A tick's label under it, in gold: anchored at the share of itself its tick takes of the line, so it stays
 /// under its tick without leaving the gauge.
@@ -55,7 +56,7 @@ pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -
     let aimed = if recommended { "Healthy" } else { "Goal" };
     view! {
         <div class="gauge aim-gauge">
-            <p class="gauge-title">{format!("{label}: {}", shown(Figure::Mass(amount)))}</p>
+            <p class="gauge-title">{lines::aim_line(label, amount, aim, recommended)}</p>
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.band_from y="9" width=placed.band_to - placed.band_from height="6" />
