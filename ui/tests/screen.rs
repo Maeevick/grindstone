@@ -914,12 +914,17 @@ async fn the_days_burn_says_what_its_workouts_burnt_and_how_far_it_stands_from_i
         A_BURN_SHORT_OF_ITS_TARGET.replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 100.0"#),
     )
     .await;
+    let reached_as_shown = said_of(
+        A_BURN_SHORT_OF_ITS_TARGET.replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 79.6"#),
+    )
+    .await;
 
     assert_eq!(
-        [short, past],
+        [short, past, reached_as_shown],
         [
             "60 kcal burnt in workouts, 20 kcal to reach the 80 kcal target.",
-            "100 kcal burnt in workouts, 20 kcal past the 80 kcal target."
+            "100 kcal burnt in workouts, 20 kcal past the 80 kcal target.",
+            "80 kcal burnt in workouts, 0 kcal past the 80 kcal target."
         ]
     );
 }
