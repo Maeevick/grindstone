@@ -961,7 +961,7 @@ mod tests {
         }
 
         #[test]
-        fn a_band_missed_by_no_more_than_five_percent_still_holds_its_tick() {
+        fn a_band_missed_by_any_margin_misses_its_tick() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
             a_dry_day(&records, "2026-10-10", "Plate");
@@ -1021,7 +1021,7 @@ mod tests {
 
             let ticks = ticks_on(&records, "2026-10-10", "2026-10-10").expect("the day's ticks");
 
-            assert_eq!((ticks.fuelled, ticks.hydrated), (Some(true), Some(true)));
+            assert_eq!((ticks.fuelled, ticks.hydrated), (Some(false), Some(false)));
         }
 
         #[test]
