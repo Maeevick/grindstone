@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use crate::aims::aims_on;
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
-use crate::burn_target::target_on;
 use crate::composition::Composition;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
@@ -22,7 +21,7 @@ use crate::refusal::Refusal;
 use crate::stats::{Measure, Summary, correlation, paired, summary};
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::trend::seven_day_trend;
-use crate::verdict::{Verdict, verdict_of};
+use crate::verdict::Verdict;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -132,15 +131,9 @@ pub fn streak(
 fn worked_out(day: NaiveDate, burnt: &BurnRecords, gathered: &GatherRecords) -> bool {
     let burn = burn_on(day, burnt, gathered);
     !burn.workouts.is_empty()
-        && match (
-            burn.burnt_kcal,
-            target_on(day, &burnt.targets, burn.body_mass_kg).map(|target| target.values),
-        ) {
-            (Some(kcal), Some(target)) => {
-                verdict_of(kcal, target, f64::INFINITY) == Verdict::InBand
-            }
-            _ => true,
-        }
+        && burn
+            .verdict
+            .is_none_or(|verdict| verdict == Verdict::InBand)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -503,6 +496,7 @@ mod tests {
 
     mod the_streak {
         use super::*;
+        use crate::burn_target::target_on;
         use crate::food::{Food, Nutrients, Unit};
         use crate::for_burning::{WorkoutForm, log_workout};
         use crate::for_cataloguing::{FoodForm, add_exercise, add_food};
