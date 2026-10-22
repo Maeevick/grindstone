@@ -894,7 +894,7 @@ const A_BURN_PRICED_AT_80_KG: &str = r#"{ "day": "2026-10-10", "workouts": [], "
 
 const A_BURN_SHORT_OF_ITS_TARGET: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 60.0,
     "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true,
-    "body_mass_kg": 80.0, "target_kcal": 80.0 }"#;
+    "body_mass_kg": 80.0, "target_kcal": 80.0, "verdict": "Low" }"#;
 
 #[wasm_bindgen_test]
 async fn the_days_burn_says_what_its_workouts_burnt_and_how_far_it_stands_from_its_target() {
@@ -927,6 +927,30 @@ async fn the_days_burn_says_what_its_workouts_burnt_and_how_far_it_stands_from_i
             "80 kcal burnt in workouts, 0 kcal past the 80 kcal target."
         ]
     );
+}
+
+#[wasm_bindgen_test]
+async fn the_days_burn_line_is_red_short_of_its_target_and_green_once_it_reaches_it() {
+    let class_of = |burn_day: String| async move {
+        answering(&format!(
+            r#"{{ "exercises": [], "circuits": [], "burn_day": {burn_day},
+                 "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+        ));
+        let screen = screen();
+        let _mounted = the_burn_day(&screen);
+        settled().await;
+        found::<Element>(&screen, ".bands p.figures").class_name()
+    };
+
+    let short = class_of(A_BURN_SHORT_OF_ITS_TARGET.to_string()).await;
+    let reached = class_of(
+        A_BURN_SHORT_OF_ITS_TARGET
+            .replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 100.0"#)
+            .replace(r#""verdict": "Low""#, r#""verdict": "InBand""#),
+    )
+    .await;
+
+    assert_eq!([short, reached], ["figures low", "figures good"]);
 }
 
 #[wasm_bindgen_test]
