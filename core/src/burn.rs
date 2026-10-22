@@ -8,6 +8,7 @@ use crate::kept::{InForce, Kept, in_force};
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::recommendations::recommended;
+use crate::verdict::Verdict;
 use crate::version::{dated_version_in_force_on, version_in_force_on};
 use crate::volitional::Volitional;
 use crate::workout::{Workout, burnt_by};
@@ -29,6 +30,8 @@ pub struct Burn {
     /// The body mass in force on the day, the one its workouts are priced on.
     pub body_mass_kg: Option<f64>,
     pub target_kcal: Option<f64>,
+    /// Whether the workouts reached the target, as both are shown; nothing without a weigh-in to price them.
+    pub verdict: Option<Verdict>,
 }
 
 pub(crate) fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]) -> Option<f64> {
@@ -82,6 +85,7 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) ->
         off_the_clock_is_usual: own_day.is_none(),
         body_mass_kg,
         target_kcal: target_on(day, &records.targets, body_mass_kg).map(|target| target.values),
+        verdict: None,
     }
 }
 
@@ -148,6 +152,33 @@ mod tests {
                     .map(|target| target.values),
                 Some(150.0)
             )
+        );
+    }
+
+    #[test]
+    fn a_days_burn_tells_whether_its_workouts_reached_its_target_as_shown() {
+        let walking_for = |minutes| BurnRecords {
+            workouts: vec![(1, walked("2026-10-10", minutes))],
+            targets: vec![(day("2026-03-01"), Kept::Own(80.0))],
+            ..BurnRecords::default()
+        };
+        let weighed_in = gathered(&[weighed("2026-10-01", 80.0)]);
+        let verdict_after =
+            |minutes| burn_on(day("2026-10-10"), &walking_for(minutes), &weighed_in).verdict;
+
+        assert_eq!(
+            [
+                verdict_after(15.0),
+                verdict_after(19.9),
+                verdict_after(30.0),
+                burn_on(day("2026-10-10"), &walking_for(30.0), &gathered(&[])).verdict
+            ],
+            [
+                Some(Verdict::Low),
+                Some(Verdict::InBand),
+                Some(Verdict::InBand),
+                None
+            ]
         );
     }
 

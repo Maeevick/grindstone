@@ -145,6 +145,7 @@ mod tests {
             off_the_clock_is_usual: true,
             body_mass_kg: Some(70.0),
             target_kcal: Some(77.0),
+            verdict: None,
         }
     }
 
