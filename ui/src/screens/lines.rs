@@ -17,7 +17,6 @@ use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
 use grind_core::stats::{Measure, Summary, figure_of};
 use grind_core::streak::{Status, Streak};
-use grind_core::verdict::verdict_of;
 use grind_draft::{DraftRefusal, ImportFailure};
 
 pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
@@ -76,7 +75,7 @@ pub fn burnt(burn: &Burn) -> String {
             "{} burnt in workouts, {} {} the {} target.",
             energy(kcal),
             shown(energy_apart(kcal, target)),
-            if verdict_of(kcal, target, f64::INFINITY) == Verdict::Low {
+            if burn.verdict == Some(Verdict::Low) {
                 "to reach"
             } else {
                 "past"

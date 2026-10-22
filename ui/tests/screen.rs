@@ -549,6 +549,7 @@ async fn the_gap_a_line_tells_adds_up_with_the_figures_it_shows() {
         A_BURN_SHORT_OF_ITS_TARGET
             .replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 372.0"#)
             .replace(r#""target_kcal": 80.0"#, r#""target_kcal": 76.5"#)
+            .replace(r#""verdict": "Low""#, r#""verdict": "InBand""#)
     ));
     let burnt_on = screen();
     let burnt = the_burn_day(&burnt_on);
@@ -911,11 +912,15 @@ async fn the_days_burn_says_what_its_workouts_burnt_and_how_far_it_stands_from_i
 
     let short = said_of(A_BURN_SHORT_OF_ITS_TARGET.to_string()).await;
     let past = said_of(
-        A_BURN_SHORT_OF_ITS_TARGET.replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 100.0"#),
+        A_BURN_SHORT_OF_ITS_TARGET
+            .replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 100.0"#)
+            .replace(r#""verdict": "Low""#, r#""verdict": "InBand""#),
     )
     .await;
     let reached_as_shown = said_of(
-        A_BURN_SHORT_OF_ITS_TARGET.replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 79.6"#),
+        A_BURN_SHORT_OF_ITS_TARGET
+            .replace(r#""burnt_kcal": 60.0"#, r#""burnt_kcal": 79.6"#)
+            .replace(r#""verdict": "Low""#, r#""verdict": "InBand""#),
     )
     .await;
 
