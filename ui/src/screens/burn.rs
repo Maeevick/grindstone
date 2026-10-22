@@ -540,11 +540,12 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 .map(|answer| {
                     let rested = answer.workouts.is_empty();
                     let burnt = answer.burnt_kcal.unwrap_or(0.0);
+                    let burn_class = answer.verdict.map(lines::verdict_class).unwrap_or("hint");
                     let with_the_session = sessioned.get().map(|kcal| burnt + kcal);
                     view! {
                         <section class="card bands">
                             <h2>"Where the day stands"</h2>
-                            <p class="figures">{lines::burnt(&answer)}</p>
+                            <p class=format!("figures {burn_class}")>{lines::burnt(&answer)}</p>
                             {with_the_session
                                 .map(|kcal| {
                                     view! { <p class="hint with-the-session">{lines::with_the_session(kcal)}</p> }
