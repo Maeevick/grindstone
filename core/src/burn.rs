@@ -8,7 +8,7 @@ use crate::kept::{InForce, Kept, in_force};
 use crate::measurement::Measurement;
 use crate::profile::Profile;
 use crate::recommendations::recommended;
-use crate::verdict::Verdict;
+use crate::verdict::{Verdict, verdict_of};
 use crate::version::{dated_version_in_force_on, version_in_force_on};
 use crate::volitional::Volitional;
 use crate::workout::{Workout, burnt_by};
@@ -67,6 +67,11 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) ->
             burnt_kcal: body_mass_kg.map(|kg| burnt_by(done, kg)),
         })
         .collect();
+    let burnt_kcal = workouts
+        .iter()
+        .map(|done| done.burnt_kcal)
+        .sum::<Option<f64>>();
+    let target_kcal = target_on(day, &records.targets, body_mass_kg).map(|target| target.values);
     let own_day = records
         .days_off_the_clock
         .iter()
@@ -74,18 +79,17 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) ->
         .map(|(_, volitional)| *volitional);
     Burn {
         day,
-        burnt_kcal: workouts
-            .iter()
-            .map(|done| done.burnt_kcal)
-            .sum::<Option<f64>>(),
+        burnt_kcal,
         workouts,
         off_the_clock: own_day.or_else(|| {
             usual_day_in_force(day, &records.usual_days, &gather.profiles).map(|usual| usual.values)
         }),
         off_the_clock_is_usual: own_day.is_none(),
         body_mass_kg,
-        target_kcal: target_on(day, &records.targets, body_mass_kg).map(|target| target.values),
-        verdict: None,
+        target_kcal,
+        verdict: burnt_kcal
+            .zip(target_kcal)
+            .map(|(burnt, target)| verdict_of(burnt, target, f64::INFINITY)),
     }
 }
 
