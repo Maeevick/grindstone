@@ -289,13 +289,13 @@ mod tests {
 
     #[test]
     fn the_floor_never_rises_above_the_optimal() {
-        let walking_thirty_km_a_day = BurnRecords {
+        let walking_forty_km_a_day = BurnRecords {
             usual_days: vec![(
                 day("2026-03-01"),
                 Kept::Own(Volitional {
                     sitting_min: 480.0,
                     standing_min: 120.0,
-                    moving_km: 30.0,
+                    moving_km: 40.0,
                 }),
             )],
             ..BurnRecords::default()
@@ -305,7 +305,7 @@ mod tests {
             day("2026-10-10"),
             &HydrateRecords::default(),
             &a_man_measured_with_his_waist(),
-            &walking_thirty_km_a_day,
+            &walking_forty_km_a_day,
             &FuelRecords::default(),
         );
 

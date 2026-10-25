@@ -99,7 +99,6 @@ const FIBRE_KCAL_PER_G: f64 = 2.0;
 const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
-const FIBRE_BEFORE_EATING_G: f64 = 28.0;
 const CARBS_FLOOR_G: f64 = 130.0;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
@@ -115,24 +114,17 @@ fn carbs_floor_g(body: &Body) -> f64 {
     (CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS * body.lean_kg).max(CARBS_FLOOR_G)
 }
 
-fn digested(eaten: Option<Nutrients>, body: &Body, targets: FuelTargets) -> Eaten {
-    let macros = match eaten {
-        Some(eaten) => Macro {
+/// What the day has eaten, its digestion priced on the grams themselves: nothing eaten, nothing digested, as
+/// no workout logged burns nothing.
+fn digested(eaten: Nutrients) -> Eaten {
+    Eaten {
+        energy: eaten.energy_kcal,
+        macros: Macro {
             protein: eaten.protein_g,
             fat: eaten.fat_g,
             fib: eaten.fibre_g,
             carb: eaten.carbs_g,
         },
-        None => Macro {
-            protein: targets.protein_g_per_kg * body.mass_kg,
-            fat: targets.fat_g_per_kg * body.mass_kg,
-            fib: FIBRE_BEFORE_EATING_G,
-            carb: carbs_floor_g(body),
-        },
-    };
-    Eaten {
-        energy: eaten.map_or(0.0, |eaten| eaten.energy_kcal),
-        macros,
     }
 }
 
@@ -324,7 +316,7 @@ impl Ledgers<'_> {
                 burnt.burnt_kcal.unwrap_or(0.0),
                 burnt.off_the_clock.unwrap_or_default(),
                 deficit_before(day, gaps),
-                digested((!intakes.is_empty()).then_some(eaten), &body, targets),
+                digested(eaten),
             );
             (band, macros_for(eaten, &body, targets, band), budget)
         });
@@ -562,9 +554,8 @@ mod tests {
         assert_eq!(fuelled.budget, Some(budget));
     }
 
-    /// What a body would spend on a desk day before eating, priced on what today's body is to eat.
+    /// What a body would spend on a desk day before eating: no digestion yet.
     fn spent_before_eating_by(lean_kg: f64, fat_kg: f64) -> f64 {
-        let (todays_lean_kg, _) = the_body();
         daily_energy_budget(
             41,
             lean_kg,
@@ -578,10 +569,10 @@ mod tests {
             Eaten {
                 energy: 0.0,
                 macros: Macro {
-                    protein: 2.0 * 80.0,
-                    fat: 0.9 * 80.0,
-                    fib: 28.0,
-                    carb: (3.0 * todays_lean_kg).max(130.0),
+                    protein: 0.0,
+                    fat: 0.0,
+                    fib: 0.0,
+                    carb: 0.0,
                 },
             },
         )
@@ -925,11 +916,7 @@ mod tests {
     }
 
     fn cap_with(deficit: Deficit) -> f64 {
-        let (lean_kg, _) = the_body();
-        cap_eating(
-            deficit,
-            (2.0 * 80.0, (3.0 * lean_kg).max(130.0), 0.9 * 80.0, 28.0),
-        )
+        cap_eating(deficit, (0.0, 0.0, 0.0, 0.0))
     }
 
     fn cap_eating(deficit: Deficit, (protein, carb, fat, fib): (f64, f64, f64, f64)) -> f64 {
