@@ -516,8 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn before_anything_is_eaten_maintenance_is_the_budget_priced_on_the_targets_plus_the_burn_capping_a_cut()
-     {
+    fn before_anything_is_eaten_maintenance_counts_no_digestion_only_the_budget_and_the_burn() {
         let (lean_kg, fat_kg) = the_body();
         let mut burn = a_desk_job();
         let walking = Exercise {
@@ -548,10 +547,10 @@ mod tests {
             Eaten {
                 energy: 0.0,
                 macros: Macro {
-                    protein: 2.0 * 80.0,
-                    fat: 0.9 * 80.0,
-                    fib: 28.0,
-                    carb: (3.0 * lean_kg).max(130.0),
+                    protein: 0.0,
+                    fat: 0.0,
+                    fib: 0.0,
+                    carb: 0.0,
                 },
             },
         );
