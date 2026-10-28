@@ -2191,6 +2191,44 @@ fn a_fuelled_day_of(
     )
 }
 
+const A_FUELLED_DAY_WITH_THE_PASTA: &str = r#"{ "day": "2026-10-10", "intakes": [],
+    "eaten": { "energy_kcal": 468.0, "protein_g": 31.0, "carbs_g": 78.0, "fat_g": 1.5, "fibre_g": 3.0 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2235.3, "cap_kcal": 2686.1, "maintenance_kcal": 2460.7 },
+    "energy": "Low",
+    "macros": {
+        "protein": { "eaten_g": 31.0, "floor_g": 160.0, "ceiling_g": 39.0, "verdict": "Low" },
+        "fat": { "eaten_g": 1.5, "floor_g": 72.0, "ceiling_g": 17.3, "verdict": "Low" },
+        "fibre": { "eaten_g": 3.0, "floor_g": 32.0, "ceiling_g": 9.4, "verdict": "Low" },
+        "carbs": { "eaten_g": 78.0, "floor_g": 220.0, "ceiling_g": 302.0, "verdict": "Low" } } }"#;
+
+#[wasm_bindgen_test]
+async fn the_macros_preview_their_gaps_against_the_goals_of_the_day_previewed() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "fuel_day": {A_FUELLED_DAY}, "fuel_day_with": {A_FUELLED_DAY_WITH_THE_PASTA} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "food", "pasta");
+    typed_into(&screen, "quantity", "100");
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, "table.macros tr.carbs .ghost"),
+        ["+70", "-142"]
+    );
+    assert_eq!(
+        attributes_of(
+            &screen,
+            "table.macros tr.carbs td:nth-child(4) .ghost",
+            "class"
+        ),
+        ["ghost low"]
+    );
+}
+
 #[wasm_bindgen_test]
 async fn what_is_about_to_be_eaten_previews_the_day_with_it_its_band_lifted_by_its_digestion() {
     let today = a_fuelled_day_of(108.0, 21.6, (2199.4, 2424.8, 2650.2));
