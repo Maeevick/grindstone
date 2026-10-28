@@ -2130,6 +2130,71 @@ async fn added_to_the_plate(screen: &Element, food: &str, quantity: &str) {
     settled().await;
 }
 
+/// A day of Fuel as the core would answer it: so much eaten, its band and what its digestion costs.
+fn a_fuelled_day_of(
+    kcal: f64,
+    digestion_kcal: f64,
+    (floor, maintenance, cap): (f64, f64, f64),
+) -> String {
+    format!(
+        r#"{{ "day": "2026-10-10", "intakes": [],
+            "eaten": {{ "energy_kcal": {kcal}, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 }},
+            "band": {{ "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5,
+                       "floor_kcal": {floor}, "cap_kcal": {cap}, "maintenance_kcal": {maintenance} }},
+            "energy": "Low", "macros": null,
+            "budget": {{ "resting_kcal": 1718.1, "organs_kcal": 102.5, "digestion_kcal": {digestion_kcal},
+                         "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 }} }}"#
+    )
+}
+
+#[wasm_bindgen_test]
+async fn what_is_about_to_be_eaten_previews_the_day_with_it_its_band_lifted_by_its_digestion() {
+    let today = a_fuelled_day_of(108.0, 21.6, (2199.4, 2424.8, 2650.2));
+    let answering_with = |previewed: String| {
+        answering(&format!(
+            r#"{{ "foods": {PASTA_AND_CREAM}, "fuel_day": {today}, "fuel_day_with": {previewed} }}"#
+        ))
+    };
+    answering_with(a_fuelled_day_of(468.0, 57.5, (2235.3, 2460.7, 2686.1)));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    let previewed = || texts_in_order(&screen, ".bands .with-the-preview").concat();
+
+    typed_into(&screen, "food", "pasta");
+    typed_into(&screen, "quantity", "100");
+    settled().await;
+    settled().await;
+    let the_food = previewed();
+    let sent = asked("fuel_day_with");
+    let ghost_band = screen
+        .query_selector(".fuel-gauge rect.ghost-band")
+        .ok()
+        .flatten()
+        .is_some();
+    clicked(&screen, "button.to-the-plate");
+    settled().await;
+    settled().await;
+    let the_plate = previewed();
+    answering_with(a_fuelled_day_of(1068.0, 76.9, (2254.6, 2480.1, 2705.5)));
+    typed_into(&screen, "food", "creme fraiche");
+    typed_into(&screen, "quantity", "200");
+    settled().await;
+    settled().await;
+    let the_plate_and_the_food = previewed();
+
+    assert!(sent.contains(r#""more":{"energy_kcal":360"#), "{sent}");
+    assert!(ghost_band);
+    assert_eq!(
+        [the_food, the_plate, the_plate_and_the_food],
+        [
+            "With the food: 468 kcal, 36 of them spent digesting it.",
+            "With the plate: 468 kcal, 36 of them spent digesting it.",
+            "With the plate and the food: 1068 kcal, 55 of them spent digesting them."
+        ]
+    );
+}
+
 #[wasm_bindgen_test]
 async fn foods_added_to_the_plate_wait_there_adding_up_and_ghosting_the_band_and_the_macros() {
     answering(&format!(
