@@ -2975,6 +2975,38 @@ fn a_session_at_80_kg() -> String {
 }
 
 #[wasm_bindgen_test]
+async fn what_is_about_to_be_burnt_previews_the_day_with_it() {
+    answering(&format!("{{ {} }}", a_session_at_80_kg()));
+    let screen = screen();
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+    let previewed = || texts_in_order(&screen, ".bands .with-the-preview").concat();
+
+    typed_into(&screen, "exercise", "burpee");
+    typed_into(&screen, "minutes", "1");
+    typed_into(&screen, "load", "5");
+    settled().await;
+    let the_workout = previewed();
+    clicked(&screen, "button.to-the-session");
+    settled().await;
+    let the_session = previewed();
+    typed_into(&screen, "exercise", "push up");
+    typed_into(&screen, "minutes", "0.5");
+    typed_into(&screen, "reps", "12");
+    settled().await;
+    let the_session_and_the_workout = previewed();
+
+    assert_eq!(
+        [the_workout, the_session, the_session_and_the_workout],
+        [
+            "With the workout: 70 kcal.",
+            "With the session: 70 kcal.",
+            "With the session and the workout: 72 kcal."
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn steps_added_to_the_session_wait_there_priced_a_set_and_ghosting_the_band() {
     answering(&format!("{{ {} }}", a_session_at_80_kg()));
     let screen = screen();
