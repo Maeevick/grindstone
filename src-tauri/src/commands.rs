@@ -8,7 +8,7 @@ use grind_core::circuit::Circuit;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
-use grind_core::food::Food;
+use grind_core::food::{Food, Nutrients};
 use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{self, OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
@@ -207,6 +207,16 @@ pub fn usual_day_on(
 pub fn fuel_day(records: State<Records>, date: String) -> Result<Fuel, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_fuelling::fuel_day(&*records, &*records, &*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_day_with(
+    records: State<Records>,
+    date: String,
+    more: Nutrients,
+) -> Result<Fuel, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_fuelling::fuel_day_with(&*records, &*records, &*records, &date, &more)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -578,6 +588,7 @@ mod tests {
                 set_usual_day,
                 usual_day_on,
                 fuel_day,
+                fuel_day_with,
                 fuel_week,
                 log_intake,
                 log_plate,
