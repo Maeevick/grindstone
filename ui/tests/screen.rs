@@ -2198,7 +2198,7 @@ async fn what_is_about_to_be_eaten_previews_the_day_with_it_its_band_lifted_by_i
 #[wasm_bindgen_test]
 async fn foods_added_to_the_plate_wait_there_adding_up_and_ghosting_the_band_and_the_macros() {
     answering(&format!(
-        r#"{{ "foods": {PASTA_AND_CREAM}, "fuel_day": {A_FUELLED_DAY} }}"#
+        r#"{{ "foods": {PASTA_AND_CREAM}, "fuel_day": {A_FUELLED_DAY}, "fuel_day_with": {A_FUELLED_DAY} }}"#
     ));
     let screen = screen();
     let _mounted = the_fuel_day(&screen);
@@ -2221,10 +2221,6 @@ async fn foods_added_to_the_plate_wait_there_adding_up_and_ghosting_the_band_and
     assert_eq!(
         texts_in_order(&screen, "form.intake button[type=submit]"),
         ["Add to the plate"]
-    );
-    assert_eq!(
-        text_of(&screen, ".bands .with-the-plate"),
-        "With the plate: 1068 kcal"
     );
     found::<Element>(&screen, ".fuel-gauge circle.ghost");
     assert_eq!(text_of(&screen, "table.macros tr.protein .ghost"), "+16");

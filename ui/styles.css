@@ -1002,8 +1002,23 @@ td .description {
 	vector-effect: non-scaling-stroke;
 }
 
+.fuel-gauge .ghost-band {
+	fill: none;
+	stroke: #5fd99f;
+	stroke-width: 1.5;
+	stroke-dasharray: 3 3;
+	vector-effect: non-scaling-stroke;
+}
+
+.fuel-gauge .ghost-maintenance {
+	stroke: var(--acc);
+	stroke-width: 2;
+	stroke-dasharray: 2 2;
+	vector-effect: non-scaling-stroke;
+}
+
 td .ghost,
-.with-the-plate,
+.with-the-preview,
 .with-the-session {
 	color: var(--mut);
 	font-style: italic;

@@ -5,7 +5,7 @@ use grind_core::circuit::Circuit;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
-use grind_core::food::Food;
+use grind_core::food::{Food, Nutrients};
 use grind_core::for_burning::CircuitSessionForm;
 use grind_core::for_burning::{OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
@@ -219,6 +219,16 @@ pub async fn burn_target_on(date: &str) -> Result<Option<InForce<f64>>, Failure>
 
 pub async fn fuel_day(date: &str) -> Result<Fuel, Failure> {
     call("fuel_day", OnDay { date }, broken).await
+}
+
+#[derive(Serialize)]
+struct OnDayEating<'a> {
+    date: &'a str,
+    more: &'a Nutrients,
+}
+
+pub async fn fuel_day_with(date: &str, more: &Nutrients) -> Result<Fuel, Failure> {
+    call("fuel_day_with", OnDayEating { date, more }, broken).await
 }
 
 #[derive(Serialize)]

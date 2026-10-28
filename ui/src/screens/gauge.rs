@@ -94,20 +94,49 @@ pub fn BurnGauge(burnt: f64, target: f64, ghost: Option<f64>) -> impl IntoView {
 }
 
 #[component]
-pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
+pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl IntoView {
     let bounds = (
         band.minimum_kcal,
         band.floor_kcal,
         band.maintenance_kcal,
         band.cap_kcal,
     );
-    let placed = energy_gauge_of(eaten, bounds, None, 360.0);
-    let ghost_at = ghost.map(|kcal| energy_gauge_of(kcal, bounds, None, 360.0).eaten_at);
+    let placed = energy_gauge_of(
+        eaten,
+        bounds,
+        ghost.map(|(kcal, after)| {
+            (
+                kcal,
+                (after.floor_kcal, after.maintenance_kcal, after.cap_kcal),
+            )
+        }),
+        360.0,
+    );
     view! {
         <div class="gauge fuel-gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.floor_at y="9" width=placed.cap_at - placed.floor_at height="6" />
+                {placed
+                    .ghost
+                    .map(|ghost| {
+                        view! {
+                            <rect
+                                class="ghost-band"
+                                x=ghost.floor_at
+                                y="6"
+                                width=ghost.cap_at - ghost.floor_at
+                                height="12"
+                            />
+                            <line
+                                class="ghost-maintenance"
+                                x1=ghost.maintenance_at
+                                x2=ghost.maintenance_at
+                                y1="2"
+                                y2="22"
+                            />
+                        }
+                    })}
                 <line class="minimum" x1=placed.minimum_at x2=placed.minimum_at y1="3" y2="21" />
                 <line
                     class="maintenance"
@@ -116,7 +145,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
                     y1="3"
                     y2="21"
                 />
-                {ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
+                {placed.ghost.map(|ghost| view! { <circle class="ghost" cx=ghost.eaten_at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
             <TickLabel

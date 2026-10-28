@@ -350,8 +350,33 @@ pub fn with_the_session(kcal: f64) -> String {
     format!("With the session: {}", shown(Figure::Energy(kcal)))
 }
 
-pub fn with_the_plate(kcal: f64) -> String {
-    format!("With the plate: {}", shown(Figure::Energy(kcal)))
+/// What is about to be eaten: the food chosen, the plate in progress, or both.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AboutToEat {
+    Food,
+    Plate,
+    PlateAndFood,
+}
+
+/// The day previewed with what is about to be eaten, and what digesting it would spend.
+pub fn with_what_is_about_to_be_eaten(
+    what: AboutToEat,
+    kcal: f64,
+    digesting_kcal: Option<f64>,
+) -> String {
+    let (named, it) = match what {
+        AboutToEat::Food => ("the food", "it"),
+        AboutToEat::Plate => ("the plate", "it"),
+        AboutToEat::PlateAndFood => ("the plate and the food", "them"),
+    };
+    let total = shown(Figure::Energy(kcal));
+    match digesting_kcal {
+        Some(digesting) => format!(
+            "With {named}: {total}, {} of them spent digesting {it}.",
+            bare(Figure::Energy(digesting))
+        ),
+        None => format!("With {named}: {total}."),
+    }
 }
 
 pub fn streak_remark(streak: &Streak) -> &'static str {

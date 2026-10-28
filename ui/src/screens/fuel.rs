@@ -14,6 +14,7 @@ use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::last_days::FuelLastDays;
+use crate::screens::lines::AboutToEat;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
 use crate::screens::tab::{DayCard, GrimoireBesideTheNumbers};
 use crate::screens::{Recorded, lines, today};
@@ -206,12 +207,30 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
         .ok()
     };
     let eaten_food = move || chosen_food().or_else(|| creating.get().then(new_food).flatten());
-    let preview = move || {
+    let chosen_eaten = move || {
         let known = eaten_food()?;
         let [typed] = figures_typed([&quantity.get()])?;
-        let eaten = typed.unwrap_or(known.portion);
-        Some(lines::figures_of(&nutrients_of(&known, eaten)))
+        Some(nutrients_of(&known, typed.unwrap_or(known.portion)))
     };
+    let preview = move || chosen_eaten().map(|eaten| lines::figures_of(&eaten));
+    let about_to_eat = Memo::new(move |_| match (plated.get(), chosen_eaten()) {
+        (Some(plate), Some(food)) => Some((AboutToEat::PlateAndFood, summed([plate, food]))),
+        (Some(plate), None) => Some((AboutToEat::Plate, plate)),
+        (None, Some(food)) => Some((AboutToEat::Food, food)),
+        (None, None) => None,
+    });
+    let previewed = LocalResource::new(move || {
+        let date = day.get();
+        let more = about_to_eat.get();
+        fuel.track();
+        async move {
+            let (what, more) = more?;
+            tauri::fuel_day_with(&date, &more)
+                .await
+                .ok()
+                .map(|fuel| (what, fuel))
+        }
+    });
     Effect::new(move |_| {
         recorded.heard();
         spawn_local(async move {
@@ -384,18 +403,29 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                 .map(|answer| {
                     let energy_class = answer.energy.map(lines::verdict_class).unwrap_or("hint");
                     let eaten = answer.eaten.energy_kcal;
-                    let with_the_plate = plated.get().map(|plated| eaten + plated.energy_kcal);
+                    let preview = previewed.get().flatten();
+                    let ghost = preview
+                        .as_ref()
+                        .and_then(|(_, after)| after.band.map(|band| (after.eaten.energy_kcal, band)));
+                    let said = preview
+                        .map(|(what, after)| {
+                            lines::with_what_is_about_to_be_eaten(
+                                what,
+                                after.eaten.energy_kcal,
+                                after
+                                    .budget
+                                    .zip(answer.budget)
+                                    .map(|(after, now)| after.digestion_kcal - now.digestion_kcal),
+                            )
+                        });
                     view! {
                         <section class="card bands">
                             <h2>"Where the day stands"</h2>
                             <p class=format!("figures {energy_class}")>{lines::energy_line(&answer)}</p>
-                            {with_the_plate
-                                .map(|kcal| {
-                                    view! { <p class="hint with-the-plate">{lines::with_the_plate(kcal)}</p> }
-                                })}
+                            {said.map(|line| view! { <p class="hint with-the-preview">{line}</p> })}
                             {match answer.band {
                                 Some(band) => {
-                                    view! { <FuelGauge eaten=eaten band=band ghost=with_the_plate /> }
+                                    view! { <FuelGauge eaten=eaten band=band ghost=ghost /> }
                                         .into_any()
                                 }
                                 None => view! { <p class="hint">{lines::NO_BAND}</p> }.into_any(),
