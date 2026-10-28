@@ -164,18 +164,25 @@ pub struct GhostEnergy {
 pub fn energy_gauge_of(
     eaten: f64,
     (minimum, floor, maintenance, cap): (f64, f64, f64, f64),
-    _ghost: Option<(f64, (f64, f64, f64))>,
+    ghost: Option<(f64, (f64, f64, f64))>,
     width: f64,
 ) -> EnergyGauge {
-    let spare = 0.1 * (cap - minimum).max(0.1 * cap);
-    let scale = (minimum - spare, cap + spare);
+    let top = ghost.map_or(cap, |(_, (_, _, ghost_cap))| cap.max(ghost_cap));
+    let spare = 0.1 * (top - minimum).max(0.1 * top);
+    let scale = (minimum - spare, top + spare);
+    let at = |kcal| placed(kcal, scale, width);
     EnergyGauge {
-        minimum_at: placed(minimum, scale, width),
-        floor_at: placed(floor, scale, width),
-        maintenance_at: placed(maintenance, scale, width),
-        cap_at: placed(cap, scale, width),
-        eaten_at: placed(eaten, scale, width).clamp(0.0, width),
-        ghost: None,
+        minimum_at: at(minimum),
+        floor_at: at(floor),
+        maintenance_at: at(maintenance),
+        cap_at: at(cap),
+        eaten_at: at(eaten).clamp(0.0, width),
+        ghost: ghost.map(|(eaten, (floor, maintenance, cap))| GhostEnergy {
+            eaten_at: at(eaten).clamp(0.0, width),
+            floor_at: at(floor),
+            maintenance_at: at(maintenance),
+            cap_at: at(cap),
+        }),
     }
 }
 
