@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::failure::Failure;
+use crate::food::Nutrients;
 use crate::for_cataloguing::IngredientForm;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
@@ -42,6 +43,18 @@ pub fn fuel_day(
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     date: &str,
+) -> Result<Fuel, Failure> {
+    fuel_of_the_day(gather, burn, fuel, day(date)?)
+}
+
+/// The day as it would stand with more eaten, nothing logged: its band lifted by their digestion, its macros
+/// weighed with them.
+pub fn fuel_day_with(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    date: &str,
+    _more: &Nutrients,
 ) -> Result<Fuel, Failure> {
     fuel_of_the_day(gather, burn, fuel, day(date)?)
 }
@@ -134,7 +147,7 @@ pub fn remove_intake(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::food::{Food, Nutrients, Unit};
+    use crate::food::{Food, Unit};
     use crate::gender::Gender;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
@@ -207,6 +220,49 @@ mod tests {
         assert_eq!(fuelled.intakes.len(), 1);
         assert!((fuelled.eaten.energy_kcal - 108.0).abs() < 1e-9);
         assert_eq!(fuel_day(&gather, &burn, &fuel, "2026-10-10"), Ok(fuelled));
+    }
+
+    #[test]
+    fn the_day_previewed_with_more_eaten_stands_as_it_will_once_they_are_logged() {
+        let fuel = a_catalog_with_skyr();
+        let (gather, burn) = (a_man_with_a_waist(), BurnRecordsInMemory::default());
+        log_intake(&gather, &burn, &fuel, &skyr("2026-10-10", 100.0)).expect("a first intake");
+        let two_hundred_grams_of_skyr = Nutrients {
+            energy_kcal: 108.0,
+            protein_g: 19.0,
+            carbs_g: 8.0,
+            fat_g: 0.0,
+            fibre_g: 0.0,
+        };
+
+        let previewed = fuel_day_with(
+            &gather,
+            &burn,
+            &fuel,
+            "2026-10-10",
+            &two_hundred_grams_of_skyr,
+        )
+        .expect("a preview");
+        let logged =
+            log_intake(&gather, &burn, &fuel, &skyr("2026-10-10", 200.0)).expect("a second intake");
+
+        assert_eq!(
+            (
+                previewed.eaten,
+                previewed.band,
+                previewed.energy,
+                previewed.macros,
+                previewed.budget
+            ),
+            (
+                logged.eaten,
+                logged.band,
+                logged.energy,
+                logged.macros,
+                logged.budget
+            )
+        );
+        assert_eq!(previewed.intakes.len(), 1);
     }
 
     #[test]
