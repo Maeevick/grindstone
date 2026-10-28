@@ -3035,8 +3035,8 @@ async fn steps_added_to_the_session_wait_there_priced_a_set_and_ghosting_the_ban
             .is_none()
     );
     assert_eq!(
-        text_of(&screen, ".bands .with-the-session"),
-        "With the session: 97 kcal"
+        text_of(&screen, ".bands .with-the-preview"),
+        "With the session: 97 kcal."
     );
     found::<Element>(&screen, ".burn-gauge circle.ghost");
 }

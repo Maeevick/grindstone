@@ -1018,8 +1018,7 @@ td .description {
 }
 
 td .ghost,
-.with-the-preview,
-.with-the-session {
+.with-the-preview {
 	color: var(--mut);
 	font-style: italic;
 }

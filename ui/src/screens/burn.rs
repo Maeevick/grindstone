@@ -20,6 +20,7 @@ use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::BurnLastDays;
+use crate::screens::lines::AboutToBurn;
 use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, GrimoireBesideTheNumbers};
 use crate::screens::{Recorded, lines, today};
@@ -146,12 +147,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let session = use_context::<SessionInProgress>().unwrap_or_default();
     let on_the_session = Memo::new(move |_| !session.steps.get().is_empty());
     let exercises = Signal::derive(move || catalog.get());
-    let sessioned = Signal::derive(move || {
-        let body_mass_kg = body_mass.get()?;
-        on_the_session
-            .get()
-            .then(|| session.per_set(&catalog.get(), body_mass_kg) * f64::from(session.sets()))
-    });
+
     let creating = Memo::new(move |_| nothing_matches(&names.get(), &exercise.get()));
     let new_exercise = move || {
         let [met] = figures_typed([&figures.met.get()])?;
@@ -172,11 +168,10 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             .and_then(|named| crafted.get().into_iter().find(|known| known.name == named))
     };
     let running_a_circuit = Memo::new(move |_| chosen_circuit().is_some());
-    let preview = move || {
+    let workout_kcal = move || {
         if let Some(circuit) = chosen_circuit() {
             let times = count_typed(&sets.get()).unwrap_or(DEFAULT_SETS);
-            let kcal = burnt_per_set(&circuit, body_mass.get()?) * f64::from(times);
-            return Some(shown(Figure::Energy(kcal)));
+            return Some(burnt_per_set(&circuit, body_mass.get()?) * f64::from(times));
         }
         let known = chosen_exercise().or_else(|| creating.get().then(new_exercise).flatten())?;
         let [minutes_typed, load_typed] = figures_typed([&minutes.get(), &load.get()])?;
@@ -189,8 +184,23 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             load_typed.unwrap_or(DEFAULT_LOAD_KG),
         )
         .ok()?;
-        Some(shown(Figure::Energy(burnt_by(&done, body_mass.get()?))))
+        Some(burnt_by(&done, body_mass.get()?))
     };
+    let preview = move || workout_kcal().map(|kcal| shown(Figure::Energy(kcal)));
+    // With a session in progress, the workout typed joins it: a step more, run as many sets.
+    let about_to_burn = Signal::derive(move || match (on_the_session.get(), workout_kcal()) {
+        (true, step) => {
+            let per_set = session.per_set(&catalog.get(), body_mass.get()?) + step.unwrap_or(0.0);
+            let what = if step.is_some() {
+                AboutToBurn::SessionAndWorkout
+            } else {
+                AboutToBurn::Session
+            };
+            Some((what, per_set * f64::from(session.sets())))
+        }
+        (false, Some(kcal)) => Some((AboutToBurn::Workout, kcal)),
+        (false, None) => None,
+    });
     let budget_of = move |date: String| {
         spawn_local(async move {
             if let Ok(fuel) = tauri::fuel_day(&date).await {
@@ -541,19 +551,29 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     let rested = answer.workouts.is_empty();
                     let burnt = answer.burnt_kcal.unwrap_or(0.0);
                     let burn_class = answer.verdict.map(lines::verdict_class).unwrap_or("hint");
-                    let with_the_session = sessioned.get().map(|kcal| burnt + kcal);
+                    let with_it = about_to_burn.get().map(|(what, kcal)| (what, burnt + kcal));
                     view! {
                         <section class="card bands">
                             <h2>"Where the day stands"</h2>
                             <p class=format!("figures {burn_class}")>{lines::burnt(&answer)}</p>
-                            {with_the_session
-                                .map(|kcal| {
-                                    view! { <p class="hint with-the-session">{lines::with_the_session(kcal)}</p> }
+                            {with_it
+                                .map(|(what, kcal)| {
+                                    view! {
+                                        <p class="hint with-the-preview">
+                                            {lines::with_what_is_about_to_be_burnt(what, kcal)}
+                                        </p>
+                                    }
                                 })}
                             {answer
                                 .target_kcal
                                 .map(|target| {
-                                    view! { <BurnGauge burnt=burnt target=target ghost=with_the_session /> }
+                                    view! {
+                                        <BurnGauge
+                                            burnt=burnt
+                                            target=target
+                                            ghost=with_it.map(|(_, kcal)| kcal)
+                                        />
+                                    }
                                 })}
                             {rested.then(|| view! { <p class="empty">{lines::NO_WORKOUT}</p> })}
                         </section>

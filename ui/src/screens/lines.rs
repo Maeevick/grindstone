@@ -346,8 +346,22 @@ pub const EXERCISE_ICON: &str = "💪";
 pub const WATER_ICON: &str = "💧";
 pub const OTHER_DRINK_ICON: &str = "☕\u{fe0f}";
 
-pub fn with_the_session(kcal: f64) -> String {
-    format!("With the session: {}", shown(Figure::Energy(kcal)))
+/// What is about to be burnt: the workout chosen, the session in progress, or the session with it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AboutToBurn {
+    Workout,
+    Session,
+    SessionAndWorkout,
+}
+
+/// The day previewed with what is about to be burnt.
+pub fn with_what_is_about_to_be_burnt(what: AboutToBurn, kcal: f64) -> String {
+    let named = match what {
+        AboutToBurn::Workout => "the workout",
+        AboutToBurn::Session => "the session",
+        AboutToBurn::SessionAndWorkout => "the session and the workout",
+    };
+    format!("With {named}: {}.", shown(Figure::Energy(kcal)))
 }
 
 /// The day previewed with the drink chosen.
