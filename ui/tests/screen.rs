@@ -1772,6 +1772,50 @@ const KEFIR: &str = r#"{ "name": "Kefir", "unit": "Gram", "portion": 100.0, "des
     "nutrients": { "energy_kcal": 64.0, "protein_g": 3.4, "carbs_g": 4.1, "fat_g": 3.6, "fibre_g": 0.0 } }"#;
 
 #[wasm_bindgen_test]
+async fn a_new_food_typed_previews_the_day_with_it_as_its_figures_change() {
+    answering(&format!(
+        r#"{{ "foods": {THREE_FOODS}, "fuel_day": {}, "fuel_day_with": {} }}"#,
+        a_fuelled_day_of(108.0, 21.6, (2199.4, 2424.8, 2650.2)),
+        a_fuelled_day_of(268.0, 43.0, (2220.8, 2446.2, 2671.6))
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    typed_into(&screen, "food", "Kefir");
+    settled().await;
+    for (field, figure) in [
+        ("new_food_portion", "100"),
+        ("new_food_energy", "64"),
+        ("new_food_protein", "3.4"),
+        ("new_food_fat", "3.6"),
+        ("new_food_fibre", "0"),
+        ("new_food_carbs", "4.1"),
+        ("quantity", "250"),
+    ] {
+        typed_into(&screen, field, figure);
+    }
+    settled().await;
+    settled().await;
+    let a_quarter_litre = asked("fuel_day_with");
+    let said = texts_in_order(&screen, ".bands .with-the-preview").concat();
+    typed_into(&screen, "quantity", "500");
+    settled().await;
+    settled().await;
+    let half_a_litre = asked("fuel_day_with");
+
+    assert!(
+        a_quarter_litre.contains(r#""more":{"energy_kcal":160"#)
+            && half_a_litre.contains(r#""more":{"energy_kcal":320"#),
+        "{a_quarter_litre} then {half_a_litre}"
+    );
+    assert_eq!(
+        said,
+        "With the food: 268 kcal, 21 of them spent digesting it."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_food_nothing_matches_turns_the_fuel_form_into_a_new_one_added_then_logged_in_one_tap() {
     answering(&format!(
         r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
