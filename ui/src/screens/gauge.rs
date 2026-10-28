@@ -101,8 +101,8 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<f64>) -> impl IntoView {
         band.maintenance_kcal,
         band.cap_kcal,
     );
-    let placed = energy_gauge_of(eaten, bounds, 360.0);
-    let ghost_at = ghost.map(|kcal| energy_gauge_of(kcal, bounds, 360.0).eaten_at);
+    let placed = energy_gauge_of(eaten, bounds, None, 360.0);
+    let ghost_at = ghost.map(|kcal| energy_gauge_of(kcal, bounds, None, 360.0).eaten_at);
     view! {
         <div class="gauge fuel-gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">

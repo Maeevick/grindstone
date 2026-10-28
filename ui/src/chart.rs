@@ -149,11 +149,22 @@ pub struct EnergyGauge {
     pub maintenance_at: f64,
     pub cap_at: f64,
     pub eaten_at: f64,
+    pub ghost: Option<GhostEnergy>,
+}
+
+/// What the day would eat and where its band would run, once what is about to be eaten is.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GhostEnergy {
+    pub eaten_at: f64,
+    pub floor_at: f64,
+    pub maintenance_at: f64,
+    pub cap_at: f64,
 }
 
 pub fn energy_gauge_of(
     eaten: f64,
     (minimum, floor, maintenance, cap): (f64, f64, f64, f64),
+    _ghost: Option<(f64, (f64, f64, f64))>,
     width: f64,
 ) -> EnergyGauge {
     let spare = 0.1 * (cap - minimum).max(0.1 * cap);
@@ -164,6 +175,7 @@ pub fn energy_gauge_of(
         maintenance_at: placed(maintenance, scale, width),
         cap_at: placed(cap, scale, width),
         eaten_at: placed(eaten, scale, width).clamp(0.0, width),
+        ghost: None,
     }
 }
 
@@ -393,7 +405,7 @@ mod tests {
 
     #[test]
     fn an_energy_gauge_runs_a_tenth_of_its_band_past_the_minimum_and_the_cap() {
-        let gauge = energy_gauge_of(2200.0, (1600.0, 2000.0, 2400.0, 2400.0), 960.0);
+        let gauge = energy_gauge_of(2200.0, (1600.0, 2000.0, 2400.0, 2400.0), None, 960.0);
 
         for (placed, expected) in [
             (gauge.minimum_at, 80.0),
@@ -409,13 +421,13 @@ mod tests {
     fn what_was_eaten_beyond_the_gauge_stays_on_its_edge() {
         let band = (1600.0, 2000.0, 2400.0, 2400.0);
 
-        assert_eq!(energy_gauge_of(100.0, band, 960.0).eaten_at, 0.0);
-        assert_eq!(energy_gauge_of(5000.0, band, 960.0).eaten_at, 960.0);
+        assert_eq!(energy_gauge_of(100.0, band, None, 960.0).eaten_at, 0.0);
+        assert_eq!(energy_gauge_of(5000.0, band, None, 960.0).eaten_at, 960.0);
     }
 
     #[test]
     fn a_band_closed_on_its_minimum_sits_in_the_middle_of_a_gauge_a_tenth_of_it_wide() {
-        let closed = energy_gauge_of(1800.0, (1800.0, 1800.0, 1800.0, 1800.0), 960.0);
+        let closed = energy_gauge_of(1800.0, (1800.0, 1800.0, 1800.0, 1800.0), None, 960.0);
 
         assert_eq!(
             (closed.minimum_at, closed.cap_at, closed.eaten_at),
@@ -424,8 +436,31 @@ mod tests {
     }
 
     #[test]
+    fn an_energy_gauge_stretches_to_hold_the_band_previewed_and_places_it_on_the_same_line() {
+        let previewed = energy_gauge_of(
+            2200.0,
+            (1600.0, 2000.0, 2400.0, 2400.0),
+            Some((2300.0, (2200.0, 2600.0, 2600.0))),
+            1200.0,
+        );
+
+        assert_eq!(
+            (previewed.cap_at, previewed.ghost),
+            (
+                900.0,
+                Some(GhostEnergy {
+                    eaten_at: 800.0,
+                    floor_at: 700.0,
+                    maintenance_at: 1100.0,
+                    cap_at: 1100.0,
+                })
+            )
+        );
+    }
+
+    #[test]
     fn an_energy_gauge_ticks_maintenance_where_it_falls_in_its_band() {
-        let gaining = energy_gauge_of(2200.0, (1600.0, 2000.0, 2100.0, 2400.0), 960.0);
+        let gaining = energy_gauge_of(2200.0, (1600.0, 2000.0, 2100.0, 2400.0), None, 960.0);
 
         assert!((gaining.maintenance_at - 580.0).abs() < 1e-9, "{gaining:?}");
     }
