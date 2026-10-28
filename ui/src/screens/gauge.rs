@@ -30,14 +30,16 @@ pub fn Gauge(
     optimal: f64,
     cap: f64,
     shown_as: fn(f64) -> Figure,
+    #[prop(default = None)] ghost: Option<f64>,
 ) -> impl IntoView {
-    let placed = gauge_of(amount, (floor, optimal, cap), None, 360.0);
+    let placed = gauge_of(amount, (floor, optimal, cap), ghost, 360.0);
     view! {
         <div class="gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.band_from y="9" width=placed.band_to - placed.band_from height="6" />
                 <line class="optimal" x1=placed.optimal_at x2=placed.optimal_at y1="4" y2="20" />
+                {placed.ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
             <TickLabel at=placed.optimal_at label=format!("Optimal {}", shown(shown_as(optimal))) />

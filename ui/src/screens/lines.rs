@@ -350,6 +350,11 @@ pub fn with_the_session(kcal: f64) -> String {
     format!("With the session: {}", shown(Figure::Energy(kcal)))
 }
 
+/// The day previewed with the drink chosen.
+pub fn with_the_drink(ml: f64) -> String {
+    format!("With the drink: {}.", shown(Figure::Volume(ml)))
+}
+
 /// What is about to be eaten: the food chosen, the plate in progress, or both.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AboutToEat {

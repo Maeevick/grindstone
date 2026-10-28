@@ -65,7 +65,15 @@ fn DrinkingsOfTheDay(
     of_the_day: Hydrate,
     hydrate: RwSignal<Option<Hydrate>>,
     said: RwSignal<Option<String>>,
+    about_to_drink: Signal<Option<f64>>,
 ) -> impl IntoView {
+    let (drunk_ml, floor_ml, target_ml, cap_ml) = (
+        of_the_day.drunk_ml,
+        of_the_day.floor_ml,
+        of_the_day.target_ml,
+        of_the_day.cap_ml,
+    );
+    let drunk_with_it = move || about_to_drink.get().map(|ml| drunk_ml + ml);
     let total = lines::drunk_line(&of_the_day);
     let verdict_class = lines::verdict_class(of_the_day.verdict);
     let reached = of_the_day.verdict == Verdict::InBand;
@@ -75,13 +83,22 @@ fn DrinkingsOfTheDay(
         <section class="card bands">
             <h2>"Where the day stands"</h2>
             <p class=format!("figures {verdict_class}")>{total}</p>
-            <Gauge
-                amount=of_the_day.drunk_ml
-                floor=of_the_day.floor_ml
-                optimal=of_the_day.target_ml
-                cap=of_the_day.cap_ml
-                shown_as=Figure::Volume
-            />
+            {move || {
+                drunk_with_it()
+                    .map(|ml| view! { <p class="hint with-the-preview">{lines::with_the_drink(ml)}</p> })
+            }}
+            {move || {
+                view! {
+                    <Gauge
+                        amount=drunk_ml
+                        floor=floor_ml
+                        optimal=target_ml
+                        cap=cap_ml
+                        shown_as=Figure::Volume
+                        ghost=drunk_with_it()
+                    />
+                }
+            }}
             {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
             {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
         </section>
@@ -135,6 +152,16 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
         chosen(&names.get(), &drink.get())
             .and_then(|name| catalog.get().into_iter().find(|known| known.name == name))
     };
+    let about_to_drink = Signal::derive(move || {
+        let [typed] = figures_typed([&volume.get()])?;
+        let serving = chosen_drink().map(|known| known.volume_ml).or_else(|| {
+            creating
+                .get()
+                .then(|| figures_typed([&figures.serving.get()]).and_then(|[serving]| serving))
+                .flatten()
+        });
+        typed.or(serving)
+    });
     Effect::new(move |_| {
         recorded.heard();
         spawn_local(async move {
@@ -245,7 +272,14 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
             hydrate
                 .get()
                 .map(|of_the_day| {
-                    view! { <DrinkingsOfTheDay of_the_day=of_the_day hydrate=hydrate said=said /> }
+                    view! {
+                        <DrinkingsOfTheDay
+                            of_the_day=of_the_day
+                            hydrate=hydrate
+                            said=said
+                            about_to_drink=about_to_drink
+                        />
+                    }
                 })
         }}
     }
