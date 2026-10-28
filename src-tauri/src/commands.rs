@@ -996,6 +996,26 @@ mod tests {
     }
 
     #[test]
+    fn the_day_previewed_with_more_eaten_crosses_to_the_screen_nothing_logged() {
+        let (_app, screen) = launched();
+
+        let previewed = invoke(
+            &screen,
+            "fuel_day_with",
+            json!({ "date": "2026-10-10",
+                    "more": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 } }),
+        );
+
+        assert_eq!(
+            previewed.map(|fuel| (
+                fuel["eaten"]["energy_kcal"].clone(),
+                fuel["intakes"].clone()
+            )),
+            Ok((json!(108.0), json!([])))
+        );
+    }
+
+    #[test]
     fn a_plate_logged_from_the_screen_answers_the_days_fuel_with_an_intake_per_ingredient() {
         let (_app, screen) = launched();
         with_skyr_in_the_catalog(&screen).expect("a food adds");
