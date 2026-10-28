@@ -70,16 +70,16 @@ pub struct Gauge {
 pub fn gauge_of(
     amount: f64,
     (floor, optimal, cap): (f64, f64, f64),
-    _ghost: Option<f64>,
+    ghost: Option<f64>,
     width: f64,
 ) -> Gauge {
-    let scale = (0.0, (cap * 1.25).max(amount));
+    let scale = (0.0, (cap * 1.25).max(amount).max(ghost.unwrap_or(0.0)));
     Gauge {
         band_from: placed(floor, scale, width),
         band_to: placed(cap, scale, width),
         optimal_at: placed(optimal, scale, width),
         amount_at: placed(amount, scale, width),
-        ghost_at: None,
+        ghost_at: ghost.map(|ml| placed(ml, scale, width)),
     }
 }
 
