@@ -296,9 +296,9 @@ impl Ledgers<'_> {
             .collect()
     }
 
-    fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Fuel {
+    fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)], more: Nutrients) -> Fuel {
         let intakes = self.intakes_on(day);
-        let eaten = added_up(&intakes);
+        let eaten = summed([added_up(&intakes), more]);
         let in_force =
             body_on(day, &self.days, &self.gather.profiles).zip(aims_on(day, self.gather));
         let banded = in_force.map(|(body, aims)| {
@@ -357,7 +357,7 @@ impl<'records> Ledgers<'records> {
         logged.sort();
         logged.dedup();
         logged.iter().fold(Vec::new(), |mut gaps, logged| {
-            let fuelled = self.fuel_on(*logged, &gaps);
+            let fuelled = self.fuel_on(*logged, &gaps, Nutrients::default());
             if let Some(band) = fuelled.band {
                 gaps.push((*logged, band.maintenance_kcal - fuelled.eaten.energy_kcal));
             }
@@ -372,8 +372,19 @@ pub fn fuel_on(
     burn: &BurnRecords,
     fuel: &FuelRecords,
 ) -> Fuel {
+    fuel_with(day, gather, burn, fuel, Nutrients::default())
+}
+
+/// The day as it would stand with more eaten, nothing logged.
+pub fn fuel_with(
+    day: NaiveDate,
+    gather: &GatherRecords,
+    burn: &BurnRecords,
+    fuel: &FuelRecords,
+    more: Nutrients,
+) -> Fuel {
     let ledgers = Ledgers::of(gather, burn, fuel);
-    ledgers.fuel_on(day, &ledgers.gaps())
+    ledgers.fuel_on(day, &ledgers.gaps(), more)
 }
 
 pub fn fuel_over(
@@ -385,7 +396,7 @@ pub fn fuel_over(
     let ledgers = Ledgers::of(gather, burn, fuel);
     let gaps = ledgers.gaps();
     days.iter()
-        .map(|day| ledgers.fuel_on(*day, &gaps))
+        .map(|day| ledgers.fuel_on(*day, &gaps, Nutrients::default()))
         .collect()
 }
 

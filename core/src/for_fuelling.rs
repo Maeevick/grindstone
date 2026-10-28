@@ -7,7 +7,7 @@ use crate::for_cataloguing::IngredientForm;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::fuel::{Fuel, fuel_on, fuel_over};
+use crate::fuel::{Fuel, fuel_on, fuel_over, fuel_with};
 use crate::fuel_week::{FuelWeek, fuel_week_of};
 use crate::intake::intake;
 use crate::refusal::Refusal;
@@ -54,9 +54,16 @@ pub fn fuel_day_with(
     burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     date: &str,
-    _more: &Nutrients,
+    more: &Nutrients,
 ) -> Result<Fuel, Failure> {
-    fuel_of_the_day(gather, burn, fuel, day(date)?)
+    let day = day(date)?;
+    Ok(fuel_with(
+        day,
+        &gather.gather_records()?,
+        &burn.burn_records()?,
+        &fuel.fuel_records()?,
+        *more,
+    ))
 }
 
 /// The week's average up to a day: its logged days of the seven, today left out while under way.
