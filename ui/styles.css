@@ -1028,3 +1028,12 @@ td .ghost {
 	margin-left: 4px;
 	font-size: 0.8rem;
 }
+
+td .ghost.good {
+	color: #5fd99f;
+}
+
+td .ghost.low,
+td .ghost.high {
+	color: #f87171;
+}

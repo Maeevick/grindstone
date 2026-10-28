@@ -27,7 +27,8 @@ fn MacroLine(
     key: &'static str,
     row: MacroRow,
     share: Option<f64>,
-    plated_g: Option<f64>,
+    more_g: Option<f64>,
+    previewed: Option<MacroRow>,
 ) -> impl IntoView {
     let verdict = lines::verdict_class(row.verdict);
     view! {
@@ -36,17 +37,18 @@ fn MacroLine(
             <td>{bare(Figure::Grams(row.floor_g))}</td>
             <td class=verdict>
                 {bare(Figure::Grams(row.eaten_g))}
-                {plated_g
+                {more_g
                     .map(|grams| view! { <span class="ghost">{format!("+{}", bare(Figure::Grams(grams)))}</span> })}
             </td>
             <td class=verdict>
-                {match plated_g {
-                    Some(grams) => {
-                        let with_the_plate = MacroRow {
-                            eaten_g: row.eaten_g + grams,
-                            ..row
-                        };
-                        view! { <span class="ghost">{signed(Figure::Grams(with_the_plate.gap_g()))}</span> }
+                {match previewed {
+                    Some(after) => {
+                        view! {
+                            <span class=format!(
+                                "ghost {}",
+                                lines::verdict_class(after.verdict),
+                            )>{signed(Figure::Grams(after.gap_g()))}</span>
+                        }
                             .into_any()
                     }
                     None => signed(Figure::Grams(row.gap_g())).into_any(),
@@ -58,7 +60,12 @@ fn MacroLine(
 }
 
 #[component]
-fn MacrosCard(macros: Macros, eaten: Nutrients, plated: Option<Nutrients>) -> impl IntoView {
+fn MacrosCard(
+    macros: Macros,
+    eaten: Nutrients,
+    more: Option<Nutrients>,
+    previewed: Option<Macros>,
+) -> impl IntoView {
     let shares = energy_shares(&eaten);
     let share = move |of: fn(&EnergyShares) -> f64| shares.as_ref().map(of);
     view! {
@@ -80,28 +87,32 @@ fn MacrosCard(macros: Macros, eaten: Nutrients, plated: Option<Nutrients>) -> im
                         key="protein"
                         row=macros.protein
                         share=share(|of| of.protein)
-                        plated_g=plated.map(|plated| plated.protein_g)
+                        more_g=more.map(|more| more.protein_g)
+                        previewed=previewed.map(|after| after.protein)
                     />
                     <MacroLine
                         name="Fat"
                         key="fat"
                         row=macros.fat
                         share=share(|of| of.fat)
-                        plated_g=plated.map(|plated| plated.fat_g)
+                        more_g=more.map(|more| more.fat_g)
+                        previewed=previewed.map(|after| after.fat)
                     />
                     <MacroLine
                         name="Fibre"
                         key="fibre"
                         row=macros.fibre
                         share=share(|of| of.fibre)
-                        plated_g=plated.map(|plated| plated.fibre_g)
+                        more_g=more.map(|more| more.fibre_g)
+                        previewed=previewed.map(|after| after.fibre)
                     />
                     <MacroLine
                         name="Carbs"
                         key="carbs"
                         row=macros.carbs
                         share=share(|of| of.carbs)
-                        plated_g=plated.map(|plated| plated.carbs_g)
+                        more_g=more.map(|more| more.carbs_g)
+                        previewed=previewed.map(|after| after.carbs)
                     />
                 </tbody>
                 <tfoot>
@@ -440,7 +451,17 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                     answer
                         .macros
                         .map(|macros| {
-                            view! { <MacrosCard macros=macros eaten=answer.eaten plated=plated.get() /> }
+                            view! {
+                                <MacrosCard
+                                    macros=macros
+                                    eaten=answer.eaten
+                                    more=about_to_eat.get().map(|(_, more)| more)
+                                    previewed=previewed
+                                        .get()
+                                        .flatten()
+                                        .and_then(|(_, after)| after.macros)
+                                />
+                            }
                         })
                 })
         }}
