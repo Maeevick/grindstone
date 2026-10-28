@@ -31,7 +31,7 @@ pub fn Gauge(
     cap: f64,
     shown_as: fn(f64) -> Figure,
 ) -> impl IntoView {
-    let placed = gauge_of(amount, (floor, optimal, cap), 360.0);
+    let placed = gauge_of(amount, (floor, optimal, cap), None, 360.0);
     view! {
         <div class="gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none">

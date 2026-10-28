@@ -64,15 +64,22 @@ pub struct Gauge {
     pub band_to: f64,
     pub optimal_at: f64,
     pub amount_at: f64,
+    pub ghost_at: Option<f64>,
 }
 
-pub fn gauge_of(amount: f64, (floor, optimal, cap): (f64, f64, f64), width: f64) -> Gauge {
+pub fn gauge_of(
+    amount: f64,
+    (floor, optimal, cap): (f64, f64, f64),
+    _ghost: Option<f64>,
+    width: f64,
+) -> Gauge {
     let scale = (0.0, (cap * 1.25).max(amount));
     Gauge {
         band_from: placed(floor, scale, width),
         band_to: placed(cap, scale, width),
         optimal_at: placed(optimal, scale, width),
         amount_at: placed(amount, scale, width),
+        ghost_at: None,
     }
 }
 
@@ -288,14 +295,22 @@ mod tests {
     fn a_gauge_runs_from_nothing_to_a_quarter_past_the_cap_and_places_the_band_the_optimal_and_the_amount()
      {
         assert_eq!(
-            gauge_of(1000.0, (1800.0, 2000.0, 2200.0), 275.0),
+            gauge_of(1000.0, (1800.0, 2000.0, 2200.0), None, 275.0),
             Gauge {
                 band_from: 180.0,
                 band_to: 220.0,
                 optimal_at: 200.0,
                 amount_at: 100.0,
+                ghost_at: None,
             }
         );
+    }
+
+    #[test]
+    fn a_gauge_stretches_to_hold_a_ghost_past_its_end() {
+        let gauge = gauge_of(1500.0, (1800.0, 2000.0, 2200.0), Some(3000.0), 300.0);
+
+        assert_eq!((gauge.amount_at, gauge.ghost_at), (150.0, Some(300.0)));
     }
 
     #[test]
@@ -379,7 +394,7 @@ mod tests {
 
     #[test]
     fn an_amount_beyond_the_scale_stretches_it_to_stay_in_sight() {
-        let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), 400.0);
+        let gauge = gauge_of(4000.0, (1800.0, 2000.0, 2200.0), None, 400.0);
 
         assert_eq!((gauge.amount_at, gauge.optimal_at), (400.0, 200.0));
     }
