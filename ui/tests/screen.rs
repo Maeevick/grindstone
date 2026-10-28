@@ -3247,6 +3247,35 @@ const A_DAY_PAST_THE_CAP: &str = r#"{ "day": "2026-10-12",
     "drinkings": [[1, { "day": "2026-10-12", "drink": "Tea", "kind": "Other", "servings": 20.0, "volume_ml": 4000.0 }]],
     "drunk_ml": 4000.0, "target_ml": 3000.0, "floor_ml": 2400.0, "cap_ml": 3600.0, "verdict": "High" }"#;
 
+#[wasm_bindgen_test]
+async fn a_drink_chosen_previews_the_day_with_it() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
+    settled().await;
+    let previewed = || texts_in_order(&screen, ".bands .with-the-preview").concat();
+
+    typed_into(&screen, "drink", "tea");
+    settled().await;
+    let a_serving = previewed();
+    let ghosted = screen
+        .query_selector(".bands .gauge circle.ghost")
+        .ok()
+        .flatten()
+        .is_some();
+    typed_into(&screen, "volume", "500");
+    settled().await;
+    let half_a_litre = previewed();
+
+    assert!(ghosted);
+    assert_eq!(
+        [a_serving, half_a_litre],
+        ["With the drink: 480 mL.", "With the drink: 780 mL."]
+    );
+}
+
 fn the_day_of(screen: &Element, day: RwSignal<String>) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
         view! {
