@@ -16,7 +16,7 @@ use crate::screens::gauge::FuelGauge;
 use crate::screens::last_days::{FuelLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToEat;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
-use crate::screens::tab::{DayCard, OpenTheGrimoire};
+use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -374,7 +374,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"Fuel"</h2>
+            <FormTitle title="Fuel" grimoire="/fuel/grimoire" />
             <form class="intake" on:submit=log>
                 <div class="row">
                     <Chooser label="Food" name="food" options=options typed=food />
@@ -504,6 +504,5 @@ pub fn FuelTab() -> impl IntoView {
         <DayCard day=day />
         <FuelDay day=day />
         <FuelLastDays day=day />
-        <OpenTheGrimoire grimoire="/fuel/grimoire" />
     }
 }

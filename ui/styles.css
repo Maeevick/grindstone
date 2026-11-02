@@ -102,6 +102,31 @@ h2 {
 	font-weight: 500;
 }
 
+.card-title {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.card-title a.grimoire {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-decoration: none;
+	margin-top: -4px;
+}
+
+.card-title a.grimoire .icon {
+	font-size: 1.4rem;
+	line-height: 1;
+}
+
+.card-title a.grimoire .caption {
+	font-size: 0.62rem;
+	color: var(--mut);
+}
+
 .row {
 	display: flex;
 	flex-wrap: wrap;

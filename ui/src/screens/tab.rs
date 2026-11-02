@@ -14,12 +14,16 @@ pub fn DayCard(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
-/// Where a tab with a catalog ends: its grimoire, a page of its own.
+/// A form card's title row: the tab's name, and on its right the way to its grimoire, a page of its own.
 #[component]
-pub fn OpenTheGrimoire(grimoire: &'static str) -> impl IntoView {
+pub fn FormTitle(title: &'static str, grimoire: &'static str) -> impl IntoView {
     view! {
-        <A href=grimoire attr:class="cta ghost grimoire">
-            "📚 Open the grimoire"
-        </A>
+        <div class="card-title">
+            <h2>{title}</h2>
+            <A href=grimoire attr:class="grimoire">
+                <span class="icon">"📚"</span>
+                <span class="caption">"open the grimoire"</span>
+            </A>
+        </div>
     }
 }

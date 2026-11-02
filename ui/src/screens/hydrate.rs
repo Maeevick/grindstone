@@ -20,7 +20,7 @@ use crate::screens::profile::{
     Counted, Recommend, Whose, keep_and_show, shown_counted, shown_in_force,
 };
 use crate::screens::references::ReferencesLink;
-use crate::screens::tab::{DayCard, OpenTheGrimoire};
+use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -242,7 +242,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"Hydrate"</h2>
+            <FormTitle title="Hydrate" grimoire="/hydrate/grimoire" />
             <form class="drinking" on:submit=log>
                 <div class="row">
                     <Chooser label="Drink" name="drink" options=options typed=drink />
@@ -457,6 +457,5 @@ pub fn HydrateTab() -> impl IntoView {
         <DayCard day=day />
         <HydrateDay day=day />
         <HydrateLastDays day=day />
-        <OpenTheGrimoire grimoire="/hydrate/grimoire" />
     }
 }

@@ -22,7 +22,7 @@ use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::{BurnLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToBurn;
 use crate::screens::session::{Session, SessionInProgress};
-use crate::screens::tab::{DayCard, OpenTheGrimoire};
+use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
@@ -413,7 +413,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     };
     view! {
         <section class="card">
-            <h2>"Burn"</h2>
+            <FormTitle title="Burn" grimoire="/burn/grimoire" />
             <div class="pills">
                 {LOGGINGS
                     .into_iter()
@@ -623,6 +623,5 @@ pub fn BurnTab() -> impl IntoView {
         <DayCard day=day />
         <BurnDay day=day />
         <BurnLastDays day=day />
-        <OpenTheGrimoire grimoire="/burn/grimoire" />
     }
 }

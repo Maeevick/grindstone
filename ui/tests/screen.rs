@@ -3040,24 +3040,21 @@ async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_then_the_last_
                 "Pick the day",
                 "Fuel",
                 "Where the day stands",
-                "The last days",
-                "📚 Open the grimoire"
+                "The last days"
             ],
             vec![
                 "Today",
                 "Pick the day",
                 "Hydrate",
                 "Where the day stands",
-                "The last days",
-                "📚 Open the grimoire"
+                "The last days"
             ],
             vec![
                 "Today",
                 "Pick the day",
                 "Burn",
                 "Where the day stands",
-                "The last days",
-                "📚 Open the grimoire"
+                "The last days"
             ],
         ]
     );
