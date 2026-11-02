@@ -355,12 +355,12 @@ pub fn FuelShelf() -> impl IntoView {
     });
     view! {
         <section class="card">
-            <h2>"Add to the catalog"</h2>
+            <h2>"Fuel"</h2>
             <NewFood foods=foods done=done />
             {said_on_the_shelf(said)}
         </section>
         <section class="card">
-            <h2>"On the shelf"</h2>
+            <h2>"Your grimoire"</h2>
             {shelf_pills(listed, [(Listed::Foods, "Foods"), (Listed::Meals, "Meals")])}
             {move || match listed.get() {
                 Listed::Meals => view! { <MealsList meals=meals said=said /> }.into_any(),
@@ -390,12 +390,12 @@ pub fn HydrateShelf() -> impl IntoView {
     });
     view! {
         <section class="card">
-            <h2>"Add to the catalog"</h2>
+            <h2>"Hydrate"</h2>
             <NewDrink drinks=drinks done=done />
             {said_on_the_shelf(said)}
         </section>
         <section class="card">
-            <h2>"On the shelf"</h2>
+            <h2>"Your grimoire"</h2>
             <DrinksList drinks=drinks said=said />
         </section>
     }
@@ -426,12 +426,12 @@ pub fn BurnShelf() -> impl IntoView {
     });
     view! {
         <section class="card">
-            <h2>"Add to the catalog"</h2>
+            <h2>"Burn"</h2>
             <NewExercise exercises=exercises done=done />
             {said_on_the_shelf(said)}
         </section>
         <section class="card">
-            <h2>"On the shelf"</h2>
+            <h2>"Your grimoire"</h2>
             {shelf_pills(listed, [(Listed::Exercises, "Exercises"), (Listed::Circuits, "Circuits")])}
             {move || match listed.get() {
                 Listed::Circuits => view! { <CircuitsList priced=priced said=said /> }.into_any(),
@@ -462,40 +462,23 @@ fn MealDetails(meal: Meal) -> impl IntoView {
     }
 }
 
-/// A tab's catalog on a page of its own, opened from the tab.
-#[component]
-fn Grimoire(title: &'static str, children: Children) -> impl IntoView {
-    view! {
-        <header class="screen-top">
-            <h2>{title}</h2>
-        </header>
-        {children()}
-    }
-}
-
 #[component]
 pub fn FuelGrimoire() -> impl IntoView {
     view! {
-        <Grimoire title="Fuel's grimoire">
-            <FuelShelf />
-        </Grimoire>
+        <FuelShelf />
     }
 }
 
 #[component]
 pub fn HydrateGrimoire() -> impl IntoView {
     view! {
-        <Grimoire title="Hydrate's grimoire">
-            <HydrateShelf />
-        </Grimoire>
+        <HydrateShelf />
     }
 }
 
 #[component]
 pub fn BurnGrimoire() -> impl IntoView {
     view! {
-        <Grimoire title="Burn's grimoire">
-            <BurnShelf />
-        </Grimoire>
+        <BurnShelf />
     }
 }
