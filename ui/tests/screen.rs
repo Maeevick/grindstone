@@ -2118,7 +2118,7 @@ async fn fuels_last_days_end_on_the_grams_and_millilitres_eaten() {
                 "Fat (g)",
                 "Fib (g)",
                 "Carbs (g)",
-                "Qty (g, mL)"
+                "Qty (g)"
             ]
             .map(String::from)
             .to_vec(),
