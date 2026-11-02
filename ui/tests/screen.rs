@@ -2307,6 +2307,48 @@ async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
 }
 
 #[wasm_bindgen_test]
+async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
+    answering(&format!(
+        r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY},
+            "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }} }}"#,
+        fuelled_on("2026-10-10", 108.0)
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        provide_context(Recorded::default());
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelDay day=day />
+                <FuelLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+    settled().await;
+    answering(&format!(
+        r#"{{ "foods": [], "meals": [], "fuel_day": {A_DAY_NOT_FUELLED_YET},
+            "remove_intake": {A_DAY_NOT_FUELLED_YET},
+            "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }} }}"#,
+        fuelled_on("2026-10-10", 0.0)
+    ));
+
+    clicked(&screen, ".last-days tr.entry button.remove");
+    settled().await;
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        (
+            first_cells(&screen),
+            texts_in_order(&screen, ".last-days tbody tr.chosen td:nth-child(2)"),
+            text_of(&screen, ".bands .figures").contains("108")
+        ),
+        (vec!["2026-10-10".to_string()], vec!["0".to_string()], false)
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
