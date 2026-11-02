@@ -3110,8 +3110,8 @@ async fn no_screen_offers_to_explore_the_numbers_any_more() {
 }
 
 #[wasm_bindgen_test]
-async fn each_grimoire_opens_from_its_tab_on_a_page_of_its_own_holding_the_shelf_its_tab_still_lit()
-{
+async fn each_grimoire_opens_from_its_tab_on_a_page_titled_by_its_tab_then_your_grimoire_its_tab_still_lit()
+ {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
     let _mounted = the_app(&screen);
@@ -3136,24 +3136,9 @@ async fn each_grimoire_opens_from_its_tab_on_a_page_of_its_own_holding_the_shelf
     assert_eq!(
         shown,
         [
-            vec![
-                "Today",
-                "Fuel's grimoire",
-                "Add to the catalog",
-                "On the shelf"
-            ],
-            vec![
-                "Today",
-                "Hydrate's grimoire",
-                "Add to the catalog",
-                "On the shelf"
-            ],
-            vec![
-                "Today",
-                "Burn's grimoire",
-                "Add to the catalog",
-                "On the shelf"
-            ],
+            vec!["Today", "Fuel", "Your grimoire"],
+            vec!["Today", "Hydrate", "Your grimoire"],
+            vec!["Today", "Burn", "Your grimoire"],
         ]
     );
     assert_eq!(lit, ["Fuel", "Hydrate", "Burn"]);
