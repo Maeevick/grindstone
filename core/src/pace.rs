@@ -86,11 +86,10 @@ fn safe_loss_of(body_mass_kg: f64, fat_kg: Option<f64>) -> (f64, SafeLoss) {
     .unwrap_or((spared, SafeLoss::FatStore))
 }
 
-/// The slope, per week, of the seven-day average of a measure over the week ending on a day, as Home's
-/// chart reads it over its seven days, with the latest of those averages.
-fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
-    let in_the_week =
-        |read: NaiveDate| read <= day && read + Days::new(DAYS_BEFORE_THE_DAY_IN_A_WEEK) >= day;
+/// The slope, per week, of the seven-day average of a measure from a first day to the last, as Home's chart
+/// reads it over its window, with the latest of those averages.
+fn weekly(first: NaiveDate, day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
+    let in_the_week = |read: NaiveDate| (first..=day).contains(&read);
     let weighed_in_the_week = readings
         .iter()
         .filter(|(read, _)| in_the_week(*read))
@@ -114,16 +113,29 @@ fn weekly(day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
 /// The week's pace on a day: how each measure moved per week, heading toward its aim or away from it, and a
 /// judgement of the body mass's pace, health first.
 pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
+    pace_between(
+        day - Days::new(DAYS_BEFORE_THE_DAY_IN_A_WEEK),
+        day,
+        gathered,
+    )
+}
+
+/// The pace from a first day to the last, read per week as on the last day of a week.
+pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
     let days = ledger(&gathered.measurements, &gathered.profiles);
     let readings = |measure: fn(&Day) -> Option<f64>| -> Vec<(NaiveDate, f64)> {
         days.iter()
             .filter_map(|measured| measure(measured).map(|value| (measured.day, value)))
             .collect()
     };
-    let (per_week, body_mass_kg) = weekly(day, &readings(|measured| Some(measured.body_mass_kg)))?;
+    let (per_week, body_mass_kg) = weekly(
+        first,
+        day,
+        &readings(|measured| Some(measured.body_mass_kg)),
+    )?;
     let aims = aims_on(day, gathered);
     let change = |measure: fn(&Day) -> Option<f64>, aim: Option<Aim>| {
-        weekly(day, &readings(measure)).map(|(per_week, now)| Change {
+        weekly(first, day, &readings(measure)).map(|(per_week, now)| Change {
             by: per_week,
             heading: heading_of(per_week, now, aim),
         })

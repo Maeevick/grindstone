@@ -56,10 +56,12 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
 
 /// The seven days up to the last, oldest first.
 pub fn the_seven_days_up_to(last: NaiveDate) -> Vec<NaiveDate> {
-    (0..=DAYS_BEFORE_THE_LAST_IN_A_WEEK)
-        .rev()
-        .map(|back| last - Days::new(back))
-        .collect()
+    the_days_between(last - Days::new(DAYS_BEFORE_THE_LAST_IN_A_WEEK), last)
+}
+
+/// Every day from the first to the last, oldest first.
+pub fn the_days_between(first: NaiveDate, last: NaiveDate) -> Vec<NaiveDate> {
+    first.iter_days().take_while(|day| *day <= last).collect()
 }
 
 /// The days logged in the seven up to the last, each once and oldest first, leaving out those from a day on:
@@ -69,7 +71,22 @@ pub fn logged_in_the_week(
     left_out_from: NaiveDate,
     logged: impl Iterator<Item = NaiveDate>,
 ) -> Vec<NaiveDate> {
-    let first = last - Days::new(DAYS_BEFORE_THE_LAST_IN_A_WEEK);
+    logged_between(
+        last - Days::new(DAYS_BEFORE_THE_LAST_IN_A_WEEK),
+        last,
+        left_out_from,
+        logged,
+    )
+}
+
+/// The days logged from the first to the last, each once and oldest first, leaving out those from a day on:
+/// today, while it is still under way.
+pub fn logged_between(
+    first: NaiveDate,
+    last: NaiveDate,
+    left_out_from: NaiveDate,
+    logged: impl Iterator<Item = NaiveDate>,
+) -> Vec<NaiveDate> {
     let mut week: Vec<NaiveDate> = logged
         .filter(|day| (first..=last).contains(day) && *day < left_out_from)
         .collect();
