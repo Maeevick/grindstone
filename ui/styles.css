@@ -185,7 +185,7 @@ td:not(:first-child) {
 	text-align: left;
 }
 
-.last-days td:first-child,
+.last-days tr:not(.entry) td:first-child,
 .history-table td:first-child {
 	white-space: nowrap;
 }
@@ -351,7 +351,6 @@ hr.divider {
 }
 
 .macros td,
-.intakes td,
 .workouts td,
 .foods td,
 .exercises td {
@@ -684,21 +683,27 @@ hr.divider {
 	overflow-x: auto;
 }
 
-table.intakes {
-	min-width: 32rem;
-}
-
-.macros tfoot td,
-.intakes tfoot td {
+.macros tfoot td {
 	border-top: 2px solid var(--line);
 	font-weight: 600;
 }
 
-.expenditures td {
-	font-size: 0.9rem;
+.last-days tbody tr:not(.entry) {
+	cursor: pointer;
 }
 
-.expenditures .neat td {
+.last-days tr.entry td {
+	font-size: 0.78rem;
+	border-top: 0;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+.last-days tr.entry td:first-child {
+	padding-left: 14px;
+}
+
+.last-days tr.neat td {
 	color: var(--mut);
 }
 
