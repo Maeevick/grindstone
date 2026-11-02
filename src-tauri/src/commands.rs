@@ -986,6 +986,30 @@ mod tests {
     }
 
     #[test]
+    fn each_tabs_stats_over_a_window_cross_to_the_screen() {
+        let (_app, screen) = launched();
+        let over_30_days = json!({ "today": "2026-10-10", "window": "Days30" });
+
+        let crossed = [
+            "pace_over_the_window",
+            "fuel_over_the_window",
+            "hydrate_over_the_window",
+            "burn_over_the_window",
+        ]
+        .map(|command| invoke(&screen, command, over_30_days.clone()));
+
+        assert_eq!(
+            crossed,
+            [
+                Ok(json!(null)),
+                Ok(json!(null)),
+                Ok(json!(null)),
+                Ok(json!(null))
+            ]
+        );
+    }
+
+    #[test]
     fn the_day_previewed_with_more_eaten_crosses_to_the_screen_nothing_logged() {
         let (_app, screen) = launched();
 
