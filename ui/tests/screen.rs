@@ -2217,6 +2217,21 @@ async fn a_tap_on_the_open_day_closes_it() {
 }
 
 #[wasm_bindgen_test]
+async fn fuels_entries_read_each_food_by_name_with_its_figures_and_quantity() {
+    let screen = screen();
+    let _mounted = fuels_last_days(&screen);
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".last-days tbody tr.entry td"),
+        ["Skyr", "108", "19", "1", "2", "8", "200", "×"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
