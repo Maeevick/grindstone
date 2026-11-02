@@ -180,7 +180,6 @@ last_days!(
         ("Day", ""),
         ("Burnt", "kcal"),
         ("Duration", "min"),
-        ("Reps", ""),
-        ("Top exercise", "")
+        ("Reps", "")
     ]
 );

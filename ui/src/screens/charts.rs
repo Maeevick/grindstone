@@ -483,7 +483,6 @@ pub(crate) fn burn_cells(row: BurnRow) -> impl IntoView {
             <td>{bare_or_blank(row.burnt_kcal, Figure::Energy)}</td>
             <td>{bare(Figure::Duration(row.minutes))}</td>
             <td>{bare(Figure::Count(row.reps))}</td>
-            <td>{row.top_exercise.unwrap_or_default()}</td>
     }
 }
 
@@ -643,8 +642,7 @@ history!(
         ("Day", ""),
         ("Burnt", "kcal"),
         ("Duration", "min"),
-        ("Reps", ""),
-        ("Top exercise", "")
+        ("Reps", "")
     ]
 );
 
