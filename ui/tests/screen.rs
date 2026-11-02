@@ -1949,7 +1949,7 @@ async fn the_macros_card_tells_each_goal_what_was_eaten_the_gap_and_its_share_of
 fn fuelled_on(date: &str, kcal: f64) -> String {
     format!(
         r#"{{ "day": "{date}", "eaten": {{ "energy_kcal": {kcal}, "protein_g": 100.0, "carbs_g": 200.0,
-            "fat_g": 60.0, "fibre_g": 30.0 }} }}"#
+            "fat_g": 60.0, "fibre_g": 30.0 }}, "quantity": 550.0 }}"#
     )
 }
 
@@ -2021,7 +2021,7 @@ async fn the_picked_day_stands_in_gold_in_its_last_days_at_zero_with_nothing_log
     answering(&format!(
         r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }} }}"#,
         r#"{ "day": "2026-10-12", "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0,
-            "fat_g": 0.0, "fibre_g": 0.0 } }"#,
+            "fat_g": 0.0, "fibre_g": 0.0 }, "quantity": 0.0 }"#,
         fuelled_on("2026-10-10", 2400.0),
     ));
     let screen = screen();

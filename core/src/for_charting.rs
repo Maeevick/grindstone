@@ -199,6 +199,7 @@ pub struct GatherRow {
 pub struct FuelRow {
     pub day: NaiveDate,
     pub eaten: Nutrients,
+    pub quantity: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -300,6 +301,7 @@ pub fn fuel_month(
                         .filter(|(_, eaten)| eaten.day == *day)
                         .map(|(_, eaten)| eaten.nutrients),
                 ),
+                quantity: 0.0,
             })
             .collect(),
         earlier,
@@ -723,6 +725,41 @@ mod tests {
             }
         );
         assert_eq!(august.earlier, None);
+    }
+
+    #[test]
+    fn a_days_quantity_sums_its_grams_and_millilitres_pieces_left_out() {
+        let logged = a_logged_man();
+        for (name, unit) in [("Skyr", Unit::Gram), ("Milk", Unit::Millilitre)] {
+            add_food(
+                &logged.fuel,
+                &FoodForm {
+                    name: name.into(),
+                    unit,
+                    portion: 100.0,
+                    nutrients: Nutrients::default(),
+                    description: String::new(),
+                },
+            )
+            .expect("a food adds");
+        }
+        for (food, quantity) in [("Skyr", 200.0), ("Milk", 250.0)] {
+            log_intake(
+                &logged.gather,
+                &logged.burn,
+                &logged.fuel,
+                &IntakeForm {
+                    date: "2026-10-10".into(),
+                    food: food.into(),
+                    quantity: Some(quantity),
+                },
+            )
+            .expect("an intake logs");
+        }
+
+        let october = fuel_month(&logged.fuel, "2026-10", "2026-10-10").expect("a month");
+
+        assert_eq!(october.rows[0].quantity, 450.0);
     }
 
     #[test]
