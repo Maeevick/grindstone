@@ -29,6 +29,7 @@ use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
 use grind_core::kept::InForce;
 use grind_core::meal::Meal;
+use grind_core::pace::Pace;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::streak::Streak;
@@ -338,6 +339,36 @@ pub async fn burn_month(month: &str) -> Result<Month<BurnRow>, Failure> {
 
 pub async fn insights(today: &str, window: Window) -> Result<Insights, Failure> {
     call("insights", Reviewing { today, window }, broken).await
+}
+
+pub async fn pace_over_the_window(today: &str, window: Window) -> Result<Option<Pace>, Failure> {
+    call("pace_over_the_window", Reviewing { today, window }, broken).await
+}
+
+pub async fn fuel_over_the_window(
+    today: &str,
+    window: Window,
+) -> Result<Option<FuelWeek>, Failure> {
+    call("fuel_over_the_window", Reviewing { today, window }, broken).await
+}
+
+pub async fn hydrate_over_the_window(
+    today: &str,
+    window: Window,
+) -> Result<Option<HydrateWeek>, Failure> {
+    call(
+        "hydrate_over_the_window",
+        Reviewing { today, window },
+        broken,
+    )
+    .await
+}
+
+pub async fn burn_over_the_window(
+    today: &str,
+    window: Window,
+) -> Result<Option<BurnWeek>, Failure> {
+    call("burn_over_the_window", Reviewing { today, window }, broken).await
 }
 
 pub async fn erase_everything() -> Result<(), Failure> {

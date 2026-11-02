@@ -1,6 +1,5 @@
-use grind_core::figures::{Figure, shown, typed_back};
+use grind_core::figures::typed_back;
 use grind_core::for_tracking::GatherWeek;
-use grind_core::tendency::{Change, Heading};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -11,40 +10,6 @@ use crate::screens::tab::DayCard;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
-
-fn pace_line(
-    name: &'static str,
-    change: Option<Change>,
-    figure: fn(f64) -> Figure,
-) -> impl IntoView {
-    change.map(|change| {
-        let (class, moved, a_week) = match change.heading {
-            Heading::Steady => ("steady", "steady".to_string(), ""),
-            heading => (
-                match heading {
-                    Heading::Toward => "toward",
-                    Heading::Away => "away",
-                    _ => "unaimed",
-                },
-                format!(
-                    "{}{}",
-                    if change.by > 0.0 { "+" } else { "" },
-                    shown(figure(change.by))
-                ),
-                " a week",
-            ),
-        };
-        view! {
-            <li>
-                <span>{name}</span>
-                <span>
-                    <span class=class>{moved}</span>
-                    {a_week}
-                </span>
-            </li>
-        }
-    })
-}
 
 #[component]
 fn GatherDay(day: RwSignal<String>) -> impl IntoView {
@@ -168,31 +133,6 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                                 })}
                         </section>
                     })
-                })
-        }}
-        {move || {
-            week.get()
-                .map(|answer| {
-                    view! {
-                        <section class="card pace">
-                            <h2>"The week's pace"</h2>
-                            {match answer.pace {
-                                Some(pace) => {
-                                    view! {
-                                        <ul class="pace-lines">
-                                            {pace_line("Body mass", Some(pace.body_mass), Figure::Mass)}
-                                            {pace_line("Lean mass", pace.lean_mass, Figure::Mass)}
-                                            {pace_line("Fat mass", pace.fat_mass, Figure::Mass)}
-                                            {pace_line("Fat %", pace.fat_ratio, Figure::Ratio)}
-                                        </ul>
-                                        <p class="tip">{lines::quoted(&lines::pace_said(&pace))}</p>
-                                    }
-                                        .into_any()
-                                }
-                                None => view! { <p class="empty">{lines::NO_PACE_YET}</p> }.into_any(),
-                            }}
-                        </section>
-                    }
                 })
         }}
     }

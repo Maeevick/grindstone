@@ -1,11 +1,9 @@
 use chrono::NaiveDate;
-use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_charting::{
     BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
 use grind_core::for_reviewing_progress::Window;
-use grind_core::sharpening::sharpening_of;
 use grind_core::streak::{Status, StreakDay};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -13,6 +11,7 @@ use leptos::task::spawn_local;
 use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
 use crate::screens::header::tick_class;
 use crate::screens::lines;
+use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use crate::tauri;
 
 pub const WIDTH: f64 = 360.0;
@@ -650,43 +649,6 @@ history!(
 );
 
 #[component]
-fn UnwantedTips(chip: RwSignal<Chip>, today: String, window: RwSignal<Window>) -> impl IntoView {
-    let notes = LocalResource::new(move || {
-        let (today, window) = (today.clone(), window.get());
-        async move {
-            let insights = tauri::insights(&today, window).await?;
-            let card = tauri::gather_card(&today, window).await?;
-            Ok::<_, Failure>(sharpening_of(&insights, &card))
-        }
-    });
-    view! {
-        <section class="card tips">
-            <h2>"The unwanted tips"</h2>
-            <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
-                {move || {
-                    notes
-                        .get()
-                        .map(|answer| match answer {
-                            Ok(found) => {
-                                let line = match chip.get() {
-                                    Chip::Gather => lines::gather_note(&found.gather),
-                                    Chip::Fuel => lines::fuel_note(&found.fuel),
-                                    Chip::Hydrate => lines::hydrate_note(&found.hydrate),
-                                    Chip::Burn => lines::burn_note(&found.burn),
-                                };
-                                view! { <p class="tip">{lines::quoted(&line)}</p> }.into_any()
-                            }
-                            Err(failure) => {
-                                view! { <p class="bad">{lines::failure(&failure)}</p> }.into_any()
-                            }
-                        })
-                }}
-            </Transition>
-        </section>
-    }
-}
-
-#[component]
 pub fn Charts(today: String) -> impl IntoView {
     let chip = RwSignal::new(Chip::Gather);
     let window = RwSignal::new(Window::Days7);
@@ -703,7 +665,8 @@ pub fn Charts(today: String) -> impl IntoView {
             .unwrap_or_default()
     });
     view! {
-        <section class="card charts">
+        <section class="card tips">
+            <h2>"The unwanted tips"</h2>
             <div class="pills chips">
                 {CHIPS
                     .into_iter()
@@ -739,8 +702,15 @@ pub fn Charts(today: String) -> impl IntoView {
                     .collect_view()}
             </div>
             {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
+            {move || match chip.get() {
+                Chip::Gather => view! { <PaceOver today=today.get_value() window=window /> }.into_any(),
+                Chip::Fuel => view! { <FuelOver today=today.get_value() window=window /> }.into_any(),
+                Chip::Hydrate => {
+                    view! { <HydrateOver today=today.get_value() window=window /> }.into_any()
+                }
+                Chip::Burn => view! { <BurnOver today=today.get_value() window=window /> }.into_any(),
+            }}
         </section>
-        <UnwantedTips chip=chip today=today.get_value() window=window />
         <section class="card history">
             <h2>"History"</h2>
             {move || match chip.get() {

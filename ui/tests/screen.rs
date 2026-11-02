@@ -1,19 +1,21 @@
 #![cfg(target_arch = "wasm32")]
 
+use grind_core::for_reviewing_progress::Window;
 use grind_ui::app::App;
 use grind_ui::screens::Recorded;
-use grind_ui::screens::burn::{BurnDay, BurnWeekCard};
+use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
 use grind_ui::screens::charts::Charts;
-use grind_ui::screens::fuel::{FuelDay, FuelWeekCard};
+use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
-use grind_ui::screens::hydrate::{HydrateDay, HydrateWeekCard};
+use grind_ui::screens::hydrate::HydrateDay;
 use grind_ui::screens::last_days::FuelLastDays;
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
+use grind_ui::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use leptos::prelude::*;
 use leptos_router::components::Router;
 use wasm_bindgen::JsCast;
@@ -579,20 +581,26 @@ async fn the_gap_a_line_tells_adds_up_with_the_figures_it_shows() {
     );
 }
 
+fn the_pace(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <section class="card pace">
+                <PaceOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+            </section>
+        }
+    })
+}
+
 async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
     answering(&format!(
-        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
-              "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
-              "aims": {{ "body_mass_kg": 70.0, "lean_mass_kg": 61.6, "recommended": false }},
-              "pace": {{ "body_mass": {{ "by": -0.623, "heading": "Toward" }},
+        r#"{{ "pace_over_the_window": {{ "body_mass": {{ "by": -0.623, "heading": "Toward" }},
                          "lean_mass": {lean_mass},
                          "fat_mass": {{ "by": -0.4, "heading": "Toward" }},
                          "fat_ratio": {{ "by": -0.005, "heading": "Toward" }},
-                         "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "safe_loss_by": "FatStore" }} }},
-              "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+                         "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "safe_loss_by": "FatStore" }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_gather_tab(&screen);
+    let _mounted = the_pace(&screen);
     settled().await;
     text_of(&screen, ".pace p")
 }
@@ -623,18 +631,15 @@ async fn past_the_safe_loss_the_warning_speaks_of_lean_mass_only_when_the_tape_s
 #[wasm_bindgen_test]
 async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_judges_the_body_mass_in_a_plain_quoted_tip()
  {
-    answering(&format!(
-        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
-              "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
-              "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }},
-              "pace": {{ "body_mass": {{ "by": -0.4, "heading": "Toward" }},
-                         "lean_mass": {{ "by": -0.1, "heading": "Away" }},
-                         "fat_mass": {{ "by": -0.3, "heading": "Toward" }},
-                         "fat_ratio": {{ "by": 0.0, "heading": "Steady" }},
-                         "judgement": "VeryGood", "safe_loss_kg": 0.48, "safe_loss_by": "FatStore" }} }} }}"#
-    ));
+    answering(
+        r#"{ "pace_over_the_window": { "body_mass": { "by": -0.4, "heading": "Toward" },
+                         "lean_mass": { "by": -0.1, "heading": "Away" },
+                         "fat_mass": { "by": -0.3, "heading": "Toward" },
+                         "fat_ratio": { "by": 0.0, "heading": "Steady" },
+                         "judgement": "VeryGood", "safe_loss_kg": 0.48, "safe_loss_by": "FatStore" } }"#,
+    );
     let screen = screen();
-    let _mounted = the_gather_tab(&screen);
+    let _mounted = the_pace(&screen);
     settled().await;
 
     let pace = text_of(&screen, ".pace");
@@ -1442,10 +1447,11 @@ fn the_fuel_day(screen: &Element) -> impl Drop {
 
 fn the_fuel_week(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <FuelWeekCard day=day />
+                <section class="card week">
+                    <FuelOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                </section>
             </Router>
         }
     })
@@ -1461,12 +1467,11 @@ const A_FUEL_WEEK: &str = r#"{ "logged_days": 6,
 #[wasm_bindgen_test]
 async fn the_weeks_average_tells_each_measure_a_day_against_its_band_and_how_many_days_stood_in_it()
 {
-    answering(&format!(r#"{{ "fuel_week": {A_FUEL_WEEK} }}"#));
+    answering(&format!(r#"{{ "fuel_over_the_window": {A_FUEL_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_fuel_week(&screen);
     settled().await;
 
-    assert_eq!(text_of(&screen, ".week h2"), "The week's average");
     assert_eq!(
         cells_by_row(&screen, ".week tbody tr"),
         [
@@ -1487,7 +1492,7 @@ async fn the_weeks_average_tells_each_measure_a_day_against_its_band_and_how_man
 #[wasm_bindgen_test]
 async fn the_weeks_tip_names_what_runs_short_then_what_runs_over_furthest_first_between_quotation_marks()
  {
-    answering(&format!(r#"{{ "fuel_week": {A_FUEL_WEEK} }}"#));
+    answering(&format!(r#"{{ "fuel_over_the_window": {A_FUEL_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_fuel_week(&screen);
     settled().await;
@@ -1504,7 +1509,7 @@ async fn the_weeks_tip_names_what_runs_short_then_what_runs_over_furthest_first_
 
 #[wasm_bindgen_test]
 async fn a_week_without_a_finished_logged_day_says_there_is_nothing_to_average_yet() {
-    answering(r#"{ "fuel_week": null }"#);
+    answering(r#"{ "fuel_over_the_window": null }"#);
     let screen = screen();
     let _mounted = the_fuel_week(&screen);
     settled().await;
@@ -1516,10 +1521,11 @@ async fn a_week_without_a_finished_logged_day_says_there_is_nothing_to_average_y
 
 fn the_hydrate_week(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <HydrateWeekCard day=day />
+                <section class="card week">
+                    <HydrateOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                </section>
             </Router>
         }
     })
@@ -1529,14 +1535,13 @@ fn the_hydrate_week(screen: &Element) -> impl Drop {
 async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_it_and_how_far_it_runs_short()
  {
     answering(
-        r#"{ "hydrate_week": { "logged_days": 6,
+        r#"{ "hydrate_over_the_window": { "logged_days": 6,
             "drunk": { "per_day": 1900.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 } } }"#,
     );
     let screen = screen();
     let _mounted = the_hydrate_week(&screen);
     settled().await;
 
-    assert_eq!(text_of(&screen, ".week h2"), "The week's average");
     assert_eq!(
         cells_by_row(&screen, ".week tbody tr"),
         [["Drinks (mL)", "1900", "2000–2400", "3/6"]]
@@ -1555,7 +1560,7 @@ async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_
 
 #[wasm_bindgen_test]
 async fn a_hydrate_week_without_a_finished_logged_day_says_there_is_nothing_to_average_yet() {
-    answering(r#"{ "hydrate_week": null }"#);
+    answering(r#"{ "hydrate_over_the_window": null }"#);
     let screen = screen();
     let _mounted = the_hydrate_week(&screen);
     settled().await;
@@ -1567,10 +1572,11 @@ async fn a_hydrate_week_without_a_finished_logged_day_says_there_is_nothing_to_a
 
 fn the_burn_week(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <BurnWeekCard day=day />
+                <section class="card week">
+                    <BurnOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                </section>
             </Router>
         }
     })
@@ -1582,12 +1588,11 @@ const A_BURN_WEEK: &str = r#"{ "active_days": 3, "burnt_kcal": 458.0, "target_kc
 
 #[wasm_bindgen_test]
 async fn burns_week_sum_up_totals_each_exercise_with_its_average_a_time_beneath() {
-    answering(&format!(r#"{{ "burn_week": {A_BURN_WEEK} }}"#));
+    answering(&format!(r#"{{ "burn_over_the_window": {A_BURN_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_burn_week(&screen);
     settled().await;
 
-    assert_eq!(text_of(&screen, ".week h2"), "The week's sum-up");
     assert_eq!(
         texts_in_order(&screen, ".week tbody td:first-child"),
         ["Walking", "Push up"]
@@ -1608,7 +1613,7 @@ async fn burns_week_sum_up_totals_each_exercise_with_its_average_a_time_beneath(
 
 #[wasm_bindgen_test]
 async fn burns_week_sum_up_holds_the_weeks_burn_against_its_target_over_its_active_days() {
-    answering(&format!(r#"{{ "burn_week": {A_BURN_WEEK} }}"#));
+    answering(&format!(r#"{{ "burn_over_the_window": {A_BURN_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_burn_week(&screen);
     settled().await;
@@ -1625,7 +1630,7 @@ async fn burns_week_sum_up_holds_the_weeks_burn_against_its_target_over_its_acti
 
 #[wasm_bindgen_test]
 async fn a_week_without_a_workout_says_there_is_nothing_to_sum_up_yet() {
-    answering(r#"{ "burn_week": null }"#);
+    answering(r#"{ "burn_over_the_window": null }"#);
     let screen = screen();
     let _mounted = the_burn_week(&screen);
     settled().await;
@@ -2589,7 +2594,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "card day",
                 "Gather",
                 "Where you stand",
-                "The week's pace",
                 "The last days"
             ],
             vec![
@@ -2599,7 +2603,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Where the day stands",
                 "The four macros",
                 "The day's intakes",
-                "The week's average",
                 "The last days",
                 "📚 Open the grimoire"
             ],
@@ -2609,7 +2612,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Hydrate",
                 "Where the day stands",
                 "The day's drinks",
-                "The week's average",
                 "The last days",
                 "📚 Open the grimoire"
             ],
@@ -2619,7 +2621,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Burn",
                 "Where the day stands",
                 "The day's expenditures",
-                "The week's sum-up",
                 "The last days",
                 "📚 Open the grimoire"
             ],
@@ -3664,7 +3665,7 @@ async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_and_tip_over_its_
         .flatten()
         .is_some();
     let charted_in_the_tips = screen
-        .query_selector("section.card.tips .plot")
+        .query_selector("section.card.tips .pills.chips")
         .ok()
         .flatten()
         .is_some();
@@ -3700,7 +3701,7 @@ fn the_charts(screen: &Element) -> impl Drop {
 
 fn lines_drawn(screen: &Element) -> u32 {
     screen
-        .query_selector_all(".charts svg polyline")
+        .query_selector_all(".tips svg polyline")
         .map(|found| found.length())
         .unwrap_or_default()
 }
@@ -3718,7 +3719,7 @@ async fn the_home_chart_draws_gather_on_one_axis_with_its_goals_then_each_chip_i
     assert_eq!(lines_drawn(&screen), 4);
     assert!(
         screen
-            .query_selector(".charts ul.figures")
+            .query_selector(".tips ul.figures")
             .ok()
             .flatten()
             .is_none()
@@ -3749,7 +3750,7 @@ async fn the_home_chart_draws_gather_on_one_axis_with_its_goals_then_each_chip_i
         let labels = screen.text_content().unwrap_or_default();
         assert!(labels.contains(said), "{chip}: {labels}");
     }
-    let legend = text_of(&screen, ".charts ul.legend");
+    let legend = text_of(&screen, ".tips ul.legend");
     assert!(
         legend.contains("Burnt (kcal)") && legend.contains("Target") && !legend.contains("Minutes"),
         "{legend}"
@@ -3782,28 +3783,28 @@ async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines()
             .unwrap_or_default()
     };
 
-    assert_eq!(count(&screen, ".charts svg line.axis"), 1);
-    assert_eq!(count(&screen, ".charts svg line.grid"), 4);
+    assert_eq!(count(&screen, ".tips svg line.axis"), 1);
+    assert_eq!(count(&screen, ".tips svg line.grid"), 4);
     assert_eq!(
-        texts_of(&screen, ".charts .label.tick"),
+        texts_of(&screen, ".tips .label.tick"),
         ["60.0", "80.0", "90.0"]
     );
 
     clicked(&screen, "button.chip-Fuel");
     settled().await;
     assert_eq!(
-        texts_of(&screen, ".charts .label.tick"),
+        texts_of(&screen, ".tips .label.tick"),
         ["1750", "2000", "2250", "2500", "2750"]
     );
 
     clicked(&screen, "button.chip-Burn");
     settled().await;
-    assert_eq!(count(&screen, ".charts svg line.axis"), 1);
+    assert_eq!(count(&screen, ".tips svg line.axis"), 1);
     assert_eq!(
-        texts_of(&screen, ".charts .label.tick.burnt"),
+        texts_of(&screen, ".tips .label.tick.burnt"),
         ["0", "100", "200", "300"]
     );
-    assert_eq!(count(&screen, ".charts .label.tick.minutes"), 0);
+    assert_eq!(count(&screen, ".tips .label.tick.minutes"), 0);
 }
 
 #[wasm_bindgen_test]
@@ -3818,7 +3819,7 @@ async fn a_chart_dates_its_x_axis_from_its_oldest_day_to_its_newest_with_three_b
     settled().await;
 
     assert_eq!(
-        texts_of(&screen, ".charts .label.x"),
+        texts_of(&screen, ".tips .label.x"),
         ["09-10", "09-18", "09-25", "10-03", "10-10"]
     );
 }
@@ -3862,54 +3863,6 @@ const THE_INSIGHTS: &str = r#""insights": { "days": 30, "weighed_days": 25, "fue
     "fat": { "low": 1, "in_band": 17, "high": 2 }, "fibre": { "low": 15, "in_band": 5, "high": 0 },
     "carbs": { "low": 3, "in_band": 16, "high": 1 }, "hydrated_days": 10,
     "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 }"#;
-
-#[wasm_bindgen_test]
-async fn the_unwanted_tips_note_what_is_worth_sharpening_on_the_chosen_chip_between_the_chart_and_the_history_each_between_quotation_marks()
- {
-    answering(&format!(
-        r#"{{ {THE_CHARTS}, {THE_INSIGHTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_charts(&screen);
-    settled().await;
-
-    let cards = screen
-        .query_selector_all("section.card")
-        .expect("the cards");
-    let order: Vec<String> = (0..cards.length())
-        .filter_map(|at| cards.item(at))
-        .filter_map(|card| card.unchecked_into::<Element>().get_attribute("class"))
-        .collect();
-    assert_eq!(order, ["card charts", "card tips", "card history"]);
-    assert_eq!(text_of(&screen, ".tips h2"), "The unwanted tips");
-    let gather = text_of(&screen, ".tips p");
-    assert!(gather.contains("Too few weigh-ins"), "{gather}");
-
-    clicked(&screen, "button.chip-Fuel");
-    settled().await;
-    let fuel = text_of(&screen, ".tips p");
-    assert!(fuel.contains("Fibre") && fuel.contains("5 of 20"), "{fuel}");
-
-    clicked(&screen, "button.chip-Hydrate");
-    settled().await;
-    let hydrate = text_of(&screen, ".tips p");
-    assert!(hydrate.contains("4 of 10"), "{hydrate}");
-
-    clicked(&screen, "button.chip-Burn");
-    settled().await;
-    let burn = text_of(&screen, ".tips p");
-    assert!(burn.contains("2.8") && burn.contains("210 kcal"), "{burn}");
-    assert!(
-        [gather, fuel, hydrate, burn].iter().all(|tip| {
-            naming_the_cast(tip).is_empty()
-                && !tip.contains('[')
-                && tip.starts_with('“')
-                && tip.ends_with('”')
-        }),
-        "{:?}",
-        texts_of(&screen, ".tips p")
-    );
-}
 
 #[wasm_bindgen_test]
 async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_app() {
