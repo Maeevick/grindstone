@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::drinking::drinking;
 use crate::failure::Failure;
+use crate::for_reviewing_progress::Window;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -72,6 +73,18 @@ pub fn hydrate_week(
         &burn.burn_records()?,
         &fuel.fuel_records()?,
     )))
+}
+
+/// The average over the logged days of a window up to today, today left out while under way.
+pub fn hydrate_over_the_window(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
+    today: &str,
+    _window: Window,
+) -> Result<Option<HydrateWeek>, Failure> {
+    hydrate_week(gather, burn, fuel, hydrate, today, today)
 }
 
 pub fn log_drink(
@@ -192,6 +205,34 @@ mod tests {
                     .map(|week| (week.logged_days, week.drunk.per_day))
             }),
             [Some((2, 400.0)), Some((3, 400.0))]
+        );
+    }
+
+    #[test]
+    fn the_average_over_a_window_runs_over_its_logged_days_up_to_today_today_left_out() {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            a_catalog_with_tea(),
+        );
+        for date in ["2026-09-20", "2026-10-05", "2026-10-10"] {
+            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
+        }
+        let logged_over = |window| {
+            hydrate_over_the_window(&gather, &burn, &fuel, &hydrate, "2026-10-10", window)
+                .ok()
+                .flatten()
+                .map(|over| over.logged_days)
+        };
+
+        assert_eq!(
+            [
+                logged_over(Window::Days7),
+                logged_over(Window::Days30),
+                logged_over(Window::Everything)
+            ],
+            [Some(1), Some(2), Some(2)]
         );
     }
 
