@@ -2630,6 +2630,24 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
 }
 
 #[wasm_bindgen_test]
+async fn no_screen_offers_to_explore_the_numbers_any_more() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let mut offered = 0;
+    for page in ["/", "/gather", "/fuel", "/hydrate", "/burn"] {
+        went_to(page);
+        settled().await;
+        settled().await;
+        offered += texts_in_order(&screen, "a.explore").len();
+    }
+
+    assert_eq!(offered, 0);
+}
+
+#[wasm_bindgen_test]
 async fn each_grimoire_opens_from_its_tab_on_a_page_of_its_own_holding_the_shelf_its_tab_still_lit()
 {
     answering_all(&[A_HOME, EVERY_TAB]);
