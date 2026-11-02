@@ -2259,6 +2259,54 @@ async fn hydrates_entries_leave_the_water_share_empty() {
 }
 
 #[wasm_bindgen_test]
+async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
+    answering(&format!(
+        r#"{{ "burn_month": {{ "month": "2026-10", "earlier": null, "rows": [
+            {{ "day": "2026-10-10", "burnt_kcal": 120.0, "minutes": 4.5, "reps": 36.0 }}] }},
+            "burn_day": {A_DAY_OF_MORNING_RUST}, "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <BurnLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".last-days tbody tr.entry td"),
+        [
+            "Burpee · Morning rust",
+            "80",
+            "3",
+            "–",
+            "×",
+            "Push up · Morning rust",
+            "40",
+            "1.5",
+            "36",
+            "×",
+            "Off the clock (volitional)",
+            "198",
+            "–",
+            "–",
+            "",
+            "Fidgeting (spontaneous)",
+            "234",
+            "–",
+            "–",
+            ""
+        ]
+        .map(String::from)
+        .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
