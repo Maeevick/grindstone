@@ -15,7 +15,7 @@ use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
-use crate::screens::last_days::HydrateLastDays;
+use crate::screens::last_days::{HydrateLastDays, entries_failed, entries_said};
 use crate::screens::profile::{
     Counted, Recommend, Whose, keep_and_show, shown_counted, shown_in_force,
 };
@@ -24,6 +24,67 @@ use crate::screens::tab::{DayCard, OpenTheGrimoire};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
+
+/// A drinking among its day's entries: the drink by name, its volume, no share of water of its own, and its
+/// removal.
+#[component]
+fn DrinkingEntry(id: i64, drinking: Drinking, said: RwSignal<Option<String>>) -> impl IntoView {
+    let date = drinking.day.to_string();
+    let recorded = Recorded::here();
+    let remove = move |_| {
+        let date = date.clone();
+        spawn_local(async move {
+            match tauri::remove_drinking(&date, id).await {
+                Ok(_) => recorded.told(),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
+    view! {
+        <tr class="entry">
+            <td>{drinking.drink}</td>
+            <td>{bare(Figure::Volume(drinking.volume_ml))}</td>
+            <td></td>
+            <td>
+                <button class="remove" type="button" on:click=remove aria-label="Remove this drink">
+                    "×"
+                </button>
+            </td>
+        </tr>
+    }
+}
+
+/// A day's drinkings, opened under its row in the last days.
+#[component]
+pub fn HydrateEntries(date: String) -> impl IntoView {
+    let recorded = Recorded::here();
+    let said = RwSignal::new(None::<String>);
+    let hydrate = LocalResource::new(move || {
+        recorded.heard();
+        let date = date.clone();
+        async move { tauri::hydrate_day(&date).await }
+    });
+    view! {
+        {move || {
+            hydrate
+                .get()
+                .map(|answer| match answer {
+                    Ok(hydrate) => {
+                        hydrate
+                            .drinkings
+                            .into_iter()
+                            .map(|(id, drinking)| {
+                                view! { <DrinkingEntry id=id drinking=drinking said=said /> }
+                            })
+                            .collect_view()
+                            .into_any()
+                    }
+                    Err(failure) => entries_failed(&failure),
+                })
+        }}
+        {move || said.get().map(entries_said)}
+    }
+}
 
 #[component]
 fn DrinkingRow(

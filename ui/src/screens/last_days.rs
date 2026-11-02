@@ -12,6 +12,7 @@ use crate::screens::charts::{
     bare_or_blank, bare_or_dash, burn_cells, fuel_cells, header, hydrate_cells,
 };
 use crate::screens::fuel::FuelEntries;
+use crate::screens::hydrate::HydrateEntries;
 use crate::screens::{Recorded, lines};
 use crate::tauri;
 
@@ -217,7 +218,7 @@ last_days!(
     HydrateRow,
     tauri::hydrate_month,
     hydrate_cells,
-    NoEntries,
+    HydrateEntries,
     [("Day", ""), ("Drunk", "mL"), ("Water %", "")]
 );
 last_days!(
