@@ -11,7 +11,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
 use crate::volitional::volitional;
-use crate::week::{the_days_between, the_seven_days_up_to};
+use crate::week::the_days_between;
 use crate::workout::{Workout, workout};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -72,21 +72,6 @@ pub fn burn_day(
     date: &str,
 ) -> Result<Burn, Failure> {
     burn_of_the_day(gather, burn, day(date)?)
-}
-
-/// The week's sum-up up to a day: its seven days, the day included.
-pub fn burn_week(
-    gather: &impl ForStoringGatherRecords,
-    burn: &impl ForStoringBurnRecords,
-    date: &str,
-) -> Result<Option<BurnWeek>, Failure> {
-    let last = day(date)?;
-    let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
-    let days: Vec<Burn> = the_seven_days_up_to(last)
-        .into_iter()
-        .map(|day| burn_on(day, &burnt, &gathered))
-        .collect();
-    Ok(burn_week_of(&days))
 }
 
 /// The sum-up over a window up to today, today included.
@@ -274,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn the_weeks_sum_up_runs_over_the_seven_days_up_to_the_day_the_day_included() {
+    fn the_sum_up_over_the_last_seven_days_counts_each_exercise_its_times_and_minutes() {
         let gather = GatherRecordsInMemory::default();
         log_measurement(&gather, "2026-10-01", 80.0, None).expect("a measurement logs");
         let burn = a_catalog_with_walking();
@@ -286,7 +271,7 @@ mod tests {
             log_workout(&gather, &burn, &walking(date, minutes)).expect("a workout logs");
         }
 
-        let week = burn_week(&gather, &burn, "2026-10-10");
+        let week = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Days7);
 
         assert_eq!(
             week.ok().flatten().map(|week| {
@@ -328,12 +313,13 @@ mod tests {
     }
 
     #[test]
-    fn a_week_up_to_a_day_the_calendar_does_not_have_is_refused() {
+    fn a_window_up_to_a_today_the_calendar_does_not_have_is_refused() {
         assert_eq!(
-            burn_week(
+            burn_over_the_window(
                 &GatherRecordsInMemory::default(),
                 &BurnRecordsInMemory::default(),
-                "2026-02-30"
+                "2026-02-30",
+                Window::Days7
             ),
             Err(Failure::Refused(Refusal::NotADate))
         );

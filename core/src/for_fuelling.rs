@@ -12,7 +12,7 @@ use crate::fuel::{Fuel, fuel_on, fuel_over, fuel_with};
 use crate::fuel_week::{FuelWeek, fuel_week_of};
 use crate::intake::intake;
 use crate::refusal::Refusal;
-use crate::week::{logged_between, logged_in_the_week};
+use crate::week::logged_between;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IntakeForm {
@@ -65,29 +65,6 @@ pub fn fuel_day_with(
         &fuel.fuel_records()?,
         *more,
     ))
-}
-
-/// The week's average up to a day: its logged days of the seven, today left out while under way.
-pub fn fuel_week(
-    gather: &impl ForStoringGatherRecords,
-    burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
-    date: &str,
-    today: &str,
-) -> Result<Option<FuelWeek>, Failure> {
-    let (last, today) = (day(date)?, day(today)?);
-    let fuelled = fuel.fuel_records()?;
-    let logged = logged_in_the_week(
-        last,
-        today,
-        fuelled.intakes.iter().map(|(_, eaten)| eaten.day),
-    );
-    Ok(fuel_week_of(&fuel_over(
-        &logged,
-        &gather.gather_records()?,
-        &burn.burn_records()?,
-        &fuelled,
-    )))
 }
 
 /// The average over the logged days of a window up to today, today left out while under way.
@@ -322,47 +299,16 @@ mod tests {
     }
 
     #[test]
-    fn a_weeks_average_runs_over_the_logged_days_of_the_seven_up_to_the_day_today_left_out_until_it_is_over()
-     {
-        let (gather, burn, fuel) = (
-            a_man_with_a_waist(),
-            BurnRecordsInMemory::default(),
-            a_catalog_with_skyr(),
-        );
-        for date in ["2026-10-02", "2026-10-04", "2026-10-06", "2026-10-10"] {
-            log_intake(&gather, &burn, &fuel, &skyr(date, 200.0)).expect("an intake logs");
-        }
-
-        let under_way = fuel_week(&gather, &burn, &fuel, "2026-10-10", "2026-10-10");
-        let over = fuel_week(&gather, &burn, &fuel, "2026-10-10", "2026-10-11");
-
+    fn a_window_up_to_a_today_the_calendar_does_not_have_is_refused() {
         assert_eq!(
-            [under_way, over].map(|week| {
-                week.ok()
-                    .flatten()
-                    .map(|week| (week.logged_days, week.energy.per_day))
-            }),
-            [Some((2, 108.0)), Some((3, 108.0))]
-        );
-    }
-
-    #[test]
-    fn a_week_up_to_a_day_the_calendar_does_not_have_is_refused() {
-        let (gather, burn, fuel) = (
-            GatherRecordsInMemory::default(),
-            BurnRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
-        );
-
-        assert_eq!(
-            [
-                fuel_week(&gather, &burn, &fuel, "2026-02-30", "2026-10-10"),
-                fuel_week(&gather, &burn, &fuel, "2026-10-10", "2026-02-30")
-            ],
-            [
-                Err(Failure::Refused(Refusal::NotADate)),
-                Err(Failure::Refused(Refusal::NotADate))
-            ]
+            fuel_over_the_window(
+                &GatherRecordsInMemory::default(),
+                &BurnRecordsInMemory::default(),
+                &FuelRecordsInMemory::default(),
+                "2026-02-30",
+                Window::Days7
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
         );
     }
 

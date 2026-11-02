@@ -11,7 +11,7 @@ use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::hydrate::{Hydrate, hydrate_on, hydrate_over};
 use crate::hydrate_week::{HydrateWeek, hydrate_week_of};
 use crate::refusal::Refusal;
-use crate::week::{logged_between, logged_in_the_week};
+use crate::week::logged_between;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DrinkingForm {
@@ -48,31 +48,6 @@ pub fn hydrate_day(
     date: &str,
 ) -> Result<Hydrate, Failure> {
     hydrate_of_the_day(gather, burn, fuel, hydrate, day(date)?)
-}
-
-/// The week's average up to a day: its logged days of the seven, today left out while under way.
-pub fn hydrate_week(
-    gather: &impl ForStoringGatherRecords,
-    burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
-    hydrate: &impl ForStoringHydrateRecords,
-    date: &str,
-    today: &str,
-) -> Result<Option<HydrateWeek>, Failure> {
-    let (last, today) = (day(date)?, day(today)?);
-    let hydrated = hydrate.hydrate_records()?;
-    let logged = logged_in_the_week(
-        last,
-        today,
-        hydrated.drinkings.iter().map(|(_, drunk)| drunk.day),
-    );
-    Ok(hydrate_week_of(&hydrate_over(
-        &logged,
-        &hydrated,
-        &gather.gather_records()?,
-        &burn.burn_records()?,
-        &fuel.fuel_records()?,
-    )))
 }
 
 /// The average over the logged days of a window up to today, today left out while under way.
@@ -197,32 +172,6 @@ mod tests {
     }
 
     #[test]
-    fn a_weeks_average_runs_over_the_logged_days_of_the_seven_up_to_the_day_today_left_out_until_it_is_over()
-     {
-        let (gather, burn, fuel, hydrate) = (
-            GatherRecordsInMemory::default(),
-            BurnRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
-            a_catalog_with_tea(),
-        );
-        for date in ["2026-10-02", "2026-10-04", "2026-10-06", "2026-10-10"] {
-            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
-        }
-
-        let under_way = hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-10-10", "2026-10-10");
-        let over = hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-10-10", "2026-10-11");
-
-        assert_eq!(
-            [under_way, over].map(|week| {
-                week.ok()
-                    .flatten()
-                    .map(|week| (week.logged_days, week.drunk.per_day))
-            }),
-            [Some((2, 400.0)), Some((3, 400.0))]
-        );
-    }
-
-    #[test]
     fn the_average_over_a_window_runs_over_its_logged_days_up_to_today_today_left_out() {
         let (gather, burn, fuel, hydrate) = (
             GatherRecordsInMemory::default(),
@@ -251,23 +200,17 @@ mod tests {
     }
 
     #[test]
-    fn a_week_up_to_a_day_the_calendar_does_not_have_is_refused() {
-        let (gather, burn, fuel, hydrate) = (
-            GatherRecordsInMemory::default(),
-            BurnRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
-            HydrateRecordsInMemory::default(),
-        );
-
+    fn a_window_up_to_a_today_the_calendar_does_not_have_is_refused() {
         assert_eq!(
-            [
-                hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-02-30", "2026-10-10"),
-                hydrate_week(&gather, &burn, &fuel, &hydrate, "2026-10-10", "2026-02-30")
-            ],
-            [
-                Err(Failure::Refused(Refusal::NotADate)),
-                Err(Failure::Refused(Refusal::NotADate))
-            ]
+            hydrate_over_the_window(
+                &GatherRecordsInMemory::default(),
+                &BurnRecordsInMemory::default(),
+                &FuelRecordsInMemory::default(),
+                &HydrateRecordsInMemory::default(),
+                "2026-02-30",
+                Window::Days7
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
         );
     }
 

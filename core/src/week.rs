@@ -1,9 +1,7 @@
-use chrono::{Days, NaiveDate};
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::verdict::{Verdict, verdict_of};
-
-const DAYS_BEFORE_THE_LAST_IN_A_WEEK: u64 = 6;
 
 /// A logged day's amount of a measure, and the band it was judged against.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -54,29 +52,9 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
     })
 }
 
-/// The seven days up to the last, oldest first.
-pub fn the_seven_days_up_to(last: NaiveDate) -> Vec<NaiveDate> {
-    the_days_between(last - Days::new(DAYS_BEFORE_THE_LAST_IN_A_WEEK), last)
-}
-
 /// Every day from the first to the last, oldest first.
 pub fn the_days_between(first: NaiveDate, last: NaiveDate) -> Vec<NaiveDate> {
     first.iter_days().take_while(|day| *day <= last).collect()
-}
-
-/// The days logged in the seven up to the last, each once and oldest first, leaving out those from a day on:
-/// today, while it is still under way.
-pub fn logged_in_the_week(
-    last: NaiveDate,
-    left_out_from: NaiveDate,
-    logged: impl Iterator<Item = NaiveDate>,
-) -> Vec<NaiveDate> {
-    logged_between(
-        last - Days::new(DAYS_BEFORE_THE_LAST_IN_A_WEEK),
-        last,
-        left_out_from,
-        logged,
-    )
 }
 
 /// The days logged from the first to the last, each once and oldest first, leaving out those from a day on:
@@ -136,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn the_days_logged_in_the_seven_up_to_the_last_come_once_oldest_first_those_from_today_on_left_out()
+    fn the_days_logged_from_the_first_to_the_last_come_once_oldest_first_those_from_today_on_left_out()
      {
         let logged = [
             "2026-10-10",
@@ -147,7 +125,8 @@ mod tests {
             "2026-10-11",
         ];
 
-        let week = logged_in_the_week(
+        let week = logged_between(
+            day("2026-10-04"),
             day("2026-10-10"),
             day("2026-10-10"),
             logged.into_iter().map(day),
@@ -157,9 +136,9 @@ mod tests {
     }
 
     #[test]
-    fn the_seven_days_up_to_the_last_run_oldest_first() {
+    fn the_days_from_the_first_to_the_last_run_oldest_first() {
         assert_eq!(
-            the_seven_days_up_to(day("2026-10-02")),
+            the_days_between(day("2026-09-26"), day("2026-10-02")),
             [
                 "2026-09-26",
                 "2026-09-27",
