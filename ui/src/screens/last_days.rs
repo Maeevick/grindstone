@@ -53,9 +53,11 @@ macro_rules! last_days {
                 };
                 let read: Vec<String> =
                     months.with_untracked(|kept| kept.iter().map(|month| month.month.clone()).collect());
+                let picked = day.get_untracked();
                 for month in span.months().into_iter().filter(|month| !read.contains(month)) {
+                    let picked = picked.clone();
                     spawn_local(async move {
-                        match $load(&month).await {
+                        match $load(&month, &picked).await {
                             Ok(loaded) => months.update(|kept| {
                                 kept.retain(|month| month.month != loaded.month);
                                 kept.push(loaded);

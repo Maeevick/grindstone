@@ -545,9 +545,11 @@ macro_rules! history {
             let columns = [$($head),*].len() + 1;
             let months = RwSignal::new(Vec::<Month<$row>>::new());
             let said = RwSignal::new(None::<String>);
+            let picked = today.clone();
             let load = Callback::new(move |month: String| {
+                let picked = picked.clone();
                 spawn_local(async move {
-                    match $load(&month).await {
+                    match $load(&month, &picked).await {
                         Ok(loaded) => months.update(|kept| kept.push(loaded)),
                         Err(failure) => said.set(Some(lines::failure(&failure))),
                     }

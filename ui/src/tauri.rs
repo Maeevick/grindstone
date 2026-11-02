@@ -281,6 +281,7 @@ pub async fn streak(today: &str) -> Result<Streak, Failure> {
 #[derive(Serialize)]
 struct InMonth<'a> {
     month: &'a str,
+    picked: &'a str,
 }
 
 pub async fn gather_chart(today: &str, window: Window) -> Result<GatherChart, Failure> {
@@ -299,20 +300,20 @@ pub async fn burn_chart(today: &str, window: Window) -> Result<BurnChart, Failur
     call("burn_chart", Reviewing { today, window }, broken).await
 }
 
-pub async fn gather_month(month: &str) -> Result<Month<GatherRow>, Failure> {
-    call("gather_month", InMonth { month }, broken).await
+pub async fn gather_month(month: &str, picked: &str) -> Result<Month<GatherRow>, Failure> {
+    call("gather_month", InMonth { month, picked }, broken).await
 }
 
-pub async fn fuel_month(month: &str) -> Result<Month<FuelRow>, Failure> {
-    call("fuel_month", InMonth { month }, broken).await
+pub async fn fuel_month(month: &str, picked: &str) -> Result<Month<FuelRow>, Failure> {
+    call("fuel_month", InMonth { month, picked }, broken).await
 }
 
-pub async fn hydrate_month(month: &str) -> Result<Month<HydrateRow>, Failure> {
-    call("hydrate_month", InMonth { month }, broken).await
+pub async fn hydrate_month(month: &str, picked: &str) -> Result<Month<HydrateRow>, Failure> {
+    call("hydrate_month", InMonth { month, picked }, broken).await
 }
 
-pub async fn burn_month(month: &str) -> Result<Month<BurnRow>, Failure> {
-    call("burn_month", InMonth { month }, broken).await
+pub async fn burn_month(month: &str, picked: &str) -> Result<Month<BurnRow>, Failure> {
+    call("burn_month", InMonth { month, picked }, broken).await
 }
 
 pub async fn pace_over_the_window(today: &str, window: Window) -> Result<Option<Pace>, Failure> {
