@@ -141,7 +141,11 @@ macro_rules! last_days {
                                             let date = row.day;
                                             let opened = move || open.get() == Some(date);
                                             view! {
-                                                <tr class:chosen=is_chosen class:open=opened>
+                                                <tr
+                                                    class:chosen=is_chosen
+                                                    class:open=opened
+                                                    on:click=move |_| open.set(Some(date))
+                                                >
                                                     {$render(row)}
                                                 </tr>
                                                 {move || opened().then(|| view! { <$entries date=date.to_string() /> })}
