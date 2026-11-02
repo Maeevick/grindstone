@@ -14,13 +14,12 @@ use grind_core::for_burning::{self, OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
-    self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights,
-    Month,
+    self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
 use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
-use grind_core::for_reviewing_progress::{self, GatherCard, Window};
+use grind_core::for_reviewing_progress::{self, Window};
 use grind_core::for_setting_up_the_profile::{
     self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, Scope,
     UsualDayForm,
@@ -145,16 +144,6 @@ pub fn goals_on(records: State<Records>, date: String) -> Result<Option<InForce<
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn gather_card(
-    records: State<Records>,
-    today: String,
-    window: Window,
-) -> Result<GatherCard, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_reviewing_progress::gather_card(&*records, &today, window)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn import_draft(
     records: State<Records>,
     backup: State<DraftBackup>,
@@ -174,12 +163,6 @@ pub fn import_draft(
 pub fn burn_day(records: State<Records>, date: String) -> Result<Burn, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_burning::burn_day(&*records, &*records, &date)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn burn_week(records: State<Records>, date: String) -> Result<Option<BurnWeek>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_burning::burn_week(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -259,16 +242,6 @@ pub fn fuel_day_with(
 ) -> Result<Fuel, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_fuelling::fuel_day_with(&*records, &*records, &*records, &date, &more)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn fuel_week(
-    records: State<Records>,
-    date: String,
-    today: String,
-) -> Result<Option<FuelWeek>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_fuelling::fuel_week(&*records, &*records, &*records, &date, &today)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -392,16 +365,6 @@ pub fn log_session(records: State<Records>, form: SessionForm) -> Result<Burn, F
 pub fn hydrate_day(records: State<Records>, date: String) -> Result<Hydrate, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_hydrating::hydrate_day(&*records, &*records, &*records, &*records, &date)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn hydrate_week(
-    records: State<Records>,
-    date: String,
-    today: String,
-) -> Result<Option<HydrateWeek>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_hydrating::hydrate_week(&*records, &*records, &*records, &*records, &date, &today)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -553,16 +516,6 @@ pub fn burn_month(records: State<Records>, month: String) -> Result<Month<BurnRo
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn insights(
-    records: State<Records>,
-    today: String,
-    window: Window,
-) -> Result<Insights, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_charting::insights(&*records, &*records, &*records, &*records, &today, window)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_starting_over::erase_everything(&*records, &*records, &*records, &*records, &*records)
@@ -598,10 +551,8 @@ mod tests {
                 profile_on,
                 set_goals,
                 goals_on,
-                gather_card,
                 import_draft,
                 burn_day,
-                burn_week,
                 log_workout,
                 remove_workout,
                 set_day_off_the_clock,
@@ -616,7 +567,6 @@ mod tests {
                 fuel_over_the_window,
                 hydrate_over_the_window,
                 burn_over_the_window,
-                fuel_week,
                 log_intake,
                 log_plate,
                 remove_intake,
@@ -636,7 +586,6 @@ mod tests {
                 log_circuit,
                 log_session,
                 hydrate_day,
-                hydrate_week,
                 log_drink,
                 remove_drinking,
                 drinks,
@@ -655,7 +604,6 @@ mod tests {
                 fuel_month,
                 hydrate_month,
                 burn_month,
-                insights,
                 erase_everything,
                 recommended_on,
             ])
@@ -797,31 +745,6 @@ mod tests {
     }
 
     #[test]
-    fn the_gather_card_crosses_to_the_screen_with_its_masses_and_their_trend() {
-        let (_app, screen) = launched();
-        invoke(
-            &screen,
-            "log_measurement",
-            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
-        )
-        .expect("a measurement logs");
-
-        let card = invoke(
-            &screen,
-            "gather_card",
-            json!({ "today": "2026-10-10", "window": "Days30" }),
-        );
-
-        assert_eq!(
-            card,
-            Ok(json!({
-                "masses": [["2026-10-10", 80.0]], "trend": [["2026-10-10", 80.0]], "target_kg": null,
-                "progress": null, "fat_change_kg": null, "lean_change_kg": null
-            }))
-        );
-    }
-
-    #[test]
     fn importing_the_draft_backup_pushed_over_usb_tells_what_it_brought() {
         let backup =
             std::env::temp_dir().join(format!("grind-tauri-draft-{}.json", std::process::id()));
@@ -891,25 +814,6 @@ mod tests {
             json!({ "form": { "date": "2026-10-10", "exercise": "Walking", "minutes": minutes,
                               "reps": null, "sets": 1, "load_kg": 0.0 } }),
         )
-    }
-
-    #[test]
-    fn the_weeks_sum_up_crosses_to_the_screen_with_its_active_days_and_exercises() {
-        let (_app, screen) = launched();
-        with_walking_in_the_catalog(&screen);
-        walked(&screen, 30.0).expect("a workout logs");
-
-        let answer = invoke(&screen, "burn_week", json!({ "date": "2026-10-10" }));
-
-        assert_eq!(
-            answer.map(|week| {
-                (
-                    week["active_days"].clone(),
-                    week["exercises"][0]["exercise"].clone(),
-                )
-            }),
-            Ok((json!(1), json!("Walking")))
-        );
     }
 
     #[test]
@@ -1166,45 +1070,6 @@ mod tests {
     }
 
     #[test]
-    fn the_weeks_fuel_crosses_to_the_screen_with_its_logged_days_and_their_averages() {
-        let (_app, screen) = launched();
-        invoke(
-            &screen,
-            "set_profile",
-            json!({ "form": { "from": "2026-10-01", "birthday": "1985-04-12", "gender": "Male",
-                "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null } }),
-        )
-        .expect("a profile sets");
-        invoke(
-            &screen,
-            "log_measurement",
-            json!({ "date": "2026-10-01", "body_mass_kg": 80.0, "waist_cm": 82.0 }),
-        )
-        .expect("a measurement logs");
-        with_skyr_in_the_catalog(&screen).expect("a food adds");
-        invoke(
-            &screen,
-            "log_intake",
-            json!({ "form": { "date": "2026-10-09", "food": "Skyr", "quantity": 200.0 } }),
-        )
-        .expect("an intake logs");
-
-        let answer = invoke(
-            &screen,
-            "fuel_week",
-            json!({ "date": "2026-10-10", "today": "2026-10-10" }),
-        );
-
-        assert_eq!(
-            answer.map(|week| (
-                week["logged_days"].clone(),
-                week["energy"]["per_day"].clone()
-            )),
-            Ok((json!(1), json!(108.0)))
-        );
-    }
-
-    #[test]
     fn the_streak_crosses_to_the_screen_with_its_days_and_their_ticks() {
         let (_app, screen) = launched();
         invoke(
@@ -1373,26 +1238,6 @@ mod tests {
                 "drinkings": [[1, { "day": "2026-10-10", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }]],
                 "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1600.0, "cap_ml": 2400.0, "verdict": "Low"
             }))
-        );
-    }
-
-    #[test]
-    fn the_weeks_drinks_cross_to_the_screen_with_their_logged_days_and_average() {
-        let (_app, screen) = with_tea_in_the_catalog();
-        invoke(&screen, "log_drink", tea(400.0)).expect("a drink logs");
-
-        let answer = invoke(
-            &screen,
-            "hydrate_week",
-            json!({ "date": "2026-10-10", "today": "2026-10-11" }),
-        );
-
-        assert_eq!(
-            answer.map(|week| (
-                week["logged_days"].clone(),
-                week["drunk"]["per_day"].clone()
-            )),
-            Ok((json!(1), json!(400.0)))
         );
     }
 
@@ -1617,33 +1462,6 @@ mod tests {
             others
                 .iter()
                 .all(|month| month.as_ref().is_ok_and(|month| month["rows"] == json!([])))
-        );
-    }
-
-    #[test]
-    fn insights_cross_to_the_screen_with_each_habits_tally() {
-        let (_app, screen) = launched();
-        invoke(
-            &screen,
-            "log_measurement",
-            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
-        )
-        .expect("a measurement logs");
-
-        let answer = invoke(
-            &screen,
-            "insights",
-            json!({ "today": "2026-10-10", "window": "Days30" }),
-        );
-
-        let nothing = json!({ "low": 0, "in_band": 0, "high": 0 });
-        assert_eq!(
-            answer,
-            Ok(
-                json!({ "days": 1, "weighed_days": 1, "fuelled_days": 0, "energy": nothing,
-                "protein": nothing, "fat": nothing, "fibre": nothing, "carbs": nothing,
-                "hydrated_days": 0, "hydrate": nothing, "active_days": 0, "burnt_per_active_day": null })
-            )
         );
     }
 
