@@ -10,7 +10,7 @@ use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
 use grind_ui::screens::hydrate::HydrateDay;
-use grind_ui::screens::last_days::FuelLastDays;
+use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays};
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
@@ -2014,6 +2014,45 @@ async fn the_last_days_show_the_week_up_to_the_day_then_the_rest_of_its_month_th
             .is_none()
     );
     assert!(text_of(&screen, ".last-days tr.chosen").contains("2026-10-10"));
+}
+
+#[wasm_bindgen_test]
+async fn burns_last_days_go_without_the_top_exercise() {
+    answering(
+        r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
+            { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0, "top_exercise": "Walking" }] } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <BurnLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".last-days thead th"),
+            texts_in_order(&screen, ".last-days tbody td")
+        ),
+        (
+            vec![
+                "Day".to_string(),
+                "Burnt (kcal)".to_string(),
+                "Duration (min)".to_string(),
+                "Reps".to_string()
+            ],
+            vec![
+                "2026-10-10".to_string(),
+                "372".to_string(),
+                "64.25".to_string(),
+                "37".to_string()
+            ]
+        )
+    );
 }
 
 #[wasm_bindgen_test]
