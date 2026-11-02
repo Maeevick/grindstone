@@ -209,7 +209,6 @@ pub struct BurnRow {
     pub burnt_kcal: Option<f64>,
     pub minutes: f64,
     pub reps: f64,
-    pub top_exercise: Option<String>,
 }
 
 fn month_of(month: &str) -> Result<(NaiveDate, NaiveDate), Failure> {
@@ -335,17 +334,6 @@ pub fn burn_month(
             .iter()
             .map(|day| {
                 let of_the_day = burn_on(*day, &burnt, &gathered);
-                let mut by_exercise: Vec<(String, f64)> = Vec::new();
-                for done in &of_the_day.workouts {
-                    let kcal = done.burnt_kcal.unwrap_or(0.0);
-                    match by_exercise
-                        .iter_mut()
-                        .find(|(name, _)| *name == done.workout.exercise)
-                    {
-                        Some((_, sum)) => *sum += kcal,
-                        None => by_exercise.push((done.workout.exercise.clone(), kcal)),
-                    }
-                }
                 BurnRow {
                     day: *day,
                     burnt_kcal: of_the_day.burnt_kcal,
@@ -359,10 +347,6 @@ pub fn burn_month(
                         .iter()
                         .map(|done| f64::from(done.workout.sets * done.workout.reps.unwrap_or(0)))
                         .sum(),
-                    top_exercise: by_exercise
-                        .into_iter()
-                        .max_by(|(_, one), (_, other)| one.total_cmp(other))
-                        .map(|(name, _)| name),
                 }
             })
             .collect(),
@@ -731,16 +715,13 @@ mod tests {
     }
 
     #[test]
-    fn a_month_of_burn_tells_each_days_burn_minutes_reps_and_its_top_exercise() {
+    fn a_month_of_burn_tells_each_days_burn_minutes_and_reps() {
         let logged = a_logged_man();
 
         let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
 
         let today = &october.rows[0];
-        assert_eq!(
-            (today.minutes, today.reps, today.top_exercise.as_deref()),
-            (1.5, 36.0, Some("Push up"))
-        );
+        assert_eq!((today.minutes, today.reps), (1.5, 36.0));
         assert!(today.burnt_kcal.is_some_and(|kcal| kcal > 0.0));
     }
 
@@ -750,61 +731,6 @@ mod tests {
             gather_month(&GatherRecordsInMemory::default(), "2026-13"),
             Err(Failure::Refused(Refusal::NotADate))
         );
-    }
-
-    #[test]
-    fn the_top_exercise_of_a_day_sums_all_its_workouts() {
-        let logged = a_logged_man();
-        add_exercise(&logged.burn, "Walking", 4.0, "").expect("an exercise adds");
-        for (exercise, minutes) in [("Walking", 3.0), ("Push up", 2.0)] {
-            log_workout(
-                &logged.gather,
-                &logged.burn,
-                &WorkoutForm {
-                    date: "2026-10-10".into(),
-                    exercise: exercise.into(),
-                    minutes: Some(minutes),
-                    reps: None,
-                    sets: Some(1),
-                    load_kg: Some(0.0),
-                },
-            )
-            .expect("a workout logs");
-        }
-
-        let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
-
-        assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Push up"));
-    }
-
-    #[test]
-    fn the_top_exercise_adds_up_its_own_workouts_whatever_came_between() {
-        let (gather, burn) = (
-            GatherRecordsInMemory::default(),
-            BurnRecordsInMemory::default(),
-        );
-        log_measurement(&gather, "2026-10-05", 80.0, None).expect("a measurement logs");
-        add_exercise(&burn, "Rowing", 4.0, "").expect("an exercise adds");
-        add_exercise(&burn, "Squat", 4.0, "").expect("an exercise adds");
-        for (exercise, minutes) in [("Rowing", 0.45), ("Squat", 0.25), ("Squat", 0.25)] {
-            log_workout(
-                &gather,
-                &burn,
-                &WorkoutForm {
-                    date: "2026-10-05".into(),
-                    exercise: exercise.into(),
-                    minutes: Some(minutes),
-                    reps: None,
-                    sets: Some(1),
-                    load_kg: Some(0.0),
-                },
-            )
-            .expect("a workout logs");
-        }
-
-        let october = burn_month(&gather, &burn, "2026-10").expect("a month");
-
-        assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Squat"));
     }
 
     #[test]

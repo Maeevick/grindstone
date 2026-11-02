@@ -2020,7 +2020,7 @@ async fn the_last_days_show_the_week_up_to_the_day_then_the_rest_of_its_month_th
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
-            { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0, "top_exercise": "Walking" }] } }"#,
+            { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0 }] } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
