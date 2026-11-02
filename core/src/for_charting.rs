@@ -8,7 +8,7 @@ use crate::burn::{Burn, burn_on};
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
 use crate::failure::Failure;
-use crate::food::{Nutrients, summed};
+use crate::food::{Nutrients, Unit, summed};
 use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
@@ -16,6 +16,7 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::fuel_over;
 use crate::hydrate::hydrate_over;
+use crate::intake::Intake;
 use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
 
@@ -292,16 +293,22 @@ pub fn fuel_month(
         month: month.into(),
         rows: days
             .iter()
-            .map(|day| FuelRow {
-                day: *day,
-                eaten: summed(
-                    fuelled
-                        .intakes
+            .map(|day| {
+                let eaten: Vec<&Intake> = fuelled
+                    .intakes
+                    .iter()
+                    .filter(|(_, eaten)| eaten.day == *day)
+                    .map(|(_, eaten)| eaten)
+                    .collect();
+                FuelRow {
+                    day: *day,
+                    eaten: summed(eaten.iter().map(|eaten| eaten.nutrients)),
+                    quantity: eaten
                         .iter()
-                        .filter(|(_, eaten)| eaten.day == *day)
-                        .map(|(_, eaten)| eaten.nutrients),
-                ),
-                quantity: 0.0,
+                        .filter(|eaten| eaten.unit != Unit::Piece)
+                        .map(|eaten| eaten.quantity)
+                        .sum(),
+                }
             })
             .collect(),
         earlier,
@@ -394,7 +401,6 @@ pub fn burn_month(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::food::Unit;
     use crate::for_burning::{WorkoutForm, log_workout};
     use crate::for_cataloguing::{FoodForm, add_drink, add_exercise, add_food};
     use crate::for_fuelling::{IntakeForm, log_intake};
