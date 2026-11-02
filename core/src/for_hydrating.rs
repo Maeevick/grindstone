@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::drinking::drinking;
 use crate::failure::Failure;
-use crate::for_reviewing_progress::Window;
+use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -11,7 +11,7 @@ use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::hydrate::{Hydrate, hydrate_on, hydrate_over};
 use crate::hydrate_week::{HydrateWeek, hydrate_week_of};
 use crate::refusal::Refusal;
-use crate::week::logged_in_the_week;
+use crate::week::{logged_between, logged_in_the_week};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DrinkingForm {
@@ -82,9 +82,23 @@ pub fn hydrate_over_the_window(
     fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     today: &str,
-    _window: Window,
+    window: Window,
 ) -> Result<Option<HydrateWeek>, Failure> {
-    hydrate_week(gather, burn, fuel, hydrate, today, today)
+    let today = day(today)?;
+    let hydrated = hydrate.hydrate_records()?;
+    let logged = logged_between(
+        first_day_of(window, today),
+        today,
+        today,
+        hydrated.drinkings.iter().map(|(_, drunk)| drunk.day),
+    );
+    Ok(hydrate_week_of(&hydrate_over(
+        &logged,
+        &hydrated,
+        &gather.gather_records()?,
+        &burn.burn_records()?,
+        &fuel.fuel_records()?,
+    )))
 }
 
 pub fn log_drink(
