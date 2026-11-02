@@ -1447,7 +1447,7 @@ mod tests {
     }
 
     #[test]
-    fn a_month_of_each_history_crosses_to_the_screen_with_the_month_before() {
+    fn a_month_of_each_history_crosses_to_the_screen_with_the_month_before_and_the_picked_day() {
         let (_app, screen) = launched();
         for date in ["2026-09-30", "2026-10-10"] {
             invoke(
@@ -1472,11 +1472,11 @@ mod tests {
                 "body_mass_kg": 80.0, "waist_cm": null, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }] })
             )
         );
-        assert!(
-            others
-                .iter()
-                .all(|month| month.as_ref().is_ok_and(|month| month["rows"] == json!([])))
-        );
+        assert!(others.iter().all(|month| {
+            month
+                .as_ref()
+                .is_ok_and(|month| month["rows"][0]["day"] == json!("2026-10-10"))
+        }));
     }
 
     #[test]

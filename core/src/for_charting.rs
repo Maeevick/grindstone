@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use chrono::{Months, NaiveDate};
 use serde::{Deserialize, Serialize};
 
@@ -38,9 +40,12 @@ pub struct BurnChart {
     pub targets: Vec<(NaiveDate, f64)>,
 }
 
+fn day_of(date: &str) -> Result<NaiveDate, Failure> {
+    NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
+}
+
 fn span_of(today: &str, window: Window) -> Result<(NaiveDate, NaiveDate), Failure> {
-    let today = NaiveDate::parse_from_str(today, "%Y-%m-%d")
-        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
+    let today = day_of(today)?;
     Ok((first_day_of(window, today), today))
 }
 
@@ -221,12 +226,15 @@ fn month_of(month: &str) -> Result<(NaiveDate, NaiveDate), Failure> {
     Ok((first, last))
 }
 
+/// The days of a month, newest first: those logged, and the picked day whatever was logged on it.
 fn month_in(
     month: &str,
+    picked: &str,
     logged: impl Iterator<Item = NaiveDate> + Clone,
 ) -> Result<(Vec<NaiveDate>, Option<String>), Failure> {
     let span = month_of(month)?;
-    let mut days = days_within(logged.clone(), span);
+    let picked = day_of(picked)?;
+    let mut days = days_within(logged.clone().chain(once(picked)), span);
     days.reverse();
     let earlier = logged
         .filter(|day| *day < span.0)
@@ -238,23 +246,30 @@ fn month_in(
 pub fn gather_month(
     gather: &impl ForStoringGatherRecords,
     month: &str,
-    _picked: &str,
+    picked: &str,
 ) -> Result<Month<GatherRow>, Failure> {
     let gathered = gather.gather_records()?;
     let ledger_days = ledger(&gathered.measurements, &gathered.profiles);
-    let (days, earlier) = month_in(month, ledger_days.iter().map(|measured| measured.day))?;
+    let (days, earlier) = month_in(
+        month,
+        picked,
+        ledger_days.iter().map(|measured| measured.day),
+    )?;
     Ok(Month {
         month: month.into(),
         rows: days
             .iter()
-            .filter_map(|day| ledger_days.iter().find(|measured| measured.day == *day))
-            .map(|measured| GatherRow {
-                day: measured.day,
-                body_mass_kg: Some(measured.body_mass_kg),
-                waist_cm: measured.waist_cm,
-                lean_mass_kg: measured.composition.map(|split| split.lean_mass_kg),
-                fat_mass_kg: measured.composition.map(|split| split.fat_mass_kg),
-                fat_ratio: measured.composition.map(|split| split.fat_ratio),
+            .map(|day| {
+                let measured = ledger_days.iter().find(|measured| measured.day == *day);
+                let composition = measured.and_then(|measured| measured.composition);
+                GatherRow {
+                    day: *day,
+                    body_mass_kg: measured.map(|measured| measured.body_mass_kg),
+                    waist_cm: measured.and_then(|measured| measured.waist_cm),
+                    lean_mass_kg: composition.map(|split| split.lean_mass_kg),
+                    fat_mass_kg: composition.map(|split| split.fat_mass_kg),
+                    fat_ratio: composition.map(|split| split.fat_ratio),
+                }
             })
             .collect(),
         earlier,
@@ -264,10 +279,14 @@ pub fn gather_month(
 pub fn fuel_month(
     fuel: &impl ForStoringFuelRecords,
     month: &str,
-    _picked: &str,
+    picked: &str,
 ) -> Result<Month<FuelRow>, Failure> {
     let fuelled = fuel.fuel_records()?;
-    let (days, earlier) = month_in(month, fuelled.intakes.iter().map(|(_, eaten)| eaten.day))?;
+    let (days, earlier) = month_in(
+        month,
+        picked,
+        fuelled.intakes.iter().map(|(_, eaten)| eaten.day),
+    )?;
     Ok(Month {
         month: month.into(),
         rows: days
@@ -290,10 +309,14 @@ pub fn fuel_month(
 pub fn hydrate_month(
     hydrate: &impl ForStoringHydrateRecords,
     month: &str,
-    _picked: &str,
+    picked: &str,
 ) -> Result<Month<HydrateRow>, Failure> {
     let hydrated = hydrate.hydrate_records()?;
-    let (days, earlier) = month_in(month, hydrated.drinkings.iter().map(|(_, drunk)| drunk.day))?;
+    let (days, earlier) = month_in(
+        month,
+        picked,
+        hydrated.drinkings.iter().map(|(_, drunk)| drunk.day),
+    )?;
     Ok(Month {
         month: month.into(),
         rows: days
@@ -316,7 +339,11 @@ pub fn hydrate_month(
                 HydrateRow {
                     day: *day,
                     drunk_ml,
-                    water_ratio: volume_of(DrinkKind::Water) / drunk_ml,
+                    water_ratio: if drunk_ml > 0.0 {
+                        volume_of(DrinkKind::Water) / drunk_ml
+                    } else {
+                        0.0
+                    },
                 }
             })
             .collect(),
@@ -328,10 +355,14 @@ pub fn burn_month(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     month: &str,
-    _picked: &str,
+    picked: &str,
 ) -> Result<Month<BurnRow>, Failure> {
     let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
-    let (days, earlier) = month_in(month, burnt.workouts.iter().map(|(_, done)| done.day))?;
+    let (days, earlier) = month_in(
+        month,
+        picked,
+        burnt.workouts.iter().map(|(_, done)| done.day),
+    )?;
     Ok(Month {
         month: month.into(),
         rows: days
@@ -770,10 +801,16 @@ mod tests {
     }
 
     #[test]
-    fn a_month_the_calendar_lacks_is_refused() {
+    fn a_month_or_a_picked_day_the_calendar_lacks_is_refused() {
         assert_eq!(
-            gather_month(&GatherRecordsInMemory::default(), "2026-13", "2026-10-10"),
-            Err(Failure::Refused(Refusal::NotADate))
+            [
+                gather_month(&GatherRecordsInMemory::default(), "2026-13", "2026-10-10"),
+                gather_month(&GatherRecordsInMemory::default(), "2026-10", "2026-02-30")
+            ],
+            [
+                Err(Failure::Refused(Refusal::NotADate)),
+                Err(Failure::Refused(Refusal::NotADate))
+            ]
         );
     }
 
