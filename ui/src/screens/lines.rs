@@ -726,7 +726,7 @@ pub fn topic_name(topic: Topic) -> &'static str {
     }
 }
 
-pub const NO_WEEK_YET: &str = "No finished day of the week is logged yet. I only average what is over: it spares me the rubbing out.";
+pub const NO_WEEK_YET: &str = "No finished day of the window is logged yet. I only average what is over: it spares me the rubbing out.";
 
 pub fn over_logged_days(days: usize) -> String {
     if days == 1 {
@@ -760,7 +760,7 @@ fn gaps_said(gaps: &[Gap], a_day_first: bool) -> String {
     }
 }
 
-/// What the week's average runs short of, then over, said plainly before a word from the ledger.
+/// What the window's average runs short of, then over, said plainly before a word from the ledger.
 pub fn fuel_week_said(week: &FuelWeek) -> String {
     let (short, over) = (week.short(), week.over());
     match (short.is_empty(), over.is_empty()) {
@@ -784,7 +784,7 @@ pub fn fuel_week_said(week: &FuelWeek) -> String {
     }
 }
 
-/// How far the week's drinks run from the band, said plainly before a word from the ledger.
+/// How far the window's drinks run from the band, said plainly before a word from the ledger.
 pub fn hydrate_week_said(week: &HydrateWeek) -> String {
     let gap = week.drunk.gap().unwrap_or_default();
     match week.drunk.verdict() {
@@ -803,11 +803,11 @@ pub fn hydrate_week_said(week: &HydrateWeek) -> String {
     }
 }
 
-pub const NO_WORKOUT_THIS_WEEK: &str = "No workout in the week yet. A rest week counts too, if it was decided rather than drifted into.";
+pub const NO_WORKOUT_THIS_WEEK: &str = "No workout in the window yet. A rest counts too, if it was decided rather than drifted into.";
 
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
-/// What the week's burn stands against, after its figure: the sum of its days' targets when known, and its
+/// What the window's burn stands against, after its figure: the sum of its days' targets when known, and its
 /// active days.
 pub fn burnt_against(target_kcal: Option<f64>, active_days: usize) -> String {
     let active = if active_days == 1 {
@@ -817,7 +817,7 @@ pub fn burnt_against(target_kcal: Option<f64>, active_days: usize) -> String {
     };
     match target_kcal {
         Some(target) => format!(
-            " burnt against the week's {} target, over {active}.",
+            " burnt against its days' {} target, over {active}.",
             shown(Figure::Energy(target))
         ),
         None => format!(" burnt over {active}."),
