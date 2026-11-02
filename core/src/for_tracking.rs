@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::aims::{Aims, aims_on, goals_in_force};
 use crate::failure::Failure;
+use crate::for_reviewing_progress::Window;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
@@ -55,6 +56,16 @@ pub fn gather_week(
     Ok(week_ending_on(&records.gather_records()?, day))
 }
 
+/// The pace over a window up to today: how each measure moved per week across it.
+pub fn pace_over_the_window(
+    records: &impl ForStoringGatherRecords,
+    today: &str,
+    _window: Window,
+) -> Result<Option<Pace>, Failure> {
+    let today = day_of(today)?;
+    Ok(pace_on(today, &records.gather_records()?))
+}
+
 pub fn log_measurement(
     records: &impl ForStoringGatherRecords,
     date: &str,
@@ -88,6 +99,31 @@ mod tests {
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    #[test]
+    fn the_pace_over_a_window_reads_the_weigh_ins_across_it() {
+        let records = GatherRecordsInMemory::default();
+        for (date, kg) in [
+            ("2026-09-15", 81.0),
+            ("2026-09-18", 80.7),
+            ("2026-09-22", 80.4),
+            ("2026-09-26", 80.1),
+            ("2026-09-30", 79.8),
+        ] {
+            log_measurement(&records, date, kg, None).expect("a measurement logs");
+        }
+        let paced_over = |window| {
+            pace_over_the_window(&records, "2026-10-10", window)
+                .ok()
+                .flatten()
+                .is_some()
+        };
+
+        assert_eq!(
+            [paced_over(Window::Days7), paced_over(Window::Days30)],
+            [false, true]
+        );
     }
 
     fn listed(days: &[Day]) -> Vec<(NaiveDate, f64, Option<f64>)> {
