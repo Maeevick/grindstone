@@ -6,6 +6,7 @@ use crate::burn_week::{BurnWeek, burn_week_of};
 use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
 use crate::failure::Failure;
+use crate::for_reviewing_progress::Window;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
@@ -86,6 +87,16 @@ pub fn burn_week(
         .map(|day| burn_on(day, &burnt, &gathered))
         .collect();
     Ok(burn_week_of(&days))
+}
+
+/// The sum-up over a window up to today, today included.
+pub fn burn_over_the_window(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    today: &str,
+    _window: Window,
+) -> Result<Option<BurnWeek>, Failure> {
+    burn_week(gather, burn, today)
 }
 
 pub fn log_workout(
@@ -278,6 +289,31 @@ mod tests {
                 )
             }),
             Some((2, vec![("Walking".to_string(), 2, 90.0)]))
+        );
+    }
+
+    #[test]
+    fn the_sum_up_over_a_window_runs_over_its_days_up_to_today_today_included() {
+        let gather = GatherRecordsInMemory::default();
+        log_measurement(&gather, "2026-09-01", 80.0, None).expect("a measurement logs");
+        let burn = a_catalog_with_walking();
+        for date in ["2026-09-20", "2026-10-05", "2026-10-10"] {
+            log_workout(&gather, &burn, &walking(date, 30.0)).expect("a workout logs");
+        }
+        let active_over = |window| {
+            burn_over_the_window(&gather, &burn, "2026-10-10", window)
+                .ok()
+                .flatten()
+                .map(|over| over.active_days)
+        };
+
+        assert_eq!(
+            [
+                active_over(Window::Days7),
+                active_over(Window::Days30),
+                active_over(Window::Everything)
+            ],
+            [Some(2), Some(3), Some(3)]
         );
     }
 
