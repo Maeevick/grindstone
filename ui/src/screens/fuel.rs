@@ -156,7 +156,12 @@ fn IntakeRow(
     view! {
         <tr>
             <td>{eaten.food.clone()}</td>
-            <td>{shown(Figure::Amount(eaten.quantity, eaten.unit))}</td>
+            <td>
+                {match eaten.unit {
+                    Unit::Piece => shown(Figure::Amount(eaten.quantity, eaten.unit)),
+                    _ => bare(Figure::Amount(eaten.quantity, eaten.unit)),
+                }}
+            </td>
             {nutrient_cells(eaten.nutrients)}
             <td>
                 <button class="remove" type="button" on:click=remove aria-label="Remove this intake">
@@ -477,7 +482,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                     <thead>
                         <tr>
                             <th>"Food"</th>
-                            <th>"Qty"</th>
+                            <th>"Qty (g)"</th>
                             <th>"kcal"</th>
                             <th>"Prot (g)"</th>
                             <th>"Fat (g)"</th>
