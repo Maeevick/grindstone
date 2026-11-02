@@ -3064,6 +3064,37 @@ async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_then_the_last_
 }
 
 #[wasm_bindgen_test]
+async fn each_tabs_form_opens_its_grimoire_from_the_right_of_its_title() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let mut titles = Vec::new();
+    for tab in ["/fuel", "/hydrate", "/burn"] {
+        went_to(tab);
+        settled().await;
+        titles.push((
+            texts_in_order(&screen, ".card-title h2"),
+            attributes_of(&screen, ".card-title a.grimoire", "href"),
+            texts_in_order(&screen, ".card-title a.grimoire span"),
+        ));
+    }
+
+    let opening = |tab: &str| {
+        (
+            vec![tab.to_string()],
+            vec![format!("/{}/grimoire", tab.to_lowercase())],
+            vec!["📚".to_string(), "open the grimoire".to_string()],
+        )
+    };
+    assert_eq!(
+        titles,
+        [opening("Fuel"), opening("Hydrate"), opening("Burn")]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn no_screen_offers_to_explore_the_numbers_any_more() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
