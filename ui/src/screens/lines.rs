@@ -249,8 +249,6 @@ pub const NO_BAND: &str = "No band yet: I need a profile and a weigh-in with a w
 
 pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow it down.";
 
-pub const NO_INTAKE: &str = "Nothing eaten on this day, or nothing filed yet.";
-
 pub const NO_MEAL: &str = "No meal cooked yet. The lab is spotless, which worries everyone.";
 
 pub const NO_FOOD: &str =
@@ -483,9 +481,6 @@ pub const TARGET_DRUNK: &str = "Target reached.";
 
 pub const PAST_THE_CAP: &str = "Past the cap. Under normal activity, kidneys clear about a litre an \
     hour, so spread the cups through the day. They will not thank you aloud, but they will thank you.";
-
-pub const NO_DRINKING: &str =
-    "Not a drop filed on this day yet. The archive is drier than its oldest scroll.";
 
 pub const HYDRATE_TARGET_HINT: &str = "The band follows your lean mass and the day's burn, food \
     bringing a tenth of the water. Leave Hydrate out of the streak from a day your drinks went unfiled.";

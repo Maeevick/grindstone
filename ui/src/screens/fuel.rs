@@ -201,41 +201,6 @@ pub fn FuelEntries(date: String) -> impl IntoView {
 }
 
 #[component]
-fn IntakeRow(
-    id: i64,
-    eaten: Intake,
-    day: RwSignal<String>,
-    shown_fuel: Callback<Fuel>,
-    said: RwSignal<Option<String>>,
-) -> impl IntoView {
-    let recorded = Recorded::here();
-    let remove = move |_| {
-        let date = day.get_untracked();
-        spawn_local(async move {
-            match tauri::remove_intake(&date, id).await {
-                Ok(fuel) => {
-                    shown_fuel.run(fuel);
-                    recorded.told();
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
-    };
-    view! {
-        <tr>
-            <td>{eaten.food.clone()}</td>
-            <td>{quantity_of(&eaten)}</td>
-            {nutrient_cells(eaten.nutrients)}
-            <td>
-                <button class="remove" type="button" on:click=remove aria-label="Remove this intake">
-                    "×"
-                </button>
-            </td>
-        </tr>
-    }
-}
-
-#[component]
 pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
     let fuel = RwSignal::new(None::<Fuel>);
     let catalog = RwSignal::new(Vec::<Food>::new());
@@ -529,39 +494,6 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                     }
                 })
         }}
-        <section class="card">
-            <h2>"The day's intakes"</h2>
-            {move || {
-                fuel.get()
-                    .is_some_and(|answer| answer.intakes.is_empty())
-                    .then(|| view! { <p class="empty">{lines::NO_INTAKE}</p> })
-            }}
-            <div class="scroll">
-                <table class="intakes">
-                    <thead>
-                        <tr>
-                            <th>"Food"</th>
-                            <th>"Qty (g)"</th>
-                            <th>"kcal"</th>
-                            <th>"Prot (g)"</th>
-                            <th>"Fat (g)"</th>
-                            <th>"Fib (g)"</th>
-                            <th>"Carbs (g)"</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <For
-                            each=move || fuel.get().map(|answer| answer.intakes).unwrap_or_default()
-                            key=|(id, _)| *id
-                            children=move |(id, eaten)| {
-                                view! { <IntakeRow id=id eaten=eaten day=day shown_fuel=shown_fuel said=said /> }
-                            }
-                        />
-                    </tbody>
-                </table>
-            </div>
-        </section>
     }
 }
 

@@ -1057,7 +1057,7 @@ async fn a_circuit_chosen_in_the_workout_form_asks_its_sets_alone_and_previews_t
 }
 
 #[wasm_bindgen_test]
-async fn logging_a_workout_lists_it_with_what_it_burnt() {
+async fn logging_a_workout_moves_the_day_by_what_it_burnt() {
     let before = format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [], "burn_day": {AN_EMPTY_BURN},
              "fuel_day": {A_DAY_NOT_FUELLED_YET},
@@ -1084,8 +1084,7 @@ async fn logging_a_workout_lists_it_with_what_it_burnt() {
         .expect("the workout is logged");
     settled().await;
 
-    let rows = text_of(&screen, "table.expenditures tbody");
-    assert!(rows.contains("Walking") && rows.contains("252"), "{rows}");
+    assert!(text_of(&screen, ".bands p.figures").starts_with("252 kcal burnt"));
 }
 
 #[wasm_bindgen_test]
@@ -1185,55 +1184,6 @@ async fn a_workout_left_blank_logs_a_minute_one_rep_one_set_and_no_load() {
     for left_blank in ["minutes", "reps", "sets", "load_kg"] {
         assert!(!sent.contains(left_blank), "{sent}");
     }
-}
-
-#[wasm_bindgen_test]
-async fn the_days_expenditures_list_its_workouts_newest_first_then_off_the_clock_and_fidgeting() {
-    answering(&format!(
-        r#"{{ "exercises": [], "circuits": [], "burn_day": {A_DAY_OF_MORNING_RUST},
-             "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_burn_day(&screen);
-    settled().await;
-
-    let heads = text_of(&screen, "table.expenditures thead");
-    assert!(
-        heads.contains("Activity")
-            && heads.contains("kcal")
-            && heads.contains("min")
-            && heads.contains("reps"),
-        "{heads}"
-    );
-    let rows = screen
-        .query_selector_all("table.expenditures tbody tr")
-        .expect("the rows");
-    let row = |at: u32| {
-        rows.item(at)
-            .and_then(|row| row.text_content())
-            .unwrap_or_default()
-    };
-    assert_eq!(rows.length(), 4);
-    assert!(
-        row(0).contains("Burpee") && row(0).contains("80") && row(0).contains('-'),
-        "{}",
-        row(0)
-    );
-    assert!(
-        row(1).contains("Push up") && row(1).contains("1.5") && row(1).contains("36"),
-        "{}",
-        row(1)
-    );
-    assert!(
-        row(2).contains("Off the clock") && row(2).contains("198"),
-        "{}",
-        row(2)
-    );
-    assert!(
-        row(3).contains("Fidgeting") && row(3).contains("234"),
-        "{}",
-        row(3)
-    );
 }
 
 fn the_fuel_shelf(screen: &Element) -> impl Drop {
@@ -1787,7 +1737,6 @@ async fn a_quantity_left_empty_logs_one_portion_of_the_food_its_placeholder_show
         sent.contains(r#""food":"Skyr""#) && !sent.contains(r#""quantity""#),
         "{sent}"
     );
-    assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
 }
 
 const KEFIR: &str = r#"{ "name": "Kefir", "unit": "Gram", "portion": 100.0, "description": "Plain, from the farm",
@@ -2425,40 +2374,6 @@ async fn burns_last_days_go_without_the_top_exercise() {
 }
 
 #[wasm_bindgen_test]
-async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
-    answering(&format!(
-        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_fuel_day(&screen);
-    settled().await;
-
-    assert_eq!(
-        (
-            texts_in_order(&screen, "table.intakes thead th"),
-            texts_in_order(&screen, "table.intakes tbody td")
-        ),
-        (
-            [
-                "Food",
-                "Qty (g)",
-                "kcal",
-                "Prot (g)",
-                "Fat (g)",
-                "Fib (g)",
-                "Carbs (g)",
-                ""
-            ]
-            .map(String::from)
-            .to_vec(),
-            ["Skyr", "200", "108", "19", "0", "0", "8", "×"]
-                .map(String::from)
-                .to_vec()
-        )
-    );
-}
-
-#[wasm_bindgen_test]
 async fn the_fuel_shelf_adds_a_food_from_its_form_card_in_rows_to_the_foods_its_macros_in_columns()
 {
     answering(
@@ -2750,7 +2665,6 @@ async fn logging_the_plate_logs_its_ingredients_in_one_go_then_clears_it() {
         assert!(sent.contains(ingredient), "{ingredient} in {sent}");
     }
     assert!(screen.query_selector("table.pot").ok().flatten().is_none());
-    assert!(text_of(&screen, "table.intakes tbody").contains("Skyr"));
 }
 
 async fn a_plate_of_pasta_and_cream_kept_as(screen: &Element, meal: &str, eaten: &str) {
@@ -3555,7 +3469,6 @@ async fn logging_the_session_logs_its_steps_in_one_go_then_clears_it() {
         assert!(sent.contains(part), "{part} in {sent}");
     }
     assert!(screen.query_selector("ol.steps").ok().flatten().is_none());
-    assert!(text_of(&screen, "table.expenditures tbody").contains("Push up"));
 }
 
 async fn kept_as_a_circuit(screen: &Element) {
@@ -3723,11 +3636,6 @@ async fn a_circuit_logged_from_the_workout_form_runs_by_its_sets() {
         sent.contains(r#""circuit":"Morning rust""#) && sent.contains(r#""sets":3"#),
         "{sent}"
     );
-    let rows = text_of(&screen, "table.expenditures tbody");
-    assert!(
-        rows.contains("Push up") && rows.contains("Burpee"),
-        "{rows}"
-    );
 }
 
 #[wasm_bindgen_test]
@@ -3872,12 +3780,6 @@ async fn the_days_drinks_add_up_against_its_band_as_fuels_energy_does() {
             true
         )
     );
-    let listed: Element = found(&screen, "tbody");
-    assert!(
-        listed
-            .text_content()
-            .is_some_and(|drunk| drunk.contains("Expresso") && drunk.contains("200 mL"))
-    );
 }
 
 #[wasm_bindgen_test]
@@ -3928,12 +3830,7 @@ async fn a_logged_drink_joins_the_day_in_millilitres_and_the_form_empties() {
     settled().await;
 
     assert!(asked("log_drink").contains(r#""volume_ml":300"#));
-    let listed: Element = found(&screen, "tbody");
-    assert!(
-        listed
-            .text_content()
-            .is_some_and(|drunk| drunk.contains("Tea") && drunk.contains("300 mL"))
-    );
+    assert!(text_of(&screen, ".bands p.figures").starts_with("300 mL drunk"));
     assert_eq!(
         [value_of(&screen, "drink"), value_of(&screen, "volume")],
         ["", ""]
@@ -4031,19 +3928,28 @@ async fn the_drink_chooser_starts_on_select_me_and_a_volume_left_empty_logs_one_
 }
 
 #[wasm_bindgen_test]
-async fn removing_a_drinking_takes_it_off_the_day() {
+async fn removing_a_drinking_from_its_days_entries_takes_it_off_that_day() {
     answering(&format!(
-        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS}, "remove_drinking": {A_DRY_DAY} }}"#
+        r#"{{ "hydrate_month": {{ "month": "2026-10", "earlier": null, "rows": [
+            {{ "day": "2026-10-10", "drunk_ml": 280.0, "water_ratio": 0.0 }}] }},
+            "hydrate_day": {A_DAY_WITH_TWO_DRINKS}, "remove_drinking": {A_DRY_DAY} }}"#
     ));
     let screen = screen();
-    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <HydrateLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
     settled().await;
 
-    found::<web_sys::HtmlElement>(&screen, "button.remove").click();
+    clicked(&screen, ".last-days tr.entry button.remove");
     settled().await;
 
-    let listed: Element = found(&screen, "tbody");
-    assert_eq!(listed.text_content().unwrap_or_default(), "");
+    assert_eq!(asked("remove_drinking"), r#"{"date":"2026-10-10","id":1}"#);
 }
 
 #[wasm_bindgen_test]

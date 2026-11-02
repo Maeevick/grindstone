@@ -131,66 +131,6 @@ pub fn BurnEntries(date: String) -> impl IntoView {
 }
 
 #[component]
-fn ExpenditureRow(
-    done: BurntWorkout,
-    day: RwSignal<String>,
-    shown_burn: Callback<Burn>,
-    said: RwSignal<Option<String>>,
-) -> impl IntoView {
-    let id = done.id;
-    let recorded = Recorded::here();
-    let remove = move |_| {
-        let date = day.get_untracked();
-        spawn_local(async move {
-            match tauri::remove_workout(&date, id).await {
-                Ok(burn) => {
-                    shown_burn.run(burn);
-                    recorded.told();
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
-    };
-    let workout = done.workout;
-    let sets = f64::from(workout.sets);
-    view! {
-        <tr>
-            <td>
-                {workout.exercise.clone()}
-                {workout
-                    .circuit
-                    .clone()
-                    .map(|circuit| view! { <span class="hint">{format!(" · {circuit}")}</span> })}
-            </td>
-            <td>{done.burnt_kcal.map_or_else(|| "-".to_string(), |kcal| bare(Figure::Energy(kcal)))}</td>
-            <td>{bare(Figure::Duration(workout.minutes * sets))}</td>
-            <td>
-                {workout
-                    .reps
-                    .map_or_else(|| "-".to_string(), |reps| bare(Figure::Count(f64::from(reps) * sets)))}
-            </td>
-            <td>
-                <button class="remove" type="button" on:click=remove aria-label="Remove this workout">
-                    "×"
-                </button>
-            </td>
-        </tr>
-    }
-}
-
-fn neat_row(activity: &'static str, kcal: f64) -> impl IntoView {
-    view! {
-        <tr class="neat">
-            <td>{activity}</td>
-            <td>{bare(Figure::Energy(kcal))}</td>
-            <td>"-"</td>
-            <td>"-"</td>
-            <td></td>
-        </tr>
-    }
-}
-
-#[component]
 pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let burn = RwSignal::new(None::<Burn>);
     let budget = RwSignal::new(None::<Budget>);
@@ -673,45 +613,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                     }
                 })
         }}
-        <section class="card">
-            <h2>"The day's expenditures"</h2>
-            <div class="scroll">
-                <table class="expenditures">
-                    <thead>
-                        <tr>
-                            <th>"Activity"</th>
-                            <th>"kcal"</th>
-                            <th>"Duration (min)"</th>
-                            <th>"reps"</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <For
-                            each=move || {
-                                let mut done = burn.get().map(|answer| answer.workouts).unwrap_or_default();
-                                done.sort_by_key(|workout| Reverse(workout.id));
-                                done
-                            }
-                            key=|done| done.id
-                            children=move |done| {
-                                view! { <ExpenditureRow done=done day=day shown_burn=shown_burn said=said /> }
-                            }
-                        />
-                        {move || {
-                            budget
-                                .get()
-                                .map(|spent| {
-                                    view! {
-                                        {neat_row("Off the clock (volitional)", spent.volitional_kcal)}
-                                        {neat_row("Fidgeting (spontaneous)", spent.spontaneous_kcal)}
-                                    }
-                                })
-                        }}
-                    </tbody>
-                </table>
-            </div>
-        </section>
     }
 }
 

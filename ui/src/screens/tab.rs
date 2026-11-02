@@ -8,6 +8,7 @@ use crate::screens::fields::DateField;
 pub fn DayCard(day: RwSignal<String>) -> impl IntoView {
     view! {
         <section class="card day">
+            <h2>"Pick the day"</h2>
             <DateField label="Day" name="day" value=day />
         </section>
     }

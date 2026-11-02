@@ -86,47 +86,9 @@ pub fn HydrateEntries(date: String) -> impl IntoView {
     }
 }
 
+/// Where the day stands: what was drunk against its band, and what the drink about to be logged would make it.
 #[component]
-fn DrinkingRow(
-    id: i64,
-    drinking: Drinking,
-    hydrate: RwSignal<Option<Hydrate>>,
-    said: RwSignal<Option<String>>,
-) -> impl IntoView {
-    let date = drinking.day.to_string();
-    let recorded = Recorded::here();
-    let remove = move |_| {
-        let date = date.clone();
-        spawn_local(async move {
-            match tauri::remove_drinking(&date, id).await {
-                Ok(left) => {
-                    hydrate.set(Some(left));
-                    recorded.told();
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
-    };
-    view! {
-        <tr>
-            <td>{drinking.drink}</td>
-            <td>{shown(Figure::Volume(drinking.volume_ml))}</td>
-            <td>
-                <button class="remove" type="button" on:click=remove aria-label="Remove this drink">
-                    "×"
-                </button>
-            </td>
-        </tr>
-    }
-}
-
-#[component]
-fn DrinkingsOfTheDay(
-    of_the_day: Hydrate,
-    hydrate: RwSignal<Option<Hydrate>>,
-    said: RwSignal<Option<String>>,
-    about_to_drink: Signal<Option<f64>>,
-) -> impl IntoView {
+fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -> impl IntoView {
     let (drunk_ml, floor_ml, target_ml, cap_ml) = (
         of_the_day.drunk_ml,
         of_the_day.floor_ml,
@@ -138,7 +100,6 @@ fn DrinkingsOfTheDay(
     let verdict_class = lines::verdict_class(of_the_day.verdict);
     let reached = of_the_day.verdict == Verdict::InBand;
     let past_the_cap = of_the_day.verdict == Verdict::High;
-    let dry = of_the_day.drinkings.is_empty();
     view! {
         <section class="card bands">
             <h2>"Where the day stands"</h2>
@@ -161,21 +122,6 @@ fn DrinkingsOfTheDay(
             }}
             {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
             {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
-        </section>
-        <section class="card">
-            <h2>"The day's drinks"</h2>
-            {dry.then(|| view! { <p class="empty">{lines::NO_DRINKING}</p> })}
-            <table>
-                <tbody>
-                    {of_the_day
-                        .drinkings
-                        .into_iter()
-                        .map(|(id, drinking)| {
-                            view! { <DrinkingRow id=id drinking=drinking hydrate=hydrate said=said /> }
-                        })
-                        .collect_view()}
-                </tbody>
-            </table>
         </section>
     }
 }
@@ -334,12 +280,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
                 .get()
                 .map(|of_the_day| {
                     view! {
-                        <DrinkingsOfTheDay
-                            of_the_day=of_the_day
-                            hydrate=hydrate
-                            said=said
-                            about_to_drink=about_to_drink
-                        />
+                        <WhereTheDayStands of_the_day=of_the_day about_to_drink=about_to_drink />
                     }
                 })
         }}
