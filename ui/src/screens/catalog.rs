@@ -461,24 +461,3 @@ fn MealDetails(meal: Meal) -> impl IntoView {
         </tr>
     }
 }
-
-#[component]
-pub fn FuelGrimoire() -> impl IntoView {
-    view! {
-        <FuelShelf />
-    }
-}
-
-#[component]
-pub fn HydrateGrimoire() -> impl IntoView {
-    view! {
-        <HydrateShelf />
-    }
-}
-
-#[component]
-pub fn BurnGrimoire() -> impl IntoView {
-    view! {
-        <BurnShelf />
-    }
-}
