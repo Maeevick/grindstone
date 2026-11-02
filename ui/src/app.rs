@@ -15,7 +15,6 @@ use crate::screens::plate::PlateInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;
 use crate::screens::session::SessionInProgress;
-use crate::screens::stats::Stats;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -36,7 +35,6 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/burn") view=BurnTab />
                     <Route path=path!("/burn/grimoire") view=BurnGrimoire />
                     <Route path=path!("/profile") view=ProfileScreen />
-                    <Route path=path!("/stats") view=Stats />
                     <Route path=path!("/references") view=ReferencesScreen />
                 </Routes>
             </main>

@@ -14,7 +14,6 @@ use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
-use grind_ui::screens::stats::Stats;
 use leptos::prelude::*;
 use leptos_router::components::Router;
 use wasm_bindgen::JsCast;
@@ -2591,8 +2590,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "Gather",
                 "Where you stand",
                 "The week's pace",
-                "The last days",
-                "🎱 Explore the numbers"
+                "The last days"
             ],
             vec![
                 "Today",
@@ -2603,7 +2601,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's intakes",
                 "The week's average",
                 "The last days",
-                "📚 Open the grimoire | 🎱 Explore the numbers"
+                "📚 Open the grimoire"
             ],
             vec![
                 "Today",
@@ -2613,7 +2611,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's drinks",
                 "The week's average",
                 "The last days",
-                "📚 Open the grimoire | 🎱 Explore the numbers"
+                "📚 Open the grimoire"
             ],
             vec![
                 "Today",
@@ -2623,7 +2621,7 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "The day's expenditures",
                 "The week's sum-up",
                 "The last days",
-                "📚 Open the grimoire | 🎱 Explore the numbers"
+                "📚 Open the grimoire"
             ],
         ]
     );
@@ -2772,7 +2770,7 @@ async fn every_screen_wears_the_header_its_person_opening_the_profile_and_todays
     settled().await;
 
     let mut worn = Vec::new();
-    for page in ["/", "/burn", "/profile", "/stats"] {
+    for page in ["/", "/burn", "/profile", "/references"] {
         went_to(page);
         settled().await;
         worn.push((
@@ -2830,7 +2828,7 @@ async fn todays_tiles_show_each_figure_green_or_red_by_its_tick_and_open_its_tab
 }
 
 #[wasm_bindgen_test]
-async fn home_holds_the_streak_alone_in_its_card_and_ends_on_the_numbers() {
+async fn home_holds_the_streak_alone_in_its_card() {
     answering(A_HOME);
     let screen = screen();
     let _mounted = the_app(&screen);
@@ -2846,84 +2844,6 @@ async fn home_holds_the_streak_alone_in_its_card_and_ends_on_the_numbers() {
             "{elsewhere}"
         );
     }
-    assert_eq!(
-        text_of(&screen, "main.wrap > a.explore:last-child"),
-        "🎱 Explore the numbers"
-    );
-}
-
-const TWO_MEASURES_EXPLORED: &str = r#"{ "one": [["2026-10-08", 80.4], ["2026-10-09", 80.2], ["2026-10-10", 80.0]],
-    "other": [["2026-10-08", 2600.0], ["2026-10-09", 2500.0], ["2026-10-10", 2400.0]],
-    "one_summary": { "first": 80.4, "last": 80.0, "mean": 80.2, "lowest": 80.0, "highest": 80.4 },
-    "other_summary": { "first": 2600.0, "last": 2400.0, "mean": 2500.0, "lowest": 2400.0, "highest": 2600.0 },
-    "pairs": [[80.4, 2600.0], [80.2, 2500.0], [80.0, 2400.0]], "correlation": 1.0 }"#;
-
-fn the_stats(screen: &Element) -> impl Drop {
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <Stats />
-            </Router>
-        }
-    })
-}
-
-#[wasm_bindgen_test]
-async fn stats_draw_two_measures_on_their_own_y_axes_and_tell_how_they_move_together() {
-    answering(&format!(r#"{{ "explore": {TWO_MEASURES_EXPLORED} }}"#));
-    let screen = screen();
-    let _mounted = the_stats(&screen);
-    settled().await;
-
-    let count = |selector: &str| {
-        screen
-            .query_selector_all(selector)
-            .map(|found| found.length())
-            .unwrap_or_default()
-    };
-    let said = screen.text_content().unwrap_or_default();
-    assert_eq!(
-        (
-            count(".timeline svg polyline"),
-            count(".scatter svg circle")
-        ),
-        (2, 3)
-    );
-    assert_eq!(
-        (
-            count(".timeline svg line.axis"),
-            count(".scatter svg line.axis")
-        ),
-        (2, 1)
-    );
-    assert_eq!(
-        texts_of(&screen, ".timeline .label.tick.one"),
-        ["80.0", "80.2", "80.4"]
-    );
-    assert_eq!(
-        texts_of(&screen, ".timeline .label.tick.other"),
-        ["2400", "2500", "2600"]
-    );
-    assert_eq!(
-        texts_of(&screen, ".scatter .label.tick.other"),
-        ["2400", "2500", "2600"]
-    );
-    assert!(
-        said.contains("80.4 kg") && said.contains("2400 kcal") && said.contains("1.00"),
-        "{said}"
-    );
-}
-
-#[wasm_bindgen_test]
-async fn stats_offer_the_balance_as_what_was_eaten_against_maintenance() {
-    answering(&format!(r#"{{ "explore": {TWO_MEASURES_EXPLORED} }}"#));
-    let screen = screen();
-    let _mounted = the_stats(&screen);
-    settled().await;
-
-    let offered = texts_of(&screen, "select option[value=Balance]");
-
-    assert_eq!(offered, ["Eaten minus maintenance"; 2]);
 }
 
 const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on YouTube, the rusty goblin channel.", "steps": [
@@ -4372,7 +4292,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
              "fuel_targets_on": {{ "values": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9, "fibre_g_per_kg": 0.4 }}, "recommended": false }},
              "foods": [], "meals": [], "exercises": [], "circuits": [], "priced_circuits": [],
              "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
-             "plugin:opener|open_url": null, "explore": {TWO_MEASURES_EXPLORED} }}"#
+             "plugin:opener|open_url": null }}"#
     ));
     let mut said = Vec::new();
 
@@ -4417,10 +4337,8 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
             </Router>
         }
     });
-    let stats = screen();
-    let _stats = the_stats(&stats);
     settled().await;
-    said.extend([&profile, &references, &stats].map(spoken_on));
+    said.extend([&profile, &references].map(spoken_on));
 
     let named: Vec<Vec<&str>> = said.iter().map(|text| naming_the_cast(text)).collect();
     assert!(named.iter().all(Vec::is_empty), "{named:?}");
@@ -4433,9 +4351,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
 
 #[wasm_bindgen_test]
 async fn a_quote_stands_on_its_own_line_in_curly_marks() {
-    answering(&format!(
-        r#"{{ "plugin:opener|open_url": null, "explore": {TWO_MEASURES_EXPLORED} }}"#
-    ));
+    answering(r#"{ "plugin:opener|open_url": null }"#);
     let references = screen();
     let _references = leptos::mount::mount_to(references.clone().unchecked_into(), || {
         view! {
@@ -4444,19 +4360,11 @@ async fn a_quote_stands_on_its_own_line_in_curly_marks() {
             </Router>
         }
     });
-    let stats = screen();
-    let _stats = the_stats(&stats);
     settled().await;
 
-    assert_eq!(
-        [text_of(&references, "p.quote"), text_of(&stats, "p.quote")],
-        ["“shhhhh! I’m reading...”", "“shhhhh! I’m hunting...”"]
-    );
+    assert_eq!(text_of(&references, "p.quote"), "“shhhhh! I’m reading...”");
     assert!(
-        [&references, &stats]
-            .map(spoken_on)
-            .iter()
-            .all(|said| !said.contains('"')),
+        !spoken_on(&references).contains('"'),
         "a straight quotation mark is left"
     );
 }

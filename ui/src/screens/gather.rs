@@ -7,7 +7,7 @@ use leptos::task::spawn_local;
 use crate::screens::fields::FigureField;
 use crate::screens::gauge::AimGauge;
 use crate::screens::last_days::GatherLastDays;
-use crate::screens::tab::{DayCard, ExploreTheNumbers};
+use crate::screens::tab::DayCard;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -205,6 +205,5 @@ pub fn GatherTab() -> impl IntoView {
         <DayCard day=day />
         <GatherDay day=day />
         <GatherLastDays day=day />
-        <ExploreTheNumbers />
     }
 }

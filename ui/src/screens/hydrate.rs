@@ -21,7 +21,7 @@ use crate::screens::profile::{
     Counted, Recommend, Whose, keep_and_show, shown_counted, shown_in_force,
 };
 use crate::screens::references::ReferencesLink;
-use crate::screens::tab::{DayCard, GrimoireBesideTheNumbers};
+use crate::screens::tab::{DayCard, OpenTheGrimoire};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -493,6 +493,6 @@ pub fn HydrateTab() -> impl IntoView {
         <HydrateDay day=day />
         <HydrateWeekCard day=day />
         <HydrateLastDays day=day />
-        <GrimoireBesideTheNumbers grimoire="/hydrate/grimoire" />
+        <OpenTheGrimoire grimoire="/hydrate/grimoire" />
     }
 }

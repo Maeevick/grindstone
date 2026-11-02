@@ -13,24 +13,12 @@ pub fn DayCard(day: RwSignal<String>) -> impl IntoView {
     }
 }
 
+/// Where a tab with a catalog ends: its grimoire, a page of its own.
 #[component]
-pub fn ExploreTheNumbers() -> impl IntoView {
+pub fn OpenTheGrimoire(grimoire: &'static str) -> impl IntoView {
     view! {
-        <A href="/stats" attr:class="cta ghost explore">
-            "🎱 Explore the numbers"
+        <A href=grimoire attr:class="cta ghost grimoire">
+            "📚 Open the grimoire"
         </A>
-    }
-}
-
-/// Where a tab with a catalog ends: its grimoire, a page of its own, beside the numbers.
-#[component]
-pub fn GrimoireBesideTheNumbers(grimoire: &'static str) -> impl IntoView {
-    view! {
-        <div class="side-by-side">
-            <A href=grimoire attr:class="cta ghost grimoire">
-                "📚 Open the grimoire"
-            </A>
-            <ExploreTheNumbers />
-        </div>
     }
 }

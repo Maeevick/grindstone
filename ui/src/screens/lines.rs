@@ -15,7 +15,6 @@ use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
-use grind_core::stats::{Measure, Summary, figure_of};
 use grind_core::streak::{Status, Streak};
 use grind_draft::{DraftRefusal, ImportFailure};
 
@@ -430,50 +429,6 @@ pub fn status_word(status: Status) -> &'static str {
         Status::Pending => "under way",
     }
 }
-
-pub fn measure_name(measure: Measure) -> &'static str {
-    match measure {
-        Measure::BodyMass => "Body mass",
-        Measure::Waist => "Waist",
-        Measure::FatRatio => "Fat ratio",
-        Measure::LeanMass => "Lean mass",
-        Measure::Eaten => "Energy eaten",
-        Measure::Balance => "Eaten minus maintenance",
-        Measure::Protein => "Protein",
-        Measure::Carbs => "Carbs",
-        Measure::Fat => "Fat",
-        Measure::Fibre => "Fibre",
-        Measure::Burnt => "Burnt in workouts",
-    }
-}
-
-pub fn summed_up(measure: Measure, summary: &Summary) -> String {
-    let shown_as = |value| shown(figure_of(measure, value));
-    format!(
-        "{}: from {} to {}, {} on average, between {} and {}.",
-        measure_name(measure),
-        shown_as(summary.first),
-        shown_as(summary.last),
-        shown_as(summary.mean),
-        shown_as(summary.lowest),
-        shown_as(summary.highest)
-    )
-}
-
-pub fn together(correlation: Option<f64>, shared: usize) -> String {
-    match correlation {
-        Some(r) => format!(
-            "Correlation {r:.2} over {shared} shared days, and a correlation is not a cause."
-        ),
-        None => {
-            format!("{shared} shared days: hunting a correlation takes at least three that move.")
-        }
-    }
-}
-
-pub const HUNTING: &str = "“shhhhh! I’m hunting...”";
-
-pub const NOTHING_TO_EXPLORE: &str = "Nothing logged for this measure in the window.";
 
 pub const NO_CIRCUIT: &str = "No circuit in the lab yet. Put a few exercises in a session, then \
     keep it as a circuit.";

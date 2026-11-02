@@ -18,7 +18,6 @@ pub mod profile;
 pub mod references;
 pub mod session;
 pub mod settings;
-pub mod stats;
 pub mod tab;
 
 use leptos::prelude::{Get, RwSignal, Update, use_context};

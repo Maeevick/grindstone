@@ -2,7 +2,6 @@ use leptos::prelude::*;
 use leptos_router::components::A;
 
 use crate::screens::charts::Charts;
-use crate::screens::tab::ExploreTheNumbers;
 use crate::screens::{lines, today};
 use crate::tauri;
 
@@ -72,7 +71,6 @@ pub fn Home() -> impl IntoView {
                             view! {
                                 <StreakCard />
                                 <Charts today=crate::screens::today() />
-                                <ExploreTheNumbers />
                             }
                                 .into_any()
                         }
