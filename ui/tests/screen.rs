@@ -2786,6 +2786,28 @@ async fn every_screen_wears_the_header_its_person_opening_the_profile_and_todays
 }
 
 #[wasm_bindgen_test]
+async fn the_logo_and_the_name_lead_home_from_every_screen() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    went_to("/burn");
+    settled().await;
+
+    assert_eq!(
+        (
+            attributes_of(&screen, "header.top a.home", "href"),
+            texts_in_order(&screen, "header.top a.home h1"),
+            attributes_of(&screen, "header.top a.home img.logo", "src"),
+        ),
+        (
+            vec!["/".to_string()],
+            vec!["GRINDSTONE".to_string()],
+            vec!["/icon.svg".to_string()]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn todays_tiles_show_each_figure_green_or_red_by_its_tick_and_open_its_tab() {
     answering(A_HOME);
     let screen = screen();
