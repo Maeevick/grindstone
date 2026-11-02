@@ -11,12 +11,12 @@ use grind_core::for_burning::{OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
-    BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Insights, Month,
+    BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
 use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
-use grind_core::for_reviewing_progress::{GatherCard, Window};
+use grind_core::for_reviewing_progress::Window;
 use grind_core::for_setting_up_the_profile::{
     BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, Scope, UsualDayForm,
 };
@@ -128,10 +128,6 @@ pub async fn set_goals(form: &GoalsForm) -> Result<Option<InForce<Goals>>, Failu
     call("set_goals", Form { form }, broken).await
 }
 
-pub async fn gather_card(today: &str, window: Window) -> Result<GatherCard, Failure> {
-    call("gather_card", Reviewing { today, window }, broken).await
-}
-
 #[derive(Serialize)]
 struct Removing<'a> {
     date: &'a str,
@@ -158,10 +154,6 @@ struct Cataloguing<'a> {
 
 pub async fn burn_day(date: &str) -> Result<Burn, Failure> {
     call("burn_day", OnDay { date }, broken).await
-}
-
-pub async fn burn_week(date: &str) -> Result<Option<BurnWeek>, Failure> {
-    call("burn_week", OnDay { date }, broken).await
 }
 
 pub async fn log_workout(form: &WorkoutForm) -> Result<Burn, Failure> {
@@ -229,20 +221,6 @@ struct OnDayEating<'a> {
 
 pub async fn fuel_day_with(date: &str, more: &Nutrients) -> Result<Fuel, Failure> {
     call("fuel_day_with", OnDayEating { date, more }, broken).await
-}
-
-#[derive(Serialize)]
-struct WeekUpTo<'a> {
-    date: &'a str,
-    today: &'a str,
-}
-
-pub async fn fuel_week(date: &str, today: &str) -> Result<Option<FuelWeek>, Failure> {
-    call("fuel_week", WeekUpTo { date, today }, broken).await
-}
-
-pub async fn hydrate_week(date: &str, today: &str) -> Result<Option<HydrateWeek>, Failure> {
-    call("hydrate_week", WeekUpTo { date, today }, broken).await
 }
 
 pub async fn log_intake(form: &IntakeForm) -> Result<Fuel, Failure> {
@@ -335,10 +313,6 @@ pub async fn hydrate_month(month: &str) -> Result<Month<HydrateRow>, Failure> {
 
 pub async fn burn_month(month: &str) -> Result<Month<BurnRow>, Failure> {
     call("burn_month", InMonth { month }, broken).await
-}
-
-pub async fn insights(today: &str, window: Window) -> Result<Insights, Failure> {
-    call("insights", Reviewing { today, window }, broken).await
 }
 
 pub async fn pace_over_the_window(today: &str, window: Window) -> Result<Option<Pace>, Failure> {

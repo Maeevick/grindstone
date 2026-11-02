@@ -1,7 +1,7 @@
 use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown, signed};
+use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
@@ -14,7 +14,7 @@ use grind_core::meal::Ingredient;
 use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
-use grind_core::sharpening::{BandNote, BurnNote, GatherNote, Habit, Leaning};
+use grind_core::sharpening::Habit;
 use grind_core::streak::{Status, Streak};
 use grind_draft::{DraftRefusal, ImportFailure};
 
@@ -521,136 +521,6 @@ fn habit_name(habit: Habit) -> &'static str {
     }
 }
 
-fn a_week(per_week_kg: f64) -> String {
-    format!("{} kg a week", signed(Figure::Mass(per_week_kg)))
-}
-
-pub fn gather_note(note: &GatherNote) -> String {
-    match note {
-        GatherNote::Unweighed => {
-            "No weigh-in in this window. A hunt tracks footprints, and the scale has left none."
-                .into()
-        }
-        GatherNote::Irregular { weighed_days, days } => format!(
-            "Weighed on {weighed_days} of {days} days. A trend wants a footprint every other day at least; \
-             fewer, and it is a rumour with a decimal point."
-        ),
-        GatherNote::TooSoon => "Too few weigh-ins for a trend yet. Patience is half the hunt. \
-            The other half is also patience."
-            .into(),
-        GatherNote::Aimless { per_week_kg } => format!(
-            "{}, heading nowhere in particular: no goal is set. A hunt without a quarry is just a walk \
-             in the woods. Set one in Profile.",
-            a_week(*per_week_kg)
-        ),
-        GatherNote::OnCourse {
-            per_week_kg,
-            reached_on,
-        } => format!(
-            "{}: on this trend the goal falls around {reached_on}. Keep the pace, not the pressure.",
-            a_week(*per_week_kg)
-        ),
-        GatherNote::OffCourse { per_week_kg } => format!(
-            "{}, and the goal lies elsewhere. Not a verdict: trends turn when habits do, and habits \
-             are the one thing down here that sharpens.",
-            a_week(*per_week_kg)
-        ),
-    }
-}
-
-pub fn fuel_note(note: &BandNote) -> String {
-    match note {
-        BandNote::Unlogged => {
-            "Nothing eaten on the record in this window, and nobody hunts what was never filed."
-                .into()
-        }
-        BandNote::Sharp {
-            weakest,
-            in_band,
-            logged,
-        } => format!(
-            "Every habit held its band four days in five; even the weakest, {}, on {in_band} of {logged}. \
-             Nothing to hunt, which is deeply suspicious.",
-            habit_name(*weakest)
-        ),
-        BandNote::Blunt {
-            habit,
-            in_band,
-            logged,
-            leaning: Leaning::Under,
-        } => format!(
-            "{} reached its band on {in_band} of {logged} days and fell short on the rest. \
-             The quarry is small, slow, and frankly asking to be caught.",
-            habit_name(*habit)
-        ),
-        BandNote::Blunt {
-            habit,
-            in_band,
-            logged,
-            leaning: Leaning::Over,
-        } => format!(
-            "{} went past its band on most days: in it on {in_band} of {logged}. \
-             Generosity is a virtue, except in a ledger.",
-            habit_name(*habit)
-        ),
-    }
-}
-
-pub fn hydrate_note(note: &BandNote) -> String {
-    match note {
-        BandNote::Unlogged => {
-            "Not a drop on the record in this window. The archive is drier than its oldest scroll, \
-            and that one is a fire hazard."
-                .into()
-        }
-        BandNote::Sharp {
-            in_band, logged, ..
-        } => format!("In the band on {in_band} of {logged} days."),
-        BandNote::Blunt {
-            in_band,
-            logged,
-            leaning: Leaning::Under,
-            ..
-        } => format!(
-            "Short of water on most days: in the band on {in_band} of {logged}. A cup within reach does \
-             most of the work; remembering it is there does the rest."
-        ),
-        BandNote::Blunt {
-            in_band,
-            logged,
-            leaning: Leaning::Over,
-            ..
-        } => format!(
-            "Past the band on most days: in it on {in_band} of {logged}. More is not better, only wetter."
-        ),
-    }
-}
-
-pub fn burn_note(note: &BurnNote) -> String {
-    match note {
-        BurnNote::Idle => {
-            "No workout in this window. The joker forgives one idle day, not a window full of them; \
-            one walk gets the grindstone turning again."
-                .into()
-        }
-        BurnNote::Sparse { per_week } => format!(
-            "{} active days a week. The WHO asks for strength on two; the grindstone turns either way, \
-             but it turns better with a hand on it.",
-            shown(Figure::Count(*per_week))
-        ),
-        BurnNote::Steady {
-            per_week,
-            burnt_per_active_day,
-        } => format!(
-            "{} active days a week{}. Steady as a goblin with a grudge.",
-            shown(Figure::Count(*per_week)),
-            burnt_per_active_day
-                .map(|kcal| format!(", {} burnt on each", shown(Figure::Energy(kcal))))
-                .unwrap_or_default()
-        ),
-    }
-}
-
 pub const UNREADABLE: &str =
     "That is no number I can read. Digits, with a point or a comma, please.";
 
@@ -803,7 +673,8 @@ pub fn hydrate_week_said(week: &HydrateWeek) -> String {
     }
 }
 
-pub const NO_WORKOUT_THIS_WEEK: &str = "No workout in the window yet. A rest counts too, if it was decided rather than drifted into.";
+pub const NO_WORKOUT_THIS_WEEK: &str =
+    "No workout in the window yet. A rest counts too, if it was decided rather than drifted into.";
 
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
