@@ -6,12 +6,12 @@ use crate::burn_week::{BurnWeek, burn_week_of};
 use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
 use crate::failure::Failure;
-use crate::for_reviewing_progress::Window;
+use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
 use crate::volitional::volitional;
-use crate::week::the_seven_days_up_to;
+use crate::week::{the_days_between, the_seven_days_up_to};
 use crate::workout::{Workout, workout};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -94,9 +94,19 @@ pub fn burn_over_the_window(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     today: &str,
-    _window: Window,
+    window: Window,
 ) -> Result<Option<BurnWeek>, Failure> {
-    burn_week(gather, burn, today)
+    let today = day(today)?;
+    let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
+    let first_workout = burnt.workouts.iter().map(|(_, done)| done.day).min();
+    let Some(first) = first_workout.map(|first| first.max(first_day_of(window, today))) else {
+        return Ok(None);
+    };
+    let days: Vec<Burn> = the_days_between(first, today)
+        .into_iter()
+        .map(|day| burn_on(day, &burnt, &gathered))
+        .collect();
+    Ok(burn_week_of(&days))
 }
 
 pub fn log_workout(
