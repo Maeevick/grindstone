@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::failure::Failure;
 use crate::food::Nutrients;
 use crate::for_cataloguing::IngredientForm;
+use crate::for_reviewing_progress::Window;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -87,6 +88,17 @@ pub fn fuel_week(
         &burn.burn_records()?,
         &fuelled,
     )))
+}
+
+/// The average over the logged days of a window up to today, today left out while under way.
+pub fn fuel_over_the_window(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    today: &str,
+    _window: Window,
+) -> Result<Option<FuelWeek>, Failure> {
+    fuel_week(gather, burn, fuel, today, today)
 }
 
 pub fn log_intake(
@@ -227,6 +239,30 @@ mod tests {
         assert_eq!(fuelled.intakes.len(), 1);
         assert!((fuelled.eaten.energy_kcal - 108.0).abs() < 1e-9);
         assert_eq!(fuel_day(&gather, &burn, &fuel, "2026-10-10"), Ok(fuelled));
+    }
+
+    #[test]
+    fn the_average_over_a_window_runs_over_its_logged_days_up_to_today_today_left_out() {
+        let fuel = a_catalog_with_skyr();
+        let (gather, burn) = (a_man_with_a_waist(), BurnRecordsInMemory::default());
+        for date in ["2026-09-20", "2026-10-05", "2026-10-10"] {
+            log_intake(&gather, &burn, &fuel, &skyr(date, 200.0)).expect("an intake");
+        }
+        let logged_over = |window| {
+            fuel_over_the_window(&gather, &burn, &fuel, "2026-10-10", window)
+                .ok()
+                .flatten()
+                .map(|over| over.logged_days)
+        };
+
+        assert_eq!(
+            [
+                logged_over(Window::Days7),
+                logged_over(Window::Days30),
+                logged_over(Window::Everything)
+            ],
+            [Some(1), Some(2), Some(2)]
+        );
     }
 
     #[test]
