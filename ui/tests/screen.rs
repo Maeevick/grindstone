@@ -3091,8 +3091,7 @@ fn shown_in_order(screen: &Element) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
-async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_to_its_grimoire_beside_the_numbers()
- {
+async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_then_the_last_days() {
     let a_day_in_each_tab = format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
                   "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }},
@@ -3117,35 +3116,32 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
         [
             vec![
                 "Today",
-                "card day",
+                "Pick the day",
                 "Gather",
                 "Where you stand",
                 "The last days"
             ],
             vec![
                 "Today",
-                "card day",
+                "Pick the day",
                 "Fuel",
                 "Where the day stands",
-                "The day's intakes",
                 "The last days",
                 "📚 Open the grimoire"
             ],
             vec![
                 "Today",
-                "card day",
+                "Pick the day",
                 "Hydrate",
                 "Where the day stands",
-                "The day's drinks",
                 "The last days",
                 "📚 Open the grimoire"
             ],
             vec![
                 "Today",
-                "card day",
+                "Pick the day",
                 "Burn",
                 "Where the day stands",
-                "The day's expenditures",
                 "The last days",
                 "📚 Open the grimoire"
             ],
