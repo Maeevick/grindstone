@@ -144,7 +144,11 @@ macro_rules! last_days {
                                                 <tr
                                                     class:chosen=is_chosen
                                                     class:open=opened
-                                                    on:click=move |_| open.set(Some(date))
+                                                    on:click=move |_| {
+                                                        open.update(|open| {
+                                                            *open = (*open != Some(date)).then_some(date);
+                                                        })
+                                                    }
                                                 >
                                                     {$render(row)}
                                                 </tr>
