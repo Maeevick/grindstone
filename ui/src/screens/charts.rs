@@ -640,7 +640,7 @@ history!(
         ("Fat", "g"),
         ("Fib", "g"),
         ("Carbs", "g"),
-        ("Qty", "g, mL")
+        ("Qty", "g")
     ]
 );
 history!(

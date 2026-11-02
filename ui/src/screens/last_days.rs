@@ -166,7 +166,7 @@ last_days!(
         ("Fat", "g"),
         ("Fib", "g"),
         ("Carbs", "g"),
-        ("Qty", "g, mL")
+        ("Qty", "g")
     ]
 );
 last_days!(
