@@ -451,7 +451,7 @@ pub(crate) fn bare_or_blank(value: Option<f64>, figure: fn(f64) -> Figure) -> St
 fn gather_cells(row: GatherRow) -> impl IntoView {
     view! {
             <td>{row.day.to_string()}</td>
-            <td>{bare(Figure::Mass(row.body_mass_kg))}</td>
+            <td>{bare_or_blank(row.body_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>

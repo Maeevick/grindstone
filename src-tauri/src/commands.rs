@@ -492,27 +492,43 @@ pub fn burn_chart(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn gather_month(records: State<Records>, month: String) -> Result<Month<GatherRow>, Failure> {
+pub fn gather_month(
+    records: State<Records>,
+    month: String,
+    picked: String,
+) -> Result<Month<GatherRow>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_charting::gather_month(&*records, &month)
+    for_charting::gather_month(&*records, &month, &picked)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn fuel_month(records: State<Records>, month: String) -> Result<Month<FuelRow>, Failure> {
+pub fn fuel_month(
+    records: State<Records>,
+    month: String,
+    picked: String,
+) -> Result<Month<FuelRow>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_charting::fuel_month(&*records, &month)
+    for_charting::fuel_month(&*records, &month, &picked)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn hydrate_month(records: State<Records>, month: String) -> Result<Month<HydrateRow>, Failure> {
+pub fn hydrate_month(
+    records: State<Records>,
+    month: String,
+    picked: String,
+) -> Result<Month<HydrateRow>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_charting::hydrate_month(&*records, &month)
+    for_charting::hydrate_month(&*records, &month, &picked)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn burn_month(records: State<Records>, month: String) -> Result<Month<BurnRow>, Failure> {
+pub fn burn_month(
+    records: State<Records>,
+    month: String,
+    picked: String,
+) -> Result<Month<BurnRow>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_charting::burn_month(&*records, &*records, &month)
+    for_charting::burn_month(&*records, &*records, &month, &picked)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -1441,7 +1457,7 @@ mod tests {
             )
             .expect("a measurement logs");
         }
-        let october = json!({ "month": "2026-10" });
+        let october = json!({ "month": "2026-10", "picked": "2026-10-10" });
 
         let gather = invoke(&screen, "gather_month", october.clone());
         let others: Vec<Result<Value, Value>> = ["fuel_month", "hydrate_month", "burn_month"]

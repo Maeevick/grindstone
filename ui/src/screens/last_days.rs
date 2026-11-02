@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 
 use chrono::{Datelike, NaiveDate};
-use grind_core::figures::{Figure, bare};
+use grind_core::figures::Figure;
 use grind_core::for_charting::{BurnRow, FuelRow, GatherRow, HydrateRow, Month};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -14,7 +14,7 @@ use crate::tauri;
 fn gathered_cells(row: GatherRow) -> impl IntoView {
     view! {
         <td>{row.day.to_string()}</td>
-        <td>{bare(Figure::Mass(row.body_mass_kg))}</td>
+        <td>{bare_or_blank(row.body_mass_kg, Figure::Mass)}</td>
         <td>{bare_or_blank(row.waist_cm, Figure::Length)}</td>
         <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
         <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>

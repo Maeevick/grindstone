@@ -183,7 +183,7 @@ pub struct Month<Row> {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GatherRow {
     pub day: NaiveDate,
-    pub body_mass_kg: f64,
+    pub body_mass_kg: Option<f64>,
     pub waist_cm: Option<f64>,
     pub lean_mass_kg: Option<f64>,
     pub fat_mass_kg: Option<f64>,
@@ -238,6 +238,7 @@ fn month_in(
 pub fn gather_month(
     gather: &impl ForStoringGatherRecords,
     month: &str,
+    _picked: &str,
 ) -> Result<Month<GatherRow>, Failure> {
     let gathered = gather.gather_records()?;
     let ledger_days = ledger(&gathered.measurements, &gathered.profiles);
@@ -249,7 +250,7 @@ pub fn gather_month(
             .filter_map(|day| ledger_days.iter().find(|measured| measured.day == *day))
             .map(|measured| GatherRow {
                 day: measured.day,
-                body_mass_kg: measured.body_mass_kg,
+                body_mass_kg: Some(measured.body_mass_kg),
                 waist_cm: measured.waist_cm,
                 lean_mass_kg: measured.composition.map(|split| split.lean_mass_kg),
                 fat_mass_kg: measured.composition.map(|split| split.fat_mass_kg),
@@ -263,6 +264,7 @@ pub fn gather_month(
 pub fn fuel_month(
     fuel: &impl ForStoringFuelRecords,
     month: &str,
+    _picked: &str,
 ) -> Result<Month<FuelRow>, Failure> {
     let fuelled = fuel.fuel_records()?;
     let (days, earlier) = month_in(month, fuelled.intakes.iter().map(|(_, eaten)| eaten.day))?;
@@ -288,6 +290,7 @@ pub fn fuel_month(
 pub fn hydrate_month(
     hydrate: &impl ForStoringHydrateRecords,
     month: &str,
+    _picked: &str,
 ) -> Result<Month<HydrateRow>, Failure> {
     let hydrated = hydrate.hydrate_records()?;
     let (days, earlier) = month_in(month, hydrated.drinkings.iter().map(|(_, drunk)| drunk.day))?;
@@ -325,6 +328,7 @@ pub fn burn_month(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
     month: &str,
+    _picked: &str,
 ) -> Result<Month<BurnRow>, Failure> {
     let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
     let (days, earlier) = month_in(month, burnt.workouts.iter().map(|(_, done)| done.day))?;
@@ -634,7 +638,7 @@ mod tests {
     fn a_month_of_gather_lists_its_days_newest_first_with_their_body_split_and_the_month_before() {
         let logged = a_logged_man();
 
-        let october = gather_month(&logged.gather, "2026-10").expect("a month");
+        let october = gather_month(&logged.gather, "2026-10", "2026-10-10").expect("a month");
 
         assert_eq!(
             october.rows.iter().map(|row| row.day).collect::<Vec<_>>(),
@@ -655,7 +659,7 @@ mod tests {
     fn a_month_of_gather_tells_each_days_waist() {
         let logged = a_logged_man();
 
-        let october = gather_month(&logged.gather, "2026-10").expect("a month");
+        let october = gather_month(&logged.gather, "2026-10", "2026-10-10").expect("a month");
 
         assert_eq!(
             october
@@ -671,7 +675,7 @@ mod tests {
     fn a_month_of_fuel_lists_what_each_day_ate() {
         let logged = a_logged_man();
 
-        let august = fuel_month(&logged.fuel, "2026-08").expect("a month");
+        let august = fuel_month(&logged.fuel, "2026-08", "2026-10-10").expect("a month");
 
         assert_eq!(
             august.rows.iter().map(|row| row.day).collect::<Vec<_>>(),
@@ -707,7 +711,7 @@ mod tests {
         )
         .expect("a drink logs");
 
-        let october = hydrate_month(&logged.hydrate, "2026-10").expect("a month");
+        let october = hydrate_month(&logged.hydrate, "2026-10", "2026-10-10").expect("a month");
 
         let today = october.rows[0];
         assert!((today.drunk_ml - 1660.0).abs() < 1e-9);
@@ -718,7 +722,8 @@ mod tests {
     fn a_month_of_burn_tells_each_days_burn_minutes_and_reps() {
         let logged = a_logged_man();
 
-        let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
+        let october =
+            burn_month(&logged.gather, &logged.burn, "2026-10", "2026-10-10").expect("a month");
 
         let today = &october.rows[0];
         assert_eq!((today.minutes, today.reps), (1.5, 36.0));
@@ -726,9 +731,48 @@ mod tests {
     }
 
     #[test]
+    fn the_picked_day_joins_its_month_at_zero_when_nothing_is_logged_on_it() {
+        let logged = a_logged_man();
+        let picked = "2026-10-12";
+
+        let gathered = gather_month(&logged.gather, "2026-10", picked).expect("a month");
+        let fuelled = fuel_month(&logged.fuel, "2026-10", picked).expect("a month");
+        let hydrated = hydrate_month(&logged.hydrate, "2026-10", picked).expect("a month");
+        let burnt = burn_month(&logged.gather, &logged.burn, "2026-10", picked).expect("a month");
+
+        assert_eq!(
+            (
+                gathered.rows.first().map(|row| (row.day, row.body_mass_kg)),
+                fuelled.rows.first().map(|row| (row.day, row.eaten)),
+                hydrated
+                    .rows
+                    .first()
+                    .map(|row| (row.day, row.drunk_ml, row.water_ratio)),
+                burnt
+                    .rows
+                    .first()
+                    .map(|row| (row.day, row.burnt_kcal, row.minutes, row.reps)),
+                [
+                    gathered.rows.len(),
+                    fuelled.rows.len(),
+                    hydrated.rows.len(),
+                    burnt.rows.len()
+                ]
+            ),
+            (
+                Some((day(picked), None)),
+                Some((day(picked), Nutrients::default())),
+                Some((day(picked), 0.0, 0.0)),
+                Some((day(picked), Some(0.0), 0.0, 0.0)),
+                [3, 3, 3, 3]
+            )
+        );
+    }
+
+    #[test]
     fn a_month_the_calendar_lacks_is_refused() {
         assert_eq!(
-            gather_month(&GatherRecordsInMemory::default(), "2026-13"),
+            gather_month(&GatherRecordsInMemory::default(), "2026-13", "2026-10-10"),
             Err(Failure::Refused(Refusal::NotADate))
         );
     }
