@@ -6,6 +6,7 @@ use grind_core::tendency::{Change, Heading};
 use leptos::prelude::*;
 
 use crate::screens::cells::week_table;
+use crate::screens::charts::bare_or_dash;
 use crate::screens::lines;
 use crate::tauri;
 
@@ -152,7 +153,7 @@ fn in_all_and_a_time(
 ) -> impl IntoView {
     view! {
         <td>
-            <span class="total">{total.map_or_else(|| "–".to_string(), |total| bare(figure(total)))}</span>
+            <span class="total">{bare_or_dash(total, figure)}</span>
             <span class="a-time">{a_time.map(|a_time| bare(figure(a_time))).unwrap_or_default()}</span>
         </td>
     }
