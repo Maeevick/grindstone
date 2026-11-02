@@ -3642,6 +3642,52 @@ const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_
         { "day": "2026-10-09", "status": "Joker", "ticks": { "weighed": true, "fuelled": false, "worked_out": true, "hydrated": true } },
         { "day": "2026-10-10", "status": "Pending", "ticks": { "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true } } ] }"#;
 
+const A_PACE: &str = r#"{ "body_mass": { "by": -0.4, "heading": "Toward" },
+    "lean_mass": { "by": 0.1, "heading": "Toward" }, "fat_mass": { "by": -0.5, "heading": "Toward" },
+    "fat_ratio": { "by": -0.006, "heading": "Toward" },
+    "judgement": "VeryGood", "safe_loss_kg": 0.7, "safe_loss_by": "MassShare" }"#;
+
+#[wasm_bindgen_test]
+async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_and_tip_over_its_window() {
+    answering(&format!(
+        r#"{{ "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
+             "hydrate_over_the_window": null, "burn_over_the_window": {A_BURN_WEEK} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+    settled().await;
+
+    let untitled_chart = screen
+        .query_selector("section.card.charts")
+        .ok()
+        .flatten()
+        .is_some();
+    let charted_in_the_tips = screen
+        .query_selector("section.card.tips .plot")
+        .ok()
+        .flatten()
+        .is_some();
+    let paced = texts_in_order(&screen, "section.card.tips .pace-lines li").len();
+    assert_eq!(
+        (untitled_chart, charted_in_the_tips, paced),
+        (false, true, 4)
+    );
+    clicked(&screen, "section.card.tips .chip-Fuel");
+    settled().await;
+    clicked(&screen, "section.card.tips .window-Days30");
+    settled().await;
+    settled().await;
+    let averaged = texts_in_order(&screen, "section.card.tips table.macros tbody tr").len();
+
+    assert_eq!(averaged, 5);
+    assert!(
+        asked("fuel_over_the_window").contains(r#""window":"Days30""#),
+        "{}",
+        asked("fuel_over_the_window")
+    );
+}
+
 fn the_charts(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
