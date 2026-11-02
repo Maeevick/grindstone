@@ -36,6 +36,7 @@ use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
 use grind_core::kept::InForce;
 use grind_core::meal::Meal;
+use grind_core::pace::Pace;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::streak::Streak;
@@ -63,6 +64,48 @@ pub fn log_measurement(
 pub fn gather_week(records: State<Records>, date: String) -> Result<GatherWeek, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_tracking::gather_week(&*records, &date)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn pace_over_the_window(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<Option<Pace>, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_tracking::pace_over_the_window(&*records, &today, window)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fuel_over_the_window(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<Option<FuelWeek>, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_fuelling::fuel_over_the_window(&*records, &*records, &*records, &today, window)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn hydrate_over_the_window(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<Option<HydrateWeek>, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_hydrating::hydrate_over_the_window(
+        &*records, &*records, &*records, &*records, &today, window,
+    )
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn burn_over_the_window(
+    records: State<Records>,
+    today: String,
+    window: Window,
+) -> Result<Option<BurnWeek>, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::burn_over_the_window(&*records, &*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -569,6 +612,10 @@ mod tests {
                 usual_day_on,
                 fuel_day,
                 fuel_day_with,
+                pace_over_the_window,
+                fuel_over_the_window,
+                hydrate_over_the_window,
+                burn_over_the_window,
                 fuel_week,
                 log_intake,
                 log_plate,
