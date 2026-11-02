@@ -2074,6 +2074,47 @@ async fn the_picked_day_not_weighed_stands_in_gathers_last_days_with_a_dash() {
 }
 
 #[wasm_bindgen_test]
+async fn fuels_last_days_end_on_the_grams_and_millilitres_eaten() {
+    answering(&format!(
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }} }}"#,
+        fuelled_on("2026-10-10", 2400.0),
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".last-days thead th"),
+            texts_in_order(&screen, ".last-days tbody td")
+        ),
+        (
+            [
+                "Day",
+                "Energy (kcal)",
+                "Prot (g)",
+                "Fat (g)",
+                "Fib (g)",
+                "Carbs (g)",
+                "Qty (g, mL)"
+            ]
+            .map(String::from)
+            .to_vec(),
+            ["2026-10-10", "2400", "100", "60", "30", "200", "550"]
+                .map(String::from)
+                .to_vec()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
