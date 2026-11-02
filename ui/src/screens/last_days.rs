@@ -7,14 +7,16 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::days::Shown;
-use crate::screens::charts::{bare_or_blank, burn_cells, fuel_cells, header, hydrate_cells};
+use crate::screens::charts::{
+    bare_or_blank, bare_or_dash, burn_cells, fuel_cells, header, hydrate_cells,
+};
 use crate::screens::{Recorded, lines};
 use crate::tauri;
 
 fn gathered_cells(row: GatherRow) -> impl IntoView {
     view! {
         <td>{row.day.to_string()}</td>
-        <td>{bare_or_blank(row.body_mass_kg, Figure::Mass)}</td>
+        <td>{bare_or_dash(row.body_mass_kg, Figure::Mass)}</td>
         <td>{bare_or_blank(row.waist_cm, Figure::Length)}</td>
         <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
         <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>

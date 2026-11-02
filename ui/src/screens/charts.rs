@@ -448,10 +448,15 @@ pub(crate) fn bare_or_blank(value: Option<f64>, figure: fn(f64) -> Figure) -> St
     value.map(|value| bare(figure(value))).unwrap_or_default()
 }
 
+/// A day's own figure, or a dash on a day it was not taken.
+pub(crate) fn bare_or_dash(value: Option<f64>, figure: fn(f64) -> Figure) -> String {
+    value.map_or_else(|| "–".to_string(), |value| bare(figure(value)))
+}
+
 fn gather_cells(row: GatherRow) -> impl IntoView {
     view! {
             <td>{row.day.to_string()}</td>
-            <td>{bare_or_blank(row.body_mass_kg, Figure::Mass)}</td>
+            <td>{bare_or_dash(row.body_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
