@@ -48,6 +48,18 @@ export function a_moment() {
 export function back_home() {
     window.history.replaceState(null, '', '/');
 }
+export function wear_the_stylesheet(css) {
+    const style = document.createElement('style');
+    style.id = 'worn';
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+export function drop_the_stylesheet() {
+    document.getElementById('worn')?.remove();
+}
+export function text_align_of(element) {
+    return getComputedStyle(element).textAlign;
+}
 export function went_to(path) {
     window.history.pushState(null, '', path);
     window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
@@ -61,6 +73,9 @@ extern "C" {
     /// Moves to another tab through the history: a click on a tab is cancelled by the link
     /// handlers the routers of earlier tests leave behind.
     fn went_to(path: &str);
+    fn wear_the_stylesheet(css: &str);
+    fn drop_the_stylesheet();
+    fn text_align_of(element: &Element) -> String;
 }
 
 fn answering(answers: &str) {
@@ -2629,6 +2644,120 @@ const A_HOME: &str = r#"{ "profile_on": ["2026-03-01", { "birthday": "1985-04-12
 const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [],
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
         "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
+
+/// The app's own stylesheet worn while a test looks at how the screen lays out, dropped after.
+struct Worn;
+
+impl Worn {
+    fn the_stylesheet() -> Self {
+        wear_the_stylesheet(include_str!("../styles.css"));
+        Worn
+    }
+}
+
+impl Drop for Worn {
+    fn drop(&mut self) {
+        drop_the_stylesheet();
+    }
+}
+
+/// A cell's text reads as a figure: a number, maybe signed, with its unit, a range or a share, never a date.
+fn a_figure(text: &str) -> bool {
+    let a_date = text.len() == 10 && text.as_bytes()[4] == b'-' && text.as_bytes()[7] == b'-';
+    !a_date
+        && text
+            .trim_start_matches(['-', '+', '−'])
+            .starts_with(|first: char| first.is_ascii_digit())
+}
+
+/// The cells standing on the wrong side: in a column of figures they stand right, elsewhere left. Cells
+/// holding a button or a field, and dashes, side with neither.
+fn misaligned(screen: &Element) -> Vec<String> {
+    let all = |within: &Element, selector: &str| {
+        let found = within.query_selector_all(selector).expect(selector);
+        (0..found.length())
+            .filter_map(|at| found.item(at)?.dyn_into::<Element>().ok())
+            .collect::<Vec<Element>>()
+    };
+    let text = |cell: &Element| cell.text_content().unwrap_or_default().trim().to_string();
+    let telling = |cell: &Element| {
+        let said = text(cell);
+        !said.is_empty()
+            && said != "–"
+            && said != "-"
+            && cell
+                .query_selector("button, input")
+                .ok()
+                .flatten()
+                .is_none()
+    };
+    let mut wrong = Vec::new();
+    for table in all(screen, "table") {
+        let rows: Vec<Vec<Element>> = all(&table, "tr")
+            .iter()
+            .map(|row| all(row, ":scope > th, :scope > td"))
+            .filter(|cells| cells.iter().all(|cell| !cell.has_attribute("colspan")))
+            .collect();
+        let columns = rows.iter().map(Vec::len).max().unwrap_or_default();
+        for at in 0..columns {
+            let column: Vec<&Element> = rows.iter().filter_map(|cells| cells.get(at)).collect();
+            let filled: Vec<String> = column
+                .iter()
+                .filter(|cell| cell.tag_name() == "TD" && telling(cell))
+                .map(|cell| text(cell))
+                .collect();
+            if filled.is_empty() {
+                continue;
+            }
+            let side = if filled.iter().all(|said| a_figure(said)) {
+                "right"
+            } else {
+                "left"
+            };
+            for cell in column.iter().filter(|cell| telling(cell)) {
+                let stands = match text_align_of(cell).as_str() {
+                    "right" | "end" => "right",
+                    _ => "left",
+                };
+                if stands != side {
+                    wrong.push(format!(
+                        "{} {:?} stands {stands}",
+                        table.class_name(),
+                        text(cell)
+                    ));
+                }
+            }
+        }
+    }
+    wrong
+}
+
+#[wasm_bindgen_test]
+async fn every_tables_figures_stand_right_its_names_and_dates_left() {
+    answering_all(&[
+        A_HOME,
+        EVERY_TAB,
+        &format!(
+            r#"{{ "fuel_day": {A_FUELLED_DAY}, "fuel_day_with": {A_FUELLED_DAY},
+                "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }},
+                "drinks": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }}] }}"#,
+            fuelled_on("2026-10-10", 2400.0)
+        ),
+    ]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    let _worn = Worn::the_stylesheet();
+    went_to("/fuel");
+    settled().await;
+    typed_into(&screen, "day", "2026-10-10");
+    settled().await;
+    let mut wrong = misaligned(&screen);
+    went_to("/hydrate/grimoire");
+    settled().await;
+    wrong.extend(misaligned(&screen));
+
+    assert_eq!(wrong, Vec::<String>::new());
+}
 
 #[wasm_bindgen_test]
 async fn the_icon_bar_leads_home_and_to_each_tab() {
