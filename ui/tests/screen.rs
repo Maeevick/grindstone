@@ -2369,7 +2369,7 @@ async fn fuels_four_macros_stand_under_its_gauge() {
 
     assert_eq!(
         (
-            texts_in_order(&screen, "section.bands table.macros tbody td:first-child"),
+            texts_in_order(&screen, "section.bands table.macros tr td:first-child"),
             texts_in_order(&screen, "h2").contains(&"The four macros".to_string())
         ),
         (
@@ -3127,7 +3127,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
                 "card day",
                 "Fuel",
                 "Where the day stands",
-                "The four macros",
                 "The day's intakes",
                 "The last days",
                 "📚 Open the grimoire"

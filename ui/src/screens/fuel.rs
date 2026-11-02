@@ -60,7 +60,7 @@ fn MacroLine(
 }
 
 #[component]
-fn MacrosCard(
+fn MacrosTable(
     macros: Macros,
     eaten: Nutrients,
     more: Option<Nutrients>,
@@ -69,66 +69,63 @@ fn MacrosCard(
     let shares = energy_shares(&eaten);
     let share = move |of: fn(&EnergyShares) -> f64| shares.as_ref().map(of);
     view! {
-        <section class="card">
-            <h2>"The four macros"</h2>
-            <table class="macros">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>"Goal (g)"</th>
-                        <th>"Current (g)"</th>
-                        <th>"Δ (g)"</th>
-                        <th>"% cal"</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <MacroLine
-                        name="Protein"
-                        key="protein"
-                        row=macros.protein
-                        share=share(|of| of.protein)
-                        more_g=more.map(|more| more.protein_g)
-                        previewed=previewed.map(|after| after.protein)
-                    />
-                    <MacroLine
-                        name="Fat"
-                        key="fat"
-                        row=macros.fat
-                        share=share(|of| of.fat)
-                        more_g=more.map(|more| more.fat_g)
-                        previewed=previewed.map(|after| after.fat)
-                    />
-                    <MacroLine
-                        name="Fibre"
-                        key="fibre"
-                        row=macros.fibre
-                        share=share(|of| of.fibre)
-                        more_g=more.map(|more| more.fibre_g)
-                        previewed=previewed.map(|after| after.fibre)
-                    />
-                    <MacroLine
-                        name="Carbs"
-                        key="carbs"
-                        row=macros.carbs
-                        share=share(|of| of.carbs)
-                        more_g=more.map(|more| more.carbs_g)
-                        previewed=previewed.map(|after| after.carbs)
-                    />
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td>"Total"</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td>
-                            {share(|of| of.total)
-                                .map_or_else(|| "-".to_string(), |total| bare(Figure::Ratio(total)))}
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
-        </section>
+        <table class="macros">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>"Goal (g)"</th>
+                    <th>"Current (g)"</th>
+                    <th>"Δ (g)"</th>
+                    <th>"% cal"</th>
+                </tr>
+            </thead>
+            <tbody>
+                <MacroLine
+                    name="Protein"
+                    key="protein"
+                    row=macros.protein
+                    share=share(|of| of.protein)
+                    more_g=more.map(|more| more.protein_g)
+                    previewed=previewed.map(|after| after.protein)
+                />
+                <MacroLine
+                    name="Fat"
+                    key="fat"
+                    row=macros.fat
+                    share=share(|of| of.fat)
+                    more_g=more.map(|more| more.fat_g)
+                    previewed=previewed.map(|after| after.fat)
+                />
+                <MacroLine
+                    name="Fibre"
+                    key="fibre"
+                    row=macros.fibre
+                    share=share(|of| of.fibre)
+                    more_g=more.map(|more| more.fibre_g)
+                    previewed=previewed.map(|after| after.fibre)
+                />
+                <MacroLine
+                    name="Carbs"
+                    key="carbs"
+                    row=macros.carbs
+                    share=share(|of| of.carbs)
+                    more_g=more.map(|more| more.carbs_g)
+                    previewed=previewed.map(|after| after.carbs)
+                />
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>"Total"</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>
+                        {share(|of| of.total)
+                            .map_or_else(|| "-".to_string(), |total| bare(Figure::Ratio(total)))}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
     }
 }
 
@@ -513,28 +510,23 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                                 }
                                 None => view! { <p class="hint">{lines::NO_BAND}</p> }.into_any(),
                             }}
+                            {answer
+                                .macros
+                                .map(|macros| {
+                                    view! {
+                                        <MacrosTable
+                                            macros=macros
+                                            eaten=answer.eaten
+                                            more=about_to_eat.get().map(|(_, more)| more)
+                                            previewed=previewed
+                                                .get()
+                                                .flatten()
+                                                .and_then(|(_, after)| after.macros)
+                                        />
+                                    }
+                                })}
                         </section>
                     }
-                })
-        }}
-        {move || {
-            fuel.get()
-                .and_then(|answer| {
-                    answer
-                        .macros
-                        .map(|macros| {
-                            view! {
-                                <MacrosCard
-                                    macros=macros
-                                    eaten=answer.eaten
-                                    more=about_to_eat.get().map(|(_, more)| more)
-                                    previewed=previewed
-                                        .get()
-                                        .flatten()
-                                        .and_then(|(_, after)| after.macros)
-                                />
-                            }
-                        })
                 })
         }}
         <section class="card">
