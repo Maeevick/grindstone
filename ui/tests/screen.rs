@@ -2479,7 +2479,6 @@ async fn the_plate_waits_in_fuel_while_the_cook_checks_another_tab() {
 }
 
 const A_HOME: &str = r#"{ "profile_on": ["2026-03-01", { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }],
-             "gather_card": { "masses": [], "trend": [], "target_kg": null, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
              "streak": { "days": 2, "longest": 5, "at_risk": true, "history": [
                  { "day": "2026-10-08", "status": "Success", "ticks": { "weighed": true, "fuelled": true, "worked_out": true, "hydrated": null } },
                  { "day": "2026-10-09", "status": "Joker", "ticks": { "weighed": true, "fuelled": false, "worked_out": true, "hydrated": null } },
@@ -2490,7 +2489,7 @@ const A_HOME: &str = r#"{ "profile_on": ["2026-03-01", { "birthday": "1985-04-12
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
                  "days": [] } }"#;
 
-const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null, "hydrate_week": null, "burn_week": null,
+const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [],
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
         "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" } }"#;
 
@@ -3641,8 +3640,7 @@ async fn a_history_row_tapped_shows_its_days_four_ticks() {
     }
 }
 
-const THE_CHARTS: &str = r#""gather_card": { "masses": [], "trend": [], "target_kg": 70.0, "progress": null, "fat_change_kg": null, "lean_change_kg": null },
-    "gather_chart": { "masses": [["2026-10-09", 80.2], ["2026-10-10", 80.0]], "lean_masses": [["2026-10-09", 70.9], ["2026-10-10", 70.7]],
+const THE_CHARTS: &str = r#""gather_chart": { "masses": [["2026-10-09", 80.2], ["2026-10-10", 80.0]], "lean_masses": [["2026-10-09", 70.9], ["2026-10-10", 70.7]],
                       "goal_kg": 70.0, "goal_lean_kg": 63.0 },
     "fuel_chart": { "amounts": [["2026-10-09", 2390.0], ["2026-10-10", 1900.0]], "floors": [["2026-10-09", 2199.0], ["2026-10-10", 2180.0]],
                     "caps": [["2026-10-09", 2650.0], ["2026-10-10", 2630.0]] },
@@ -3785,7 +3783,7 @@ fn texts_of(screen: &Element, selector: &str) -> Vec<String> {
 #[wasm_bindgen_test]
 async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines() {
     answering(&format!(
-        r#"{{ {THE_CHARTS}, {THE_INSIGHTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
     let screen = screen();
     let _mounted = the_charts(&screen);
@@ -3871,12 +3869,6 @@ async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
             .is_none()
     );
 }
-
-const THE_INSIGHTS: &str = r#""insights": { "days": 30, "weighed_days": 25, "fuelled_days": 20,
-    "energy": { "low": 4, "in_band": 14, "high": 2 }, "protein": { "low": 2, "in_band": 18, "high": 0 },
-    "fat": { "low": 1, "in_band": 17, "high": 2 }, "fibre": { "low": 15, "in_band": 5, "high": 0 },
-    "carbs": { "low": 3, "in_band": 16, "high": 1 }, "hydrated_days": 10,
-    "hydrate": { "low": 6, "in_band": 4, "high": 0 }, "active_days": 12, "burnt_per_active_day": 210.0 }"#;
 
 #[wasm_bindgen_test]
 async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_app() {
