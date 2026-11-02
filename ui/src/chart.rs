@@ -45,19 +45,6 @@ pub fn days_along((first, last): (NaiveDate, NaiveDate), width: f64) -> Vec<(f64
         .collect()
 }
 
-pub fn dots_of(
-    pairs: &[(f64, f64)],
-    xs: (f64, f64),
-    ys: (f64, f64),
-    width: f64,
-    height: f64,
-) -> Vec<(f64, f64)> {
-    pairs
-        .iter()
-        .map(|(x, y)| (placed(*x, xs, width), height_of(*y, ys, height)))
-        .collect()
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Gauge {
     pub band_from: f64,
@@ -524,20 +511,6 @@ mod tests {
         assert_eq!(
             axis(&[0.0]).map(|nothing| nothing.ticks()),
             Some(vec![0.0, 0.5, 1.0])
-        );
-    }
-
-    #[test]
-    fn a_scatters_dots_sit_on_the_scales_of_their_two_axes() {
-        assert_eq!(
-            dots_of(
-                &[(80.0, 2400.0), (80.5, 2600.0)],
-                (80.0, 81.0),
-                (2400.0, 2800.0),
-                360.0,
-                180.0
-            ),
-            vec![(0.0, 180.0), (180.0, 90.0)]
         );
     }
 

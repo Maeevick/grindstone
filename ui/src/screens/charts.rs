@@ -59,11 +59,9 @@ pub struct Label {
 #[derive(Clone, Default)]
 pub struct Plotted {
     pub lines: Vec<Line>,
-    pub dots: Vec<(f64, f64)>,
     pub left: Vec<Label>,
     pub right: Vec<Label>,
     pub ticks: Vec<Label>,
-    pub right_ticks: Vec<Label>,
     pub days: Vec<(f64, String)>,
     pub legend: Vec<(&'static str, &'static str)>,
 }
@@ -162,7 +160,6 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
     }));
     Some(Plotted {
         lines,
-        dots: vec![],
         left: [
             labelled(chart.goal_kg, scale, Figure::Mass, "goal"),
             labelled(chart.goal_lean_kg, scale, Figure::Mass, "lean"),
@@ -179,7 +176,6 @@ fn gather_plot(chart: &GatherChart) -> Option<Plotted> {
         .collect(),
         ticks: ticks_on(axis, Figure::Mass, ""),
         days: days_along(span, WIDTH),
-        right_ticks: vec![],
         legend: vec![
             ("mass", "Body mass"),
             ("lean", "Lean mass"),
@@ -219,7 +215,6 @@ fn band_plot(
                 class: "cap",
             },
         ],
-        dots: vec![],
         left: vec![],
         right: [
             labelled(current(&chart.amounts), scale, figure, class),
@@ -231,7 +226,6 @@ fn band_plot(
         .collect(),
         ticks: ticks_on(axis, figure, ""),
         days: days_along(span, WIDTH),
-        right_ticks: vec![],
         legend: vec![(class, name), ("floor", "Floor"), ("cap", "Cap")],
     })
 }
@@ -258,7 +252,6 @@ fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
                 class: "goal dashed",
             },
         ],
-        dots: vec![],
         left: vec![],
         right: [
             labelled(
@@ -279,7 +272,6 @@ fn burn_plot(chart: &BurnChart) -> Option<Plotted> {
         .collect(),
         ticks: ticks_on(burnt, Figure::Energy, "burnt"),
         days: days_along(span, WIDTH),
-        right_ticks: vec![],
         legend: vec![("burnt", "Burnt (kcal)"), ("goal dashed", "Target")],
     })
 }
@@ -315,7 +307,6 @@ pub fn Plot(plotted: Option<Plotted>) -> impl IntoView {
             };
             let (left, right) = (spread_out(plotted.left), spread_out(plotted.right));
             let grid: Vec<f64> = plotted.ticks.iter().map(|tick| tick.at).collect();
-            let two_axes = !plotted.right_ticks.is_empty();
             view! {
                 <div class="plot">
                     <svg viewBox="0 0 360 180" preserveAspectRatio="none">
@@ -330,20 +321,13 @@ pub fn Plot(plotted: Option<Plotted>) -> impl IntoView {
                             .iter()
                             .map(|(x, _)| view! { <line class="mark" x1=*x x2=*x y1="180" y2="186" /> })
                             .collect_view()}
-                        {two_axes.then(|| view! { <line class="axis" x1="360" x2="360" y1="0" y2="180" /> })}
                         {plotted
                             .lines
                             .into_iter()
                             .map(|line| view! { <polyline class=line.class points=line.points /> })
                             .collect_view()}
-                        {plotted
-                            .dots
-                            .into_iter()
-                            .map(|(x, y)| view! { <circle cx=x cy=y r="3" /> })
-                            .collect_view()}
                     </svg>
                     {clear_of(plotted.ticks, &left).into_iter().map(tick("left")).collect_view()}
-                    {clear_of(plotted.right_ticks, &right).into_iter().map(tick("right")).collect_view()}
                     {left.into_iter().map(place("left")).collect_view()}
                     {right.into_iter().map(place("right")).collect_view()}
                     {plotted
