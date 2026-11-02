@@ -13,7 +13,7 @@ use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
-use crate::screens::last_days::FuelLastDays;
+use crate::screens::last_days::{FuelLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToEat;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
 use crate::screens::tab::{DayCard, OpenTheGrimoire};
@@ -132,6 +132,77 @@ fn MacrosCard(
     }
 }
 
+/// An intake's quantity bare in grams or millilitres, a piece still named.
+fn quantity_of(eaten: &Intake) -> String {
+    match eaten.unit {
+        Unit::Piece => shown(Figure::Amount(eaten.quantity, eaten.unit)),
+        _ => bare(Figure::Amount(eaten.quantity, eaten.unit)),
+    }
+}
+
+/// An intake among its day's entries: the food by name, its figures and quantity, and its removal.
+#[component]
+fn IntakeEntry(
+    id: i64,
+    eaten: Intake,
+    date: String,
+    said: RwSignal<Option<String>>,
+) -> impl IntoView {
+    let recorded = Recorded::here();
+    let remove = move |_| {
+        let date = date.clone();
+        spawn_local(async move {
+            match tauri::remove_intake(&date, id).await {
+                Ok(_) => recorded.told(),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
+    view! {
+        <tr class="entry">
+            <td>{eaten.food.clone()}</td>
+            {nutrient_cells(eaten.nutrients)}
+            <td>{quantity_of(&eaten)}</td>
+            <td>
+                <button class="remove" type="button" on:click=remove aria-label="Remove this intake">
+                    "×"
+                </button>
+            </td>
+        </tr>
+    }
+}
+
+/// A day's intakes, opened under its row in the last days.
+#[component]
+pub fn FuelEntries(date: String) -> impl IntoView {
+    let recorded = Recorded::here();
+    let said = RwSignal::new(None::<String>);
+    let on_the_day = date.clone();
+    let fuel = LocalResource::new(move || {
+        recorded.heard();
+        let date = on_the_day.clone();
+        async move { tauri::fuel_day(&date).await }
+    });
+    view! {
+        {move || {
+            fuel.get()
+                .map(|answer| match answer {
+                    Ok(fuel) => {
+                        fuel.intakes
+                            .into_iter()
+                            .map(|(id, eaten)| {
+                                view! { <IntakeEntry id=id eaten=eaten date=date.clone() said=said /> }
+                            })
+                            .collect_view()
+                            .into_any()
+                    }
+                    Err(failure) => entries_failed(&failure),
+                })
+        }}
+        {move || said.get().map(entries_said)}
+    }
+}
+
 #[component]
 fn IntakeRow(
     id: i64,
@@ -156,12 +227,7 @@ fn IntakeRow(
     view! {
         <tr>
             <td>{eaten.food.clone()}</td>
-            <td>
-                {match eaten.unit {
-                    Unit::Piece => shown(Figure::Amount(eaten.quantity, eaten.unit)),
-                    _ => bare(Figure::Amount(eaten.quantity, eaten.unit)),
-                }}
-            </td>
+            <td>{quantity_of(&eaten)}</td>
             {nutrient_cells(eaten.nutrients)}
             <td>
                 <button class="remove" type="button" on:click=remove aria-label="Remove this intake">

@@ -1,6 +1,7 @@
 use std::cmp::Reverse;
 
 use chrono::{Datelike, NaiveDate};
+use grind_core::failure::Failure;
 use grind_core::figures::Figure;
 use grind_core::for_charting::{BurnRow, FuelRow, GatherRow, HydrateRow, Month};
 use leptos::prelude::*;
@@ -10,6 +11,7 @@ use crate::days::Shown;
 use crate::screens::charts::{
     bare_or_blank, bare_or_dash, burn_cells, fuel_cells, header, hydrate_cells,
 };
+use crate::screens::fuel::FuelEntries;
 use crate::screens::{Recorded, lines};
 use crate::tauri;
 
@@ -21,6 +23,28 @@ fn gathered_cells(row: GatherRow) -> impl IntoView {
         <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
         <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>
     }
+}
+
+/// A day's entries that could not be read, said across its row.
+pub(crate) fn entries_failed(failure: &Failure) -> AnyView {
+    entries_said(lines::failure(failure)).into_any()
+}
+
+/// A line said across a day's entries.
+pub(crate) fn entries_said(line: String) -> impl IntoView {
+    view! {
+        <tr class="entry">
+            <td class="bad" colspan="8">
+                {line}
+            </td>
+        </tr>
+    }
+}
+
+/// Nothing opens under a day of a tab without entries.
+#[component]
+fn NoEntries(date: String) -> impl IntoView {
+    let _ = date;
 }
 
 /// What loading more reads: the rest of the first month shown, else the month before it.
@@ -35,7 +59,7 @@ fn more_said(shown: Shown, earlier: Option<&str>) -> Option<String> {
 }
 
 macro_rules! last_days {
-    ($name:ident, $row:ty, $load:path, $render:path, [$(($head:literal, $unit:literal)),*]) => {
+    ($name:ident, $row:ty, $load:path, $render:path, $entries:ident, [$(($head:literal, $unit:literal)),*]) => {
         /// The days up to the tab's day, a week at first, then further back a load at a time.
         #[component]
         pub fn $name(day: RwSignal<String>) -> impl IntoView {
@@ -43,6 +67,8 @@ macro_rules! last_days {
             let shown = RwSignal::new(None::<Shown>);
             let months = RwSignal::new(Vec::<Month<$row>>::new());
             let said = RwSignal::new(None::<String>);
+            let open = RwSignal::new(None::<NaiveDate>);
+            Effect::new(move |_| open.set(NaiveDate::parse_from_str(&day.get(), "%Y-%m-%d").ok()));
             Effect::new(move |_| {
                 recorded.heard();
                 let chosen = NaiveDate::parse_from_str(&day.get(), "%Y-%m-%d").ok();
@@ -112,7 +138,14 @@ macro_rules! last_days {
                                         .into_iter()
                                         .map(|row| {
                                             let is_chosen = row.day.to_string() == chosen;
-                                            view! { <tr class:chosen=is_chosen>{$render(row)}</tr> }
+                                            let date = row.day;
+                                            let opened = move || open.get() == Some(date);
+                                            view! {
+                                                <tr class:chosen=is_chosen class:open=opened>
+                                                    {$render(row)}
+                                                </tr>
+                                                {move || opened().then(|| view! { <$entries date=date.to_string() /> })}
+                                            }
                                         })
                                         .collect_view()
                                 }}
@@ -146,6 +179,7 @@ last_days!(
     GatherRow,
     tauri::gather_month,
     gathered_cells,
+    NoEntries,
     [
         ("Day", ""),
         ("Mass", "kg"),
@@ -159,6 +193,7 @@ last_days!(
     FuelRow,
     tauri::fuel_month,
     fuel_cells,
+    FuelEntries,
     [
         ("Day", ""),
         ("Energy", "kcal"),
@@ -174,6 +209,7 @@ last_days!(
     HydrateRow,
     tauri::hydrate_month,
     hydrate_cells,
+    NoEntries,
     [("Day", ""), ("Drunk", "mL"), ("Water %", "")]
 );
 last_days!(
@@ -181,6 +217,7 @@ last_days!(
     BurnRow,
     tauri::burn_month,
     burn_cells,
+    NoEntries,
     [
         ("Day", ""),
         ("Burnt", "kcal"),

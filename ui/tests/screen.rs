@@ -1974,7 +1974,8 @@ async fn the_last_days_show_the_week_up_to_the_day_then_the_rest_of_its_month_th
     answering(&format!(
         r#"{{ "fuel_month": {{ "__by": "month",
             "2026-10": {{ "month": "2026-10", "earlier": "2026-08", "rows": [{}, {}, {}, {}] }},
-            "2026-08": {{ "month": "2026-08", "earlier": null, "rows": [{}, {}] }} }} }}"#,
+            "2026-08": {{ "month": "2026-08", "earlier": null, "rows": [{}, {}] }} }},
+            "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#,
         fuelled_on("2026-10-10", 2400.0),
         fuelled_on("2026-10-09", 2300.0),
         fuelled_on("2026-10-05", 2200.0),
@@ -2034,7 +2035,8 @@ async fn the_last_days_show_the_week_up_to_the_day_then_the_rest_of_its_month_th
 #[wasm_bindgen_test]
 async fn the_picked_day_stands_in_gold_in_its_last_days_at_zero_with_nothing_logged() {
     answering(&format!(
-        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }} }}"#,
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
+            "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#,
         r#"{ "day": "2026-10-12", "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0,
             "fat_g": 0.0, "fibre_g": 0.0 }, "quantity": 0.0 }"#,
         fuelled_on("2026-10-10", 2400.0),
@@ -2091,7 +2093,8 @@ async fn the_picked_day_not_weighed_stands_in_gathers_last_days_with_a_dash() {
 #[wasm_bindgen_test]
 async fn fuels_last_days_end_on_the_grams_and_millilitres_eaten() {
     answering(&format!(
-        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }} }}"#,
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }},
+            "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#,
         fuelled_on("2026-10-10", 2400.0),
     ));
     let screen = screen();
