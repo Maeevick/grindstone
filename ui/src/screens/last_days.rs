@@ -8,6 +8,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::days::Shown;
+use crate::screens::burn::BurnEntries;
 use crate::screens::charts::{
     bare_or_blank, bare_or_dash, burn_cells, fuel_cells, header, hydrate_cells,
 };
@@ -226,7 +227,7 @@ last_days!(
     BurnRow,
     tauri::burn_month,
     burn_cells,
-    NoEntries,
+    BurnEntries,
     [
         ("Day", ""),
         ("Burnt", "kcal"),

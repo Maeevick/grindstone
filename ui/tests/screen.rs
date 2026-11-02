@@ -2310,7 +2310,11 @@ async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
-            { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0 }] } }"#,
+            { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0 }] },
+            "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null,
+                "off_the_clock_is_usual": true }, "fuel_day": { "day": "2026-10-10", "intakes": [], "band": null,
+                "energy": null, "macros": null,
+                "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {

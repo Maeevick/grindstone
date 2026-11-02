@@ -15,10 +15,11 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::screens::charts::bare_or_dash;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
-use crate::screens::last_days::BurnLastDays;
+use crate::screens::last_days::{BurnLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToBurn;
 use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, OpenTheGrimoire};
@@ -36,6 +37,98 @@ const LOGGINGS: [(Logging, &str); 2] = [
     (Logging::Workout, "Workout"),
     (Logging::OffTheClock, "Off the clock"),
 ];
+
+/// A workout among its day's entries: the exercise by name, its circuit after it, its figures and its removal.
+#[component]
+fn WorkoutEntry(done: BurntWorkout, said: RwSignal<Option<String>>) -> impl IntoView {
+    let id = done.id;
+    let date = done.workout.day.to_string();
+    let recorded = Recorded::here();
+    let remove = move |_| {
+        let date = date.clone();
+        spawn_local(async move {
+            match tauri::remove_workout(&date, id).await {
+                Ok(_) => recorded.told(),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
+    let workout = done.workout;
+    let sets = f64::from(workout.sets);
+    view! {
+        <tr class="entry">
+            <td>
+                {workout.exercise.clone()}
+                {workout
+                    .circuit
+                    .clone()
+                    .map(|circuit| view! { <span class="hint">{format!(" · {circuit}")}</span> })}
+            </td>
+            <td>{bare_or_dash(done.burnt_kcal, Figure::Energy)}</td>
+            <td>{bare(Figure::Duration(workout.minutes * sets))}</td>
+            <td>{bare_or_dash(workout.reps.map(|reps| f64::from(reps) * sets), Figure::Count)}</td>
+            <td>
+                <button class="remove" type="button" on:click=remove aria-label="Remove this workout">
+                    "×"
+                </button>
+            </td>
+        </tr>
+    }
+}
+
+/// The time off the clock or the fidgeting among a day's entries: what it burnt, nothing to remove.
+fn neat_entry(activity: &'static str, kcal: f64) -> impl IntoView {
+    view! {
+        <tr class="entry neat">
+            <td>{activity}</td>
+            <td>{bare(Figure::Energy(kcal))}</td>
+            <td>"–"</td>
+            <td>"–"</td>
+            <td></td>
+        </tr>
+    }
+}
+
+/// A day's workouts, newest first, then its time off the clock and its fidgeting, opened under its row in the
+/// last days.
+#[component]
+pub fn BurnEntries(date: String) -> impl IntoView {
+    let recorded = Recorded::here();
+    let said = RwSignal::new(None::<String>);
+    let burn = LocalResource::new(move || {
+        recorded.heard();
+        let date = date.clone();
+        async move { (tauri::burn_day(&date).await, tauri::fuel_day(&date).await) }
+    });
+    view! {
+        {move || {
+            burn.get()
+                .map(|(answer, fuel)| match answer {
+                    Ok(burn) => {
+                        let mut done = burn.workouts;
+                        done.sort_by_key(|workout| Reverse(workout.id));
+                        let spent = fuel.ok().and_then(|fuel| fuel.budget);
+                        view! {
+                            {done
+                                .into_iter()
+                                .map(|done| view! { <WorkoutEntry done=done said=said /> })
+                                .collect_view()}
+                            {spent
+                                .map(|spent| {
+                                    view! {
+                                        {neat_entry("Off the clock (volitional)", spent.volitional_kcal)}
+                                        {neat_entry("Fidgeting (spontaneous)", spent.spontaneous_kcal)}
+                                    }
+                                })}
+                        }
+                            .into_any()
+                    }
+                    Err(failure) => entries_failed(&failure),
+                })
+        }}
+        {move || said.get().map(entries_said)}
+    }
+}
 
 #[component]
 fn ExpenditureRow(
