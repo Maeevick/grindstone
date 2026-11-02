@@ -2177,15 +2177,28 @@ async fn the_days_intakes_list_each_food_with_its_quantity_energy_and_macros() {
     let _mounted = the_fuel_day(&screen);
     settled().await;
 
-    let heads = text_of(&screen, "table.intakes thead");
-    assert!(
-        heads.contains("kcal") && heads.contains("Prot (g)") && heads.contains("Carbs (g)"),
-        "{heads}"
-    );
-    let row = text_of(&screen, "table.intakes tbody tr");
-    assert!(
-        row.contains("Skyr") && row.contains("200 g") && row.contains("108") && row.contains("19"),
-        "{row}"
+    assert_eq!(
+        (
+            texts_in_order(&screen, "table.intakes thead th"),
+            texts_in_order(&screen, "table.intakes tbody td")
+        ),
+        (
+            [
+                "Food",
+                "Qty (g)",
+                "kcal",
+                "Prot (g)",
+                "Fat (g)",
+                "Fib (g)",
+                "Carbs (g)",
+                ""
+            ]
+            .map(String::from)
+            .to_vec(),
+            ["Skyr", "200", "108", "19", "0", "0", "8", "×"]
+                .map(String::from)
+                .to_vec()
+        )
     );
 }
 
