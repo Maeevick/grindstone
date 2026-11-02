@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::aims::{Aims, aims_on, goals_in_force};
 use crate::failure::Failure;
-use crate::for_reviewing_progress::Window;
+use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
-use crate::pace::{Pace, pace_on};
+use crate::pace::{Pace, pace_between, pace_on};
 use crate::refusal::Refusal;
 use crate::tendency::{Tendency, tendency_of};
 
@@ -60,10 +60,14 @@ pub fn gather_week(
 pub fn pace_over_the_window(
     records: &impl ForStoringGatherRecords,
     today: &str,
-    _window: Window,
+    window: Window,
 ) -> Result<Option<Pace>, Failure> {
     let today = day_of(today)?;
-    Ok(pace_on(today, &records.gather_records()?))
+    Ok(pace_between(
+        first_day_of(window, today),
+        today,
+        &records.gather_records()?,
+    ))
 }
 
 pub fn log_measurement(
