@@ -3886,6 +3886,23 @@ async fn the_history_marks_each_day_with_its_streak_dot_under_headers_holding_th
 }
 
 #[wasm_bindgen_test]
+async fn the_history_shows_today_in_gold() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
+                {{ "day": "2026-10-10", "body_mass_kg": null, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }},
+                {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".history tbody tr.chosen td:first-child"),
+        ["2026-10-10"]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_history_row_tapped_shows_its_days_four_ticks() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
