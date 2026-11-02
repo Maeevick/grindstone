@@ -1,4 +1,4 @@
-use chrono::{Days, NaiveDate};
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::aims::aims_on;
@@ -53,7 +53,6 @@ impl Pace {
     }
 }
 
-const DAYS_BEFORE_THE_DAY_IN_A_WEEK: u64 = 6;
 const FEWEST_WEIGH_INS: usize = 4;
 const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
@@ -108,16 +107,6 @@ fn weekly(first: NaiveDate, day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Op
         .collect();
     let progress = progress_towards(None, &trend)?;
     Some((progress.per_week, trend.last()?.1))
-}
-
-/// The week's pace on a day: how each measure moved per week, heading toward its aim or away from it, and a
-/// judgement of the body mass's pace, health first.
-pub fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
-    pace_between(
-        day - Days::new(DAYS_BEFORE_THE_DAY_IN_A_WEEK),
-        day,
-        gathered,
-    )
 }
 
 /// The pace from a first day to the last, read per week as on the last day of a week.
@@ -176,6 +165,7 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
 mod tests {
     use super::*;
     use crate::kept::Kept;
+    use chrono::Days;
 
     use crate::gender::Gender;
     use crate::measurement::Measurement;
@@ -183,6 +173,10 @@ mod tests {
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
+        pace_between(day - Days::new(6), day, gathered)
     }
 
     fn a_man_weighed(from_kg: f64, kg_a_day: f64) -> GatherRecords {

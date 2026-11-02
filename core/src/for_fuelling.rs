@@ -235,7 +235,7 @@ mod tests {
     fn the_average_over_a_window_runs_over_its_logged_days_up_to_today_today_left_out() {
         let fuel = a_catalog_with_skyr();
         let (gather, burn) = (a_man_with_a_waist(), BurnRecordsInMemory::default());
-        for date in ["2026-09-20", "2026-10-05", "2026-10-10"] {
+        for date in ["2026-08-20", "2026-10-05", "2026-10-10"] {
             log_intake(&gather, &burn, &fuel, &skyr(date, 200.0)).expect("an intake");
         }
         let logged_over = |window| {
@@ -249,9 +249,10 @@ mod tests {
             [
                 logged_over(Window::Days7),
                 logged_over(Window::Days30),
+                logged_over(Window::Days90),
                 logged_over(Window::Everything)
             ],
-            [Some(1), Some(2), Some(2)]
+            [Some(1), Some(1), Some(2), Some(2)]
         );
     }
 

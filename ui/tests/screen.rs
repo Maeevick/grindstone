@@ -448,10 +448,7 @@ fn a_gathered_week() -> String {
         r#"{{ "day": {A_GATHERED_DAY},
               "days": [{A_GATHERED_DAY},
                        {{ "day": "2026-10-07", "body_mass_kg": 80.6, "waist_cm": null, "age": 41,
-                          "composition": {{ "fat_ratio": 0.1158, "fat_mass_kg": 9.6, "lean_mass_kg": 71.0 }} }}],
-              "tendency": {{ "body_mass": {{ "by": -0.6, "heading": "Toward" }}, "waist": null,
-                             "fat_ratio": {{ "by": 0.0004, "heading": "Steady" }},
-                             "lean_mass": {{ "by": -0.3, "heading": "Away" }} }} }}"#
+                          "composition": {{ "fat_ratio": 0.1158, "fat_mass_kg": 9.6, "lean_mass_kg": 71.0 }} }}] }}"#
     )
 }
 
@@ -460,7 +457,6 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
  {
     answering(&format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
-              "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
               "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }} }}"#
     ));
     let screen = screen();
@@ -511,7 +507,6 @@ async fn where_you_stand_tells_the_body_masss_band_and_how_far_the_lean_mass_sta
     let titles_aiming_at = |aims: &'static str| async move {
         answering(&format!(
             r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
-                  "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
                   "aims": {aims} }} }}"#
         ));
         let screen = screen();
@@ -562,7 +557,6 @@ async fn the_gap_a_line_tells_adds_up_with_the_figures_it_shows() {
                  "composition": { "fat_ratio": 0.137, "fat_mass_kg": 9.66, "lean_mass_kg": 60.84 } },
               "days": [{ "day": "2026-10-10", "body_mass_kg": 70.5, "waist_cm": 80.0, "age": 41,
                  "composition": { "fat_ratio": 0.137, "fat_mass_kg": 9.66, "lean_mass_kg": 60.84 } }],
-              "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null },
               "aims": { "body_mass_kg": 70.0, "lean_mass_kg": 61.56, "recommended": false } } }"#,
     );
     let gathered_on = screen();
@@ -664,8 +658,7 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
     assert!(tip.starts_with('“') && tip.ends_with('”'), "{tip}");
 }
 
-const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [],
-    "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } }"#;
+const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [] }"#;
 
 fn the_gather_tab(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -2495,7 +2488,7 @@ const A_HOME: &str = r#"{ "profile_on": ["2026-03-01", { "birthday": "1985-04-12
                  "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } },
              "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null, "off_the_clock_is_usual": true },
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
-                 "days": [], "tendency": { "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null } } }"#;
+                 "days": [] } }"#;
 
 const EVERY_TAB: &str = r#"{ "foods": [], "meals": [], "drinks": [], "exercises": [], "circuits": [], "fuel_week": null, "hydrate_week": null, "burn_week": null,
     "priced_circuits": [], "hydrate_day": { "day": "2026-10-10", "drinkings": [], "drunk_ml": 0.0,
@@ -2568,7 +2561,6 @@ async fn each_tab_runs_from_its_day_through_its_log_band_breakdown_and_entries_t
  {
     let a_day_in_each_tab = format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
-                  "tendency": {{ "body_mass": null, "waist": null, "fat_ratio": null, "lean_mass": null }},
                   "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }},
               "fuel_day": {A_FUELLED_DAY}, "hydrate_day": {A_DAY_WITH_TWO_DRINKS},
               "burn_day": {A_BURN_SHORT_OF_ITS_TARGET} }}"#

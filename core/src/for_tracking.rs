@@ -1,16 +1,15 @@
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use crate::aims::{Aims, aims_on, goals_in_force};
+use crate::aims::{Aims, aims_on};
 use crate::failure::Failure;
 use crate::for_reviewing_progress::{Window, first_day_of};
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
-use crate::pace::{Pace, pace_between, pace_on};
+use crate::pace::{Pace, pace_between};
 use crate::refusal::Refusal;
-use crate::tendency::{Tendency, tendency_of};
 
 const DAYS_BEFORE_IN_A_WEEK: u64 = 6;
 
@@ -18,9 +17,7 @@ const DAYS_BEFORE_IN_A_WEEK: u64 = 6;
 pub struct GatherWeek {
     pub day: Option<Day>,
     pub days: Vec<Day>,
-    pub tendency: Tendency,
     pub aims: Option<Aims>,
-    pub pace: Option<Pace>,
 }
 
 fn day_of(date: &str) -> Result<NaiveDate, Failure> {
@@ -36,15 +33,8 @@ fn week_ending_on(gathered: &GatherRecords, day: NaiveDate) -> GatherWeek {
         .collect();
     GatherWeek {
         day: days.first().filter(|measured| measured.day == day).copied(),
-        tendency: tendency_of(
-            &days,
-            goals_in_force(day, gathered)
-                .map(|goals| goals.values)
-                .as_ref(),
-        ),
         days,
         aims: aims_on(day, gathered),
-        pace: pace_on(day, gathered),
     }
 }
 
@@ -98,7 +88,6 @@ mod tests {
     use crate::kept::Kept;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
-    use crate::tendency::Heading;
     use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory};
 
     fn day(date: &str) -> NaiveDate {
@@ -224,34 +213,6 @@ mod tests {
     }
 
     #[test]
-    fn a_week_tells_its_tendency_against_the_goals_in_force() {
-        let records = GatherRecordsInMemory::default();
-        records
-            .save_goals(
-                day("2026-09-01"),
-                &Kept::Own(Goals {
-                    body_mass_kg: 75.0,
-                    fat_ratio: 0.15,
-                }),
-            )
-            .expect("goals save");
-        log_measurement(&records, "2026-10-01", 80.0, None).expect("a measurement logs");
-        log_measurement(&records, "2026-10-04", 80.5, None).expect("a measurement logs");
-
-        let week = log_measurement(&records, "2026-10-07", 79.0, None).expect("a week");
-
-        assert_eq!(
-            week.tendency.body_mass.map(|change| change.heading),
-            Some(Heading::Toward)
-        );
-        assert!(
-            week.tendency
-                .body_mass
-                .is_some_and(|change| (change.by - -1.0).abs() < 1e-9)
-        );
-    }
-
-    #[test]
     fn a_week_carries_the_aims_of_its_day() {
         let records = GatherRecordsInMemory::default();
         records
@@ -274,22 +235,6 @@ mod tests {
             )
         );
         assert!(week.aims.is_some());
-    }
-
-    #[test]
-    fn a_week_carries_the_pace_of_its_day() {
-        let records = a_september_of_weigh_ins();
-
-        let week = gather_week(&records, "2026-09-20").expect("a week");
-
-        assert_eq!(
-            week.pace,
-            crate::pace::pace_on(
-                day("2026-09-20"),
-                &records.gather_records().expect("records")
-            )
-        );
-        assert!(week.pace.is_some());
     }
 
     #[test]
