@@ -43,6 +43,14 @@ body {
 	gap: 10px;
 }
 
+.top .home {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	color: inherit;
+	text-decoration: none;
+}
+
 .top .logo {
 	width: 34px;
 	height: 34px;

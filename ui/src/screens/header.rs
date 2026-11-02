@@ -133,11 +133,13 @@ pub fn Header() -> impl IntoView {
     view! {
         <header class="top">
             <div class="brand">
-                <img class="logo" src="/icon.svg" alt="" />
-                <div class="title">
-                    <h1>"GRINDSTONE"</h1>
-                    <span class="tag">"sharpen this rusty you!"</span>
-                </div>
+                <A href="/" attr:class="home">
+                    <img class="logo" src="/icon.svg" alt="" />
+                    <div class="title">
+                        <h1>"GRINDSTONE"</h1>
+                        <span class="tag">"sharpen this rusty you!"</span>
+                    </div>
+                </A>
                 <A href="/profile" attr:class="person" attr:aria-label="Profile">
                     "👤"
                 </A>
