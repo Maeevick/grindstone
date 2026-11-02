@@ -642,7 +642,8 @@ hr.divider {
 	border-top: 1px solid var(--line);
 }
 
-.last-days tr.chosen td {
+.last-days tr.chosen td,
+.history-table tr.chosen td {
 	color: var(--acc);
 }
 

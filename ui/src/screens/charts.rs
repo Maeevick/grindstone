@@ -515,11 +515,17 @@ fn ticks_of(streaked: StreakDay) -> impl IntoView {
 }
 
 #[component]
-fn HistoryRow(streaked: Option<StreakDay>, columns: usize, children: Children) -> impl IntoView {
+fn HistoryRow(
+    streaked: Option<StreakDay>,
+    chosen: bool,
+    columns: usize,
+    children: Children,
+) -> impl IntoView {
     let open = RwSignal::new(false);
     view! {
         <tr
             class:streaked=streaked.is_some()
+            class:chosen=chosen
             on:click=move |_| {
                 if streaked.is_some() {
                     open.update(|open| *open = !*open);
@@ -552,6 +558,7 @@ macro_rules! history {
             let months = RwSignal::new(Vec::<Month<$row>>::new());
             let said = RwSignal::new(None::<String>);
             let picked = today.clone();
+            let chosen = today.clone();
             let load = Callback::new(move |month: String| {
                 let picked = picked.clone();
                 spawn_local(async move {
@@ -581,8 +588,9 @@ macro_rules! history {
                                             .iter()
                                             .find(|streaked| streaked.day == row.day)
                                             .copied();
+                                        let chosen = row.day.to_string() == chosen;
                                         view! {
-                                            <HistoryRow streaked=streaked columns=columns>
+                                            <HistoryRow streaked=streaked chosen=chosen columns=columns>
                                                 {$render(row)}
                                             </HistoryRow>
                                         }
