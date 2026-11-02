@@ -1620,7 +1620,7 @@ async fn burns_week_sum_up_holds_the_weeks_burn_against_its_target_over_its_acti
 
     assert_eq!(
         text_of(&screen, ".week p.week-burn"),
-        "458 kcal burnt against the week's 308 kcal target, over 3 active days."
+        "458 kcal burnt against its days' 308 kcal target, over 3 active days."
     );
     assert_eq!(
         attributes_of(&screen, ".week p.week-burn span", "class"),
