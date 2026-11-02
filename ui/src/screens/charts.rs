@@ -469,8 +469,9 @@ pub(crate) fn fuel_cells(row: FuelRow) -> impl IntoView {
             <td>{bare(Figure::Energy(row.eaten.energy_kcal))}</td>
             <td>{bare(Figure::Grams(row.eaten.protein_g))}</td>
             <td>{bare(Figure::Grams(row.eaten.fat_g))}</td>
-            <td>{bare(Figure::Grams(row.eaten.carbs_g))}</td>
             <td>{bare(Figure::Grams(row.eaten.fibre_g))}</td>
+            <td>{bare(Figure::Grams(row.eaten.carbs_g))}</td>
+            <td>{bare(Figure::Grams(row.quantity))}</td>
     }
 }
 
@@ -629,8 +630,9 @@ history!(
         ("Energy", "kcal"),
         ("Prot", "g"),
         ("Fat", "g"),
+        ("Fib", "g"),
         ("Carbs", "g"),
-        ("Fib", "g")
+        ("Qty", "g, mL")
     ]
 );
 history!(

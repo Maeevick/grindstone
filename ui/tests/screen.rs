@@ -2042,7 +2042,7 @@ async fn the_picked_day_stands_in_gold_in_its_last_days_at_zero_with_nothing_log
         ),
         (
             true,
-            ["2026-10-12", "0", "0", "0", "0", "0"]
+            ["2026-10-12", "0", "0", "0", "0", "0", "0"]
                 .map(String::from)
                 .to_vec()
         )

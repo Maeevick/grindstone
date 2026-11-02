@@ -164,8 +164,9 @@ last_days!(
         ("Energy", "kcal"),
         ("Prot", "g"),
         ("Fat", "g"),
+        ("Fib", "g"),
         ("Carbs", "g"),
-        ("Fib", "g")
+        ("Qty", "g, mL")
     ]
 );
 last_days!(
