@@ -12,11 +12,10 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::{MacroRow, Macros, fuel_over};
-use crate::hydrate::{Hydrate, hydrate_over};
+use crate::fuel::fuel_over;
+use crate::hydrate::hydrate_over;
 use crate::ledger::{Day, ledger};
 use crate::refusal::Refusal;
-use crate::verdict::Verdict;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct GatherChart {
@@ -171,117 +170,6 @@ pub fn burn_chart(
             .iter()
             .filter_map(|of_the_day| of_the_day.target_kcal.map(|kcal| (of_the_day.day, kcal)))
             .collect(),
-    })
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Tally {
-    pub low: usize,
-    pub in_band: usize,
-    pub high: usize,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct Insights {
-    pub days: usize,
-    pub weighed_days: usize,
-    pub fuelled_days: usize,
-    pub energy: Tally,
-    pub protein: Tally,
-    pub fat: Tally,
-    pub fibre: Tally,
-    pub carbs: Tally,
-    pub hydrated_days: usize,
-    pub hydrate: Tally,
-    pub active_days: usize,
-    pub burnt_per_active_day: Option<f64>,
-}
-
-pub fn insights(
-    gather: &impl ForStoringGatherRecords,
-    burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
-    hydrate: &impl ForStoringHydrateRecords,
-    today: &str,
-    window: Window,
-) -> Result<Insights, Failure> {
-    let (opening, last) = span_of(today, window)?;
-    let (gathered, burnt, fuelled, hydrated) = (
-        gather.gather_records()?,
-        burn.burn_records()?,
-        fuel.fuel_records()?,
-        hydrate.hydrate_records()?,
-    );
-    let measured = gathered.measurements.iter().map(|measured| measured.day);
-    let eaten = fuelled.intakes.iter().map(|(_, eaten)| eaten.day);
-    let drunk = hydrated.drinkings.iter().map(|(_, drunk)| drunk.day);
-    let worked_out = burnt.workouts.iter().map(|(_, done)| done.day);
-    let first_record = measured
-        .clone()
-        .chain(eaten.clone())
-        .chain(drunk.clone())
-        .chain(worked_out.clone())
-        .min()
-        .unwrap_or(last);
-    let span = (opening.max(first_record), last);
-    let fuelled_days = fuel_over(&days_within(eaten, span), &gathered, &burnt, &fuelled);
-    let hydrated_days: Vec<Hydrate> = hydrate_over(
-        &days_within(drunk, span),
-        &hydrated,
-        &gathered,
-        &burnt,
-        &fuelled,
-    );
-    let burns: Vec<f64> = days_within(worked_out, span)
-        .iter()
-        .filter_map(|day| burn_on(*day, &burnt, &gathered).burnt_kcal)
-        .collect();
-    let tally_of = |verdicts: Vec<Verdict>| Tally {
-        low: verdicts
-            .iter()
-            .filter(|verdict| **verdict == Verdict::Low)
-            .count(),
-        in_band: verdicts
-            .iter()
-            .filter(|verdict| **verdict == Verdict::InBand)
-            .count(),
-        high: verdicts
-            .iter()
-            .filter(|verdict| **verdict == Verdict::High)
-            .count(),
-    };
-    let macro_tally = |row: fn(&Macros) -> MacroRow| {
-        tally_of(
-            fuelled_days
-                .iter()
-                .filter_map(|fuelled| fuelled.macros.as_ref().map(|macros| row(macros).verdict))
-                .collect(),
-        )
-    };
-    Ok(Insights {
-        days: ((span.1 - span.0).num_days() + 1).max(0) as usize,
-        weighed_days: days_within(measured, span).len(),
-        fuelled_days: fuelled_days.len(),
-        energy: tally_of(
-            fuelled_days
-                .iter()
-                .filter_map(|fuelled| fuelled.energy)
-                .collect(),
-        ),
-        protein: macro_tally(|macros| macros.protein),
-        fat: macro_tally(|macros| macros.fat),
-        fibre: macro_tally(|macros| macros.fibre),
-        carbs: macro_tally(|macros| macros.carbs),
-        hydrated_days: hydrated_days.len(),
-        hydrate: tally_of(
-            hydrated_days
-                .iter()
-                .map(|of_the_day| of_the_day.verdict)
-                .collect(),
-        ),
-        active_days: burns.len(),
-        burnt_per_active_day: (!burns.is_empty())
-            .then(|| burns.iter().sum::<f64>() / burns.len() as f64),
     })
 }
 
@@ -887,90 +775,6 @@ mod tests {
         let october = burn_month(&logged.gather, &logged.burn, "2026-10").expect("a month");
 
         assert_eq!(october.rows[0].top_exercise.as_deref(), Some("Push up"));
-    }
-
-    #[test]
-    fn insights_tally_each_habit_under_inside_and_over_its_band_over_the_window() {
-        let logged = a_logged_man();
-
-        let found = insights(
-            &logged.gather,
-            &logged.burn,
-            &logged.fuel,
-            &logged.hydrate,
-            "2026-10-10",
-            Window::Days30,
-        )
-        .expect("insights");
-
-        assert_eq!(found.days, 30);
-        assert_eq!(
-            (
-                found.weighed_days,
-                found.fuelled_days,
-                found.hydrated_days,
-                found.active_days
-            ),
-            (2, 2, 2, 2)
-        );
-        for tally in [
-            found.energy,
-            found.protein,
-            found.fat,
-            found.fibre,
-            found.carbs,
-            found.hydrate,
-        ] {
-            assert_eq!(tally.low + tally.in_band + tally.high, 2, "{tally:?}");
-        }
-        assert_eq!(found.hydrate.low, 2);
-        assert!(found.burnt_per_active_day.is_some_and(|kcal| kcal > 0.0));
-    }
-
-    #[test]
-    fn over_everything_the_window_opens_on_the_first_record() {
-        let logged = a_logged_man();
-
-        let found = insights(
-            &logged.gather,
-            &logged.burn,
-            &logged.fuel,
-            &logged.hydrate,
-            "2026-10-10",
-            Window::Everything,
-        )
-        .expect("insights");
-
-        assert_eq!(found.days, 71);
-        assert_eq!(found.weighed_days, 3);
-    }
-
-    #[test]
-    fn insights_read_the_burn_of_an_active_day_as_the_mean_of_its_days() {
-        let logged = a_logged_man();
-        let burnt_on = |date| {
-            crate::for_burning::burn_day(&logged.gather, &logged.burn, date)
-                .ok()
-                .and_then(|burnt| burnt.burnt_kcal)
-                .expect("a burn")
-        };
-        let mean = (burnt_on("2026-10-09") + burnt_on("2026-10-10")) / 2.0;
-
-        let found = insights(
-            &logged.gather,
-            &logged.burn,
-            &logged.fuel,
-            &logged.hydrate,
-            "2026-10-10",
-            Window::Days30,
-        )
-        .expect("insights");
-
-        assert!(
-            found
-                .burnt_per_active_day
-                .is_some_and(|kcal| (kcal - mean).abs() < 1e-9)
-        );
     }
 
     #[test]

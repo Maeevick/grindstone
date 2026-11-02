@@ -1,12 +1,21 @@
 use serde::{Deserialize, Serialize};
 
 use crate::fuel::{Band, Fuel, MacroRow, Macros};
-use crate::sharpening::Habit;
 use crate::verdict::Verdict;
 use crate::week::{Averaged, Banded, averaged};
 
 /// What the week ate, a day, over the days a band judged: the energy and each of the four macros against
 /// their bands.
+/// A habit of Fuel the average tells of: the energy or one of the four macros.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Habit {
+    Energy,
+    Protein,
+    Fat,
+    Fibre,
+    Carbs,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FuelWeek {
     pub logged_days: usize,

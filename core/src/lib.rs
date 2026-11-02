@@ -53,7 +53,6 @@ pub mod profile;
 pub mod progress;
 pub mod recommendations;
 pub mod refusal;
-pub mod sharpening;
 pub mod streak;
 pub mod tendency;
 #[cfg(any(test, feature = "testing"))]

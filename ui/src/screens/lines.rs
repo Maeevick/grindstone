@@ -5,6 +5,7 @@ use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
+use grind_core::fuel_week::Habit;
 use grind_core::fuel_week::{FuelWeek, Gap};
 use grind_core::heading::Aim;
 use grind_core::hydrate::Hydrate;
@@ -14,7 +15,6 @@ use grind_core::meal::Ingredient;
 use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
-use grind_core::sharpening::Habit;
 use grind_core::streak::{Status, Streak};
 use grind_draft::{DraftRefusal, ImportFailure};
 
@@ -517,7 +517,6 @@ fn habit_name(habit: Habit) -> &'static str {
         Habit::Fat => "Fat",
         Habit::Fibre => "Fibre",
         Habit::Carbs => "Carbs",
-        Habit::Hydrate => "Water",
     }
 }
 

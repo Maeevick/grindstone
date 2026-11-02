@@ -491,9 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn the_weeks_pace_reads_the_rate_homes_chart_reads_over_its_seven_days() {
-        use crate::for_reviewing_progress::{Window, gather_card};
-        use crate::for_storing_gather_records::ForStoringGatherRecords;
+    fn the_weeks_pace_reads_the_slope_of_the_seven_day_average_over_its_seven_days() {
         let weighed = [
             71.4, 71.0, 71.1, 71.2, 71.4, 71.4, 70.9, 71.5, 71.0, 71.7, 71.7, 71.4, 71.5, 71.7,
             72.4, 72.4, 72.1, 72.2, 72.0,
@@ -510,17 +508,9 @@ mod tests {
                 .collect(),
             ..a_man_weighed(80.0, 0.0)
         };
-        let kept = crate::testing::GatherRecordsInMemory::default();
-        kept.replace_gather_records(&gathered)
-            .expect("the records replace");
 
         let pace = pace_on(day("2026-10-19"), &gathered).expect("a pace");
-        let homes = gather_card(&kept, "2026-10-19", Window::Days7)
-            .expect("a card")
-            .progress
-            .expect("a progress");
 
-        assert!((pace.body_mass.by - homes.per_week).abs() < 1e-9);
         assert!((pace.body_mass.by - -0.257).abs() < 1e-3);
     }
 
