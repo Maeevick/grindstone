@@ -232,6 +232,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
         });
     });
     Effect::new(move |_| {
+        recorded.heard();
         let date = day.get();
         spawn_local(async move {
             match tauri::hydrate_day(&date).await {

@@ -1058,16 +1058,24 @@ async fn a_circuit_chosen_in_the_workout_form_asks_its_sets_alone_and_previews_t
 
 #[wasm_bindgen_test]
 async fn logging_a_workout_lists_it_with_what_it_burnt() {
-    answering(&format!(
+    let before = format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [], "burn_day": {AN_EMPTY_BURN},
              "fuel_day": {A_DAY_NOT_FUELLED_YET},
              "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true,
                  "workouts": [{{ "id": 1, "burnt_kcal": 252.0, "workout": {{ "day": "2026-10-10", "exercise": "Walking",
                      "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null }} }}] }} }}"#
-    ));
+    );
+    answering(&before);
     let screen = screen();
     let _mounted = the_burn_day(&screen);
     settled().await;
+    answering_all(&[
+        &before,
+        &format!(
+            r#"{{ "burn_day": {} }}"#,
+            r#"{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true, "workouts": [{ "id": 1, "burnt_kcal": 252.0, "workout": { "day": "2026-10-10", "exercise": "Walking", "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null } }] }"#
+        ),
+    ]);
 
     typed_into(&screen, "exercise", "Walking");
     typed_into(&screen, "minutes", "60");
@@ -1755,12 +1763,14 @@ async fn the_food_chooser_starts_on_select_me_and_narrows_from_three_letters() {
 
 #[wasm_bindgen_test]
 async fn a_quantity_left_empty_logs_one_portion_of_the_food_its_placeholder_shows() {
-    answering(&format!(
+    let before = format!(
         r#"{{ "foods": {THREE_FOODS}, "fuel_day": {A_DAY_NOT_FUELLED_YET}, "log_intake": {A_FUELLED_DAY} }}"#
-    ));
+    );
+    answering(&before);
     let screen = screen();
     let _mounted = the_fuel_day(&screen);
     settled().await;
+    answering_all(&[&before, &format!(r#"{{ "fuel_day": {} }}"#, A_FUELLED_DAY)]);
 
     typed_into(&screen, "food", "skyr");
     settled().await;
@@ -3670,13 +3680,18 @@ const A_DAY_OF_MORNING_RUST: &str = r#"{ "day": "2026-10-10", "burnt_kcal": 120.
 
 #[wasm_bindgen_test]
 async fn a_circuit_logged_from_the_workout_form_runs_by_its_sets() {
-    answering(&format!(
+    let before = format!(
         r#"{{ "exercises": [], "circuits": [{MORNING_RUST}], "burn_day": {AN_EMPTY_BURN},
              "fuel_day": {A_DAY_NOT_FUELLED_YET}, "log_circuit": {A_DAY_OF_MORNING_RUST} }}"#
-    ));
+    );
+    answering(&before);
     let screen = screen();
     let _mounted = the_burn_day(&screen);
     settled().await;
+    answering_all(&[
+        &before,
+        &format!(r#"{{ "burn_day": {} }}"#, A_DAY_OF_MORNING_RUST),
+    ]);
 
     typed_into(&screen, "exercise", "Morning rust");
     typed_into(&screen, "sets", "3");
@@ -3870,14 +3885,22 @@ async fn the_days_hydrate_reloads_when_the_day_changes() {
 
 #[wasm_bindgen_test]
 async fn a_logged_drink_joins_the_day_in_millilitres_and_the_form_empties() {
-    answering(&format!(
+    let before = format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY},
               "log_drink": {{ "day": "2026-10-11", "drinkings": [[1, {{ "day": "2026-10-11", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }}]],
                               "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }} }}"#
-    ));
+    );
+    answering(&before);
     let screen = screen();
     let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
     settled().await;
+    answering_all(&[
+        &before,
+        &format!(
+            r#"{{ "hydrate_day": {} }}"#,
+            r#"{ "day": "2026-10-11", "drinkings": [[1, { "day": "2026-10-11", "drink": "Tea", "kind": "Other", "servings": 1.5, "volume_ml": 300.0 }]], "drunk_ml": 300.0, "target_ml": 2000.0, "floor_ml": 1800.0, "cap_ml": 2200.0, "verdict": "Low" }"#
+        ),
+    ]);
 
     typed_into(&screen, "drink", "Tea");
     typed_into(&screen, "volume", "300");

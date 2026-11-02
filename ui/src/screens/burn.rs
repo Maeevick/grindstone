@@ -313,6 +313,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         });
     });
     Effect::new(move |_| {
+        recorded.heard();
         let date = day.get();
         budget_of(date.clone());
         spawn_local(async move {
