@@ -2182,6 +2182,25 @@ async fn the_picked_days_entries_stand_open_under_its_row() {
 }
 
 #[wasm_bindgen_test]
+async fn a_tap_on_another_day_opens_its_entries_and_closes_the_picked_days() {
+    let screen = screen();
+    let _mounted = fuels_last_days(&screen);
+    settled().await;
+    settled().await;
+
+    clicked(&screen, ".last-days tbody tr:not(.chosen):not(.entry)");
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        first_cells(&screen),
+        ["2026-10-10", "2026-10-09", "Pasta in cream"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
