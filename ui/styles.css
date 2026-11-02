@@ -176,6 +176,15 @@ td {
 	border-top: 1px solid var(--line);
 }
 
+th:not(:first-child),
+td:not(:first-child) {
+	text-align: right;
+}
+
+.drinks td.hint {
+	text-align: left;
+}
+
 .empty {
 	color: var(--mut);
 	font-style: italic;
