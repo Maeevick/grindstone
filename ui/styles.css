@@ -185,6 +185,11 @@ td:not(:first-child) {
 	text-align: left;
 }
 
+.last-days td:first-child,
+.history-table td:first-child {
+	white-space: nowrap;
+}
+
 .empty {
 	color: var(--mut);
 	font-style: italic;
