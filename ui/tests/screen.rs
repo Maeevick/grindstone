@@ -10,7 +10,7 @@ use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
 use grind_ui::screens::hydrate::HydrateDay;
-use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays};
+use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays, GatherLastDays};
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
@@ -2046,6 +2046,30 @@ async fn the_picked_day_stands_in_gold_in_its_last_days_at_zero_with_nothing_log
                 .map(String::from)
                 .to_vec()
         )
+    );
+}
+
+#[wasm_bindgen_test]
+async fn the_picked_day_not_weighed_stands_in_gathers_last_days_with_a_dash() {
+    answering(
+        r#"{ "gather_month": { "month": "2026-10", "earlier": null, "rows": [
+            { "day": "2026-10-12", "body_mass_kg": null, "waist_cm": null, "lean_mass_kg": null,
+              "fat_mass_kg": null, "fat_ratio": null }] } }"#,
+    );
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-12".to_string());
+        view! {
+            <Router>
+                <GatherLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".last-days tr.chosen td"),
+        ["2026-10-12", "–", "", "", ""].map(String::from).to_vec()
     );
 }
 
