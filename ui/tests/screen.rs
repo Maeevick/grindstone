@@ -2129,6 +2129,55 @@ async fn fuels_last_days_end_on_the_grams_and_millilitres_eaten() {
     );
 }
 
+/// A day of Fuel with one food eaten.
+fn fuelled_with(date: &str, food: &str, grams: f64, kcal: f64) -> String {
+    format!(
+        r#"{{ "day": "{date}", "intakes": [[1, {{ "day": "{date}", "food": "{food}", "unit": "Gram",
+            "quantity": {grams}, "nutrients": {{ "energy_kcal": {kcal}, "protein_g": 19.0, "carbs_g": 8.0,
+            "fat_g": 1.0, "fibre_g": 2.0 }} }}]],
+            "eaten": {{ "energy_kcal": {kcal}, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 1.0, "fibre_g": 2.0 }},
+            "band": null, "energy": null, "macros": null }}"#
+    )
+}
+
+fn fuels_last_days(screen: &Element) -> impl Drop {
+    answering(&format!(
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
+            "fuel_day": {{ "__by": "date", "2026-10-10": {}, "2026-10-09": {} }} }}"#,
+        fuelled_on("2026-10-10", 108.0),
+        fuelled_on("2026-10-09", 880.0),
+        fuelled_with("2026-10-10", "Skyr", 200.0, 108.0),
+        fuelled_with("2026-10-09", "Pasta in cream", 350.0, 880.0),
+    ));
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelLastDays day=day />
+            </Router>
+        }
+    })
+}
+
+fn first_cells(screen: &Element) -> Vec<String> {
+    texts_in_order(screen, ".last-days tbody tr td:first-child")
+}
+
+#[wasm_bindgen_test]
+async fn the_picked_days_entries_stand_open_under_its_row() {
+    let screen = screen();
+    let _mounted = fuels_last_days(&screen);
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        first_cells(&screen),
+        ["2026-10-10", "Skyr", "2026-10-09"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
 #[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
