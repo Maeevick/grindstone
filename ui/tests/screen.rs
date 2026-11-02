@@ -2359,6 +2359,29 @@ async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
 }
 
 #[wasm_bindgen_test]
+async fn fuels_four_macros_stand_under_its_gauge() {
+    answering(&format!(
+        r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, "section.bands table.macros tbody td:first-child"),
+            texts_in_order(&screen, "h2").contains(&"The four macros".to_string())
+        ),
+        (
+            ["Protein", "Fat", "Fibre", "Carbs", "Total"]
+                .map(String::from)
+                .to_vec(),
+            false
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
