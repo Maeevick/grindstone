@@ -54,7 +54,6 @@ pub fn run() {
             commands::cook_meal,
             commands::remove_meal,
             commands::streak,
-            commands::explore,
             commands::gather_chart,
             commands::fuel_chart,
             commands::hydrate_chart,

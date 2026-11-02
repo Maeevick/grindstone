@@ -20,7 +20,7 @@ use grind_core::for_charting::{
 use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
-use grind_core::for_reviewing_progress::{self, Explored, GatherCard, Window};
+use grind_core::for_reviewing_progress::{self, GatherCard, Window};
 use grind_core::for_setting_up_the_profile::{
     self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, Scope,
     UsualDayForm,
@@ -38,7 +38,6 @@ use grind_core::kept::InForce;
 use grind_core::meal::Meal;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
-use grind_core::stats::Measure;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
 use grind_draft::{ImportFailure, drafted};
@@ -305,25 +304,6 @@ pub fn remove_meal(records: State<Records>, name: String) -> Result<Vec<Meal>, F
 pub fn streak(records: State<Records>, today: String) -> Result<Streak, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_reviewing_progress::streak(&*records, &*records, &*records, &*records, &today)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn explore(
-    records: State<Records>,
-    today: String,
-    window: Window,
-    one: Measure,
-    other: Measure,
-) -> Result<Explored, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_reviewing_progress::explore(
-        &*records,
-        &*records,
-        &*records,
-        &today,
-        window,
-        (one, other),
-    )
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -602,7 +582,6 @@ mod tests {
                 cook_meal,
                 remove_meal,
                 streak,
-                explore,
                 circuits,
                 priced_circuits,
                 craft_circuit,
@@ -1180,30 +1159,6 @@ mod tests {
                 "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": false },
                 "status": "Pending" }] })
             )
-        );
-    }
-
-    #[test]
-    fn two_measures_explored_from_the_screen_cross_with_their_series_and_pairs() {
-        let (_app, screen) = launched();
-        invoke(
-            &screen,
-            "log_measurement",
-            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
-        )
-        .expect("a measurement logs");
-
-        let answer = invoke(
-            &screen,
-            "explore",
-            json!({ "today": "2026-10-10", "window": "Days30", "one": "BodyMass", "other": "Eaten" }),
-        );
-
-        assert_eq!(
-            answer,
-            Ok(json!({ "one": [["2026-10-10", 80.0]], "other": [],
-                "one_summary": { "first": 80.0, "last": 80.0, "mean": 80.0, "lowest": 80.0, "highest": 80.0 },
-                "other_summary": null, "pairs": [], "correlation": null }))
         );
     }
 
