@@ -847,13 +847,19 @@ mod tests {
     fn a_month_or_a_picked_day_the_calendar_lacks_is_refused() {
         assert_eq!(
             [
-                gather_month(&GatherRecordsInMemory::default(), "2026-13", "2026-10-10"),
-                gather_month(&GatherRecordsInMemory::default(), "2026-10", "2026-02-30")
+                gather_month(&GatherRecordsInMemory::default(), "2026-13", "2026-10-10").err(),
+                gather_month(&GatherRecordsInMemory::default(), "2026-10", "2026-02-30").err(),
+                fuel_month(&FuelRecordsInMemory::default(), "2026-10", "2026-02-30").err(),
+                hydrate_month(&HydrateRecordsInMemory::default(), "2026-10", "2026-02-30").err(),
+                burn_month(
+                    &GatherRecordsInMemory::default(),
+                    &BurnRecordsInMemory::default(),
+                    "2026-10",
+                    "2026-02-30"
+                )
+                .err()
             ],
-            [
-                Err(Failure::Refused(Refusal::NotADate)),
-                Err(Failure::Refused(Refusal::NotADate))
-            ]
+            [(); 5].map(|_| Some(Failure::Refused(Refusal::NotADate)))
         );
     }
 
