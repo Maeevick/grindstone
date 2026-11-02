@@ -10,7 +10,7 @@ use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
 use grind_ui::screens::hydrate::HydrateDay;
-use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays, GatherLastDays};
+use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays, GatherLastDays, HydrateLastDays};
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::references::ReferencesScreen;
@@ -2226,6 +2226,33 @@ async fn fuels_entries_read_each_food_by_name_with_its_figures_and_quantity() {
     assert_eq!(
         texts_in_order(&screen, ".last-days tbody tr.entry td"),
         ["Skyr", "108", "19", "1", "2", "8", "200", "×"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
+async fn hydrates_entries_leave_the_water_share_empty() {
+    answering(&format!(
+        r#"{{ "hydrate_month": {{ "month": "2026-10", "earlier": null, "rows": [
+            {{ "day": "2026-10-10", "drunk_ml": 280.0, "water_ratio": 0.0 }}] }},
+            "hydrate_day": {A_DAY_WITH_TWO_DRINKS} }}"#
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <HydrateLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".last-days tbody tr.entry td"),
+        ["Expresso", "80", "", "×", "Tea", "200", "", "×"]
             .map(String::from)
             .to_vec()
     );
