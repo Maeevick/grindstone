@@ -37,7 +37,7 @@ const LOGGINGS: [(Logging, &str); 2] = [
     (Logging::OffTheClock, "Off the clock"),
 ];
 
-/// A workout among its day's entries: the exercise by name, its circuit after it, its figures and its removal.
+/// A workout among its day's entries: the exercise by name, its figures and its removal.
 #[component]
 fn WorkoutEntry(done: BurntWorkout, said: RwSignal<Option<String>>) -> impl IntoView {
     let id = done.id;
@@ -56,13 +56,7 @@ fn WorkoutEntry(done: BurntWorkout, said: RwSignal<Option<String>>) -> impl Into
     let sets = f64::from(workout.sets);
     view! {
         <tr class="entry">
-            <td>
-                {workout.exercise.clone()}
-                {workout
-                    .circuit
-                    .clone()
-                    .map(|circuit| view! { <span class="hint">{format!(" · {circuit}")}</span> })}
-            </td>
+            <td>{workout.exercise.clone()}</td>
             <td>{bare_or_dash(done.burnt_kcal, Figure::Energy)}</td>
             <td>{bare(Figure::Duration(workout.minutes * sets))}</td>
             <td>{bare_or_dash(workout.reps.map(|reps| f64::from(reps) * sets), Figure::Count)}</td>
