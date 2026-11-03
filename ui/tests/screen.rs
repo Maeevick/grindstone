@@ -1865,38 +1865,65 @@ async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_q
 }
 
 #[wasm_bindgen_test]
-async fn fuels_gauge_labels_its_goal_and_its_maintenance_on_two_rows_each_under_its_tick() {
+async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_on_two_rows_each_under_its_tick()
+ {
     let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
     let screen = screen();
     let _mounted = the_fuel_day(&screen);
     settled().await;
-    let under = |tick: &str| {
+    let under = |tick: &str, attribute: &str| {
         let share = 100.0
             * screen
-                .query_selector(&format!(".fuel-gauge line.{tick}"))
+                .query_selector(&format!(".fuel-gauge {tick}"))
                 .ok()
                 .flatten()
-                .and_then(|line| line.get_attribute("x1"))
+                .and_then(|line| line.get_attribute(attribute))
                 .and_then(|x| x.parse::<f64>().ok())
                 .unwrap_or(f64::NAN)
             / 360.0;
         format!("left: {share}%; transform: translateX(-{share}%)")
     };
+    let rows = screen
+        .query_selector_all(".fuel-gauge .gauge-under-ticks")
+        .expect("the rows");
+    let labelled: Vec<Vec<(String, String, String)>> = (0..rows.length())
+        .filter_map(|at| rows.item(at))
+        .map(|row| {
+            let row: Element = row.unchecked_into();
+            let labels = row.query_selector_all("span").expect("the labels");
+            (0..labels.length())
+                .filter_map(|at| labels.item(at))
+                .map(|label| {
+                    let label: Element = label.unchecked_into();
+                    (
+                        label.text_content().unwrap_or_default(),
+                        label.class_name(),
+                        label.get_attribute("style").unwrap_or_default(),
+                    )
+                })
+                .collect()
+        })
+        .collect();
 
+    let label =
+        |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
     assert_eq!(
-        (
-            texts_in_order(&screen, ".fuel-gauge .gauge-under-ticks"),
-            attributes_of(
-                &screen,
-                ".fuel-gauge .gauge-under-ticks .tick-label",
-                "style"
-            )
-        ),
-        (
-            vec!["Goal 2300".to_string(), "Maintenance 2425".to_string()],
-            vec![under("goal"), under("maintenance")]
-        )
+        labelled,
+        [
+            vec![
+                label("EA25 1768", "low tick-label", under("line.minimum", "x1")),
+                label("Goal 2300", "acc tick-label", under("line.goal", "x1"))
+            ],
+            vec![
+                label("Alpert 2199", "good tick-label", under("rect.band", "x")),
+                label(
+                    "Maintenance 2425",
+                    "acc tick-label",
+                    under("line.maintenance", "x1")
+                )
+            ]
+        ]
     );
 }
 
