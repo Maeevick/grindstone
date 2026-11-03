@@ -2348,6 +2348,25 @@ async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_
 }
 
 #[wasm_bindgen_test]
+async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
+    let screen = screen();
+    let _mounted = burns_last_days_of_morning_rust(&screen);
+    settled().await;
+    settled().await;
+
+    clicked(&screen, ".last-days tr.entry.circuit button.remove");
+    settled().await;
+
+    assert_eq!(
+        (
+            asked("remove_workouts"),
+            texts_in_order(&screen, ".last-days tr.details li").len()
+        ),
+        (r#"{"date":"2026-10-10","ids":[1,2]}"#.to_string(), 0)
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
     answering(&format!(
         r#"{{ "burn_month": {{ "month": "2026-10", "earlier": null, "rows": [
