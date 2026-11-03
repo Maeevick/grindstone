@@ -388,9 +388,9 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
         targets.push((
             day,
             FuelTargets {
-                protein_g_per_kg: log.prot_g_kg,
-                protein_per: grind_core::fuel_records::Per::BodyMass,
-                fat_g_per_kg: log.fat_g_kg,
+                protein_g_per_kg: Some(log.prot_g_kg),
+                fat_g_per_kg: Some(log.fat_g_kg),
+                ..FuelTargets::default()
             },
         ));
         intakes.extend(
@@ -808,7 +808,10 @@ mod tests {
 
         assert_eq!(
             targets,
-            Ok(vec![(day("2026-08-02"), 2.0), (day("2026-09-01"), 2.025)])
+            Ok(vec![
+                (day("2026-08-02"), Some(2.0)),
+                (day("2026-09-01"), Some(2.025))
+            ])
         );
     }
 

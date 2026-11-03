@@ -113,6 +113,7 @@ mod tests {
             eaten_g,
             floor_g,
             ceiling_g: Some(ceiling_g),
+            goal_g: None,
             verdict: verdict_of(eaten_g, floor_g, ceiling_g),
         }
     }

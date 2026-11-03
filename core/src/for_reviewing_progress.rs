@@ -194,9 +194,9 @@ mod tests {
                 &FuelTargetsForm {
                     from: "2026-03-01".into(),
                     kept: crate::kept::Kept::Own(crate::fuel_records::FuelTargets {
-                        protein_g_per_kg: 2.0,
-                        protein_per: crate::fuel_records::Per::BodyMass,
-                        fat_g_per_kg: 0.9,
+                        protein_g_per_kg: Some(2.0),
+                        fat_g_per_kg: Some(0.9),
+                        ..crate::fuel_records::FuelTargets::default()
                     }),
                 },
             )

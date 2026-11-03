@@ -147,14 +147,7 @@ pub fn set_fuel_targets(
 ) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let from = day(&form.from)?;
     let kept = match form.kept {
-        Kept::Own(targets) => Kept::Own(
-            fuel_targets(
-                targets.protein_g_per_kg,
-                targets.protein_per,
-                targets.fat_g_per_kg,
-            )
-            .map_err(Failure::Refused)?,
-        ),
+        Kept::Own(targets) => Kept::Own(fuel_targets(targets).map_err(Failure::Refused)?),
         Kept::Recommended => Kept::Recommended,
     };
     fuel.save_targets(from, &kept)?;
@@ -167,12 +160,10 @@ pub fn fuel_targets_on(
     date: &str,
 ) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let day = day(date)?;
-    let gathered = gather.gather_records()?;
     Ok(fuel_targets_in_force(
         day,
         &fuel.fuel_records()?.targets,
-        &gathered.profiles,
-        body_mass_in_force_on(day, &gathered.measurements),
+        &gather.gather_records()?.profiles,
     ))
 }
 
@@ -609,19 +600,16 @@ mod tests {
 
     fn own_targets() -> FuelTargets {
         FuelTargets {
-            protein_g_per_kg: 2.025,
-            protein_per: crate::fuel_records::Per::BodyMass,
-            fat_g_per_kg: 0.9,
+            protein_g_per_kg: Some(2.025),
+            fat_g_per_kg: Some(0.9),
+            fibre_g_per_kg: Some(0.4),
+            carbs_g_per_kg: Some(3.0),
         }
     }
 
     fn the_recommended_targets() -> InForce<FuelTargets> {
         InForce {
-            values: FuelTargets {
-                protein_g_per_kg: 2.0,
-                protein_per: crate::fuel_records::Per::LeanMass,
-                fat_g_per_kg: 0.8,
-            },
+            values: FuelTargets::default(),
             recommended: true,
             from: None,
         }
@@ -723,8 +711,7 @@ mod tests {
             &fuel_targets_kept(
                 "2026-03-01",
                 Kept::Own(FuelTargets {
-                    protein_g_per_kg: -2.0,
-                    protein_per: crate::fuel_records::Per::BodyMass,
+                    protein_g_per_kg: Some(-2.0),
                     ..own_targets()
                 }),
             ),
@@ -1079,7 +1066,6 @@ mod tests {
 
         let advised = recommended_on(&gather, "2026-10-11").expect("recommendations");
 
-        assert_eq!(advised.fuel.protein_g_per_kg, 2.0);
         assert!(advised.burn_target_kcal.is_some());
     }
 

@@ -6,7 +6,7 @@ use crate::body::{Body, body_on};
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::food::{Nutrients, summed};
-use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
+use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
@@ -14,7 +14,6 @@ use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
 use crate::profile::Profile;
-use crate::recommendations::recommended;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
 use crate::version::{dated_version_in_force_on, version_in_force_on};
@@ -38,6 +37,8 @@ pub struct MacroRow {
     pub floor_g: f64,
     /// None when nothing is too much.
     pub ceiling_g: Option<f64>,
+    /// The goal painted for the day, none until one is.
+    pub goal_g: Option<f64>,
     pub verdict: Verdict,
 }
 
@@ -236,6 +237,7 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
         eaten_g,
         floor_g,
         ceiling_g,
+        goal_g: None,
         verdict: verdict_of(eaten_g, floor_g, ceiling_g.unwrap_or(f64::INFINITY)),
     }
 }
@@ -272,18 +274,15 @@ fn macros_for(eaten: Nutrients, body: &Body, _targets: FuelTargets) -> Macros {
     }
 }
 
-/// The fuel targets in force on a day: those kept from the latest day up to it (the earliest before any), their
-/// own or the recommendation for the profile and body mass; never kept, the recommendation; nothing without a
-/// profile to recommend for.
+/// The fuel targets in force on a day: those painted from the latest day up to it (the earliest before any);
+/// never painted, none; nothing without a profile.
 pub(crate) fn fuel_targets_in_force(
     day: NaiveDate,
     targets: &[(NaiveDate, Kept<FuelTargets>)],
     profiles: &[(NaiveDate, Profile)],
-    body_mass_kg: Option<f64>,
 ) -> Option<InForce<FuelTargets>> {
     in_force(dated_version_in_force_on(targets, day), || {
-        version_in_force_on(profiles, day)
-            .map(|profile| recommended(profile, day, body_mass_kg).fuel)
+        version_in_force_on(profiles, day).map(|_| FuelTargets::default())
     })
 }
 
@@ -310,13 +309,8 @@ impl Ledgers<'_> {
         let in_force =
             body_on(day, &self.days, &self.gather.profiles).zip(aims_on(day, self.gather));
         let banded = in_force.map(|(body, aims)| {
-            let targets = fuel_targets_in_force(
-                day,
-                &self.fuel.targets,
-                &self.gather.profiles,
-                Some(body.mass_kg),
-            )
-            .map_or(DEFAULT_FUEL_TARGETS, |targets| targets.values);
+            let targets = fuel_targets_in_force(day, &self.fuel.targets, &self.gather.profiles)
+                .map_or_else(FuelTargets::default, |targets| targets.values);
             let burnt = burn_on(day, self.burn, self.gather);
             let (band, budget) = band_for(
                 &body,
@@ -430,9 +424,10 @@ mod tests {
     };
 
     const AIMS: FuelTargets = FuelTargets {
-        protein_g_per_kg: 2.0,
-        protein_per: crate::fuel_records::Per::BodyMass,
-        fat_g_per_kg: 0.9,
+        protein_g_per_kg: Some(2.0),
+        fat_g_per_kg: Some(0.9),
+        fibre_g_per_kg: None,
+        carbs_g_per_kg: None,
     };
 
     /// A waist that leaves him well above the fat of his goals: a cut.
@@ -1206,6 +1201,7 @@ mod tests {
             eaten_g: 120.0,
             floor_g: 130.0,
             ceiling_g: Some(180.0),
+            goal_g: None,
             verdict: Verdict::Low,
         };
 

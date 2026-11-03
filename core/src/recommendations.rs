@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::age::age_on;
 use crate::burn_target::target_on;
-use crate::fuel_records::{FuelTargets, Per};
 use crate::gender::Gender;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
@@ -17,7 +16,6 @@ pub struct Recommendations {
     pub goal_mass_kg: f64,
     pub healthy_fat_ratio: (f64, f64),
     pub goal_fat_ratio: f64,
-    pub fuel: FuelTargets,
     pub usual_day: Volitional,
     pub burn_target_kcal: Option<f64>,
 }
@@ -57,11 +55,6 @@ pub fn recommended(
         goal_mass_kg,
         healthy_fat_ratio,
         goal_fat_ratio: to_the_thousandth((healthy_fat_ratio.0 + healthy_fat_ratio.1) / 2.0),
-        fuel: FuelTargets {
-            protein_g_per_kg: PROTEIN_G_PER_KG_OF_LEAN_MASS,
-            protein_per: Per::LeanMass,
-            fat_g_per_kg: FAT_FLOOR_G_PER_KG,
-        },
         usual_day: Volitional {
             sitting_min: SITTING_MIN,
             standing_min: STANDING_MIN,
@@ -74,14 +67,6 @@ pub fn recommended(
 const LOWEST_NORMAL_BMI: f64 = 18.5;
 const HIGHEST_NORMAL_BMI: f64 = 24.9;
 const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
-/// Where the gains in lean mass level off, 1.6 g per kilo of body mass (Morton R. W. et al. 2018, Br J Sports
-/// Med 52(6):376-384), read per kilo of lean mass for a body of about a fifth of fat, so lean and fat bodies,
-/// men and women, are asked alike; below the 2.3 to 3.1 g/kg of lean mass that lean bodies cutting may need
-/// (Helms E. R. et al. 2014, Int J Sport Nutr Exerc Metab 24(2):127-138).
-pub const PROTEIN_G_PER_KG_OF_LEAN_MASS: f64 = 2.0;
-/// The same, read per kilo of body mass, for whoever reads their target that way.
-pub const PROTEIN_G_PER_KG_OF_BODY_MASS: f64 = 1.6;
-const FAT_FLOOR_G_PER_KG: f64 = 0.8;
 const SITTING_MIN: f64 = 480.0;
 const STANDING_MIN: f64 = 120.0;
 const METRES_A_STEP: f64 = 0.75;
@@ -157,32 +142,6 @@ mod tests {
         assert_eq!(fat_of("2010-01-01", Gender::Male), ((0.08, 0.20), 0.14));
         assert_eq!(fat_of("1980-01-01", Gender::Female), ((0.23, 0.34), 0.285));
         assert_eq!(fat_of("1950-01-01", Gender::Female), ((0.24, 0.36), 0.3));
-    }
-
-    #[test]
-    fn protein_sits_where_the_gains_in_lean_mass_level_off_for_those_who_train_per_kilo_of_lean_mass()
-     {
-        let advised = recommended(
-            &born("1985-04-12", Gender::Male, 180.0),
-            day("2026-10-11"),
-            Some(80.0),
-        );
-
-        assert_eq!(
-            (advised.fuel.protein_g_per_kg, advised.fuel.protein_per),
-            (2.0, crate::fuel_records::Per::LeanMass)
-        );
-    }
-
-    #[test]
-    fn fat_has_a_practical_floor() {
-        let advised = recommended(
-            &born("1985-04-12", Gender::Male, 180.0),
-            day("2026-10-11"),
-            Some(80.0),
-        );
-
-        assert_eq!(advised.fuel.fat_g_per_kg, 0.8);
     }
 
     #[test]

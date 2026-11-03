@@ -13,7 +13,7 @@ use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
 use grind_core::for_storing_hydrate_records::ForStoringHydrateRecords;
 use grind_core::for_storing_switch_over::ForStoringSwitchOver;
-use grind_core::fuel_records::{FuelRecords, FuelTargets, Per};
+use grind_core::fuel_records::{FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
@@ -111,6 +111,16 @@ const MIGRATIONS: &[&str] = &[
     "alter table fuel_targets drop column fibre_g_per_kg",
     "alter table fuel_targets add column protein_per text not null default 'body_mass'",
     "drop table gather_counted; drop table fuel_counted; drop table burn_counted; drop table hydrate_counted;",
+    "create table fuel_goals (
+         effective_from text primary key, protein_g_per_kg real, fat_g_per_kg real,
+         fibre_g_per_kg real, carbs_g_per_kg real, recommended integer not null default 0
+     );
+     insert into fuel_goals (effective_from, protein_g_per_kg, fat_g_per_kg, recommended)
+         select effective_from, case when protein_per = 'body_mass' then protein_g_per_kg end,
+             fat_g_per_kg, recommended
+         from fuel_targets;
+     drop table fuel_targets;
+     alter table fuel_goals rename to fuel_targets;",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
@@ -151,23 +161,6 @@ fn gender_word(gender: Gender) -> &'static str {
     match gender {
         Gender::Male => "male",
         Gender::Female => "female",
-    }
-}
-
-fn per_word(per: Per) -> &'static str {
-    match per {
-        Per::BodyMass => "body_mass",
-        Per::LeanMass => "lean_mass",
-    }
-}
-
-fn per_read(word: &str) -> rusqlite::Result<Per> {
-    match word {
-        "body_mass" => Ok(Per::BodyMass),
-        "lean_mass" => Ok(Per::LeanMass),
-        unknown => Err(rusqlite::Error::InvalidParameterName(format!(
-            "a mass a target is read per the app does not know: {unknown}"
-        ))),
     }
 }
 
@@ -642,7 +635,7 @@ const INTAKES: &str =
     "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
      from intakes order by day, id";
 const FUEL_TARGETS: &str =
-    "select effective_from, protein_g_per_kg, fat_g_per_kg, recommended, protein_per
+    "select effective_from, protein_g_per_kg, fat_g_per_kg, recommended, fibre_g_per_kg, carbs_g_per_kg
      from fuel_targets order by effective_from";
 const MEALS: &str = "select meal from meals order by name";
 
@@ -676,8 +669,9 @@ fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Kept<FuelTa
             row.get(3)?,
             FuelTargets {
                 protein_g_per_kg: row.get(1)?,
-                protein_per: per_read(&row.get::<_, String>(4)?)?,
                 fat_g_per_kg: row.get(2)?,
+                fibre_g_per_kg: row.get(4)?,
+                carbs_g_per_kg: row.get(5)?,
             },
         ),
     ))
@@ -794,27 +788,21 @@ impl ForStoringFuelRecords for Sqlite {
     }
 
     fn save_targets(&self, from: NaiveDate, targets: &Kept<FuelTargets>) -> Result<(), Broken> {
-        let (targets, recommended) = written(
-            targets,
-            FuelTargets {
-                protein_g_per_kg: 0.0,
-                protein_per: Per::BodyMass,
-                fat_g_per_kg: 0.0,
-            },
-        );
+        let (targets, recommended) = written(targets, FuelTargets::default());
         self.run(
-            "insert into fuel_targets
-                 (effective_from, protein_g_per_kg, fat_g_per_kg, recommended, protein_per)
-             values (?1, ?2, ?3, ?4, ?5)
+            "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, recommended,
+                 fibre_g_per_kg, carbs_g_per_kg)
+             values (?1, ?2, ?3, ?4, ?5, ?6)
              on conflict (effective_from) do update set protein_g_per_kg = excluded.protein_g_per_kg,
                  fat_g_per_kg = excluded.fat_g_per_kg, recommended = excluded.recommended,
-                 protein_per = excluded.protein_per",
+                 fibre_g_per_kg = excluded.fibre_g_per_kg, carbs_g_per_kg = excluded.carbs_g_per_kg",
             params![
                 from,
                 targets.protein_g_per_kg,
                 targets.fat_g_per_kg,
                 recommended,
-                per_word(targets.protein_per)
+                targets.fibre_g_per_kg,
+                targets.carbs_g_per_kg
             ],
         )
     }
@@ -1116,8 +1104,8 @@ mod tests {
     }
 
     #[test]
-    fn a_protein_target_per_kilo_of_lean_mass_comes_back_so() {
-        honouring_for_storing_fuel_records::a_protein_target_per_kilo_of_lean_mass_comes_back_so(
+    fn targets_painted_for_some_macros_come_back_with_none_for_the_others() {
+        honouring_for_storing_fuel_records::targets_painted_for_some_macros_come_back_with_none_for_the_others(
             &database(),
         );
     }
@@ -1322,23 +1310,6 @@ mod tests {
             .expect("a food no app wrote");
 
         assert!(matches!(records.fuel_records(), Err(Broken(reason)) if reason.contains("spoon")));
-    }
-
-    #[test]
-    fn a_protein_target_read_per_a_mass_the_app_does_not_know_reads_as_broken() {
-        let records = database();
-        records
-            .0
-            .execute(
-                "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, protein_per)
-                 values ('2026-03-01', 2.0, 0.9, 'bone_mass')",
-                [],
-            )
-            .expect("targets no app wrote");
-
-        assert!(
-            matches!(records.fuel_records(), Err(Broken(reason)) if reason.contains("bone_mass"))
-        );
     }
 
     #[test]
@@ -1788,9 +1759,10 @@ mod tests {
                 Ok(vec![(
                     from,
                     Kept::Own(FuelTargets {
-                        protein_g_per_kg: 1.6,
-                        protein_per: Per::BodyMass,
-                        fat_g_per_kg: 0.9
+                        protein_g_per_kg: Some(1.6),
+                        fat_g_per_kg: Some(0.9),
+                        fibre_g_per_kg: None,
+                        carbs_g_per_kg: None
                     })
                 )])
             )

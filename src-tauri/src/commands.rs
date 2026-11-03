@@ -1074,8 +1074,8 @@ mod tests {
     #[test]
     fn fuel_targets_set_from_the_screen_are_the_ones_in_force_from_their_day() {
         let (_app, screen) = launched();
-        let aims =
-            json!({ "protein_g_per_kg": 2.025, "protein_per": "BodyMass", "fat_g_per_kg": 0.9 });
+        let aims = json!({ "protein_g_per_kg": 2.025, "fat_g_per_kg": 0.9,
+            "fibre_g_per_kg": null, "carbs_g_per_kg": 3.0 });
 
         let set = invoke(
             &screen,
@@ -1515,7 +1515,6 @@ mod tests {
         let advised = invoke(&screen, "recommended_on", json!({ "date": "2026-10-11" }))
             .expect("recommendations");
 
-        assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(2.0));
         assert_eq!(
             advised["usual_day"],
             json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 })

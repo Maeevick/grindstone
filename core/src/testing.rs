@@ -775,9 +775,9 @@ pub mod honouring_for_storing_fuel_records {
 
     fn aiming(protein_g_per_kg: f64) -> Kept<FuelTargets> {
         Kept::Own(FuelTargets {
-            protein_g_per_kg,
-            protein_per: crate::fuel_records::Per::BodyMass,
-            fat_g_per_kg: 0.9,
+            protein_g_per_kg: Some(protein_g_per_kg),
+            fat_g_per_kg: Some(0.9),
+            ..FuelTargets::default()
         })
     }
 
@@ -852,21 +852,22 @@ pub mod honouring_for_storing_fuel_records {
         );
     }
 
-    pub fn a_protein_target_per_kilo_of_lean_mass_comes_back_so(
+    pub fn targets_painted_for_some_macros_come_back_with_none_for_the_others(
         records: &impl ForStoringFuelRecords,
     ) {
-        let per_lean_mass = Kept::Own(FuelTargets {
-            protein_g_per_kg: 2.0,
-            protein_per: crate::fuel_records::Per::LeanMass,
-            fat_g_per_kg: 0.9,
+        let painted = Kept::Own(FuelTargets {
+            protein_g_per_kg: None,
+            fat_g_per_kg: Some(0.9),
+            fibre_g_per_kg: Some(0.4),
+            carbs_g_per_kg: Some(3.0),
         });
         records
-            .save_targets(day("2026-03-01"), &per_lean_mass)
+            .save_targets(day("2026-03-01"), &painted)
             .expect("targets save");
 
         assert_eq!(
             records.fuel_records().map(|fuelled| fuelled.targets),
-            Ok(vec![(day("2026-03-01"), per_lean_mass)])
+            Ok(vec![(day("2026-03-01"), painted)])
         );
     }
 
@@ -1587,8 +1588,8 @@ mod tests {
     }
 
     #[test]
-    fn a_protein_target_per_kilo_of_lean_mass_comes_back_so() {
-        honouring_for_storing_fuel_records::a_protein_target_per_kilo_of_lean_mass_comes_back_so(
+    fn targets_painted_for_some_macros_come_back_with_none_for_the_others() {
+        honouring_for_storing_fuel_records::targets_painted_for_some_macros_come_back_with_none_for_the_others(
             &FuelRecordsInMemory::default(),
         );
     }
