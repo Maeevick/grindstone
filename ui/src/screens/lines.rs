@@ -672,20 +672,22 @@ pub const NO_WORKOUT_THIS_WEEK: &str =
 
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
-/// What the window's burn stands against, after its figure: the sum of its days' targets when known, and its
-/// active days.
-pub fn burnt_against(target_kcal: Option<f64>, active_days: usize) -> String {
-    let active = if active_days == 1 {
-        "1 active day".to_string()
-    } else {
-        format!("{active_days} active days")
-    };
+/// What the window's burn stands against, after its figure: the sum of its days' targets when known.
+pub fn burnt_against(target_kcal: Option<f64>) -> String {
     match target_kcal {
         Some(target) => format!(
-            " burnt against its days' {} target, over {active}.",
+            " burnt against its days' {} target.",
             shown(Figure::Energy(target))
         ),
-        None => format!(" burnt over {active}."),
+        None => " burnt.".into(),
+    }
+}
+
+pub fn over_active_days(days: usize) -> String {
+    if days == 1 {
+        "Over 1 active day.".into()
+    } else {
+        format!("Over {days} active days.")
     }
 }
 
