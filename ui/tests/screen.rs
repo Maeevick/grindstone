@@ -1928,6 +1928,22 @@ async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_on_two_rows_
 }
 
 #[wasm_bindgen_test]
+async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
+    let held = A_FUELLED_DAY.replace(r#""floor_kcal": 2199.4"#, r#""floor_kcal": 1767.5"#);
+    answering(&format!(r#"{{ "foods": [], "fuel_day": {held} }}"#));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".fuel-gauge .tick-label"),
+        ["EA25 1768", "Goal 2199", "Maintenance 2425"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
