@@ -869,6 +869,25 @@ mod tests {
     }
 
     #[test]
+    fn removing_several_workouts_answers_the_days_burn_without_them() {
+        let (_app, screen) = launched();
+        with_walking_in_the_catalog(&screen);
+        walked(&screen, 30.0).expect("a burn");
+        let burn = walked(&screen, 20.0).expect("a burn");
+        let ids: Vec<Value> = (0..2)
+            .map(|at| burn["workouts"][at]["id"].clone())
+            .collect();
+
+        let answer = invoke(
+            &screen,
+            "remove_workouts",
+            json!({ "date": "2026-10-10", "ids": ids }),
+        );
+
+        assert_eq!(answer.map(|burn| burn["workouts"].clone()), Ok(json!([])));
+    }
+
+    #[test]
     fn a_day_off_the_clock_set_from_the_screen_is_that_days_own() {
         let (_app, screen) = launched();
 
