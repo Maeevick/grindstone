@@ -1412,6 +1412,23 @@ mod tests {
     }
 
     #[test]
+    fn a_protein_target_read_per_a_mass_the_app_does_not_know_reads_as_broken() {
+        let records = database();
+        records
+            .0
+            .execute(
+                "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, protein_per)
+                 values ('2026-03-01', 2.0, 0.9, 'bone_mass')",
+                [],
+            )
+            .expect("targets no app wrote");
+
+        assert!(
+            matches!(records.fuel_records(), Err(Broken(reason)) if reason.contains("bone_mass"))
+        );
+    }
+
+    #[test]
     fn meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves() {
         honouring_for_storing_fuel_records::meals_come_back_by_name_a_meal_cooked_again_replaces_the_earlier_and_a_removed_one_leaves(
             &database(),
