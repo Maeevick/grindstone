@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::body::body_on;
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
+use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
 use crate::fuel::{Fuel, fuel_on, fuel_over};
 use crate::fuel_records::FuelRecords;
@@ -24,6 +25,29 @@ pub struct Hydrate {
     pub floor_ml: f64,
     pub cap_ml: f64,
     pub verdict: Verdict,
+}
+
+/// The least share of water among a day's drinks, in percent, the rest counting towards the drinks alone.
+pub const WATER_SHARE_FLOOR_PERCENT: f64 = 75.0;
+
+impl Hydrate {
+    /// What the day drank of water.
+    pub fn water_ml(&self) -> f64 {
+        self.drinkings
+            .iter()
+            .filter(|(_, drunk)| drunk.kind == DrinkKind::Water)
+            .map(|(_, drunk)| drunk.volume_ml)
+            .sum()
+    }
+
+    /// The day's share of water among its drinks, in percent; nothing drunk, none.
+    pub fn water_share(&self) -> f64 {
+        if self.drunk_ml > 0.0 {
+            100.0 * self.water_ml() / self.drunk_ml
+        } else {
+            0.0
+        }
+    }
 }
 
 const ML_PER_KCAL_SPENT: f64 = 1.0;
