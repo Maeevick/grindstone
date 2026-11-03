@@ -21,8 +21,8 @@ pub fn FormTitle(title: &'static str, grimoire: &'static str) -> impl IntoView {
         <div class="card-title">
             <h2>{title}</h2>
             <A href=grimoire attr:class="grimoire">
-                <span class="icon">"📚"</span>
                 <span class="caption">"open the grimoire"</span>
+                <span class="icon">"📚"</span>
             </A>
         </div>
     }

@@ -111,19 +111,19 @@ h2 {
 
 .card-title a.grimoire {
 	display: flex;
-	flex-direction: column;
 	align-items: center;
+	gap: 6px;
 	text-decoration: none;
 	margin-top: -4px;
 }
 
 .card-title a.grimoire .icon {
-	font-size: 1.4rem;
+	font-size: 1.1rem;
 	line-height: 1;
 }
 
 .card-title a.grimoire .caption {
-	font-size: 0.62rem;
+	font-size: 0.72rem;
 	color: var(--mut);
 }
 
