@@ -1164,6 +1164,37 @@ mod tests {
     }
 
     #[test]
+    fn carbs_fill_what_the_bands_floor_leaves_rounded_up() {
+        let lean_waist_cm = 78.0;
+        let mut fuel = FuelRecords {
+            targets: vec![(
+                day("2026-03-01"),
+                Kept::Own(FuelTargets {
+                    protein_g_per_kg: 0.1,
+                    fat_g_per_kg: 0.1,
+                    fibre_g_per_kg: 0.01,
+                }),
+            )],
+            ..FuelRecords::default()
+        };
+        eating(&mut fuel, "2026-10-10", &a_food(10.0, 20.0, 5.0, 1.0));
+
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(lean_waist_cm),
+            &a_desk_job(),
+            &fuel,
+        );
+
+        let band = fuelled.band.expect("a band");
+        let spent = 10.0 * 4.0 + 8.0 * 9.0 + 1.0 * 2.0;
+        assert_eq!(
+            fuelled.macros.map(|macros| macros.carbs.floor_g),
+            Some(((band.floor_kcal - spent) / 4.0).ceil())
+        );
+    }
+
+    #[test]
     fn a_macro_eaten_right_at_its_floor_is_in_its_band() {
         let mut fuel = aiming();
         eating(&mut fuel, "2026-10-10", &a_food(160.0, 227.5, 90.0, 35.0));
