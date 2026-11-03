@@ -211,7 +211,7 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
         fields_in_rows(&screen, "form.fuel-targets"),
         [
             vec!["targets_from"],
-            vec!["target_protein", "target_fat_g", "target_fibre"]
+            vec!["target_protein", "target_fat_g"]
         ]
     );
     assert_eq!(
