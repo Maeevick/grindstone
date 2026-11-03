@@ -479,7 +479,7 @@ pub const PAST_THE_CAP: &str = "Past the cap. Under normal activity, kidneys cle
     hour, so spread the cups through the day. They will not thank you aloud, but they will thank you.";
 
 pub const HYDRATE_TARGET_HINT: &str = "The band follows your lean mass and the day's burn, food \
-    bringing a tenth of the water. Leave Hydrate out of the streak from a day your drinks went unfiled.";
+    bringing a tenth of the water.";
 
 pub fn month_name(month: &str) -> String {
     chrono::NaiveDate::parse_from_str(&format!("{month}-01"), "%Y-%m-%d")
