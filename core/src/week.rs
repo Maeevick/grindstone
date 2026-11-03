@@ -177,6 +177,27 @@ mod tests {
     }
 
     #[test]
+    fn the_goals_of_the_days_painted_are_averaged_none_when_none_was() {
+        let painted = |amount: f64, goal: Option<f64>| Banded {
+            goal,
+            ..banded(amount)
+        };
+
+        assert_eq!(
+            [
+                averaged(&[
+                    painted(100.0, Some(120.0)),
+                    painted(110.0, None),
+                    painted(90.0, Some(140.0))
+                ]),
+                averaged(&[painted(100.0, None)])
+            ]
+            .map(|week| week.and_then(|week| week.goal)),
+            [Some(130.0), None]
+        );
+    }
+
+    #[test]
     fn a_week_with_nothing_logged_averages_nothing() {
         assert_eq!(averaged(&[]), None);
     }
