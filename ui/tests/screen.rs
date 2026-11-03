@@ -1625,7 +1625,8 @@ async fn burns_tips_read_over_its_active_days_then_its_table_then_its_tip() {
 }
 
 #[wasm_bindgen_test]
-async fn a_week_without_a_workout_says_there_is_nothing_to_sum_up_yet() {
+async fn a_window_without_a_finished_workout_says_there_is_nothing_to_sum_up_yet_as_fuel_and_hydrate()
+ {
     answering(r#"{ "burn_over_the_window": null }"#);
     let screen = screen();
     let _mounted = the_burn_week(&screen);
@@ -1633,7 +1634,7 @@ async fn a_week_without_a_workout_says_there_is_nothing_to_sum_up_yet() {
 
     let said = text_of(&screen, ".week p.empty");
 
-    assert!(said.contains("No workout"), "{said}");
+    assert!(said.contains("No finished day"), "{said}");
 }
 
 fn focused(screen: &Element, name: &str) {
