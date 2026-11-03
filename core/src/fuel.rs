@@ -1287,7 +1287,7 @@ mod tests {
     }
 
     #[test]
-    fn each_macro_stands_between_its_floor_and_its_share_of_the_energy_eaten_carbs_filling_the_band_rounded_inward()
+    fn each_macro_stands_between_its_floor_and_its_share_of_the_energy_eaten_carbs_filling_the_band_rounded_up_with_no_ceiling()
      {
         let (lean_kg, _) = the_body();
         let mut fuel = aiming();
@@ -1317,7 +1317,7 @@ mod tests {
                     .max(3.0 * lean_kg)
                     .max(130.0)
                     .ceil(),
-                Some(((band.cap_kcal - spent) / 4.0).floor()),
+                None,
             ),
         ];
         for (row, (floor, ceiling)) in rows.iter().zip(expected) {
