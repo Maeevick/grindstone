@@ -93,9 +93,70 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) ->
     }
 }
 
+/// An entry of a day's burn: a workout on its own, or a circuit run, the workouts logged together under it.
+#[derive(Clone, Debug, PartialEq)]
+pub enum BurnEntry {
+    Workout(BurntWorkout),
+    Circuit {
+        name: String,
+        workouts: Vec<BurntWorkout>,
+    },
+}
+
+/// A day's entries, newest first: each workout on its own, the steps of a circuit run together, in the order
+/// they were logged.
+pub fn entries_of(workouts: &[BurntWorkout]) -> Vec<BurnEntry> {
+    let _ = workouts;
+    Vec::new()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn done(id: i64, exercise: &str, circuit: Option<&str>) -> BurntWorkout {
+        BurntWorkout {
+            id,
+            workout: Workout {
+                day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"),
+                exercise: exercise.into(),
+                met: 4.0,
+                minutes: 1.0,
+                reps: None,
+                sets: 1,
+                load_kg: 0.0,
+                circuit: circuit.map(String::from),
+            },
+            burnt_kcal: Some(10.0),
+        }
+    }
+
+    #[test]
+    fn a_days_workouts_group_each_circuit_run_newest_first_its_steps_in_their_order() {
+        let rust = Some("Morning rust");
+        let logged = [
+            done(1, "Walking", None),
+            done(2, "Push up", rust),
+            done(3, "Burpee", rust),
+            done(4, "Squat", None),
+            done(5, "Push up", rust),
+            done(6, "Burpee", rust),
+        ];
+        let run = |ids: [usize; 2]| BurnEntry::Circuit {
+            name: "Morning rust".into(),
+            workouts: ids.map(|id| logged[id - 1].clone()).to_vec(),
+        };
+
+        assert_eq!(
+            entries_of(&logged),
+            [
+                run([5, 6]),
+                BurnEntry::Workout(logged[3].clone()),
+                run([2, 3]),
+                BurnEntry::Workout(logged[0].clone())
+            ]
+        );
+    }
     use crate::workout::burnt_by;
 
     fn gathered(measurements: &[Measurement]) -> GatherRecords {
