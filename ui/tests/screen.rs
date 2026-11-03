@@ -2367,45 +2367,39 @@ async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
 }
 
 #[wasm_bindgen_test]
-async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
-    answering(&format!(
-        r#"{{ "burn_month": {{ "month": "2026-10", "earlier": null, "rows": [
-            {{ "day": "2026-10-10", "burnt_kcal": 120.0, "minutes": 4.5, "reps": 36.0 }}] }},
-            "burn_day": {A_DAY_OF_MORNING_RUST}, "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET} }}"#
-    ));
+async fn burns_entries_end_on_neat_its_two_parts_always_open_in_a_block() {
     let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
-        view! {
-            <Router>
-                <BurnLastDays day=day />
-            </Router>
-        }
-    });
+    let _mounted = burns_last_days_of_morning_rust(&screen);
     settled().await;
     settled().await;
 
     assert_eq!(
-        texts_in_order(&screen, ".last-days tbody tr.entry td"),
-        [
-            "Morning rust",
-            "120",
-            "4.5",
-            "36",
-            "×",
-            "Off the clock (volitional)",
-            "198",
-            "–",
-            "–",
-            "",
-            "Fidgeting (spontaneous)",
-            "234",
-            "–",
-            "–",
-            ""
-        ]
-        .map(String::from)
-        .to_vec()
+        (
+            texts_in_order(&screen, ".last-days tr.entry td"),
+            texts_in_order(&screen, ".last-days tr.details li")
+        ),
+        (
+            [
+                "Morning rust",
+                "120",
+                "4.5",
+                "36",
+                "×",
+                "NEAT",
+                "432",
+                "–",
+                "–",
+                ""
+            ]
+            .map(String::from)
+            .to_vec(),
+            [
+                "Off the clock (volitional) · 198 kcal",
+                "Fidgeting (spontaneous) · 234 kcal"
+            ]
+            .map(String::from)
+            .to_vec()
+        )
     );
 }
 
