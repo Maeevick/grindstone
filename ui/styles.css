@@ -729,6 +729,10 @@ hr.divider {
 	padding-left: 14px;
 }
 
+.last-days tr.neat td {
+	color: var(--mut);
+}
+
 
 input:disabled {
 	opacity: 0.35;
