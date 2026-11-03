@@ -280,7 +280,7 @@ mod tests {
         for (date, minutes) in [
             ("2026-10-03", 30.0),
             ("2026-10-04", 60.0),
-            ("2026-10-10", 30.0),
+            ("2026-10-09", 30.0),
         ] {
             log_workout(&gather, &burn, &walking(date, minutes)).expect("a workout logs");
         }
@@ -302,7 +302,7 @@ mod tests {
     }
 
     #[test]
-    fn the_sum_up_over_a_window_runs_over_its_days_up_to_today_today_included() {
+    fn the_sum_up_over_a_window_runs_over_its_finished_days_today_left_out_until_it_is_over() {
         let gather = GatherRecordsInMemory::default();
         log_measurement(&gather, "2026-09-01", 80.0, None).expect("a measurement logs");
         let burn = a_catalog_with_walking();
@@ -322,7 +322,7 @@ mod tests {
                 active_over(Window::Days30),
                 active_over(Window::Everything)
             ],
-            [Some(2), Some(3), Some(3)]
+            [Some(1), Some(2), Some(2)]
         );
     }
 
