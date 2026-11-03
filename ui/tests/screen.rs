@@ -531,31 +531,6 @@ async fn the_gauges_label_only_their_ticks_bare() {
     );
 }
 
-/// Each row of labels under a gauge's line: each label's text, classes and placing.
-fn labels_by_row(gauge: &Element) -> Vec<Vec<(String, String, String)>> {
-    let rows = gauge
-        .query_selector_all(".gauge-under-ticks")
-        .expect("the rows");
-    (0..rows.length())
-        .filter_map(|at| rows.item(at))
-        .map(|row| {
-            let row: Element = row.unchecked_into();
-            let labels = row.query_selector_all("span").expect("the labels");
-            (0..labels.length())
-                .filter_map(|at| labels.item(at))
-                .map(|label| {
-                    let label: Element = label.unchecked_into();
-                    (
-                        label.text_content().unwrap_or_default(),
-                        label.class_name(),
-                        label.get_attribute("style").unwrap_or_default(),
-                    )
-                })
-                .collect()
-        })
-        .collect()
-}
-
 /// Where a gauge's mark falls, as a share of its line.
 fn share_of(gauge: &Element, selector: &str, attribute: &str) -> f64 {
     100.0

@@ -6,12 +6,9 @@ exclude_globs = ["core/src/testing.rs"]
 # One mL per kcal spent or burnt multiplies and divides alike: the hydrate floor, the band before a lean mass
 # and the band on a water target of one's own, named by their place so that the other products of the band
 # stay tested.
-# The waist's heading reads the sign of two changes; their product and their quotient share it, and a waist
-# that did not change is steady before its heading counts.
 exclude_re = [
     "replace > with >= in fat_ratio_from_navy_formula",
     "replace < with <= in fat_ratio_from_navy_formula",
     "replace > with >= in deficit_before",
-    "hydrate\\.rs:(129:50|135:73|140:66): replace \\* with / in hydrated",
-    "replace \\* with / in tendency_of",
+    "hydrate\\.rs:(153:50|159:73|164:66): replace \\* with / in hydrated",
 ]

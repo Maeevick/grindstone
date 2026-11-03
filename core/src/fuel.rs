@@ -1237,6 +1237,36 @@ mod tests {
     }
 
     #[test]
+    fn fat_asks_for_a_fifth_of_the_energy_eaten_when_its_target_asks_for_less() {
+        let mut fuel = FuelRecords {
+            targets: vec![(
+                day("2026-03-01"),
+                Kept::Own(FuelTargets {
+                    protein_g_per_kg: 2.0,
+                    protein_per: Per::BodyMass,
+                    fat_g_per_kg: 0.1,
+                }),
+            )],
+            ..FuelRecords::default()
+        };
+        eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
+
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &fuel,
+        );
+
+        let energy = fuelled.eaten.energy_kcal;
+        assert!(
+            fuelled
+                .macros
+                .is_some_and(|macros| about(macros.fat.floor_g, 0.2 * energy / 9.0))
+        );
+    }
+
+    #[test]
     fn a_macro_eaten_right_at_its_floor_is_in_its_band() {
         let mut fuel = aiming();
         eating(&mut fuel, "2026-10-10", &a_food(160.0, 227.5, 90.0, 35.0));
