@@ -1545,10 +1545,10 @@ fn the_fuel_week(screen: &Element) -> impl Drop {
 
 const A_FUEL_WEEK: &str = r#"{ "logged_days": 6,
     "energy": { "per_day": 2100.0, "floor": 1800.0, "ceiling": 2400.0, "in_band": 4 },
-    "protein": { "per_day": 96.0, "floor": 115.0, "ceiling": 190.0, "in_band": 1 },
-    "fat": { "per_day": 71.0, "floor": 48.0, "ceiling": 57.0, "in_band": 2 },
-    "fibre": { "per_day": 19.0, "floor": 25.0, "ceiling": 60.0, "in_band": 0 },
-    "carbs": { "per_day": 330.0, "floor": 200.0, "ceiling": 310.0, "in_band": 2 } }"#;
+    "protein": { "per_day": 96.0, "floor": 115.0, "ceiling": 190.0, "goal": 115.0, "in_band": 1 },
+    "fat": { "per_day": 71.0, "floor": 48.0, "ceiling": 57.0, "goal": 57.0, "in_band": 2 },
+    "fibre": { "per_day": 19.0, "floor": 25.0, "ceiling": 60.0, "goal": 25.0, "in_band": 0 },
+    "carbs": { "per_day": 330.0, "floor": 200.0, "ceiling": 310.0, "goal": 290.0, "in_band": 2 } }"#;
 
 #[wasm_bindgen_test]
 async fn the_weeks_average_tells_each_measure_a_day_against_its_band_and_how_many_days_stood_in_it()
@@ -1587,10 +1587,27 @@ async fn the_weeks_tip_names_what_runs_short_then_what_runs_over_furthest_first_
 
     assert!(
         tip.starts_with(
-            "“Short on fibre (-6 g a day) and protein (-19 g), over on fat (+14 g) and carbs (+20 g). "
+            "“Short on fibre (-6 g a day) and protein (-19 g), over on fat (+14 g) and carbs (+40 g). "
         ) && tip.ends_with('”'),
         "{tip}"
     );
+}
+
+#[wasm_bindgen_test]
+async fn fuels_tip_invites_to_paint_targets_when_none_is() {
+    let without_goals = A_FUEL_WEEK
+        .replace(r#""goal": 115.0, "#, "")
+        .replace(r#""goal": 57.0, "#, "")
+        .replace(r#""goal": 25.0, "#, "")
+        .replace(r#""goal": 290.0, "#, "");
+    answering(&format!(r#"{{ "fuel_over_the_window": {without_goals} }}"#));
+    let screen = screen();
+    let _mounted = the_fuel_week(&screen);
+    settled().await;
+
+    let tip = text_of(&screen, ".week p.tip");
+
+    assert!(tip.contains("Paint your targets in Profile"), "{tip}");
 }
 
 #[wasm_bindgen_test]
