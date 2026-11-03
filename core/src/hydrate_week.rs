@@ -8,6 +8,8 @@ use crate::week::{Averaged, Banded, averaged};
 pub struct HydrateWeek {
     pub logged_days: usize,
     pub drunk: Averaged,
+    /// A logged day's share of water among its drinks, in percent, against three quarters at least.
+    pub water: Averaged,
 }
 
 /// The week's drinks, from its logged days; nothing without one.
@@ -25,6 +27,12 @@ pub fn hydrate_week_of(days: &[Hydrate]) -> Option<HydrateWeek> {
     Some(HydrateWeek {
         logged_days: days.len(),
         drunk,
+        water: Averaged {
+            per_day: 0.0,
+            floor: 75.0,
+            ceiling: 100.0,
+            in_band: 0,
+        },
     })
 }
 
@@ -51,16 +59,16 @@ mod tests {
         let days = [a_day(1800.0), a_day(2200.0), a_day(2600.0)];
 
         assert_eq!(
-            hydrate_week_of(&days),
-            Some(HydrateWeek {
-                logged_days: 3,
-                drunk: Averaged {
+            hydrate_week_of(&days).map(|week| (week.logged_days, week.drunk)),
+            Some((
+                3,
+                Averaged {
                     per_day: 2200.0,
                     floor: 2000.0,
                     ceiling: 2400.0,
                     in_band: 1,
-                },
-            })
+                }
+            ))
         );
     }
 

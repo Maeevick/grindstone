@@ -1505,7 +1505,8 @@ async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_
  {
     answering(
         r#"{ "hydrate_over_the_window": { "logged_days": 6,
-            "drunk": { "per_day": 1900.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 } } }"#,
+            "drunk": { "per_day": 1900.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 },
+            "water": { "per_day": 80.0, "floor": 75.0, "ceiling": 100.0, "in_band": 5 } } }"#,
     );
     let screen = screen();
     let _mounted = the_hydrate_week(&screen);

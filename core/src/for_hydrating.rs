@@ -124,6 +124,7 @@ mod tests {
         BrokenBurnRecords, BrokenFuelRecords, BrokenGatherRecords, BrokenHydrateRecords,
         BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory, HydrateRecordsInMemory,
     };
+    use crate::week::Averaged;
 
     fn a_catalog_with_tea() -> HydrateRecordsInMemory {
         let hydrate = HydrateRecordsInMemory::default();
@@ -169,6 +170,55 @@ mod tests {
 
         assert_eq!(volumes(&hydrated), vec![300.0]);
         assert_eq!(hydrated.drunk_ml, 300.0);
+    }
+
+    #[test]
+    fn the_average_over_a_window_tells_each_days_share_of_water_against_three_quarters() {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            a_catalog_with_tea(),
+        );
+        hydrate
+            .save_drink(&Drink {
+                name: "Water".into(),
+                volume_ml: 250.0,
+                kind: crate::drink::DrinkKind::Water,
+                description: String::new(),
+            })
+            .expect("a drink saves");
+        for (date, water_ml, tea_ml) in [("2026-10-08", 300.0, 100.0), ("2026-10-09", 100.0, 300.0)]
+        {
+            log_drink(
+                &gather,
+                &burn,
+                &fuel,
+                &hydrate,
+                &DrinkingForm {
+                    drink: "Water".into(),
+                    ..tea(date, water_ml)
+                },
+            )
+            .expect("a drink logs");
+            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, tea_ml)).expect("a drink logs");
+        }
+
+        let water =
+            hydrate_over_the_window(&gather, &burn, &fuel, &hydrate, "2026-10-10", Window::Days7)
+                .ok()
+                .flatten()
+                .map(|over| over.water);
+
+        assert_eq!(
+            water,
+            Some(Averaged {
+                per_day: 50.0,
+                floor: 75.0,
+                ceiling: 100.0,
+                in_band: 1
+            })
+        );
     }
 
     #[test]
