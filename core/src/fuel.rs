@@ -1218,6 +1218,22 @@ mod tests {
         );
     }
 
+    fn the_floors_before_eating() -> Macros {
+        fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &FuelRecords::default(),
+        )
+        .macros
+        .expect("macros")
+    }
+
+    #[test]
+    fn fat_never_floors_under_half_a_gram_a_kilo() {
+        assert!(about(the_floors_before_eating().fat.floor_g, 0.5 * 80.0));
+    }
+
     #[test]
     fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass() {
         let fuel = FuelRecords {
