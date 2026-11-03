@@ -314,37 +314,6 @@ mod tests {
     }
 
     #[test]
-    fn a_day_whose_fuel_targets_were_never_kept_floors_its_macros_on_the_recommendation() {
-        let fuelled = fuel_day(
-            &a_man_with_a_waist(),
-            &BurnRecordsInMemory::default(),
-            &FuelRecordsInMemory::default(),
-            "2026-10-10",
-        )
-        .expect("a fuel");
-
-        let floors = fuelled
-            .macros
-            .map(|macros| (macros.fat.floor_g, macros.protein.floor_g));
-        let lean_kg = crate::composition::body_composition(
-            80.0,
-            180.0,
-            crate::composition::Tapes::Male {
-                neck_cm: 38.5,
-                waist_cm: 82.0,
-            },
-        )
-        .expect("a composition")
-        .lean_mass_kg;
-        assert!(
-            floors.is_some_and(|(fat_g, protein_g)| {
-                (fat_g - 0.8 * 80.0).abs() < 1e-9 && (protein_g - 2.0 * lean_kg).abs() < 1e-9
-            }),
-            "{floors:?}"
-        );
-    }
-
-    #[test]
     fn an_intake_of_a_food_missing_from_the_catalog_is_refused() {
         let refused = log_intake(
             &GatherRecordsInMemory::default(),

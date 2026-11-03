@@ -6,7 +6,7 @@ use crate::body::{Body, body_on};
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::food::{Nutrients, summed};
-use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets, Per};
+use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
@@ -103,12 +103,12 @@ const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
 const CARBS_FLOOR_G: f64 = 130.0;
+const LEAST_PROTEIN_G_PER_KG: f64 = 0.83;
 const MOST_PROTEIN_SHARE: f64 = 0.35;
 const LEAST_FAT_SHARE: f64 = 0.20;
 const MOST_FAT_SHARE: f64 = 0.35;
 /// 14 g per 1000 kcal at 2 kcal a gram.
 const LEAST_FIBRE_SHARE: f64 = 0.028;
-const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
@@ -116,10 +116,6 @@ const NARROWEST_BAND_SHARE: f64 = 0.1;
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
     summed(intakes.iter().map(|(_, eaten)| eaten.nutrients))
-}
-
-fn carbs_floor_g(body: &Body) -> f64 {
-    (CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS * body.lean_kg).max(CARBS_FLOOR_G)
 }
 
 /// What the day has eaten, its digestion priced on the grams themselves: nothing eaten, nothing digested, as
@@ -244,49 +240,35 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
     }
 }
 
-/// Each macro's floor and ceiling, read against the energy eaten so far, so the table warns as the day goes:
-/// red for the moment, green once the rest of the day is eaten.
+/// Each macro's health bounds, read against the body mass and the energy eaten so far, so the table warns as
+/// the day goes: red for the moment, green once the rest of the day is eaten.
 ///
-/// - Protein from its target per kilo of body mass or of lean mass, at most 35% of the energy, the top of the Institute of Medicine's 10 to 35%
-///   (2005).
-/// - Fat from its target per kilo, at least 20% and at most 35% of the energy, EFSA's reference range (2010).
+/// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), at most 35% of the
+///   energy, the top of the Institute of Medicine's 10 to 35% (2005).
+/// - Fat at least 20% and at most 35% of the energy, EFSA's reference range (2010).
 /// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
 ///   2 kcal a gram; no ceiling, none being set.
-/// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g
-///   (2005), their floor rounded up so a gram rounded never turns them green; no ceiling, the energy's cap telling
-///   what is too much.
-fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
+/// - Carbohydrates at least 130 g, the Institute of Medicine's (2005); no ceiling, the energy's cap telling what
+///   is too much.
+fn macros_for(eaten: Nutrients, body: &Body, _targets: FuelTargets) -> Macros {
     let energy = eaten.energy_kcal;
-    let protein = row(
-        eaten.protein_g,
-        targets.protein_g_per_kg
-            * match targets.protein_per {
-                Per::BodyMass => body.mass_kg,
-                Per::LeanMass => body.lean_kg,
-            },
-        Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
-    );
-    let fat = row(
-        eaten.fat_g,
-        (targets.fat_g_per_kg * body.mass_kg).max(LEAST_FAT_SHARE * energy / FAT_KCAL_PER_G),
-        Some(MOST_FAT_SHARE * energy / FAT_KCAL_PER_G),
-    );
-    let fibre = row(
-        eaten.fibre_g,
-        LEAST_FIBRE_SHARE * energy / FIBRE_KCAL_PER_G,
-        None,
-    );
-    let spent_kcal = protein.floor_g.max(eaten.protein_g) * PROTEIN_KCAL_PER_G
-        + fat.floor_g.max(eaten.fat_g) * FAT_KCAL_PER_G
-        + fibre.floor_g.max(eaten.fibre_g) * FIBRE_KCAL_PER_G;
-    let carbs_floor = ((band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G)
-        .max(carbs_floor_g(body))
-        .ceil();
     Macros {
-        protein,
-        fat,
-        fibre,
-        carbs: row(eaten.carbs_g, carbs_floor, None),
+        protein: row(
+            eaten.protein_g,
+            LEAST_PROTEIN_G_PER_KG * body.mass_kg,
+            Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
+        ),
+        fat: row(
+            eaten.fat_g,
+            LEAST_FAT_SHARE * energy / FAT_KCAL_PER_G,
+            Some(MOST_FAT_SHARE * energy / FAT_KCAL_PER_G),
+        ),
+        fibre: row(
+            eaten.fibre_g,
+            LEAST_FIBRE_SHARE * energy / FIBRE_KCAL_PER_G,
+            None,
+        ),
+        carbs: row(eaten.carbs_g, CARBS_FLOOR_G, None),
     }
 }
 
@@ -344,7 +326,7 @@ impl Ledgers<'_> {
                 deficit_before(day, gaps),
                 digested(eaten),
             );
-            (band, macros_for(eaten, &body, targets, band), budget)
+            (band, macros_for(eaten, &body, targets), budget)
         });
         Fuel {
             day,
@@ -1173,116 +1155,6 @@ mod tests {
     }
 
     #[test]
-    fn carbs_fill_what_the_bands_floor_leaves_rounded_up() {
-        let lean_waist_cm = 78.0;
-        let mut fuel = FuelRecords {
-            targets: vec![(
-                day("2026-03-01"),
-                Kept::Own(FuelTargets {
-                    protein_g_per_kg: 0.1,
-                    protein_per: crate::fuel_records::Per::BodyMass,
-                    fat_g_per_kg: 0.1,
-                }),
-            )],
-            ..FuelRecords::default()
-        };
-        eating(&mut fuel, "2026-10-10", &a_food(10.0, 20.0, 5.0, 30.0));
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(lean_waist_cm),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        let band = fuelled.band.expect("a band");
-        let spent = 10.0 * 4.0 + 8.0 * 9.0 + 30.0 * 2.0;
-        assert_eq!(
-            fuelled.macros.map(|macros| macros.carbs.floor_g),
-            Some(((band.floor_kcal - spent) / 4.0).ceil())
-        );
-    }
-
-    #[test]
-    fn a_protein_target_per_kilo_of_lean_mass_floors_protein_on_the_lean_mass() {
-        let (lean_kg, _) = the_body();
-        let fuel = FuelRecords {
-            targets: vec![(
-                day("2026-03-01"),
-                Kept::Own(FuelTargets {
-                    protein_g_per_kg: 2.0,
-                    protein_per: crate::fuel_records::Per::LeanMass,
-                    fat_g_per_kg: 0.9,
-                }),
-            )],
-            ..FuelRecords::default()
-        };
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        assert!(
-            fuelled
-                .macros
-                .is_some_and(|macros| about(macros.protein.floor_g, 2.0 * lean_kg))
-        );
-    }
-
-    #[test]
-    fn fat_asks_for_a_fifth_of_the_energy_eaten_when_its_target_asks_for_less() {
-        let mut fuel = FuelRecords {
-            targets: vec![(
-                day("2026-03-01"),
-                Kept::Own(FuelTargets {
-                    protein_g_per_kg: 2.0,
-                    protein_per: Per::BodyMass,
-                    fat_g_per_kg: 0.1,
-                }),
-            )],
-            ..FuelRecords::default()
-        };
-        eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        let energy = fuelled.eaten.energy_kcal;
-        assert!(
-            fuelled
-                .macros
-                .is_some_and(|macros| about(macros.fat.floor_g, 0.2 * energy / 9.0))
-        );
-    }
-
-    #[test]
-    fn a_macro_eaten_right_at_its_floor_is_in_its_band() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-10", &a_food(160.0, 227.5, 90.0, 35.0));
-
-        let macros = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        )
-        .macros
-        .expect("macros");
-
-        assert_eq!(
-            (macros.protein.floor_g.round(), macros.protein.verdict),
-            (160.0, Verdict::InBand)
-        );
-    }
-
-    #[test]
     fn each_macro_stands_between_its_health_bounds_on_the_body_mass_and_the_energy_eaten() {
         let mut fuel = FuelRecords::default();
         eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
@@ -1325,7 +1197,7 @@ mod tests {
         let fuelled = fuel_on("2026-10-10", &records, &a_desk_job(), &aiming());
 
         let floor = |fuelled: &Fuel| fuelled.macros.map(|macros| macros.protein.floor_g);
-        assert_eq!(floor(&fuelled), Some(160.0));
+        assert!(floor(&fuelled).is_some_and(|grams| about(grams, 0.83 * 80.0)));
     }
 
     #[test]
