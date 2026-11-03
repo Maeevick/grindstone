@@ -2142,7 +2142,7 @@ async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
 
     assert_eq!(
         texts_in_order(&screen, ".fuel-gauge .tick-label"),
-        ["EA25 1768", "Goal 2199", "Max. 2650", "Maintenance 2425"]
+        ["EA25 1768", "Goal 2199", "Maintenance 2425"]
             .map(String::from)
             .to_vec()
     );

@@ -494,19 +494,9 @@ hr.divider {
     white-space: nowrap;
 }
 
-.gauge-under-ticks .ends-at,
-.gauge-under-ticks .starts-at {
+.gauge-under-ticks .ends-at {
     display: flex;
     justify-content: safe flex-end;
-}
-
-/* Right to left, so that a label without room overflows towards the gauge rather than out of it. */
-.gauge-under-ticks .starts-at {
-    direction: rtl;
-}
-
-.gauge-under-ticks .end {
-    color: var(--mut);
 }
 
 .chips .pill {

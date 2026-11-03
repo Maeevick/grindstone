@@ -7,13 +7,12 @@ use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
 use crate::screens::lines;
 
 /// Where a label stands against its place on the line: under a tick, anchored at the share of itself its tick
-/// takes of the line; ending at the left edge of a zone; or starting at its right edge. An edge's label keeps
-/// to the gauge when it has no room: it then slides over its edge rather than out.
+/// takes of the line; or ending at the left edge of a zone, sliding over the edge rather than out of the gauge
+/// when it has no room.
 #[derive(Clone, Copy)]
 enum Anchor {
     Tick,
     EndsAt,
-    StartsAt,
 }
 
 /// A label on a row under the line: where it stands, what it says, its colour and how it is anchored.
@@ -31,11 +30,10 @@ fn TickRow(labels: Vec<Placed>) -> impl IntoView {
                     let (anchored, style) = match anchor {
                         Anchor::Tick => ("", format!("left: {share}%; transform: translateX(-{share}%)")),
                         Anchor::EndsAt => (" ends-at", format!("left: 0%; width: {share}%")),
-                        Anchor::StartsAt => (" starts-at", format!("left: {share}%; right: 0%")),
                     };
                     view! {
                         <span class=format!("{class} tick-label{anchored}") style=style>
-                            <bdi dir="ltr">{label}</bdi>
+                            {label}
                         </span>
                     }
                 })
@@ -167,7 +165,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 {placed.ghost.map(|ghost| view! { <circle class="ghost" cx=ghost.eaten_at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
-            <TickRow labels=[
+            <TickRow labels=vec![
                 (
                     placed.minimum_at,
                     format!(
@@ -179,20 +177,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                     Anchor::EndsAt,
                 ),
                 (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc", Anchor::Tick),
-            ]
-                .into_iter()
-                .chain(
-                    (bare(Figure::Energy(band.cap_kcal)) != bare(Figure::Energy(band.maintenance_kcal)))
-                        .then(|| {
-                            (
-                                placed.cap_at,
-                                format!("Max. {}", bare(Figure::Energy(band.cap_kcal))),
-                                "good",
-                                Anchor::StartsAt,
-                            )
-                        }),
-                )
-                .collect() />
+            ] />
             <TickRow labels=(band.floor_kcal > band.minimum_kcal)
                 .then(|| {
                     (
