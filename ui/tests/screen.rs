@@ -1582,19 +1582,45 @@ async fn burns_week_sum_up_totals_each_exercise_with_its_average_a_time_beneath(
 }
 
 #[wasm_bindgen_test]
-async fn burns_week_sum_up_holds_the_weeks_burn_against_its_target_over_its_active_days() {
+async fn burns_tips_read_over_its_active_days_then_its_table_then_its_tip() {
     answering(&format!(r#"{{ "burn_over_the_window": {A_BURN_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_burn_week(&screen);
     settled().await;
+    let parts = screen.query_selector_all(".week > *").expect("the parts");
+    let laid_out: Vec<(String, String)> = (0..parts.length())
+        .filter_map(|at| parts.item(at))
+        .map(|part| {
+            let part: Element = part.unchecked_into();
+            let text = if part.tag_name() == "TABLE" {
+                String::new()
+            } else {
+                part.text_content().unwrap_or_default()
+            };
+            (format!("{}.{}", part.tag_name(), part.class_name()), text)
+        })
+        .collect();
 
     assert_eq!(
-        text_of(&screen, ".week p.week-burn"),
-        "458 kcal burnt against its days' 308 kcal target, over 3 active days."
-    );
-    assert_eq!(
-        attributes_of(&screen, ".week p.week-burn span", "class"),
-        ["good"]
+        (
+            laid_out,
+            attributes_of(&screen, ".week p.tip span", "class")
+        ),
+        (
+            vec![
+                ("P.hint".to_string(), "Over 3 active days.".to_string()),
+                ("TABLE.workouts".to_string(), String::new()),
+                (
+                    "P.hint".to_string(),
+                    "Totals, with a time's average beneath.".to_string()
+                ),
+                (
+                    "P.tip".to_string(),
+                    "“458 kcal burnt against its days' 308 kcal target.”".to_string()
+                ),
+            ],
+            vec!["good".to_string()]
+        )
     );
 }
 
