@@ -169,7 +169,7 @@ pub fn energy_gauge_of(
     EnergyGauge {
         minimum_at: at(minimum),
         floor_at: at(floor),
-        goal_at: 0.0 * goal,
+        goal_at: at(goal),
         maintenance_at: at(maintenance),
         cap_at: at(cap),
         eaten_at: at(eaten).clamp(0.0, width),
