@@ -513,6 +513,11 @@ fn habit_name(habit: Habit) -> &'static str {
     }
 }
 
+pub const FUEL_TARGETS_HINT: &str = "Grams a day, each the floor of its band, at most 35% of the energy eaten. \
+    Protein is recommended at 2.0 g per kg of lean mass, or 1.6 g per kg of body mass for a body the tape never \
+    measured; fat at 0.8 g per kg of body mass, and 20% of the energy at least. Fibre asks for 14 g per 1000 kcal \
+    eaten.";
+
 pub const UNREADABLE: &str =
     "That is no number I can read. Digits, with a point or a comma, please.";
 
