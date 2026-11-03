@@ -706,6 +706,13 @@ hr.divider {
 	vector-effect: non-scaling-stroke;
 }
 
+/* What Alpert allows below the goals' start, the whole fat mass spared: green still, but dashed. */
+.fuel-gauge .alpert-zone {
+	stroke: #5fd99f;
+	stroke-width: 6;
+	stroke-dasharray: 6 4;
+}
+
 .fuel-gauge .eaten {
 	fill: #7aa2f7;
 }

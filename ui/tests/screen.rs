@@ -2120,7 +2120,7 @@ async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_its_zones_ed
                 label(
                     "Alpert 2199",
                     "good tick-label ends-at",
-                    ending_at(at("rect.band", "x"))
+                    ending_at(at("line.alpert-zone", "x1"))
                 ),
                 label(
                     "Maintenance 2425",
