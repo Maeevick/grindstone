@@ -281,15 +281,15 @@ mod tests {
     }
 
     #[test]
-    fn a_gauge_runs_from_nothing_to_a_quarter_past_the_cap_and_places_the_band_the_optimal_and_the_amount()
+    fn a_gauge_runs_from_nothing_to_a_tenth_past_the_cap_as_fuels_and_places_the_band_the_optimal_and_the_amount()
      {
         assert_eq!(
-            gauge_of(1000.0, (1800.0, 2000.0, 2200.0), None, 275.0),
+            gauge_of(1100.0, (1980.0, 2200.0, 2200.0), None, 242.0),
             Gauge {
-                band_from: 180.0,
+                band_from: 198.0,
                 band_to: 220.0,
-                optimal_at: 200.0,
-                amount_at: 100.0,
+                optimal_at: 220.0,
+                amount_at: 110.0,
                 ghost_at: None,
             }
         );

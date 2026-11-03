@@ -1501,12 +1501,7 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
             .iter()
             .map(|(text, ..)| text.as_str())
             .collect::<Vec<_>>(),
-        [
-            "Goal 75.0",
-            "Target 80 kcal",
-            "Opt. 2000",
-            "Goal 2199"
-        ]
+        ["Goal 75.0", "Target 80 kcal", "Opt. 2000", "Goal 2199"]
     );
     assert!(
         labelled
