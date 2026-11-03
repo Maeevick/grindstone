@@ -100,6 +100,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
     let bounds = (
         band.minimum_kcal,
         band.floor_kcal,
+        band.goal_kcal,
         band.maintenance_kcal,
         band.cap_kcal,
     );
