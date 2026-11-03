@@ -1541,7 +1541,7 @@ mod tests {
         let advised = invoke(&screen, "recommended_on", json!({ "date": "2026-10-11" }))
             .expect("recommendations");
 
-        assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(1.6));
+        assert_eq!(advised["fuel"]["protein_g_per_kg"], json!(2.0));
         assert_eq!(
             advised["usual_day"],
             json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 })

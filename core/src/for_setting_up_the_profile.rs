@@ -658,8 +658,8 @@ mod tests {
     fn the_recommended_targets() -> InForce<FuelTargets> {
         InForce {
             values: FuelTargets {
-                protein_g_per_kg: 1.6,
-                protein_per: crate::fuel_records::Per::BodyMass,
+                protein_g_per_kg: 2.0,
+                protein_per: crate::fuel_records::Per::LeanMass,
                 fat_g_per_kg: 0.8,
             },
             recommended: true,
@@ -699,8 +699,7 @@ mod tests {
     }
 
     #[test]
-    fn fuel_targets_never_kept_follow_the_recommendation_its_fibre_spread_over_the_body_mass_none_without_a_profile()
-     {
+    fn fuel_targets_never_kept_follow_the_recommendation_none_without_a_profile() {
         let gather = born("1985-04-12");
         crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, None)
             .expect("a measurement logs");
@@ -1215,7 +1214,7 @@ mod tests {
 
         let advised = recommended_on(&gather, "2026-10-11").expect("recommendations");
 
-        assert_eq!(advised.fuel.protein_g_per_kg, 1.6);
+        assert_eq!(advised.fuel.protein_g_per_kg, 2.0);
         assert!(advised.burn_target_kcal.is_some());
     }
 

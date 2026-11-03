@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::age::age_on;
 use crate::burn_target::target_on;
-use crate::fuel_records::FuelTargets;
+use crate::fuel_records::{FuelTargets, Per};
 use crate::gender::Gender;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
@@ -58,8 +58,8 @@ pub fn recommended(
         healthy_fat_ratio,
         goal_fat_ratio: to_the_thousandth((healthy_fat_ratio.0 + healthy_fat_ratio.1) / 2.0),
         fuel: FuelTargets {
-            protein_g_per_kg: PROTEIN_G_PER_KG,
-            protein_per: crate::fuel_records::Per::BodyMass,
+            protein_g_per_kg: PROTEIN_G_PER_KG_OF_LEAN_MASS,
+            protein_per: Per::LeanMass,
             fat_g_per_kg: FAT_FLOOR_G_PER_KG,
         },
         usual_day: Volitional {
@@ -74,7 +74,13 @@ pub fn recommended(
 const LOWEST_NORMAL_BMI: f64 = 18.5;
 const HIGHEST_NORMAL_BMI: f64 = 24.9;
 const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
-const PROTEIN_G_PER_KG: f64 = 1.6;
+/// Where the gains in lean mass level off, 1.6 g per kilo of body mass (Morton R. W. et al. 2018, Br J Sports
+/// Med 52(6):376-384), read per kilo of lean mass for a body of about a fifth of fat, so lean and fat bodies,
+/// men and women, are asked alike; below the 2.3 to 3.1 g/kg of lean mass that lean bodies cutting may need
+/// (Helms E. R. et al. 2014, Int J Sport Nutr Exerc Metab 24(2):127-138).
+pub const PROTEIN_G_PER_KG_OF_LEAN_MASS: f64 = 2.0;
+/// The same, read per kilo of body mass, for whoever reads their target that way.
+pub const PROTEIN_G_PER_KG_OF_BODY_MASS: f64 = 1.6;
 const FAT_FLOOR_G_PER_KG: f64 = 0.8;
 const SITTING_MIN: f64 = 480.0;
 const STANDING_MIN: f64 = 120.0;
