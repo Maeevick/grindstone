@@ -2741,6 +2741,35 @@ async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
 }
 
 #[wasm_bindgen_test]
+async fn fuels_macros_show_each_ceiling_beside_its_goal() {
+    answering(&format!(
+        r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, "table.macros thead th"),
+            cells_by_row(&screen, "table.macros tbody tr")
+                .first()
+                .cloned()
+        ),
+        (
+            ["", "Goal (g)", "Max (g)", "Current (g)", "Δ (g)", "% cal"]
+                .map(String::from)
+                .to_vec(),
+            Some(
+                ["Protein", "160", "9", "19", "-141", "70.4"]
+                    .map(String::from)
+                    .to_vec()
+            )
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn fuels_four_macros_stand_under_its_gauge() {
     answering(&format!(
         r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY} }}"#
