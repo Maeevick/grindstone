@@ -2202,9 +2202,9 @@ async fn the_macros_card_tells_each_goal_what_was_eaten_the_gap_and_its_share_of
     let heads = text_of(&screen, "table.macros thead");
     assert!(
         heads.contains("Goal (g)")
-            && heads.contains("Current (g)")
+            && heads.contains("Cur (g)")
             && heads.contains("Δ (g)")
-            && heads.contains("% cal"),
+            && heads.contains("%"),
         "{heads}"
     );
     let protein = text_of(&screen, "table.macros tr.protein");
@@ -2979,7 +2979,7 @@ async fn the_macros_preview_their_gaps_against_the_goals_of_the_day_previewed() 
     assert_eq!(
         attributes_of(
             &screen,
-            "table.macros tr.carbs td:nth-child(5) .ghost",
+            "table.macros tr.carbs td:nth-child(6) .ghost",
             "class"
         ),
         ["ghost low"]

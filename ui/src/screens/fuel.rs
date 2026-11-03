@@ -37,12 +37,13 @@ fn MacroLine(
         <tr class=key>
             <td>{name}</td>
             <td>{bare(Figure::Grams(row.floor_g))}</td>
-            <td>{bare_or_dash(row.ceiling_g, Figure::Grams)}</td>
             <td class=verdict>
                 {bare(Figure::Grams(row.eaten_g))}
                 {more_g
                     .map(|grams| view! { <span class="ghost">{format!("+{}", bare(Figure::Grams(grams)))}</span> })}
             </td>
+            <td>{bare_or_dash(row.ceiling_g, Figure::Grams)}</td>
+            <td>{bare_or_dash(row.goal_g, Figure::Grams)}</td>
             <td class=verdict>
                 {match previewed {
                     Some(after) => {
@@ -79,11 +80,12 @@ fn MacrosTable(
             <thead>
                 <tr>
                     <th></th>
-                    <th>"Goal (g)"</th>
+                    <th>"Min (g)"</th>
+                    <th>"Cur (g)"</th>
                     <th>"Max (g)"</th>
-                    <th>"Current (g)"</th>
+                    <th>"Goal (g)"</th>
                     <th>"Δ (g)"</th>
-                    <th>"% cal"</th>
+                    <th>"%"</th>
                 </tr>
             </thead>
             <tbody>
@@ -123,6 +125,7 @@ fn MacrosTable(
             <tfoot>
                 <tr>
                     <td>"Total"</td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
