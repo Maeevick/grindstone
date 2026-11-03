@@ -74,7 +74,7 @@ pub fn burn_day(
     burn_of_the_day(gather, burn, day(date)?)
 }
 
-/// The sum-up over a window up to today, today included.
+/// The sum-up over a window's finished days, today left out until it is over, as Fuel's and Hydrate's averages.
 pub fn burn_over_the_window(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
@@ -89,6 +89,7 @@ pub fn burn_over_the_window(
     };
     let days: Vec<Burn> = the_days_between(first, today)
         .into_iter()
+        .filter(|day| *day < today)
         .map(|day| burn_on(day, &burnt, &gathered))
         .collect();
     Ok(burn_week_of(&days))
