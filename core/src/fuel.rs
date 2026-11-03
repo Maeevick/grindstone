@@ -1216,7 +1216,7 @@ mod tests {
     }
 
     #[test]
-    fn each_macro_is_bounded_for_the_day_by_its_target_and_the_bands_cap_carbs_filling_the_band_rounded_inward()
+    fn each_macro_stands_between_its_floor_and_its_share_of_the_energy_eaten_carbs_filling_the_band_rounded_inward()
      {
         let (lean_kg, _) = the_body();
         let mut fuel = aiming();
@@ -1231,25 +1231,30 @@ mod tests {
 
         let band = fuelled.band.expect("a band");
         let macros = fuelled.macros.expect("macros");
+        let energy = fuelled.eaten.energy_kcal;
         let spent = 170.0 * 4.0 + 80.0 * 9.0 + 35.0 * 2.0;
         let rows = [macros.protein, macros.fat, macros.fibre, macros.carbs];
         let expected = [
-            (2.0 * 80.0, 0.333 * band.cap_kcal / 4.0),
-            (0.9 * 80.0, 0.333 * band.cap_kcal / 9.0),
-            (0.4 * 80.0, 0.04 * band.cap_kcal / 2.0),
+            (2.0 * 80.0, Some(0.35 * energy / 4.0)),
+            (
+                (0.9 * 80.0f64).max(0.2 * energy / 9.0),
+                Some(0.35 * energy / 9.0),
+            ),
+            (0.028 * energy / 2.0, None),
             (
                 ((band.floor_kcal - spent) / 4.0)
                     .max(3.0 * lean_kg)
                     .max(130.0)
                     .ceil(),
-                ((band.cap_kcal - spent) / 4.0).floor(),
+                Some(((band.cap_kcal - spent) / 4.0).floor()),
             ),
         ];
         for (row, (floor, ceiling)) in rows.iter().zip(expected) {
             assert!(about(row.floor_g, floor), "{row:?} {floor}");
-            assert!(
-                row.ceiling_g.is_some_and(|got| about(got, ceiling)),
-                "{row:?} {ceiling}"
+            assert_eq!(
+                row.ceiling_g.map(|got| (got * 1e6).round()),
+                ceiling.map(|wanted| (wanted * 1e6).round()),
+                "{row:?}"
             );
         }
     }
