@@ -5134,6 +5134,23 @@ async fn the_protein_target_is_kept_per_kilo_of_body_mass_or_of_lean_mass() {
 }
 
 #[wasm_bindgen_test]
+async fn the_fuel_card_recommends_protein_per_kilo_of_lean_mass_and_of_body_mass() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    let hint = texts_in_order(&screen, "p.fuel-targets-hint").concat();
+
+    assert!(
+        hint.contains("2.0 g per kg of lean mass") && hint.contains("1.6 g per kg of body mass"),
+        "{hint}"
+    );
+}
+
+#[wasm_bindgen_test]
 async fn hydrates_card_keeps_a_water_target_of_your_own() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
