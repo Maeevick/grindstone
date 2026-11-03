@@ -6,7 +6,7 @@ use crate::body::{Body, body_on};
 use crate::burn::burn_on;
 use crate::burn_records::BurnRecords;
 use crate::food::{Nutrients, summed};
-use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
+use crate::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets, Per};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
@@ -247,7 +247,7 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
 /// Each macro's floor and ceiling, read against the energy eaten so far, so the table warns as the day goes:
 /// red for the moment, green once the rest of the day is eaten.
 ///
-/// - Protein from its target per kilo, at most 35% of the energy, the top of the Institute of Medicine's 10 to 35%
+/// - Protein from its target per kilo of body mass or of lean mass, at most 35% of the energy, the top of the Institute of Medicine's 10 to 35%
 ///   (2005).
 /// - Fat from its target per kilo, at least 20% and at most 35% of the energy, EFSA's reference range (2010).
 /// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
@@ -258,7 +258,11 @@ fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -
     let energy = eaten.energy_kcal;
     let protein = row(
         eaten.protein_g,
-        targets.protein_g_per_kg * body.mass_kg,
+        targets.protein_g_per_kg
+            * match targets.protein_per {
+                Per::BodyMass => body.mass_kg,
+                Per::LeanMass => body.lean_kg,
+            },
         Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
     );
     let fat = row(
