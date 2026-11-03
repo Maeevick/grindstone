@@ -57,6 +57,22 @@ export function wear_the_stylesheet(css) {
 export function drop_the_stylesheet() {
     document.getElementById('worn')?.remove();
 }
+export function left_of(element) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getBoundingClientRect().left;
+}
+export function right_of(element) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getBoundingClientRect().right;
+}
+export function box_left_of(element) {
+    return element.getBoundingClientRect().left;
+}
+export function box_right_of(element) {
+    return element.getBoundingClientRect().right;
+}
 export function text_align_of(element) {
     return getComputedStyle(element).textAlign;
 }
@@ -76,6 +92,11 @@ extern "C" {
     fn wear_the_stylesheet(css: &str);
     fn drop_the_stylesheet();
     fn text_align_of(element: &Element) -> String;
+    /// Where an element's text starts and ends on the page, however it overflows its box.
+    fn left_of(element: &Element) -> f64;
+    fn right_of(element: &Element) -> f64;
+    fn box_left_of(element: &Element) -> f64;
+    fn box_right_of(element: &Element) -> f64;
 }
 
 fn answering(answers: &str) {
@@ -612,6 +633,39 @@ async fn hydrates_gauge_labels_opt_then_min_and_max_outward_its_ends_bare() {
             Vec::<String>::new()
         )
     );
+}
+
+#[wasm_bindgen_test]
+async fn an_edges_label_without_room_slides_over_its_edge_rather_than_out_of_the_gauge() {
+    let screen = screen();
+    let _worn = Worn::the_stylesheet();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <div style="width: 360px">
+                <Gauge
+                    amount=1500.0
+                    floor=1800.0
+                    optimal=2000.0
+                    cap=3600.0
+                    shown_as=grind_core::figures::Figure::Volume
+                />
+            </div>
+        }
+    });
+    settled().await;
+    let gauge: Element = found(&screen, ".gauge");
+    let labels = gauge.query_selector_all(".tick-label").expect("the labels");
+    let outside: Vec<String> = (0..labels.length())
+        .filter_map(|at| labels.item(at))
+        .map(|label| label.unchecked_into::<Element>())
+        .filter(|label| {
+            left_of(label) < box_left_of(&gauge) - 0.5
+                || right_of(label) > box_right_of(&gauge) + 0.5
+        })
+        .map(|label| label.text_content().unwrap_or_default())
+        .collect();
+
+    assert_eq!(outside, Vec::<String>::new());
 }
 
 #[wasm_bindgen_test]
