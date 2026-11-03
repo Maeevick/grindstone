@@ -6,21 +6,35 @@ use leptos::prelude::*;
 use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
 use crate::screens::lines;
 
-/// A row of tick labels, each under its tick in its colour: anchored at the share of itself its tick takes of
-/// the line, so it stays under its tick without leaving the gauge.
+/// Where a label stands against its place on the line: under a tick, anchored at the share of itself its tick
+/// takes of the line; ending at the left edge of a zone; or starting at its right edge. An edge's label keeps
+/// to the gauge when it has no room: it then slides over its edge rather than out.
+#[derive(Clone, Copy)]
+enum Anchor {
+    Tick,
+    EndsAt,
+    StartsAt,
+}
+
+/// A label on a row under the line: where it stands, what it says, its colour and how it is anchored.
+type Placed = (f64, String, &'static str, Anchor);
+
+/// A row of labels under the line, each where its tick or its zone's edge falls, in its colour.
 #[component]
-fn TickRow(labels: Vec<(f64, String, &'static str)>) -> impl IntoView {
+fn TickRow(labels: Vec<Placed>) -> impl IntoView {
     view! {
         <div class="gauge-under-ticks">
             {labels
                 .into_iter()
-                .map(|(at, label, class)| {
+                .map(|(at, label, class, anchor)| {
                     let share = 100.0 * at / 360.0;
+                    let (anchored, style) = match anchor {
+                        Anchor::Tick => ("", format!("left: {share}%; transform: translateX(-{share}%)")),
+                        Anchor::EndsAt => (" ends-at", format!("left: 0%; width: {share}%")),
+                        Anchor::StartsAt => (" starts-at", format!("left: {share}%; right: 0%")),
+                    };
                     view! {
-                        <span
-                            class=format!("{class} tick-label")
-                            style=format!("left: {share}%; transform: translateX(-{share}%)")
-                        >
+                        <span class=format!("{class} tick-label{anchored}") style=style>
                             {label}
                         </span>
                     }
@@ -33,7 +47,7 @@ fn TickRow(labels: Vec<(f64, String, &'static str)>) -> impl IntoView {
 /// A tick's label under it, in gold.
 #[component]
 fn TickLabel(at: f64, label: String) -> impl IntoView {
-    view! { <TickRow labels=vec![(at, label, "acc")] /> }
+    view! { <TickRow labels=vec![(at, label, "acc", Anchor::Tick)] /> }
 }
 
 #[component]
@@ -174,17 +188,27 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                         bare(Figure::Energy(band.minimum_kcal)),
                     ),
                     "low",
+                    Anchor::EndsAt,
                 ),
-                (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc"),
+                (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc", Anchor::Tick),
+                (placed.cap_at, format!("Max. {}", bare(Figure::Energy(band.cap_kcal))), "good", Anchor::StartsAt),
             ] />
             <TickRow labels=(band.floor_kcal > band.minimum_kcal)
-                .then(|| (placed.floor_at, format!("Alpert {}", bare(Figure::Energy(band.floor_kcal))), "good"))
+                .then(|| {
+                    (
+                        placed.floor_at,
+                        format!("Alpert {}", bare(Figure::Energy(band.floor_kcal))),
+                        "good",
+                        Anchor::EndsAt,
+                    )
+                })
                 .into_iter()
                 .chain([
                     (
                         placed.maintenance_at,
                         format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal))),
                         "acc",
+                        Anchor::Tick,
                     ),
                 ])
                 .collect() />

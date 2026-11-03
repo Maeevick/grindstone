@@ -494,6 +494,16 @@ hr.divider {
     white-space: nowrap;
 }
 
+.gauge-under-ticks .ends-at,
+.gauge-under-ticks .starts-at {
+    display: flex;
+    justify-content: safe flex-end;
+}
+
+.gauge-under-ticks .starts-at {
+    flex-direction: row-reverse;
+}
+
 .chips .pill {
     font-weight: bold;
 }
