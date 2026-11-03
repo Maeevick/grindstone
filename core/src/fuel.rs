@@ -1188,7 +1188,7 @@ mod tests {
             )],
             ..FuelRecords::default()
         };
-        eating(&mut fuel, "2026-10-10", &a_food(10.0, 20.0, 5.0, 1.0));
+        eating(&mut fuel, "2026-10-10", &a_food(10.0, 20.0, 5.0, 30.0));
 
         let fuelled = fuel_on(
             "2026-10-10",
@@ -1198,7 +1198,7 @@ mod tests {
         );
 
         let band = fuelled.band.expect("a band");
-        let spent = 10.0 * 4.0 + 8.0 * 9.0 + 1.0 * 2.0;
+        let spent = 10.0 * 4.0 + 8.0 * 9.0 + 30.0 * 2.0;
         assert_eq!(
             fuelled.macros.map(|macros| macros.carbs.floor_g),
             Some(((band.floor_kcal - spent) / 4.0).ceil())
