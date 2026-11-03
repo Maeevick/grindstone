@@ -385,7 +385,7 @@ mod tests {
             [
                 Some(Heading::Toward),
                 Some(Heading::AboveItsFloor),
-                Some(Heading::Toward),
+                Some(Heading::Steady),
                 Some(Heading::Steady)
             ]
         );

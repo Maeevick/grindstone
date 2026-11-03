@@ -10,14 +10,17 @@ pub enum Aim {
     Floor(f64),
 }
 
-/// Where a measure moving so much a week heads: steady under 0.15% of itself, else toward its aim or away from
+/// Where a measure moving so much a week heads: steady under 0.15% of itself or when its change shows as
+/// nothing at the precision it is shown to, else toward its aim or away from
 /// it, unaimed without one. A floor turns a measure away only once it falls to it: rising heads toward the
 /// aim, and falling stays above the floor until then.
 pub fn heading_of(per_week: f64, now: f64, aim: Option<Aim>, shown_to: f64) -> Heading {
-    let _ = shown_to;
+    let shows_as_nothing = (per_week / shown_to).round() == 0.0;
     match aim {
         None => Heading::Unaimed,
-        Some(_) if per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => Heading::Steady,
+        Some(_) if shows_as_nothing || per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => {
+            Heading::Steady
+        }
         Some(Aim::Reach(aim)) if (aim - now).signum() == per_week.signum() => Heading::Toward,
         Some(Aim::Reach(_)) => Heading::Away,
         Some(Aim::Floor(_)) if per_week.is_sign_positive() => Heading::Toward,
