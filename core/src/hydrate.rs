@@ -173,8 +173,9 @@ fn hydrated(
             (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
         _ => {
+            // Unweighed, no workout can be priced: the burn adds nothing.
             let gender = version_in_force_on(&gather.profiles, day).map(|profile| profile.gender);
-            let target_ml = default_base_ml(gender) + burnt_kcal * ML_PER_KCAL_SPENT;
+            let target_ml = default_base_ml(gender);
             (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
     };
