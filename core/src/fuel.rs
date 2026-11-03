@@ -1237,6 +1237,11 @@ mod tests {
     }
 
     #[test]
+    fn fibre_never_floors_under_three_tenths_of_a_gram_a_kilo() {
+        assert!(about(the_floors_before_eating().fibre.floor_g, 0.3 * 80.0));
+    }
+
+    #[test]
     fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass() {
         let fuel = FuelRecords {
             targets: vec![(
