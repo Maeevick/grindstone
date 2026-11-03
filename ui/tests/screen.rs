@@ -488,6 +488,52 @@ fn a_gathered_week() -> String {
     )
 }
 
+#[wasm_bindgen_test]
+async fn the_gauges_label_only_their_ticks_bare() {
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <AimGauge
+                label="Body mass"
+                amount=80.0
+                aim=grind_core::heading::Aim::Reach(75.0)
+                recommended=false
+            />
+            <AimGauge
+                label="Lean mass"
+                amount=68.0
+                aim=grind_core::heading::Aim::Floor(66.0)
+                recommended=false
+            />
+            <Gauge
+                amount=1500.0
+                floor=1800.0
+                optimal=2000.0
+                cap=2200.0
+                shown_as=grind_core::figures::Figure::Volume
+            />
+            <BurnGauge burnt=60.0 target=80.0 ghost=None />
+        }
+    });
+    settled().await;
+    let gauges = screen.query_selector_all(".gauge").expect("the gauges");
+    let labelled: Vec<Vec<String>> = (0..gauges.length())
+        .filter_map(|at| gauges.item(at))
+        .map(|gauge| {
+            texts_in_order(
+                &gauge.unchecked_into::<Element>(),
+                ".gauge-under-ticks span, .gauge-labels span",
+            )
+        })
+        .collect();
+
+    assert_eq!(
+        labelled,
+        [["Goal 75.0"], ["Goal 66.0"], ["Opt. 2000"], ["Target 80"]]
+            .map(|labels| labels.map(String::from).to_vec())
+    );
+}
+
 /// Each row of labels under a gauge's line: each label's text, classes and placing.
 fn labels_by_row(gauge: &Element) -> Vec<Vec<(String, String, String)>> {
     let rows = gauge
