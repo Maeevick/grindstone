@@ -74,7 +74,9 @@ pub fn burn_day(
     burn_of_the_day(gather, burn, day(date)?)
 }
 
-/// The sum-up over a window's finished days, today left out until it is over, as Fuel's and Hydrate's averages.
+const BIGGEST_BURNERS: usize = 3;
+
+/// The sum-up over a window's finished days, its three biggest burners, today left out until it is over, as Fuel's and Hydrate's averages.
 pub fn burn_over_the_window(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
@@ -92,7 +94,10 @@ pub fn burn_over_the_window(
         .filter(|day| *day < today)
         .map(|day| burn_on(day, &burnt, &gathered))
         .collect();
-    Ok(burn_week_of(&days))
+    Ok(burn_week_of(&days).map(|mut week| {
+        week.exercises.truncate(BIGGEST_BURNERS);
+        week
+    }))
 }
 
 pub fn log_workout(
