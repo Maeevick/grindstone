@@ -2016,6 +2016,23 @@ async fn fuels_gauge_labels_ea_goal_and_max_then_alpert_and_maintenance_its_zone
 }
 
 #[wasm_bindgen_test]
+async fn max_steps_aside_when_it_shows_as_maintenance() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".fuel-gauge .tick-label"),
+        ["EA25 1768", "Goal 2199", "Alpert 2199", "Maintenance 2650"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
     let held = A_FUELLED_DAY.replace(r#""floor_kcal": 2199.4"#, r#""floor_kcal": 1767.5"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {held} }}"#));
