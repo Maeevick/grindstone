@@ -2383,12 +2383,12 @@ async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting_in_grey()
         ),
         (
             [
-                "Off the clock (volitional)",
+                "volitional",
                 "198",
                 "–",
                 "–",
                 "",
-                "Fidgeting (spontaneous)",
+                "spontaneous",
                 "234",
                 "–",
                 "–",
