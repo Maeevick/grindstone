@@ -325,10 +325,10 @@ mod tests {
 
         let floors = fuelled
             .macros
-            .map(|macros| (macros.fat.floor_g, macros.fibre.floor_g));
+            .map(|macros| (macros.fat.floor_g, macros.protein.floor_g));
         assert!(
-            floors.is_some_and(|(fat_g, fibre_g)| {
-                (fat_g - 0.8 * 80.0).abs() < 1e-9 && (fibre_g - 0.31 * 80.0).abs() < 1e-9
+            floors.is_some_and(|(fat_g, protein_g)| {
+                (fat_g - 0.8 * 80.0).abs() < 1e-9 && (protein_g - 1.6 * 80.0).abs() < 1e-9
             }),
             "{floors:?}"
         );

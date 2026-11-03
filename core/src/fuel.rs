@@ -103,6 +103,11 @@ const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
 const CARBS_FLOOR_G: f64 = 130.0;
+const MOST_PROTEIN_SHARE: f64 = 0.35;
+const LEAST_FAT_SHARE: f64 = 0.20;
+const MOST_FAT_SHARE: f64 = 0.35;
+/// 14 g per 1000 kcal at 2 kcal a gram.
+const LEAST_FIBRE_SHARE: f64 = 0.028;
 const CARBS_FLOOR_G_PER_KG_OF_LEAN_MASS: f64 = 3.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
@@ -239,29 +244,32 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
     }
 }
 
-/// Each macro's floor and ceiling for the day, fixed whatever is eaten: protein, fat and fibre from their
-/// targets per kilo, under a share of the band's cap; carbohydrates fill the band, their floor rounded up and
-/// their ceiling down, so a gram rounded never turns them green.
+/// Each macro's floor and ceiling, read against the energy eaten so far, so the table warns as the day goes:
+/// red for the moment, green once the rest of the day is eaten.
 ///
-/// - Protein and fat at most a third of the cap, within EFSA's 20 to 35% for fat (2010) and the ISSN's 1.4 to
-///   2.0 g/kg for protein: Jäger R. et al. (2017), J Int Soc Sports Nutr 14:20.
-/// - Fibre at most 4% of the cap, after the Institute of Medicine's 14 g per 1000 kcal (2005).
-/// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g (2005).
+/// - Protein from its target per kilo, at most 35% of the energy, the top of the Institute of Medicine's 10 to 35%
+///   (2005).
+/// - Fat from its target per kilo, at least 20% and at most 35% of the energy, EFSA's reference range (2010).
+/// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
+///   2 kcal a gram; no ceiling, none being set.
+/// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g
+///   (2005), their floor rounded up and their ceiling down, so a gram rounded never turns them green.
 fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
+    let energy = eaten.energy_kcal;
     let protein = row(
         eaten.protein_g,
         targets.protein_g_per_kg * body.mass_kg,
-        Some(0.333 * band.cap_kcal / PROTEIN_KCAL_PER_G),
+        Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
     );
     let fat = row(
         eaten.fat_g,
-        targets.fat_g_per_kg * body.mass_kg,
-        Some(0.333 * band.cap_kcal / FAT_KCAL_PER_G),
+        (targets.fat_g_per_kg * body.mass_kg).max(LEAST_FAT_SHARE * energy / FAT_KCAL_PER_G),
+        Some(MOST_FAT_SHARE * energy / FAT_KCAL_PER_G),
     );
     let fibre = row(
         eaten.fibre_g,
-        targets.fibre_g_per_kg * body.mass_kg,
-        Some(0.04 * band.cap_kcal / FIBRE_KCAL_PER_G),
+        LEAST_FIBRE_SHARE * energy / FIBRE_KCAL_PER_G,
+        None,
     );
     let spent_kcal = protein.floor_g.max(eaten.protein_g) * PROTEIN_KCAL_PER_G
         + fat.floor_g.max(eaten.fat_g) * FAT_KCAL_PER_G
