@@ -13,7 +13,8 @@ pub enum Aim {
 /// Where a measure moving so much a week heads: steady under 0.15% of itself, else toward its aim or away from
 /// it, unaimed without one. A floor turns a measure away only once it falls to it: rising heads toward the
 /// aim, and falling stays above the floor until then.
-pub fn heading_of(per_week: f64, now: f64, aim: Option<Aim>) -> Heading {
+pub fn heading_of(per_week: f64, now: f64, aim: Option<Aim>, shown_to: f64) -> Heading {
+    let _ = shown_to;
     match aim {
         None => Heading::Unaimed,
         Some(_) if per_week.abs() < STABLE_SHARE_A_WEEK * now.abs() => Heading::Steady,
@@ -33,9 +34,14 @@ mod tests {
     fn a_measure_moving_less_than_015_percent_of_itself_a_week_holds_steady_and_from_it_on_moves() {
         assert_eq!(
             [
-                heading_of(0.1, 80.0, Some(Aim::Reach(70.0))),
-                heading_of(STABLE_SHARE_A_WEEK * 80.0, 80.0, Some(Aim::Reach(70.0))),
-                heading_of(-0.1, -80.0, Some(Aim::Reach(-70.0))),
+                heading_of(0.1, 80.0, Some(Aim::Reach(70.0)), 0.1),
+                heading_of(
+                    STABLE_SHARE_A_WEEK * 80.0,
+                    80.0,
+                    Some(Aim::Reach(70.0)),
+                    0.1
+                ),
+                heading_of(-0.1, -80.0, Some(Aim::Reach(-70.0)), 0.1),
             ],
             [Heading::Steady, Heading::Away, Heading::Steady]
         );
@@ -45,9 +51,9 @@ mod tests {
     fn a_measure_moving_to_its_aim_heads_toward_it_and_from_it_away() {
         assert_eq!(
             [
-                heading_of(-0.5, 80.0, Some(Aim::Reach(70.0))),
-                heading_of(0.5, 80.0, Some(Aim::Reach(70.0))),
-                heading_of(0.5, 60.0, Some(Aim::Reach(70.0))),
+                heading_of(-0.5, 80.0, Some(Aim::Reach(70.0)), 0.1),
+                heading_of(0.5, 80.0, Some(Aim::Reach(70.0)), 0.1),
+                heading_of(0.5, 60.0, Some(Aim::Reach(70.0)), 0.1),
             ],
             [Heading::Toward, Heading::Away, Heading::Toward]
         );
@@ -60,12 +66,12 @@ mod tests {
 
         assert_eq!(
             [
-                heading_of(0.3, 63.0, floor),
-                heading_of(0.3, 60.0, floor),
-                heading_of(-0.3, 63.0, floor),
-                heading_of(-0.3, 61.6, floor),
-                heading_of(-0.3, 60.0, floor),
-                heading_of(0.05, 63.0, floor),
+                heading_of(0.3, 63.0, floor, 0.1),
+                heading_of(0.3, 60.0, floor, 0.1),
+                heading_of(-0.3, 63.0, floor, 0.1),
+                heading_of(-0.3, 61.6, floor, 0.1),
+                heading_of(-0.3, 60.0, floor, 0.1),
+                heading_of(0.05, 63.0, floor, 0.1),
             ],
             [
                 Heading::Toward,
@@ -79,7 +85,18 @@ mod tests {
     }
 
     #[test]
+    fn a_measure_whose_weekly_change_rounds_to_nothing_as_shown_holds_steady() {
+        assert_eq!(
+            [
+                heading_of(-0.03, 7.1, Some(Aim::Reach(6.0)), 0.1),
+                heading_of(-0.0004, 0.12, Some(Aim::Reach(0.10)), 0.001)
+            ],
+            [Heading::Steady, Heading::Steady]
+        );
+    }
+
+    #[test]
     fn a_measure_without_an_aim_is_unaimed_however_it_moves() {
-        assert_eq!(heading_of(-0.5, 80.0, None), Heading::Unaimed);
+        assert_eq!(heading_of(-0.5, 80.0, None, 0.1), Heading::Unaimed);
     }
 }

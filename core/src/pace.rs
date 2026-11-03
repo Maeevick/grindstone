@@ -54,6 +54,9 @@ impl Pace {
 }
 
 const FEWEST_WEIGH_INS: usize = 4;
+/// How finely a mass and a ratio are shown, so a change that shows as nothing holds steady.
+const A_TENTH_OF_A_KILO: f64 = 0.1;
+const A_TENTH_OF_A_PERCENT: f64 = 0.001;
 const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
 const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
@@ -123,10 +126,10 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
         &readings(|measured| Some(measured.body_mass_kg)),
     )?;
     let aims = aims_on(day, gathered);
-    let change = |measure: fn(&Day) -> Option<f64>, aim: Option<Aim>| {
+    let change = |measure: fn(&Day) -> Option<f64>, aim: Option<Aim>, shown_to: f64| {
         weekly(first, day, &readings(measure)).map(|(per_week, now)| Change {
             by: per_week,
-            heading: heading_of(per_week, now, aim),
+            heading: heading_of(per_week, now, aim, shown_to),
         })
     };
     let body = body_on(day, &days, &gathered.profiles);
@@ -141,19 +144,27 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
     Some(Pace {
         body_mass: Change {
             by: per_week,
-            heading: heading_of(per_week, body_mass_kg, aims.map(|aims| aims.body_mass())),
+            heading: heading_of(
+                per_week,
+                body_mass_kg,
+                aims.map(|aims| aims.body_mass()),
+                A_TENTH_OF_A_KILO,
+            ),
         },
         lean_mass: change(
             |measured| measured.composition.map(|split| split.lean_mass_kg),
             aims.map(|aims| aims.lean_mass()),
+            A_TENTH_OF_A_KILO,
         ),
         fat_mass: change(
             |measured| measured.composition.map(|split| split.fat_mass_kg),
             aims.map(|aims| Aim::Reach(aims.fat_mass_kg())),
+            A_TENTH_OF_A_KILO,
         ),
         fat_ratio: change(
             |measured| measured.composition.map(|split| split.fat_ratio),
             aims.map(|aims| Aim::Reach(aims.fat_ratio())),
+            A_TENTH_OF_A_PERCENT,
         ),
         judgement,
         safe_loss_kg,
