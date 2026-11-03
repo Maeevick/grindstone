@@ -309,8 +309,8 @@ async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
 }
 
 #[wasm_bindgen_test]
-async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_its_references_below()
-{
+async fn only_the_usual_day_offers_its_recommendation_each_card_keeps_in_its_own_words_its_references_below()
+ {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "protein_per": "BodyMass", "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
@@ -325,18 +325,36 @@ async fn each_card_offers_its_recommendation_above_its_keeping_and_every_card_it
     });
     settled().await;
 
-    for card in [
+    let offered: Vec<(bool, String)> = [
         ".goals",
         ".fuel-targets",
         ".water-target",
         ".usual-day",
         ".burn-target",
-    ] {
-        found::<Element>(
-            &screen,
-            &format!("{card} button.recommend ~ button[type=submit]"),
-        );
-    }
+    ]
+    .into_iter()
+    .map(|card| {
+        (
+            screen
+                .query_selector(&format!("{card} button.recommend"))
+                .ok()
+                .flatten()
+                .is_some(),
+            texts_in_order(&screen, &format!("{card} button[type=submit]")).concat(),
+        )
+    })
+    .collect();
+    assert_eq!(
+        offered,
+        [
+            (false, "Engrave these goals"),
+            (false, "Paint these targets"),
+            (false, "Store this aim"),
+            (true, "Keep this usual day"),
+            (false, "Fire this ambition")
+        ]
+        .map(|(recommend, keep)| (recommend, keep.to_string()))
+    );
     for card in [
         ".goals",
         ".fuel-targets",
