@@ -178,6 +178,16 @@ pub fn remove_workout(records: State<Records>, date: String, id: i64) -> Result<
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn remove_workouts(
+    records: State<Records>,
+    date: String,
+    ids: Vec<i64>,
+) -> Result<Burn, Failure> {
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_burning::remove_workouts(&*records, &*records, &date, &ids)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn set_day_off_the_clock(
     records: State<Records>,
     date: String,
@@ -571,6 +581,7 @@ mod tests {
                 burn_day,
                 log_workout,
                 remove_workout,
+                remove_workouts,
                 set_day_off_the_clock,
                 exercises,
                 add_exercise,

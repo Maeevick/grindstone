@@ -31,6 +31,7 @@ pub fn run() {
             commands::burn_day,
             commands::log_workout,
             commands::remove_workout,
+            commands::remove_workouts,
             commands::set_day_off_the_clock,
             commands::exercises,
             commands::add_exercise,
