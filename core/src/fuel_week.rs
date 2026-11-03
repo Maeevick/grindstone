@@ -33,32 +33,65 @@ pub struct Gap {
     pub per_day: f64,
 }
 
+/// How far from its goal an average may stand and still be on it, a tenth either side.
+const ON_THE_GOAL_SHARE: f64 = 0.1;
+
 impl FuelWeek {
-    /// What runs short of its band, furthest first by the share of its floor it misses.
+    /// What runs short: the energy under its band, each macro more than a tenth under its goal; furthest first
+    /// by the share it misses.
     pub fn short(&self) -> Vec<Gap> {
-        self.off_band(Verdict::Low, |row| row.floor)
+        self.off(Verdict::Low)
     }
 
-    /// What runs over its band, furthest first by the share of its ceiling it passes.
+    /// What runs over: the energy past its band, each macro more than a tenth past its goal; furthest first by
+    /// the share it passes.
     pub fn over(&self) -> Vec<Gap> {
-        self.off_band(Verdict::High, |row| row.ceiling.unwrap_or(f64::INFINITY))
+        self.off(Verdict::High)
     }
 
-    fn off_band(&self, side: Verdict, bound: fn(&Averaged) -> f64) -> Vec<Gap> {
-        let mut off: Vec<(Gap, f64)> = [
-            (Habit::Energy, self.energy),
+    /// Whether any macro has a goal painted to be told against.
+    pub fn has_goals(&self) -> bool {
+        [self.protein, self.fat, self.fibre, self.carbs]
+            .iter()
+            .any(|row| row.goal.is_some())
+    }
+
+    fn off(&self, side: Verdict) -> Vec<Gap> {
+        let energy = (self.energy.verdict() == side)
+            .then(|| {
+                let bound = match side {
+                    Verdict::High => self.energy.ceiling.unwrap_or(f64::INFINITY),
+                    _ => self.energy.floor,
+                };
+                self.energy.gap().map(|per_day| {
+                    (
+                        Gap {
+                            habit: Habit::Energy,
+                            per_day,
+                        },
+                        per_day.abs() / bound,
+                    )
+                })
+            })
+            .flatten();
+        let macros = [
             (Habit::Protein, self.protein),
             (Habit::Fat, self.fat),
             (Habit::Fibre, self.fibre),
             (Habit::Carbs, self.carbs),
         ]
         .into_iter()
-        .filter(|(_, row)| row.verdict() == side)
         .filter_map(|(habit, row)| {
-            let per_day = row.gap()?;
-            Some((Gap { habit, per_day }, per_day.abs() / bound(&row)))
-        })
-        .collect();
+            let goal = row.goal?;
+            let per_day = row.per_day - goal;
+            let off_by = per_day / goal;
+            let is_off = match side {
+                Verdict::Low => off_by < -ON_THE_GOAL_SHARE,
+                _ => off_by > ON_THE_GOAL_SHARE,
+            };
+            is_off.then_some((Gap { habit, per_day }, off_by.abs()))
+        });
+        let mut off: Vec<(Gap, f64)> = energy.into_iter().chain(macros).collect();
         off.sort_by(|(_, one), (_, other)| other.total_cmp(one));
         off.into_iter().map(|(gap, _)| gap).collect()
     }

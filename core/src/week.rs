@@ -59,7 +59,10 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
             .map(|day| day.ceiling)
             .sum::<Option<f64>>()
             .map(|sum| sum / logged),
-        goal: None,
+        goal: {
+            let goals: Vec<f64> = days.iter().filter_map(|day| day.goal).collect();
+            (!goals.is_empty()).then(|| goals.iter().sum::<f64>() / goals.len() as f64)
+        },
         in_band: days
             .iter()
             .filter(|day| {
