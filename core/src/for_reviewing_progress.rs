@@ -10,11 +10,11 @@ use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, fuel_over};
 use crate::gather_records::GatherRecords;
-use crate::hydrate::hydrate_over;
+use crate::hydrate::{Hydrate, WATER_SHARE_FLOOR_PERCENT, hydrate_over};
 use crate::hydrate_counted::counted_on;
 use crate::refusal::Refusal;
 use crate::streak::{Streak, Ticks, streak_of};
-use crate::verdict::Verdict;
+use crate::verdict::{Verdict, verdict_of};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
@@ -61,7 +61,7 @@ pub fn streak(
                     worked_out: counted_on(*day, &burnt.counted_from)
                         .then(|| worked_out(*day, &burnt, &gathered)),
                     hydrated: counted_on(*day, &hydrated.counted_from)
-                        .then(|| hydrated_day.verdict == Verdict::InBand),
+                        .then(|| hydrated_in_band(hydrated_day)),
                 },
             )
         })
@@ -78,6 +78,12 @@ fn fuelled_in_band(fuelled: &Fuel) -> bool {
                 .iter()
                 .all(|row| row.verdict == Verdict::InBand)
         })
+}
+
+/// A day's drinks stand in their band and at least four fifths of them are water, as shown.
+fn hydrated_in_band(hydrated: &Hydrate) -> bool {
+    hydrated.verdict == Verdict::InBand
+        && verdict_of(hydrated.water_share(), WATER_SHARE_FLOOR_PERCENT, 100.0) == Verdict::InBand
 }
 
 /// A day's workouts reach its burn target as both are shown; before any weigh-in prices them, a single
