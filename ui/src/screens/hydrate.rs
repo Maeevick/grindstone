@@ -5,9 +5,9 @@ use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateTargetForm;
-use grind_core::hydrate::Hydrate;
+use grind_core::hydrate::{Hydrate, WATER_SHARE_FLOOR_PERCENT};
 use grind_core::kept::Kept;
-use grind_core::verdict::Verdict;
+use grind_core::verdict::{Verdict, verdict_of};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -99,6 +99,14 @@ fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -
     let total = lines::drunk_line(&of_the_day);
     let verdict_class = lines::verdict_class(of_the_day.verdict);
     let past_the_cap = of_the_day.verdict == Verdict::High;
+    let (water_ml, water_share) = (of_the_day.water_ml(), of_the_day.water_share());
+    let others_share = if drunk_ml > 0.0 {
+        100.0 - water_share
+    } else {
+        0.0
+    };
+    let water_class =
+        lines::verdict_class(verdict_of(water_share, WATER_SHARE_FLOOR_PERCENT, 100.0));
     view! {
         <section class="card bands">
             <h2>"Where the day stands"</h2>
@@ -120,6 +128,27 @@ fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -
                 }
             }}
             {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
+            <table class="kinds">
+                <thead>
+                    <tr>
+                        <th>"Kind"</th>
+                        <th>"Drunk (mL)"</th>
+                        <th>"%"</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="water">
+                        <td>"Water"</td>
+                        <td>{bare(Figure::Volume(water_ml))}</td>
+                        <td class=water_class>{bare(Figure::Ratio(water_share / 100.0))}</td>
+                    </tr>
+                    <tr class="others">
+                        <td>"Others"</td>
+                        <td>{bare(Figure::Volume(drunk_ml - water_ml))}</td>
+                        <td>{bare(Figure::Ratio(others_share / 100.0))}</td>
+                    </tr>
+                </tbody>
+            </table>
         </section>
     }
 }
