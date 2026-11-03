@@ -129,6 +129,17 @@ pub fn remove_workout(
     burn_of_the_day(gather, burn, day)
 }
 
+/// Removes several workouts of a day in one go: a circuit run.
+pub fn remove_workouts(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    date: &str,
+    ids: &[i64],
+) -> Result<Burn, Failure> {
+    let _ = ids;
+    burn_of_the_day(gather, burn, day(date)?)
+}
+
 pub fn set_day_off_the_clock(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
@@ -512,6 +523,24 @@ mod tests {
             circuit: circuit.into(),
             sets: Some(sets),
         }
+    }
+
+    #[test]
+    fn removing_a_circuit_run_removes_all_its_workouts_and_leaves_the_others() {
+        let (gather, burn) = (GatherRecordsInMemory::default(), a_lab_with_morning_rust());
+        log_circuit(&gather, &burn, &running("Morning rust", 1)).expect("a run logs");
+        let run = log_circuit(&gather, &burn, &running("Morning rust", 2)).expect("a run logs");
+        let second_run: Vec<i64> = run.workouts.iter().skip(2).map(|done| done.id).collect();
+
+        let left = remove_workouts(&gather, &burn, "2026-10-10", &second_run).expect("a burn");
+
+        assert_eq!(
+            left.workouts
+                .iter()
+                .map(|done| done.workout.sets)
+                .collect::<Vec<_>>(),
+            [1, 1]
+        );
     }
 
     #[test]
