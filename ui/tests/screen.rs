@@ -2370,7 +2370,7 @@ async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
 }
 
 #[wasm_bindgen_test]
-async fn burns_entries_end_on_neat_its_two_parts_always_open_in_a_block() {
+async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting_in_grey() {
     let screen = screen();
     let _mounted = burns_last_days_of_morning_rust(&screen);
     settled().await;
@@ -2378,30 +2378,25 @@ async fn burns_entries_end_on_neat_its_two_parts_always_open_in_a_block() {
 
     assert_eq!(
         (
-            texts_in_order(&screen, ".last-days tr.entry td"),
-            texts_in_order(&screen, ".last-days tr.details.neat li")
+            texts_in_order(&screen, ".last-days tr.entry.neat td"),
+            texts_in_order(&screen, ".last-days tr.details").len()
         ),
         (
             [
-                "Morning rust",
-                "120",
-                "4.5",
-                "36",
-                "×",
-                "NEAT",
-                "432",
+                "Off the clock (volitional)",
+                "198",
+                "–",
+                "–",
+                "",
+                "Fidgeting (spontaneous)",
+                "234",
                 "–",
                 "–",
                 ""
             ]
             .map(String::from)
             .to_vec(),
-            [
-                "Off the clock (volitional) · 198 kcal",
-                "Fidgeting (spontaneous) · 234 kcal"
-            ]
-            .map(String::from)
-            .to_vec()
+            0
         )
     );
 }
