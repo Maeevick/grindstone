@@ -477,8 +477,6 @@ pub fn drunk_line(hydrate: &Hydrate) -> String {
     )
 }
 
-pub const TARGET_DRUNK: &str = "Target reached.";
-
 pub const PAST_THE_CAP: &str = "Past the cap. Under normal activity, kidneys clear about a litre an \
     hour, so spread the cups through the day. They will not thank you aloud, but they will thank you.";
 

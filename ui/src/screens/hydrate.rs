@@ -98,7 +98,6 @@ fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -
     let drunk_with_it = move || about_to_drink.get().map(|ml| drunk_ml + ml);
     let total = lines::drunk_line(&of_the_day);
     let verdict_class = lines::verdict_class(of_the_day.verdict);
-    let reached = of_the_day.verdict == Verdict::InBand;
     let past_the_cap = of_the_day.verdict == Verdict::High;
     view! {
         <section class="card bands">
@@ -120,7 +119,6 @@ fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -
                     />
                 }
             }}
-            {reached.then(|| view! { <p class="said">{lines::TARGET_DRUNK}</p> })}
             {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
         </section>
     }
