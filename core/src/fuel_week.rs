@@ -246,6 +246,57 @@ mod tests {
     }
 
     #[test]
+    fn the_energy_off_its_band_is_named_with_the_macros_by_the_share_of_its_bound() {
+        let aimless = averaged(100.0, 50.0, 200.0, 1);
+        let week = |energy: Averaged| FuelWeek {
+            logged_days: 2,
+            energy,
+            protein: aimless,
+            fat: aimless,
+            fibre: aimless,
+            carbs: aimless,
+        };
+
+        assert_eq!(
+            (
+                week(averaged(1500.0, 1800.0, 2400.0, 0)).short(),
+                week(averaged(2600.0, 1800.0, 2400.0, 0)).over()
+            ),
+            (
+                vec![Gap {
+                    habit: Habit::Energy,
+                    per_day: -300.0
+                }],
+                vec![Gap {
+                    habit: Habit::Energy,
+                    per_day: 200.0
+                }]
+            )
+        );
+    }
+
+    #[test]
+    fn a_week_has_goals_once_a_macro_has_one() {
+        let aimless = averaged(100.0, 50.0, 200.0, 1);
+        let week = |fibre: Averaged| FuelWeek {
+            logged_days: 2,
+            energy: averaged(2100.0, 1800.0, 2400.0, 2),
+            protein: aimless,
+            fat: aimless,
+            fibre,
+            carbs: aimless,
+        };
+
+        assert_eq!(
+            [
+                week(aimless).has_goals(),
+                week(aimed(25.0, 20.0, 60.0, Some(30.0), 1)).has_goals()
+            ],
+            [false, true]
+        );
+    }
+
+    #[test]
     fn a_macro_short_of_its_goal_or_over_it_by_more_than_a_tenth_is_named_furthest_first() {
         let week = FuelWeek {
             logged_days: 6,
