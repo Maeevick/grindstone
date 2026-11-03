@@ -141,6 +141,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                         }
                     })}
                 <line class="minimum" x1=placed.minimum_at x2=placed.minimum_at y1="3" y2="21" />
+                <line class="goal" x1=placed.goal_at x2=placed.goal_at y1="3" y2="21" />
                 <line
                     class="maintenance"
                     x1=placed.maintenance_at
@@ -151,6 +152,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 {placed.ghost.map(|ghost| view! { <circle class="ghost" cx=ghost.eaten_at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
+            <TickLabel at=placed.goal_at label=format!("Goal {}", bare(Figure::Energy(band.goal_kcal))) />
             <TickLabel
                 at=placed.maintenance_at
                 label=format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal)))

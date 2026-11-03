@@ -1331,10 +1331,12 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
                     .and_then(|x| x.parse::<f64>().ok())
                     .expect("a tick")
                 / 360.0;
-            let label = gauge
-                .query_selector(".gauge-under-ticks .tick-label")
-                .ok()
-                .flatten();
+            let labels = gauge
+                .query_selector_all(".gauge-under-ticks .tick-label")
+                .expect("the labels");
+            let label = labels
+                .item(labels.length().saturating_sub(1))
+                .map(|label| label.unchecked_into::<Element>());
             (
                 label
                     .as_ref()
@@ -1923,8 +1925,8 @@ async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     found::<Element>(&screen, ".fuel-gauge rect.band");
     found::<Element>(&screen, ".fuel-gauge circle.eaten");
     assert_eq!(
-        text_of(&screen, ".fuel-gauge .tick-label"),
-        "Maintenance 2425"
+        texts_in_order(&screen, ".fuel-gauge .tick-label").last(),
+        Some(&"Maintenance 2425".to_string())
     );
 }
 
