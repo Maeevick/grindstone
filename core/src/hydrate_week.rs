@@ -17,7 +17,7 @@ fn water_share_of(day: &Hydrate) -> Banded {
     Banded {
         amount: day.water_share(),
         floor: WATER_SHARE_FLOOR_PERCENT,
-        ceiling: 100.0,
+        ceiling: Some(100.0),
     }
 }
 
@@ -29,7 +29,7 @@ pub fn hydrate_week_of(days: &[Hydrate]) -> Option<HydrateWeek> {
             .map(|day| Banded {
                 amount: day.drunk_ml,
                 floor: day.floor_ml,
-                ceiling: day.cap_ml,
+                ceiling: Some(day.cap_ml),
             })
             .collect::<Vec<_>>(),
     )?;
@@ -69,7 +69,7 @@ mod tests {
                 Averaged {
                     per_day: 2200.0,
                     floor: 2000.0,
-                    ceiling: 2400.0,
+                    ceiling: Some(2400.0),
                     in_band: 1,
                 }
             ))

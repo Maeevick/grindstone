@@ -11,6 +11,7 @@ use leptos::task::spawn_local;
 use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::catalog::MealDetails;
 use crate::screens::cells::nutrient_cells;
+use crate::screens::charts::bare_or_dash;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
@@ -36,7 +37,7 @@ fn MacroLine(
         <tr class=key>
             <td>{name}</td>
             <td>{bare(Figure::Grams(row.floor_g))}</td>
-            <td>{bare(Figure::Grams(row.ceiling_g))}</td>
+            <td>{bare_or_dash(row.ceiling_g, Figure::Grams)}</td>
             <td class=verdict>
                 {bare(Figure::Grams(row.eaten_g))}
                 {more_g

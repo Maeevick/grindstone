@@ -8,7 +8,8 @@ use crate::verdict::{Verdict, verdict_of};
 pub struct Banded {
     pub amount: f64,
     pub floor: f64,
-    pub ceiling: f64,
+    /// None when nothing is too much.
+    pub ceiling: Option<f64>,
 }
 
 /// A measure over a week's logged days: what a day took on average, against the average of their bands, and
@@ -17,13 +18,18 @@ pub struct Banded {
 pub struct Averaged {
     pub per_day: f64,
     pub floor: f64,
-    pub ceiling: f64,
+    /// None when nothing is too much.
+    pub ceiling: Option<f64>,
     pub in_band: usize,
 }
 
 impl Averaged {
     pub fn verdict(&self) -> Verdict {
-        verdict_of(self.per_day, self.floor, self.ceiling)
+        verdict_of(
+            self.per_day,
+            self.floor,
+            self.ceiling.unwrap_or(f64::INFINITY),
+        )
     }
 
     /// How far the average runs from its band, a day: under its floor short, past its ceiling over, nothing
@@ -31,7 +37,7 @@ impl Averaged {
     pub fn gap(&self) -> Option<f64> {
         match self.verdict() {
             Verdict::Low => Some(self.per_day - self.floor),
-            Verdict::High => Some(self.per_day - self.ceiling),
+            Verdict::High => self.ceiling.map(|ceiling| self.per_day - ceiling),
             Verdict::InBand => None,
         }
     }
@@ -44,10 +50,17 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
     (!days.is_empty()).then(|| Averaged {
         per_day: mean(|day| day.amount),
         floor: mean(|day| day.floor),
-        ceiling: mean(|day| day.ceiling),
+        ceiling: days
+            .iter()
+            .map(|day| day.ceiling)
+            .sum::<Option<f64>>()
+            .map(|sum| sum / logged),
         in_band: days
             .iter()
-            .filter(|day| verdict_of(day.amount, day.floor, day.ceiling) == Verdict::InBand)
+            .filter(|day| {
+                verdict_of(day.amount, day.floor, day.ceiling.unwrap_or(f64::INFINITY))
+                    == Verdict::InBand
+            })
             .count(),
     })
 }
@@ -85,7 +98,7 @@ mod tests {
         Banded {
             amount,
             floor: 1800.0,
-            ceiling: 2400.0,
+            ceiling: Some(2400.0),
         }
     }
 
@@ -93,7 +106,7 @@ mod tests {
         Averaged {
             per_day,
             floor: 1800.0,
-            ceiling: 2400.0,
+            ceiling: Some(2400.0),
             in_band: 0,
         }
     }
@@ -107,7 +120,7 @@ mod tests {
             Some(Averaged {
                 per_day: 2100.0,
                 floor: 1800.0,
-                ceiling: 2400.0,
+                ceiling: Some(2400.0),
                 in_band: 1,
             })
         );

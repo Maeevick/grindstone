@@ -36,7 +36,8 @@ pub struct Band {
 pub struct MacroRow {
     pub eaten_g: f64,
     pub floor_g: f64,
-    pub ceiling_g: f64,
+    /// None when nothing is too much.
+    pub ceiling_g: Option<f64>,
     pub verdict: Verdict,
 }
 
@@ -229,12 +230,12 @@ fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
     }
 }
 
-fn row(eaten_g: f64, floor_g: f64, ceiling_g: f64) -> MacroRow {
+fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
     MacroRow {
         eaten_g,
         floor_g,
         ceiling_g,
-        verdict: verdict_of(eaten_g, floor_g, ceiling_g),
+        verdict: verdict_of(eaten_g, floor_g, ceiling_g.unwrap_or(f64::INFINITY)),
     }
 }
 
@@ -250,17 +251,17 @@ fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -
     let protein = row(
         eaten.protein_g,
         targets.protein_g_per_kg * body.mass_kg,
-        0.333 * band.cap_kcal / PROTEIN_KCAL_PER_G,
+        Some(0.333 * band.cap_kcal / PROTEIN_KCAL_PER_G),
     );
     let fat = row(
         eaten.fat_g,
         targets.fat_g_per_kg * body.mass_kg,
-        0.333 * band.cap_kcal / FAT_KCAL_PER_G,
+        Some(0.333 * band.cap_kcal / FAT_KCAL_PER_G),
     );
     let fibre = row(
         eaten.fibre_g,
         targets.fibre_g_per_kg * body.mass_kg,
-        0.04 * band.cap_kcal / FIBRE_KCAL_PER_G,
+        Some(0.04 * band.cap_kcal / FIBRE_KCAL_PER_G),
     );
     let spent_kcal = protein.floor_g.max(eaten.protein_g) * PROTEIN_KCAL_PER_G
         + fat.floor_g.max(eaten.fat_g) * FAT_KCAL_PER_G
@@ -275,7 +276,7 @@ fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -
         protein,
         fat,
         fibre,
-        carbs: row(eaten.carbs_g, carbs_floor, carbs_ceiling),
+        carbs: row(eaten.carbs_g, carbs_floor, Some(carbs_ceiling)),
     }
 }
 
@@ -1246,7 +1247,10 @@ mod tests {
         ];
         for (row, (floor, ceiling)) in rows.iter().zip(expected) {
             assert!(about(row.floor_g, floor), "{row:?} {floor}");
-            assert!(about(row.ceiling_g, ceiling), "{row:?} {ceiling}");
+            assert!(
+                row.ceiling_g.is_some_and(|got| about(got, ceiling)),
+                "{row:?} {ceiling}"
+            );
         }
     }
 
@@ -1270,7 +1274,7 @@ mod tests {
         let short = MacroRow {
             eaten_g: 120.0,
             floor_g: 130.0,
-            ceiling_g: 180.0,
+            ceiling_g: Some(180.0),
             verdict: Verdict::Low,
         };
 

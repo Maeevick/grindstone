@@ -215,7 +215,7 @@ mod tests {
             Some(Averaged {
                 per_day: 62.5,
                 floor: 80.0,
-                ceiling: 100.0,
+                ceiling: Some(100.0),
                 in_band: 0
             })
         );

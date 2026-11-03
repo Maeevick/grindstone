@@ -41,7 +41,7 @@ impl FuelWeek {
 
     /// What runs over its band, furthest first by the share of its ceiling it passes.
     pub fn over(&self) -> Vec<Gap> {
-        self.off_band(Verdict::High, |row| row.ceiling)
+        self.off_band(Verdict::High, |row| row.ceiling.unwrap_or(f64::INFINITY))
     }
 
     fn off_band(&self, side: Verdict, bound: fn(&Averaged) -> f64) -> Vec<Gap> {
@@ -91,7 +91,7 @@ pub fn fuel_week_of(days: &[Fuel]) -> Option<FuelWeek> {
         energy: row(|day, band, _| Banded {
             amount: day.eaten.energy_kcal,
             floor: band.floor_kcal,
-            ceiling: band.cap_kcal,
+            ceiling: Some(band.cap_kcal),
         })?,
         protein: row(|_, _, macros| banded(macros.protein))?,
         fat: row(|_, _, macros| banded(macros.fat))?,
@@ -112,7 +112,7 @@ mod tests {
         MacroRow {
             eaten_g,
             floor_g,
-            ceiling_g,
+            ceiling_g: Some(ceiling_g),
             verdict: verdict_of(eaten_g, floor_g, ceiling_g),
         }
     }
@@ -157,6 +157,7 @@ mod tests {
     }
 
     fn averaged(per_day: f64, floor: f64, ceiling: f64, in_band: usize) -> Averaged {
+        let ceiling = Some(ceiling);
         Averaged {
             per_day,
             floor,

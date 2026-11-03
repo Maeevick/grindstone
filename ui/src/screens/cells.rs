@@ -41,7 +41,12 @@ pub fn week_table(logged_days: usize, rows: Vec<WeekRow>) -> impl IntoView {
                             <tr>
                                 <td>{name}</td>
                                 <td class=lines::verdict_class(row.verdict())>{bare(figure(row.per_day))}</td>
-                                <td>{format!("{}–{}", bare(figure(row.floor)), bare(figure(row.ceiling)))}</td>
+                                <td>
+                                    {match row.ceiling {
+                                        Some(ceiling) => format!("{}–{}", bare(figure(row.floor)), bare(figure(ceiling))),
+                                        None => format!("≥ {}", bare(figure(row.floor))),
+                                    }}
+                                </td>
                                 <td>{format!("{}/{logged_days}", row.in_band)}</td>
                             </tr>
                         }
