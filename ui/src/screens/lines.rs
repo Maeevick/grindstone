@@ -614,14 +614,16 @@ fn gaps_said(gaps: &[Gap], a_day_first: bool) -> String {
     }
 }
 
-/// What the window's average runs short of, then over, said plainly before a word from the ledger.
+/// What the window's average runs short of, then over, said plainly before a word from the ledger: the energy
+/// against its band, each macro against its goal; without a goal, an invitation to paint one.
 pub fn fuel_week_said(week: &FuelWeek) -> String {
     let (short, over) = (week.short(), week.over());
-    match (short.is_empty(), over.is_empty()) {
-        (true, true) => {
-            "Every average sits in its band. I checked twice, which for me counts as restraint."
-                .into()
+    let said = match (short.is_empty(), over.is_empty()) {
+        (true, true) if week.has_goals() => {
+            "Every average sits on its goal. I checked twice, which for me counts as restraint."
+                .to_string()
         }
+        (true, true) => "The energy sits in its band.".to_string(),
         (false, true) => format!(
             "Short on {}. A little more every day and the gap closes on its own; I only have to watch, my favourite kind of work.",
             gaps_said(&short, true)
@@ -631,12 +633,20 @@ pub fn fuel_week_said(week: &FuelWeek) -> String {
             gaps_said(&over, true)
         ),
         (false, false) => format!(
-            "Short on {}, over on {}. Trade a little of the one for the other: the energy barely moves, the week does.",
+            "Short on {}, over on {}. Trade a little of the one for the other: the energy barely moves, the days do.",
             gaps_said(&short, true),
             gaps_said(&over, false)
         ),
+    };
+    if week.has_goals() {
+        said
+    } else {
+        format!("{said} {PAINT_YOUR_TARGETS}")
     }
 }
+
+const PAINT_YOUR_TARGETS: &str =
+    "Paint your targets in Profile and I will tell how far each macro stands from them.";
 
 /// How far the window's drinks run from the band, then how much of them was water, said plainly before a word
 /// from the ledger.
