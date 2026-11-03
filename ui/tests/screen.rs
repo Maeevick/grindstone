@@ -2133,6 +2133,26 @@ async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_its_zones_ed
 }
 
 #[wasm_bindgen_test]
+async fn fuels_band_runs_dashed_from_alpert_to_its_goal_then_solid_to_its_cap() {
+    let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
+    answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    let gauge: Element = found(&screen, ".fuel-gauge");
+    let at = |selector: &str, attribute: &str| share_of(&gauge, selector, attribute);
+
+    assert_eq!(
+        (
+            at("line.alpert-zone", "x1") < at("line.goal", "x1"),
+            at("line.alpert-zone", "x2"),
+            at("rect.band", "x")
+        ),
+        (true, at("line.goal", "x1"), at("line.goal", "x1"))
+    );
+}
+
+#[wasm_bindgen_test]
 async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
     let held = A_FUELLED_DAY.replace(r#""floor_kcal": 2199.4"#, r#""floor_kcal": 1767.5"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {held} }}"#));
