@@ -2297,6 +2297,56 @@ async fn hydrates_entries_leave_the_water_share_empty() {
     );
 }
 
+fn burns_last_days_of_morning_rust(screen: &Element) -> impl Drop {
+    answering(&format!(
+        r#"{{ "burn_month": {{ "month": "2026-10", "earlier": null, "rows": [
+            {{ "day": "2026-10-10", "burnt_kcal": 120.0, "minutes": 4.5, "reps": 36.0 }}] }},
+            "burn_day": {A_DAY_OF_MORNING_RUST}, "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET},
+            "remove_workouts": {AN_EMPTY_BURN} }}"#
+    ));
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <BurnLastDays day=day />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_on_a_tap() {
+    let screen = screen();
+    let _mounted = burns_last_days_of_morning_rust(&screen);
+    settled().await;
+    settled().await;
+    let run = texts_in_order(&screen, ".last-days tr.entry.circuit td");
+
+    if let Some(row) = screen
+        .query_selector(".last-days tr.entry.circuit")
+        .ok()
+        .flatten()
+    {
+        row.unchecked_into::<web_sys::HtmlElement>().click();
+    }
+    settled().await;
+
+    assert_eq!(
+        (run, texts_in_order(&screen, ".last-days tr.details li")),
+        (
+            ["Morning rust", "120", "4.5", "36", "×"]
+                .map(String::from)
+                .to_vec(),
+            [
+                "Push up · 3 × 12 reps · 0.5 min · 40 kcal",
+                "Burpee · 3 × 1 min · 5.0 kg · 80 kcal"
+            ]
+            .map(String::from)
+            .to_vec()
+        )
+    );
+}
+
 #[wasm_bindgen_test]
 async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
     answering(&format!(
