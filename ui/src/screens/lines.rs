@@ -512,7 +512,7 @@ fn habit_name(habit: Habit) -> &'static str {
 }
 
 pub const FUEL_TARGETS_HINT: &str = "Your targets, in grams a day per kilo of body mass; leave one empty for none. \
-    Healthy, whatever they are: protein from 0.83 g per kg of body mass to 35% of the energy eaten, fat from 20 to 35% \
+    Healthy, whatever they are: protein from 0.83 g per kg of body mass and 10% of the energy eaten to 35% of it, fat from 20 to 35% \
     of it, fibre from 14 g per 1000 kcal eaten, carbs from 130 g. A target beyond them is yours to set; if you are not \
     sure, ask a doctor or a coach first.";
 
