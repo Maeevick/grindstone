@@ -14,5 +14,4 @@ pub struct BurnRecords {
     pub usual_days: Vec<(NaiveDate, Kept<Volitional>)>,
     pub circuits: Vec<Circuit>,
     pub targets: Vec<(NaiveDate, Kept<f64>)>,
-    pub counted_from: Vec<(NaiveDate, bool)>,
 }

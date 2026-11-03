@@ -110,6 +110,7 @@ const MIGRATIONS: &[&str] = &[
      create table burn_counted (effective_from text primary key, counted integer not null);",
     "alter table fuel_targets drop column fibre_g_per_kg",
     "alter table fuel_targets add column protein_per text not null default 'body_mass'",
+    "drop table gather_counted; drop table fuel_counted; drop table burn_counted; drop table hydrate_counted;",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
@@ -262,17 +263,10 @@ impl ForStoringGatherRecords for Sqlite {
             .map_err(broken)
     }
 
-    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
-        self.switch_saved("gather_counted", from, counted)
-    }
-
     fn replace_gather_records(&self, records: &GatherRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
-            .execute_batch(
-                "delete from measurements; delete from profiles; delete from goals;
-                 delete from gather_counted;",
-            )
+            .execute_batch("delete from measurements; delete from profiles; delete from goals;")
             .map_err(broken)?;
         for measured in &records.measurements {
             self.save_measurement(measured)?;
@@ -282,9 +276,6 @@ impl ForStoringGatherRecords for Sqlite {
         }
         for (from, goals) in &records.goals {
             self.save_goals(*from, goals)?;
-        }
-        for (from, counted) in &records.counted_from {
-            self.switch_saved("gather_counted", *from, *counted)?;
         }
         replacing.commit().map_err(broken)
     }
@@ -355,30 +346,11 @@ impl ForStoringGatherRecords for Sqlite {
             measurements,
             profiles,
             goals,
-            counted_from: self.switches("gather_counted")?,
         })
     }
 }
 
 impl Sqlite {
-    /// A streak switch kept from a day, in the table of its card.
-    fn switch_saved(&self, table: &str, from: NaiveDate, counted: bool) -> Result<(), Broken> {
-        self.run(
-            &format!(
-                "insert into {table} (effective_from, counted) values (?1, ?2)
-                 on conflict (effective_from) do update set counted = excluded.counted"
-            ),
-            params![from, counted],
-        )
-    }
-
-    fn switches(&self, table: &str) -> Result<Vec<(NaiveDate, bool)>, Broken> {
-        self.rows(
-            &format!("select effective_from, counted from {table} order by effective_from"),
-            counted_read,
-        )
-    }
-
     fn run(&self, statement: &str, values: impl rusqlite::Params) -> Result<(), Broken> {
         self.0
             .execute(statement, values)
@@ -582,17 +554,13 @@ impl ForStoringBurnRecords for Sqlite {
         )
     }
 
-    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
-        self.switch_saved("burn_counted", from, counted)
-    }
-
     fn replace_burn_records(&self, records: &BurnRecords) -> Result<(), Broken> {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
                 "delete from exercises; delete from workouts;
                  delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;
-                 delete from circuits; delete from burn_targets; delete from burn_counted;",
+                 delete from circuits; delete from burn_targets;",
             )
             .map_err(broken)?;
         for exercise in &records.exercises {
@@ -613,9 +581,6 @@ impl ForStoringBurnRecords for Sqlite {
         for (from, kcal) in &records.targets {
             self.save_burn_target(*from, *kcal)?;
         }
-        for (from, counted) in &records.counted_from {
-            self.switch_saved("burn_counted", *from, *counted)?;
-        }
         replacing.commit().map_err(broken)
     }
 
@@ -632,7 +597,6 @@ impl ForStoringBurnRecords for Sqlite {
             targets: self.rows(BURN_TARGETS, |row| {
                 Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
             })?,
-            counted_from: self.switches("burn_counted")?,
         })
     }
 
@@ -855,10 +819,6 @@ impl ForStoringFuelRecords for Sqlite {
         )
     }
 
-    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
-        self.switch_saved("fuel_counted", from, counted)
-    }
-
     fn save_meal(&self, meal: &Meal) -> Result<(), Broken> {
         let written = serde_json::to_string(meal).map_err(|error| Broken(error.to_string()))?;
         self.run(
@@ -876,8 +836,7 @@ impl ForStoringFuelRecords for Sqlite {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
-                "delete from foods; delete from intakes; delete from fuel_targets; delete from meals;
-                 delete from fuel_counted;",
+                "delete from foods; delete from intakes; delete from fuel_targets; delete from meals;",
             )
             .map_err(broken)?;
         for food in &records.foods {
@@ -888,9 +847,6 @@ impl ForStoringFuelRecords for Sqlite {
         }
         for (from, targets) in &records.targets {
             self.save_targets(*from, targets)?;
-        }
-        for (from, counted) in &records.counted_from {
-            self.switch_saved("fuel_counted", *from, *counted)?;
         }
         for meal in &records.meals {
             self.save_meal(meal)?;
@@ -904,7 +860,6 @@ impl ForStoringFuelRecords for Sqlite {
             intakes: self.rows(INTAKES, intake_read)?,
             targets: self.rows(FUEL_TARGETS, targets_read)?,
             meals: self.rows(MEALS, meal_read)?,
-            counted_from: self.switches("fuel_counted")?,
         })
     }
 }
@@ -950,8 +905,6 @@ fn kind_read(word: &str) -> rusqlite::Result<DrinkKind> {
         ))),
     }
 }
-const HYDRATE_COUNTED: &str =
-    "select effective_from, counted from hydrate_counted order by effective_from";
 const HYDRATE_TARGETS: &str =
     "select effective_from, base_ml, recommended from hydrate_targets order by effective_from";
 
@@ -975,10 +928,6 @@ fn drinking_read(row: &rusqlite::Row) -> rusqlite::Result<(i64, Drinking)> {
             servings: row.get(5)?,
         },
     ))
-}
-
-fn counted_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, bool)> {
-    Ok((row.get(0)?, row.get(1)?))
 }
 
 impl ForStoringHydrateRecords for Sqlite {
@@ -1017,14 +966,6 @@ impl ForStoringHydrateRecords for Sqlite {
         self.run("delete from drinkings where id = ?1", params![id])
     }
 
-    fn save_counted(&self, from: NaiveDate, counted: bool) -> Result<(), Broken> {
-        self.run(
-            "insert into hydrate_counted (effective_from, counted) values (?1, ?2)
-             on conflict (effective_from) do update set counted = excluded.counted",
-            params![from, counted],
-        )
-    }
-
     fn save_hydrate_target(&self, from: NaiveDate, base_ml: Kept<f64>) -> Result<(), Broken> {
         let (base_ml, recommended) = written(&base_ml, 0.0);
         self.run(
@@ -1039,8 +980,7 @@ impl ForStoringHydrateRecords for Sqlite {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
-                "delete from drinks; delete from drinkings; delete from hydrate_counted;
-                 delete from hydrate_targets;",
+                "delete from drinks; delete from drinkings; delete from hydrate_targets;",
             )
             .map_err(broken)?;
         for drink in &records.drinks {
@@ -1048,9 +988,6 @@ impl ForStoringHydrateRecords for Sqlite {
         }
         for (_, drinking) in &records.drinkings {
             self.save_drinking(drinking)?;
-        }
-        for (from, counted) in &records.counted_from {
-            ForStoringHydrateRecords::save_counted(self, *from, *counted)?;
         }
         for (from, base_ml) in &records.targets {
             self.save_hydrate_target(*from, *base_ml)?;
@@ -1062,7 +999,6 @@ impl ForStoringHydrateRecords for Sqlite {
         Ok(HydrateRecords {
             drinks: self.rows(DRINKS, drink_read)?,
             drinkings: self.rows(DRINKINGS, drinking_read)?,
-            counted_from: self.rows(HYDRATE_COUNTED, counted_read)?,
             targets: self.rows(HYDRATE_TARGETS, |row| {
                 Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
             })?,
@@ -1077,7 +1013,6 @@ mod tests {
     const BEFORE_THE_DRINK_KINDS: usize = 11;
     const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
     const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
-    const BEFORE_THE_HYDRATE_SWITCHES: usize = 14;
     const BEFORE_THE_RECOMMENDATIONS: usize = 20;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
@@ -1167,27 +1102,6 @@ mod tests {
     }
 
     #[test]
-    fn gather_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
-        honouring_for_storing_gather_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
-            &database(),
-        );
-    }
-
-    #[test]
-    fn fuel_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
-        honouring_for_storing_fuel_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
-            &database(),
-        );
-    }
-
-    #[test]
-    fn burn_streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing() {
-        honouring_for_storing_burn_records::streak_switches_come_back_in_the_order_of_their_days_the_latest_of_a_day_standing(
-            &database(),
-        );
-    }
-
-    #[test]
     fn goals_kept_as_the_recommendation_come_back_kept_so() {
         honouring_for_storing_gather_records::goals_kept_as_the_recommendation_come_back_kept_so(
             &database(),
@@ -1270,7 +1184,6 @@ mod tests {
                 },
             )],
             goals: vec![],
-            counted_from: vec![],
         };
 
         assert!(records.replace_gather_records(&half_valid).is_err());
@@ -1515,8 +1428,8 @@ mod tests {
     }
 
     #[test]
-    fn a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one() {
-        honouring_for_storing_hydrate_records::a_drink_or_a_switch_saved_again_under_its_name_or_day_replaces_the_earlier_one(
+    fn a_drink_saved_again_under_its_name_replaces_the_earlier_one() {
+        honouring_for_storing_hydrate_records::a_drink_saved_again_under_its_name_replaces_the_earlier_one(
             &database(),
         );
     }
@@ -1810,41 +1723,6 @@ mod tests {
                 ))
                 .collect::<Vec<_>>(),
             vec![("Morning rust", "", 1)]
-        );
-    }
-
-    #[test]
-    fn the_hydrate_bases_already_on_the_phone_switch_hydrate_off_at_nothing_and_on_otherwise() {
-        let file = std::env::temp_dir().join(format!(
-            "grind-sqlite-hydrate-switches-{}.sqlite",
-            std::process::id()
-        ));
-        let before = Connection::open(&file).expect("a database before the switches");
-        for (version, migration) in (1_i64..).zip(&MIGRATIONS[..BEFORE_THE_HYDRATE_SWITCHES]) {
-            before
-                .execute_batch(migration)
-                .expect("an earlier migration");
-            before
-                .pragma_update(None, "user_version", version)
-                .expect("its version");
-        }
-        before
-            .execute_batch(
-                "insert into hydrate_bases (effective_from, base_ml) values ('2026-03-01', 0.0);
-                 insert into hydrate_bases (effective_from, base_ml) values ('2026-10-10', 3000.0);",
-            )
-            .expect("bases set before");
-        drop(before);
-
-        let carried = Sqlite::open(&file).and_then(|database| database.hydrate_records());
-
-        std::fs::remove_file(&file).expect("the test database is removed");
-        assert_eq!(
-            carried.expect("the records read").counted_from,
-            vec![
-                (NaiveDate::from_ymd_opt(2026, 3, 1).expect("a day"), false),
-                (NaiveDate::from_ymd_opt(2026, 10, 10).expect("a day"), true)
-            ]
         );
     }
 

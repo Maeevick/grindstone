@@ -38,7 +38,6 @@ pub mod goals;
 pub mod heading;
 pub mod hydrate;
 pub mod hydrate_base;
-pub mod hydrate_counted;
 pub mod hydrate_records;
 pub mod hydrate_week;
 pub mod intake;

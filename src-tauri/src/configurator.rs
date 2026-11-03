@@ -80,7 +80,6 @@ pub fn run() {
             commands::remove_drink,
             commands::set_hydrate_target,
             commands::hydrate_target_on,
-            commands::scope_on,
             commands::set_burn_target,
             commands::burn_target_on,
         ])

@@ -21,8 +21,7 @@ use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
 use grind_core::for_reviewing_progress::{self, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, Scope,
-    UsualDayForm,
+    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -456,12 +455,6 @@ pub fn hydrate_target_on(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn scope_on(records: State<Records>, date: String) -> Result<Scope, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::scope_on(&*records, &*records, &*records, &*records, &date)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn gather_chart(
     records: State<Records>,
     today: String,
@@ -620,7 +613,6 @@ mod tests {
                 remove_drink,
                 set_hydrate_target,
                 hydrate_target_on,
-                scope_on,
                 set_burn_target,
                 burn_target_on,
                 gather_chart,
@@ -755,7 +747,7 @@ mod tests {
     #[test]
     fn goals_set_from_the_screen_are_the_ones_in_force_from_their_day() {
         let (_app, screen) = launched();
-        let form = json!({ "from": "2026-10-10", "kept": { "Own": { "body_mass_kg": 70.0, "fat_percentage": 10.0 } }, "counted": true });
+        let form = json!({ "from": "2026-10-10", "kept": { "Own": { "body_mass_kg": 70.0, "fat_percentage": 10.0 } } });
 
         let set = invoke(&screen, "set_goals", json!({ "form": form }));
         let in_force = invoke(&screen, "goals_on", json!({ "date": "2026-10-12" }));
@@ -1088,7 +1080,7 @@ mod tests {
         let set = invoke(
             &screen,
             "set_fuel_targets",
-            json!({ "form": { "from": "2026-03-01", "kept": { "Own": aims }, "counted": true } }),
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": aims } } }),
         );
         let in_force = invoke(&screen, "fuel_targets_on", json!({ "date": "2026-10-10" }));
 
@@ -1381,7 +1373,7 @@ mod tests {
         let set = invoke(
             &screen,
             "set_burn_target",
-            json!({ "form": { "from": "2026-10-15", "kept": { "Own": 150.0 }, "counted": true } }),
+            json!({ "form": { "from": "2026-10-15", "kept": { "Own": 150.0 } } }),
         );
         let in_force = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-20" }));
         let before = invoke(&screen, "burn_target_on", json!({ "date": "2026-10-10" }));
@@ -1403,12 +1395,12 @@ mod tests {
         let own = invoke(
             &screen,
             "set_hydrate_target",
-            json!({ "form": { "from": "2026-03-01", "kept": { "Own": 2800.0 }, "counted": true } }),
+            json!({ "form": { "from": "2026-03-01", "kept": { "Own": 2800.0 } } }),
         );
         let recommended = invoke(
             &screen,
             "set_hydrate_target",
-            json!({ "form": { "from": "2026-10-10", "kept": "Recommended", "counted": true } }),
+            json!({ "form": { "from": "2026-10-10", "kept": "Recommended" } }),
         );
         let in_force = invoke(
             &screen,
@@ -1423,24 +1415,6 @@ mod tests {
                 Ok(json!({ "values": 2000.0, "recommended": true, "from": "2026-10-10" })),
                 Ok(json!({ "values": 2000.0, "recommended": true, "from": "2026-10-10" }))
             )
-        );
-    }
-
-    #[test]
-    fn the_streaks_scope_crosses_to_the_screen_with_each_cards_switch() {
-        let (_app, screen) = launched();
-        invoke(
-            &screen,
-            "set_burn_target",
-            json!({ "form": { "from": "2026-10-10", "kept": "Recommended", "counted": false } }),
-        )
-        .expect("a burn target keeps");
-
-        let scope = invoke(&screen, "scope_on", json!({ "date": "2026-10-12" }));
-
-        assert_eq!(
-            scope,
-            Ok(json!({ "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true }))
         );
     }
 

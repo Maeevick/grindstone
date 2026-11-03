@@ -198,7 +198,6 @@ mod tests {
                         protein_per: crate::fuel_records::Per::BodyMass,
                         fat_g_per_kg: 0.9,
                     }),
-                    counted: true,
                 },
             )
             .expect("targets set");
@@ -210,7 +209,6 @@ mod tests {
                         body_mass_kg: 70.0,
                         fat_percentage: 10.0,
                     }),
-                    counted: true,
                 },
             )
             .expect("goals set");
@@ -568,40 +566,6 @@ mod tests {
             assert_eq!(
                 ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.worked_out),
                 Some(false)
-            );
-        }
-
-        #[test]
-        fn every_tick_counts_from_the_first_record_whatever_was_once_left_out() {
-            let records = a_man_at_his_desk();
-            for date in ["2026-10-08", "2026-10-09", "2026-10-10"] {
-                a_full_day(&records, date, "Plate");
-            }
-            let from = day("2026-10-10");
-            records
-                .gather
-                .save_counted(from, false)
-                .expect("a switch saves");
-            records
-                .fuel
-                .save_counted(from, false)
-                .expect("a switch saves");
-            records
-                .burn
-                .save_counted(from, false)
-                .expect("a switch saves");
-
-            let three_ticks = |date| {
-                ticks_on(&records, "2026-10-10", date)
-                    .map(|ticks| (ticks.weighed, ticks.fuelled, ticks.worked_out))
-            };
-
-            assert_eq!(
-                (three_ticks("2026-10-09"), three_ticks("2026-10-10")),
-                (
-                    Some((Some(true), Some(true), Some(true))),
-                    Some((Some(true), Some(true), Some(true)))
-                )
             );
         }
 

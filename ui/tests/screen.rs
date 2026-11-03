@@ -4969,64 +4969,20 @@ async fn each_card_opens_on_the_day_its_values_were_kept_from_today_while_nothin
 }
 
 #[wasm_bindgen_test]
-async fn each_goal_card_shows_whether_its_tick_counts_in_the_streak_and_the_usual_day_has_none() {
-    answering_all(&[
-        &format!(r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#),
-        r#"{ "scope_on": { "weighed": true, "fuelled": false, "worked_out": true, "hydrated": false } }"#,
-    ]);
-    let screen = screen();
-    let _mounted = the_profile_screen(&screen);
-    settled().await;
-
-    assert_eq!(
-        [
-            "form.goals",
-            "form.fuel-targets",
-            "form.water-target",
-            "form.burn-target"
-        ]
-        .map(|form| texts_in_order(&screen, &format!("{form} .streak .pill.chosen")).concat()),
-        ["Counted", "Left out", "Left out", "Counted"]
-    );
-    assert!(texts_in_order(&screen, "form.usual-day .pill").is_empty());
-}
-
-#[wasm_bindgen_test]
-async fn either_button_keeps_the_cards_switch_from_its_day_and_says_when_its_tick_stays_out() {
+async fn no_profile_card_asks_whether_its_tick_counts_any_more() {
     answering(&format!(
-        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
     ));
     let screen = screen();
     let _mounted = the_profile_screen(&screen);
     settled().await;
 
-    clicked(&screen, "form.goals .pill.left-out");
-    clicked(&screen, "form.goals button.recommend");
-    clicked(&screen, "form.water-target .pill.left-out");
-    typed_into(&screen, "water_target_from", "2026-03-01");
-    found::<HtmlFormElement>(&screen, "form.water-target")
-        .request_submit()
-        .expect("the water target is kept");
-    clicked(&screen, "form.burn-target button.recommend");
-    settled().await;
-
-    assert!(
-        asked("set_goals").contains(r#""kept":"Recommended","counted":false"#)
-            && asked("set_hydrate_target")
-                .contains(r#""from":"2026-03-01","kept":{"Own":2800},"counted":false"#)
-            && asked("set_burn_target").contains(r#""counted":true"#),
-        "{} {} {}",
-        asked("set_goals"),
-        asked("set_hydrate_target"),
-        asked("set_burn_target")
-    );
     assert_eq!(
-        ["form.goals", "form.water-target", "form.burn-target"].map(|form| text_of(
+        texts_in_order(
             &screen,
-            &format!("{form} .said")
-        )
-        .contains("out of the streak")),
-        [true, true, false]
+            "form .streak, form .pill.counted, form .pill.left-out"
+        ),
+        Vec::<String>::new()
     );
 }
 

@@ -128,7 +128,6 @@ mod tests {
                     fat_ratio: 0.10,
                 }),
             )],
-            counted_from: vec![],
         }
     }
 
@@ -412,7 +411,6 @@ mod tests {
                 },
             ],
             drinkings: vec![(1, expresso("2026-08-02")), (2, expresso("2026-08-03"))],
-            counted_from: vec![],
             targets: vec![],
         }
     }
@@ -420,9 +418,6 @@ mod tests {
     #[test]
     fn importing_hydrate_records_replaces_what_was_drunk() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        hydrate
-            .save_counted(day("2026-03-01"), false)
-            .expect("a switch saves");
 
         import_hydrate(&hydrate, &drafted_drinks()).expect("an import");
 

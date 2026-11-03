@@ -18,7 +18,7 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::Window;
 use grind_core::for_setting_up_the_profile::{
-    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, Scope, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
@@ -457,8 +457,4 @@ pub async fn set_hydrate_target(form: &HydrateTargetForm) -> Result<Option<InFor
 
 pub async fn hydrate_target_on(date: &str) -> Result<Option<InForce<f64>>, Failure> {
     call("hydrate_target_on", OnDay { date }, broken).await
-}
-
-pub async fn scope_on(date: &str) -> Result<Scope, Failure> {
-    call("scope_on", OnDay { date }, broken).await
 }
