@@ -362,7 +362,8 @@ mod tests {
     }
 
     #[test]
-    fn a_day_before_any_lean_mass_aims_for_efsas_base_and_a_millilitre_more_per_kcal_burnt() {
+    fn a_day_weighed_before_any_lean_mass_aims_for_35_ml_a_kilo_and_a_millilitre_more_per_kcal_burnt()
+     {
         let hydrate = hydrate_on(
             day("2026-10-10"),
             &HydrateRecords::default(),
@@ -371,7 +372,7 @@ mod tests {
             &FuelRecords::default(),
         );
 
-        assert!(about(hydrate.target_ml, 2000.0 + 252.0));
+        assert!(about(hydrate.target_ml, 35.0 * 80.0 + 252.0));
     }
 
     #[test]
