@@ -443,11 +443,10 @@ pub fn HydrateTargetCard() -> impl IntoView {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
-        let Some(ml) = typed else {
-            said.set(Some(lines::NO_WATER_TYPED.into()));
-            return;
-        };
-        keep(Kept::Own(ml), lines::water_target_kept);
+        match typed {
+            Some(ml) => keep(Kept::Own(ml), lines::water_target_kept),
+            None => keep(Kept::Recommended, lines::recommendation_kept),
+        }
     };
     view! {
         <section class="card">

@@ -102,8 +102,6 @@ pub const BURN_TARGET_HINT: &str = "Net kilocalories a day your workouts aim to 
 pub const NO_WEIGH_IN_TO_PRICE_A_WORKOUT: &str = "No weigh-in yet, so no kcal to price a workout on: \
     until then, a single workout holds the tick, a kcal will do.";
 
-pub const NO_TARGET_TYPED: &str = "A target in kilocalories, please, or 0 for any workout at all.";
-
 pub fn burn_target_kept(from: &str) -> String {
     format!("Filed: the day's burn target is kept from {from}.")
 }
@@ -551,8 +549,6 @@ pub const NOTHING_TO_RECOMMEND_FOR: &str =
 pub fn water_target_kept(from: &str) -> String {
     format!("Filed: this water target is kept from {from}, each kcal burnt adding a millilitre.")
 }
-
-pub const NO_WATER_TYPED: &str = "Type the water a day first, in millilitres.";
 
 pub fn healthy_ranges(advised: &Recommendations) -> String {
     let (lightest, heaviest) = advised.healthy_mass_kg;

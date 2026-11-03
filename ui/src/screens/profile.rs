@@ -132,13 +132,16 @@ fn GoalsCard() -> impl IntoView {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
-        keep(
-            Kept::Own(TypedGoals {
-                body_mass_kg: body_mass_kg.unwrap_or(0.0),
-                fat_percentage: fat_percentage.unwrap_or(0.0),
-            }),
-            lines::goals_kept,
-        );
+        match (body_mass_kg, fat_percentage) {
+            (None, None) => keep(Kept::Recommended, lines::recommendation_kept),
+            _ => keep(
+                Kept::Own(TypedGoals {
+                    body_mass_kg: body_mass_kg.unwrap_or(0.0),
+                    fat_percentage: fat_percentage.unwrap_or(0.0),
+                }),
+                lines::goals_kept,
+            ),
+        }
     };
     view! {
         <section class="card">
@@ -280,11 +283,10 @@ fn BurnTargetCard() -> impl IntoView {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
-        let Some(kcal) = typed else {
-            said.set(Some(lines::NO_TARGET_TYPED.into()));
-            return;
-        };
-        keep(Kept::Own(kcal), lines::burn_target_kept);
+        match typed {
+            Some(kcal) => keep(Kept::Own(kcal), lines::burn_target_kept),
+            None => keep(Kept::Recommended, lines::recommendation_kept),
+        }
     };
     view! {
         <section class="card">
