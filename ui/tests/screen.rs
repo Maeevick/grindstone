@@ -574,17 +574,15 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
     settled().await;
 
     let first = text_of(&screen, ".aim-gauge");
-    let bands = texts_of(&screen, ".aim-gauge .gauge-labels");
 
     assert!(first.starts_with("Body mass: 80.0 kg"), "{first}");
-    assert_eq!(bands.len(), 2, "{bands:?}");
     assert_eq!(
-        texts_of(&screen, ".aim-gauge .tick-label"),
-        ["Goal 66.0 kg", "Goal 75.0 kg"]
+        texts_in_order(&screen, ".aim-gauge .tick-label.acc"),
+        ["Goal 75.0", "Goal 66.0"]
     );
     let body: Element = found(&screen, ".aim-gauge");
     assert_eq!(
-        texts_in_order(&body, ".gauge-labels span"),
+        texts_in_order(&body, ".tick-label.end"),
         ["67.5 kg", "82.5 kg"]
     );
     let lean: Element = screen
@@ -606,7 +604,7 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
         "{band_from} to {band_to}"
     );
     assert_eq!(
-        texts_in_order(&lean, ".gauge-labels span"),
+        texts_in_order(&lean, ".tick-label.end"),
         ["59.4 kg", "72.6 kg"]
     );
 }
@@ -1421,17 +1419,15 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
         .map(|gauge| {
             let gauge: Element = gauge.unchecked_into();
             let share = 100.0
-                * found::<Element>(&gauge, "line.optimal, line.maintenance")
+                * found::<Element>(&gauge, "line.optimal, line.goal")
                     .get_attribute("x1")
                     .and_then(|x| x.parse::<f64>().ok())
                     .expect("a tick")
                 / 360.0;
-            let labels = gauge
-                .query_selector_all(".gauge-under-ticks .tick-label")
-                .expect("the labels");
-            let label = labels
-                .item(labels.length().saturating_sub(1))
-                .map(|label| label.unchecked_into::<Element>());
+            let label = gauge
+                .query_selector(".gauge-under-ticks .tick-label.acc")
+                .ok()
+                .flatten();
             (
                 label
                     .as_ref()
@@ -1454,10 +1450,10 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
             .map(|(text, ..)| text.as_str())
             .collect::<Vec<_>>(),
         [
-            "Goal 75.0 kg",
+            "Goal 75.0",
             "Target 80 kcal",
             "Optimal 2000 mL",
-            "Maintenance 2650"
+            "Goal 2199"
         ]
     );
     assert!(

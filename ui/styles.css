@@ -504,6 +504,10 @@ hr.divider {
     flex-direction: row-reverse;
 }
 
+.gauge-under-ticks .end {
+    color: var(--mut);
+}
+
 .chips .pill {
     font-weight: bold;
 }
