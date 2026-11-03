@@ -2663,7 +2663,7 @@ async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
 }
 
 #[wasm_bindgen_test]
-async fn fuels_macros_show_each_ceiling_beside_its_goal() {
+async fn fuels_macros_read_min_cur_max_goal_the_gap_and_the_share() {
     answering(&format!(
         r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY} }}"#
     ));
@@ -2679,11 +2679,13 @@ async fn fuels_macros_show_each_ceiling_beside_its_goal() {
                 .cloned()
         ),
         (
-            ["", "Goal (g)", "Max (g)", "Current (g)", "Δ (g)", "% cal"]
-                .map(String::from)
-                .to_vec(),
+            [
+                "", "Min (g)", "Cur (g)", "Max (g)", "Goal (g)", "Δ (g)", "%"
+            ]
+            .map(String::from)
+            .to_vec(),
             Some(
-                ["Protein", "160", "9", "19", "-141", "70.4"]
+                ["Protein", "160", "19", "9", "160", "-141", "70.4"]
                     .map(String::from)
                     .to_vec()
             )
