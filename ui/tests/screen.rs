@@ -1295,6 +1295,7 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
         minimum_kcal: 1767.5,
         floor_kcal: 2199.4,
         cap_kcal: 2650.2,
+        goal_kcal: 2199.4,
         maintenance_kcal: 2650.2,
     };
     let screen = screen();

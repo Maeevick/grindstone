@@ -181,12 +181,13 @@ fn band_for(
         ),
         NARROWEST_BAND_SHARE * maintenance_kcal,
     );
+    let goal_kcal = floor_kcal;
     let band = Band {
         minimum_kcal_per_kg_of_lean_mass,
         minimum_kcal,
         floor_kcal: floor_kcal.max(minimum_kcal),
         cap_kcal: cap_kcal.max(minimum_kcal),
-        goal_kcal: 0.0,
+        goal_kcal: goal_kcal.max(minimum_kcal),
         maintenance_kcal,
     };
     (band, budget)
