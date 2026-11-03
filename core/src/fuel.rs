@@ -232,18 +232,19 @@ fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
     }
 }
 
-fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
+fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f64>) -> MacroRow {
     MacroRow {
         eaten_g,
         floor_g,
         ceiling_g,
-        goal_g: None,
+        goal_g,
         verdict: verdict_of(eaten_g, floor_g, ceiling_g.unwrap_or(f64::INFINITY)),
     }
 }
 
-/// Each macro's health bounds, read against the body mass and the energy eaten so far, so the table warns as
-/// the day goes: red for the moment, green once the rest of the day is eaten.
+/// Each macro's health bounds and its goal: the bounds read against the body mass and the energy eaten so far, so the table warns as
+/// the day goes, red for the moment, green once the rest of the day is eaten; the goal from the target painted
+/// per kilo of body mass, none until one is.
 ///
 /// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), at most 35% of the
 ///   energy, the top of the Institute of Medicine's 10 to 35% (2005).
@@ -252,25 +253,36 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
 ///   2 kcal a gram; no ceiling, none being set.
 /// - Carbohydrates at least 130 g, the Institute of Medicine's (2005); no ceiling, the energy's cap telling what
 ///   is too much.
-fn macros_for(eaten: Nutrients, body: &Body, _targets: FuelTargets) -> Macros {
+fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets) -> Macros {
     let energy = eaten.energy_kcal;
+    let goal = |target: Option<f64>| target.map(|g_per_kg| g_per_kg * body.mass_kg);
     Macros {
         protein: row(
             eaten.protein_g,
-            LEAST_PROTEIN_G_PER_KG * body.mass_kg,
-            Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
+            (
+                LEAST_PROTEIN_G_PER_KG * body.mass_kg,
+                Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
+            ),
+            goal(targets.protein_g_per_kg),
         ),
         fat: row(
             eaten.fat_g,
-            LEAST_FAT_SHARE * energy / FAT_KCAL_PER_G,
-            Some(MOST_FAT_SHARE * energy / FAT_KCAL_PER_G),
+            (
+                LEAST_FAT_SHARE * energy / FAT_KCAL_PER_G,
+                Some(MOST_FAT_SHARE * energy / FAT_KCAL_PER_G),
+            ),
+            goal(targets.fat_g_per_kg),
         ),
         fibre: row(
             eaten.fibre_g,
-            LEAST_FIBRE_SHARE * energy / FIBRE_KCAL_PER_G,
-            None,
+            (LEAST_FIBRE_SHARE * energy / FIBRE_KCAL_PER_G, None),
+            goal(targets.fibre_g_per_kg),
         ),
-        carbs: row(eaten.carbs_g, CARBS_FLOOR_G, None),
+        carbs: row(
+            eaten.carbs_g,
+            (CARBS_FLOOR_G, None),
+            goal(targets.carbs_g_per_kg),
+        ),
     }
 }
 
