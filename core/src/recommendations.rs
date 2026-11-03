@@ -154,14 +154,18 @@ mod tests {
     }
 
     #[test]
-    fn protein_sits_where_the_gains_in_lean_mass_level_off_for_those_who_train() {
+    fn protein_sits_where_the_gains_in_lean_mass_level_off_for_those_who_train_per_kilo_of_lean_mass()
+     {
         let advised = recommended(
             &born("1985-04-12", Gender::Male, 180.0),
             day("2026-10-11"),
             Some(80.0),
         );
 
-        assert_eq!(advised.fuel.protein_g_per_kg, 1.6);
+        assert_eq!(
+            (advised.fuel.protein_g_per_kg, advised.fuel.protein_per),
+            (2.0, crate::fuel_records::Per::LeanMass)
+        );
     }
 
     #[test]
