@@ -863,27 +863,6 @@ mod tests {
     }
 
     #[test]
-    fn the_protein_floor_is_its_target_per_kilo_and_its_ceiling_a_third_of_the_energy_eaten() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-10", &a_food(100.0, 50.0, 20.0, 10.0));
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        let protein = fuelled.macros.expect("macros").protein;
-        assert!(about(protein.floor_g, 160.0));
-        assert!(about(
-            protein.ceiling_g,
-            0.333 * fuelled.eaten.energy_kcal / 4.0
-        ));
-        assert_eq!(protein.verdict, Verdict::Low);
-    }
-
-    #[test]
     fn weeks_eaten_well_under_the_cap_wear_the_spontaneous_activity_down() {
         let mut dieting = aiming();
         for date in 1..=28 {
@@ -1182,7 +1161,7 @@ mod tests {
     }
 
     #[test]
-    fn a_macro_eaten_right_at_its_floor_or_at_its_ceiling_is_in_its_band() {
+    fn a_macro_eaten_right_at_its_floor_is_in_its_band() {
         let mut fuel = aiming();
         eating(&mut fuel, "2026-10-10", &a_food(160.0, 227.5, 90.0, 35.0));
 
@@ -1195,16 +1174,15 @@ mod tests {
         .macros
         .expect("macros");
 
-        assert_eq!(macros.protein.floor_g.round(), 160.0);
-        assert_eq!(macros.fat.ceiling_g.round(), 90.0);
         assert_eq!(
-            (macros.protein.verdict, macros.fat.verdict),
-            (Verdict::InBand, Verdict::InBand)
+            (macros.protein.floor_g.round(), macros.protein.verdict),
+            (160.0, Verdict::InBand)
         );
     }
 
     #[test]
-    fn each_macro_reads_its_floor_and_ceiling_from_its_target_and_the_energy_eaten() {
+    fn each_macro_is_bounded_for_the_day_by_its_target_and_the_bands_cap_carbs_filling_the_band_rounded_inward()
+     {
         let (lean_kg, _) = the_body();
         let mut fuel = aiming();
         eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
@@ -1218,27 +1196,18 @@ mod tests {
 
         let band = fuelled.band.expect("a band");
         let macros = fuelled.macros.expect("macros");
-        let energy = fuelled.eaten.energy_kcal;
         let spent = 170.0 * 4.0 + 80.0 * 9.0 + 35.0 * 2.0;
         let rows = [macros.protein, macros.fat, macros.fibre, macros.carbs];
         let expected = [
-            (
-                (2.0 * 80.0f64).max(0.2 * energy / 4.0),
-                0.333 * energy / 4.0,
-            ),
-            (
-                (0.9 * 80.0f64).max(0.2 * energy / 9.0),
-                0.333 * energy / 9.0,
-            ),
-            (
-                (0.4 * 80.0f64).max(0.024 * energy / 2.0),
-                0.04 * energy / 2.0,
-            ),
+            (2.0 * 80.0, 0.333 * band.cap_kcal / 4.0),
+            (0.9 * 80.0, 0.333 * band.cap_kcal / 9.0),
+            (0.4 * 80.0, 0.04 * band.cap_kcal / 2.0),
             (
                 ((band.floor_kcal - spent) / 4.0)
                     .max(3.0 * lean_kg)
-                    .max(130.0),
-                (band.cap_kcal - spent) / 4.0,
+                    .max(130.0)
+                    .ceil(),
+                ((band.cap_kcal - spent) / 4.0).floor(),
             ),
         ];
         for (row, (floor, ceiling)) in rows.iter().zip(expected) {
@@ -1260,46 +1229,6 @@ mod tests {
 
         let floor = |fuelled: &Fuel| fuelled.macros.map(|macros| macros.protein.floor_g);
         assert_eq!(floor(&fuelled), Some(160.0));
-    }
-
-    #[test]
-    fn with_low_targets_per_kilo_the_floors_follow_the_energy_eaten_and_carbs_fill_the_calorie_floor()
-     {
-        let (lean_kg, _) = the_body();
-        let mut fuel = FuelRecords {
-            targets: vec![(
-                day("2026-03-01"),
-                Kept::Own(FuelTargets {
-                    protein_g_per_kg: 0.1,
-                    fat_g_per_kg: 0.1,
-                    fibre_g_per_kg: 0.01,
-                }),
-            )],
-            ..FuelRecords::default()
-        };
-        eating(&mut fuel, "2026-10-10", &a_food(40.0, 400.0, 20.0, 5.0));
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        let band = fuelled.band.expect("a band");
-        let macros = fuelled.macros.expect("macros");
-        let energy = fuelled.eaten.energy_kcal;
-        let floors = [0.2 * energy / 4.0, 0.2 * energy / 9.0, 0.024 * energy / 2.0];
-        let spent =
-            floors[0].max(40.0) * 4.0 + floors[1].max(20.0) * 9.0 + floors[2].max(5.0) * 2.0;
-        let carbs_floor = (band.floor_kcal - spent) / 4.0;
-        assert!(carbs_floor > 3.0 * lean_kg);
-        for (row, floor) in [macros.protein, macros.fat, macros.fibre, macros.carbs]
-            .iter()
-            .zip([floors[0], floors[1], floors[2], carbs_floor])
-        {
-            assert!(about(row.floor_g, floor), "{row:?} {floor}");
-        }
     }
 
     #[test]
