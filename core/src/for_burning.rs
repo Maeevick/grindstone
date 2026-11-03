@@ -303,6 +303,42 @@ mod tests {
     }
 
     #[test]
+    fn the_sum_up_over_a_window_keeps_its_three_biggest_burners() {
+        let gather = GatherRecordsInMemory::default();
+        log_measurement(&gather, "2026-10-01", 80.0, None).expect("a measurement logs");
+        let burn = a_catalog_with_walking();
+        for (name, met) in [("Rowing", 7.0), ("Squat", 5.0), ("Plank", 3.0)] {
+            add_exercise(&burn, name, met, "").expect("an exercise adds");
+        }
+        for exercise in ["Walking", "Rowing", "Squat", "Plank"] {
+            log_workout(
+                &gather,
+                &burn,
+                &WorkoutForm {
+                    exercise: exercise.into(),
+                    ..walking("2026-10-09", 30.0)
+                },
+            )
+            .expect("a workout logs");
+        }
+
+        let kept = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Days7)
+            .ok()
+            .flatten()
+            .map(|over| {
+                over.exercises
+                    .into_iter()
+                    .map(|summed| summed.exercise)
+                    .collect::<Vec<_>>()
+            });
+
+        assert_eq!(
+            kept,
+            Some(vec!["Rowing".into(), "Squat".into(), "Walking".into()])
+        );
+    }
+
+    #[test]
     fn the_sum_up_over_a_window_runs_over_its_finished_days_today_left_out_until_it_is_over() {
         let gather = GatherRecordsInMemory::default();
         log_measurement(&gather, "2026-09-01", 80.0, None).expect("a measurement logs");
