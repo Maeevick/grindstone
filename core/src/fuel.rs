@@ -1283,10 +1283,8 @@ mod tests {
     }
 
     #[test]
-    fn each_macro_stands_between_its_floor_and_its_share_of_the_energy_eaten_carbs_filling_the_band_rounded_up_with_no_ceiling()
-     {
-        let (lean_kg, _) = the_body();
-        let mut fuel = aiming();
+    fn each_macro_stands_between_its_health_bounds_on_the_body_mass_and_the_energy_eaten() {
+        let mut fuel = FuelRecords::default();
         eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
 
         let fuelled = fuel_on(
@@ -1296,25 +1294,14 @@ mod tests {
             &fuel,
         );
 
-        let band = fuelled.band.expect("a band");
         let macros = fuelled.macros.expect("macros");
         let energy = fuelled.eaten.energy_kcal;
-        let spent = 170.0 * 4.0 + 80.0 * 9.0 + 35.0 * 2.0;
         let rows = [macros.protein, macros.fat, macros.fibre, macros.carbs];
         let expected = [
-            (2.0 * 80.0, Some(0.35 * energy / 4.0)),
-            (
-                (0.9 * 80.0f64).max(0.2 * energy / 9.0),
-                Some(0.35 * energy / 9.0),
-            ),
+            (0.83 * 80.0, Some(0.35 * energy / 4.0)),
+            (0.2 * energy / 9.0, Some(0.35 * energy / 9.0)),
             (0.028 * energy / 2.0, None),
-            (
-                ((band.floor_kcal - spent) / 4.0)
-                    .max(3.0 * lean_kg)
-                    .max(130.0)
-                    .ceil(),
-                None,
-            ),
+            (130.0, None),
         ];
         for (row, (floor, ceiling)) in rows.iter().zip(expected) {
             assert!(about(row.floor_g, floor), "{row:?} {floor}");
