@@ -5005,6 +5005,38 @@ async fn no_profile_card_asks_whether_its_tick_counts_any_more() {
 }
 
 #[wasm_bindgen_test]
+async fn a_card_kept_empty_follows_the_recommendation() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    let mut kept = Vec::new();
+    for (form, fields, command) in [
+        ("form.goals", vec!["target_mass", "target_fat"], "set_goals"),
+        (
+            "form.water-target",
+            vec!["water_target"],
+            "set_hydrate_target",
+        ),
+        ("form.burn-target", vec!["burn_target"], "set_burn_target"),
+    ] {
+        for field in fields {
+            typed_into(&screen, field, "");
+        }
+        found::<HtmlFormElement>(&screen, form)
+            .request_submit()
+            .expect("the card keeps");
+        settled().await;
+        kept.push(asked(command).contains(r#""kept":"Recommended""#));
+    }
+
+    assert_eq!(kept, [true, true, true]);
+}
+
+#[wasm_bindgen_test]
 async fn the_usual_days_recommendation_keeps_it_from_the_cards_day_and_shows_it_followed() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
