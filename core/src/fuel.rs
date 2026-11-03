@@ -44,8 +44,8 @@ pub struct MacroRow {
 
 impl MacroRow {
     /// What was eaten beyond the goal, which is the floor; short of it, the gap is negative.
-    pub fn gap_g(&self) -> f64 {
-        self.eaten_g - self.floor_g
+    pub fn gap_g(&self) -> Option<f64> {
+        Some(self.eaten_g - self.floor_g)
     }
 }
 
@@ -1238,16 +1238,20 @@ mod tests {
     }
 
     #[test]
-    fn a_macros_gap_is_what_was_eaten_beyond_its_floor_the_goal() {
+    fn a_macros_gap_is_what_was_eaten_beyond_its_goal_none_without_a_goal() {
         let short = MacroRow {
             eaten_g: 120.0,
             floor_g: 130.0,
             ceiling_g: Some(180.0),
-            goal_g: None,
+            goal_g: Some(150.0),
             verdict: Verdict::Low,
         };
+        let aimless = MacroRow {
+            goal_g: None,
+            ..short
+        };
 
-        assert!(about(short.gap_g(), -10.0));
+        assert_eq!([short.gap_g(), aimless.gap_g()], [Some(-30.0), None]);
     }
 
     #[test]

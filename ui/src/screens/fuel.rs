@@ -50,11 +50,14 @@ fn MacroLine(
                             <span class=format!(
                                 "ghost {}",
                                 lines::verdict_class(after.verdict),
-                            )>{signed(Figure::Grams(after.gap_g()))}</span>
+                            )>{after.gap_g().map_or_else(|| "–".to_string(), |gap| signed(Figure::Grams(gap)))}</span>
                         }
                             .into_any()
                     }
-                    None => signed(Figure::Grams(row.gap_g())).into_any(),
+                    None => row
+                        .gap_g()
+                        .map_or_else(|| "–".to_string(), |gap| signed(Figure::Grams(gap)))
+                        .into_any(),
                 }}
             </td>
             <td class="hint">{share.map_or_else(|| "-".to_string(), |share| bare(Figure::Ratio(share)))}</td>
