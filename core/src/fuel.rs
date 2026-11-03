@@ -253,7 +253,8 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: Option<f64>) -> MacroRow {
 /// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
 ///   2 kcal a gram; no ceiling, none being set.
 /// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g
-///   (2005), their floor rounded up and their ceiling down, so a gram rounded never turns them green.
+///   (2005), their floor rounded up so a gram rounded never turns them green; no ceiling, the energy's cap telling
+///   what is too much.
 fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
     let energy = eaten.energy_kcal;
     let protein = row(
@@ -281,14 +282,11 @@ fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -
     let carbs_floor = ((band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G)
         .max(carbs_floor_g(body))
         .ceil();
-    let carbs_ceiling = ((band.cap_kcal - spent_kcal) / CARBS_KCAL_PER_G)
-        .floor()
-        .max(carbs_floor);
     Macros {
         protein,
         fat,
         fibre,
-        carbs: row(eaten.carbs_g, carbs_floor, Some(carbs_ceiling)),
+        carbs: row(eaten.carbs_g, carbs_floor, None),
     }
 }
 
