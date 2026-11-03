@@ -9,6 +9,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::screens::catalog::MealDetails;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
@@ -143,10 +144,13 @@ fn IntakeEntry(
     id: i64,
     eaten: Intake,
     date: String,
+    meal: Option<Meal>,
     said: RwSignal<Option<String>>,
 ) -> impl IntoView {
     let recorded = Recorded::here();
-    let remove = move |_| {
+    let open = RwSignal::new(false);
+    let remove = move |event: leptos::ev::MouseEvent| {
+        event.stop_propagation();
         let date = date.clone();
         spawn_local(async move {
             match tauri::remove_intake(&date, id).await {
@@ -155,8 +159,17 @@ fn IntakeEntry(
             }
         });
     };
+    let is_a_meal = meal.is_some();
     view! {
-        <tr class="entry">
+        <tr
+            class="entry"
+            class:meal=is_a_meal
+            on:click=move |_| {
+                if is_a_meal {
+                    open.update(|open| *open = !*open);
+                }
+            }
+        >
             <td>{eaten.food.clone()}</td>
             {nutrient_cells(eaten.nutrients)}
             <td>{quantity_of(&eaten)}</td>
@@ -166,6 +179,9 @@ fn IntakeEntry(
                 </button>
             </td>
         </tr>
+        {move || {
+            open.get().then(|| meal.clone().map(|meal| view! { <MealDetails meal=meal /> })).flatten()
+        }}
     }
 }
 
@@ -178,17 +194,23 @@ pub fn FuelEntries(date: String) -> impl IntoView {
     let fuel = LocalResource::new(move || {
         recorded.heard();
         let date = on_the_day.clone();
-        async move { tauri::fuel_day(&date).await }
+        async move {
+            (
+                tauri::fuel_day(&date).await,
+                tauri::meals().await.unwrap_or_default(),
+            )
+        }
     });
     view! {
         {move || {
             fuel.get()
-                .map(|answer| match answer {
+                .map(|(answer, meals)| match answer {
                     Ok(fuel) => {
                         fuel.intakes
                             .into_iter()
                             .map(|(id, eaten)| {
-                                view! { <IntakeEntry id=id eaten=eaten date=date.clone() said=said /> }
+                                let meal = meals.iter().find(|meal| meal.name == eaten.food).cloned();
+                                view! { <IntakeEntry id=id eaten=eaten date=date.clone() meal=meal said=said /> }
                             })
                             .collect_view()
                             .into_any()

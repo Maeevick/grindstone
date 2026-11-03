@@ -442,7 +442,7 @@ pub fn BurnShelf() -> impl IntoView {
 }
 
 #[component]
-fn MealDetails(meal: Meal) -> impl IntoView {
+pub(crate) fn MealDetails(meal: Meal) -> impl IntoView {
     view! {
         <tr class="details">
             <td colspan="8">
