@@ -693,6 +693,7 @@ fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Kept<FuelTa
             row.get(3)?,
             FuelTargets {
                 protein_g_per_kg: row.get(1)?,
+                protein_per: grind_core::fuel_records::Per::BodyMass,
                 fat_g_per_kg: row.get(2)?,
             },
         ),
@@ -814,6 +815,7 @@ impl ForStoringFuelRecords for Sqlite {
             targets,
             FuelTargets {
                 protein_g_per_kg: 0.0,
+                protein_per: grind_core::fuel_records::Per::BodyMass,
                 fat_g_per_kg: 0.0,
             },
         );
@@ -1863,6 +1865,7 @@ mod tests {
                     from,
                     Kept::Own(FuelTargets {
                         protein_g_per_kg: 1.6,
+                        protein_per: grind_core::fuel_records::Per::BodyMass,
                         fat_g_per_kg: 0.9
                     })
                 )])

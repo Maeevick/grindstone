@@ -858,6 +858,7 @@ pub mod honouring_for_storing_fuel_records {
     fn aiming(protein_g_per_kg: f64) -> Kept<FuelTargets> {
         Kept::Own(FuelTargets {
             protein_g_per_kg,
+            protein_per: crate::fuel_records::Per::BodyMass,
             fat_g_per_kg: 0.9,
         })
     }

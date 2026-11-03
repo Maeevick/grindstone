@@ -154,8 +154,12 @@ pub fn set_fuel_targets(
     let from = day(&form.from)?;
     let kept = match form.kept {
         Kept::Own(targets) => Kept::Own(
-            fuel_targets(targets.protein_g_per_kg, targets.fat_g_per_kg)
-                .map_err(Failure::Refused)?,
+            fuel_targets(
+                targets.protein_g_per_kg,
+                targets.protein_per,
+                targets.fat_g_per_kg,
+            )
+            .map_err(Failure::Refused)?,
         ),
         Kept::Recommended => Kept::Recommended,
     };
@@ -646,6 +650,7 @@ mod tests {
     fn own_targets() -> FuelTargets {
         FuelTargets {
             protein_g_per_kg: 2.025,
+            protein_per: crate::fuel_records::Per::BodyMass,
             fat_g_per_kg: 0.9,
         }
     }
@@ -654,6 +659,7 @@ mod tests {
         InForce {
             values: FuelTargets {
                 protein_g_per_kg: 1.6,
+                protein_per: crate::fuel_records::Per::BodyMass,
                 fat_g_per_kg: 0.8,
             },
             recommended: true,
@@ -760,6 +766,7 @@ mod tests {
                 "2026-03-01",
                 Kept::Own(FuelTargets {
                     protein_g_per_kg: -2.0,
+                    protein_per: crate::fuel_records::Per::BodyMass,
                     ..own_targets()
                 }),
             ),

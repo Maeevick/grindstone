@@ -391,6 +391,7 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
             day,
             FuelTargets {
                 protein_g_per_kg: log.prot_g_kg,
+                protein_per: grind_core::fuel_records::Per::BodyMass,
                 fat_g_per_kg: log.fat_g_kg,
             },
         ));

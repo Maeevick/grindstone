@@ -411,6 +411,7 @@ fn FuelTargetsCard() -> impl IntoView {
         keep(
             Kept::Own(FuelTargets {
                 protein_g_per_kg: protein_g_per_kg.unwrap_or(0.0),
+                protein_per: grind_core::fuel_records::Per::BodyMass,
                 fat_g_per_kg: fat_g_per_kg.unwrap_or(0.0),
             }),
             lines::fuel_targets_kept,

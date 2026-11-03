@@ -447,6 +447,7 @@ mod tests {
 
     const AIMS: FuelTargets = FuelTargets {
         protein_g_per_kg: 2.0,
+        protein_per: crate::fuel_records::Per::BodyMass,
         fat_g_per_kg: 0.9,
     };
 
@@ -1179,6 +1180,7 @@ mod tests {
                 day("2026-03-01"),
                 Kept::Own(FuelTargets {
                     protein_g_per_kg: 0.1,
+                    protein_per: crate::fuel_records::Per::BodyMass,
                     fat_g_per_kg: 0.1,
                 }),
             )],

@@ -59,6 +59,7 @@ pub fn recommended(
         goal_fat_ratio: to_the_thousandth((healthy_fat_ratio.0 + healthy_fat_ratio.1) / 2.0),
         fuel: FuelTargets {
             protein_g_per_kg: PROTEIN_G_PER_KG,
+            protein_per: crate::fuel_records::Per::BodyMass,
             fat_g_per_kg: FAT_FLOOR_G_PER_KG,
         },
         usual_day: Volitional {
