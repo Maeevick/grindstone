@@ -1193,6 +1193,30 @@ mod tests {
     }
 
     #[test]
+    fn protein_asks_for_a_tenth_of_the_energy_when_that_is_more_than_083_g_a_kilo() {
+        let mut fuel = FuelRecords::default();
+        for _ in 0..2 {
+            eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
+        }
+
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &fuel,
+        );
+
+        let energy = fuelled.eaten.energy_kcal;
+        assert!(
+            fuelled
+                .macros
+                .is_some_and(|macros| about(macros.protein.floor_g, 0.1 * energy / 4.0)),
+            "{:?}",
+            fuelled.macros
+        );
+    }
+
+    #[test]
     fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass() {
         let fuel = FuelRecords {
             targets: vec![(
