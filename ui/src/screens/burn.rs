@@ -201,8 +201,8 @@ pub fn BurnEntries(date: String) -> impl IntoView {
                             {spent
                                 .map(|spent| {
                                     view! {
-                                        {neat_entry("Off the clock (volitional)", spent.volitional_kcal)}
-                                        {neat_entry("Fidgeting (spontaneous)", spent.spontaneous_kcal)}
+                                        {neat_entry("volitional", spent.volitional_kcal)}
+                                        {neat_entry("spontaneous", spent.spontaneous_kcal)}
                                     }
                                 })}
                         }
