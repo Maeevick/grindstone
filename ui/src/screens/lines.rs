@@ -667,9 +667,6 @@ pub fn hydrate_week_said(week: &HydrateWeek) -> String {
     }
 }
 
-pub const NO_WORKOUT_THIS_WEEK: &str =
-    "No workout in the window yet. A rest counts too, if it was decided rather than drifted into.";
-
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
 /// What the window's burn stands against, after its figure: the sum of its days' targets when known.

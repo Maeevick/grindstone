@@ -217,7 +217,7 @@ pub fn BurnOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                 .into_any()
                         }
                         Ok(None) => {
-                            view! { <p class="empty">{lines::NO_WORKOUT_THIS_WEEK}</p> }.into_any()
+                            view! { <p class="empty">{lines::NO_WEEK_YET}</p> }.into_any()
                         }
                         Err(failure) => failed(&failure),
                     })
