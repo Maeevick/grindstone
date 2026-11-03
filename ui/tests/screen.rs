@@ -2051,7 +2051,7 @@ async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_q
 }
 
 #[wasm_bindgen_test]
-async fn fuels_gauge_labels_ea_goal_and_max_then_alpert_and_maintenance_its_zones_edges_outward() {
+async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_its_zones_edges_outward() {
     let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
     let screen = screen();
@@ -2103,7 +2103,6 @@ async fn fuels_gauge_labels_ea_goal_and_max_then_alpert_and_maintenance_its_zone
             / 360.0
     };
     let ending_at = |share: f64| format!("left: 0%; width: {share}%");
-    let starting_at = |share: f64| format!("left: {share}%; right: 0%");
     let label =
         |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
     assert_eq!(
@@ -2115,12 +2114,7 @@ async fn fuels_gauge_labels_ea_goal_and_max_then_alpert_and_maintenance_its_zone
                     "low tick-label ends-at",
                     ending_at(at("line.minimum", "x1"))
                 ),
-                label("Goal 2300", "acc tick-label", under("line.goal", "x1")),
-                label(
-                    "Max. 2650",
-                    "good tick-label starts-at",
-                    starting_at(at("rect.band", "x") + at("rect.band", "width"))
-                )
+                label("Goal 2300", "acc tick-label", under("line.goal", "x1"))
             ],
             vec![
                 label(
@@ -2135,23 +2129,6 @@ async fn fuels_gauge_labels_ea_goal_and_max_then_alpert_and_maintenance_its_zone
                 )
             ]
         ]
-    );
-}
-
-#[wasm_bindgen_test]
-async fn max_steps_aside_when_it_shows_as_maintenance() {
-    answering(&format!(
-        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY_WITH_ITS_BUDGET} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_fuel_day(&screen);
-    settled().await;
-
-    assert_eq!(
-        texts_in_order(&screen, ".fuel-gauge .tick-label"),
-        ["EA25 1768", "Goal 2199", "Alpert 2199", "Maintenance 2650"]
-            .map(String::from)
-            .to_vec()
     );
 }
 
