@@ -179,7 +179,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 {placed.ghost.map(|ghost| view! { <circle class="ghost" cx=ghost.eaten_at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
-            <TickRow labels=vec![
+            <TickRow labels=[
                 (
                     placed.minimum_at,
                     format!(
@@ -191,8 +191,20 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                     Anchor::EndsAt,
                 ),
                 (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc", Anchor::Tick),
-                (placed.cap_at, format!("Max. {}", bare(Figure::Energy(band.cap_kcal))), "good", Anchor::StartsAt),
-            ] />
+            ]
+                .into_iter()
+                .chain(
+                    (bare(Figure::Energy(band.cap_kcal)) != bare(Figure::Energy(band.maintenance_kcal)))
+                        .then(|| {
+                            (
+                                placed.cap_at,
+                                format!("Max. {}", bare(Figure::Energy(band.cap_kcal))),
+                                "good",
+                                Anchor::StartsAt,
+                            )
+                        }),
+                )
+                .collect() />
             <TickRow labels=(band.floor_kcal > band.minimum_kcal)
                 .then(|| {
                     (
