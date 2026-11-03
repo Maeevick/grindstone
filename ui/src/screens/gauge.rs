@@ -1,7 +1,6 @@
-use grind_core::figures::{Figure, bare, shown};
+use grind_core::figures::{Figure, bare};
 use grind_core::fuel::Band;
 use grind_core::heading::Aim;
-use grind_core::judgement::AT_THE_AIM_SHARE;
 use leptos::prelude::*;
 
 use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
@@ -70,13 +69,7 @@ pub fn Gauge(
                 {placed.ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
-            <TickRow labels=vec![
-                (placed.optimal_at, format!("Opt. {}", bare(shown_as(optimal))), "acc", Anchor::Tick),
-            ] />
-            <TickRow labels=vec![
-                (placed.band_from, format!("Min. {}", bare(shown_as(floor))), "good", Anchor::EndsAt),
-                (placed.band_to, format!("Max. {}", bare(shown_as(cap))), "good", Anchor::StartsAt),
-            ] />
+            <TickLabel at=placed.optimal_at label=format!("Opt. {}", bare(shown_as(optimal))) />
         </div>
     }
 }
@@ -95,30 +88,7 @@ pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -
                 <line class="optimal" x1=placed.aim_at x2=placed.aim_at y1="4" y2="20" />
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
-            <TickRow labels=vec![
-                (0.0, shown(Figure::Mass(placed.from)), "end", Anchor::StartsAt),
-                (placed.aim_at, format!("{aimed} {}", bare(Figure::Mass(value))), "acc", Anchor::Tick),
-                (360.0, shown(Figure::Mass(placed.up_to)), "end", Anchor::EndsAt),
-            ] />
-            {matches!(aim, Aim::Reach(_))
-                .then(|| {
-                    view! {
-                        <TickRow labels=vec![
-                            (
-                                placed.band_from,
-                                format!("Min. {}", bare(Figure::Mass((1.0 - AT_THE_AIM_SHARE) * value))),
-                                "good",
-                                Anchor::EndsAt,
-                            ),
-                            (
-                                placed.band_to,
-                                format!("Max. {}", bare(Figure::Mass((1.0 + AT_THE_AIM_SHARE) * value))),
-                                "good",
-                                Anchor::StartsAt,
-                            ),
-                        ] />
-                    }
-                })}
+            <TickLabel at=placed.aim_at label=format!("{aimed} {}", bare(Figure::Mass(value))) />
         </div>
     }
 }
@@ -135,11 +105,7 @@ pub fn BurnGauge(burnt: f64, target: f64, ghost: Option<f64>) -> impl IntoView {
                 {placed.ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="amount" cx=placed.burnt_at cy="12" r="5" />
             </svg>
-            <TickLabel at=placed.target_at label=format!("Target {}", shown(Figure::Energy(target))) />
-            <div class="gauge-labels">
-                <span>{shown(Figure::Energy(0.0))}</span>
-                <span>{shown(Figure::Energy(placed.up_to_kcal))}</span>
-            </div>
+            <TickLabel at=placed.target_at label=format!("Target {}", bare(Figure::Energy(target))) />
         </div>
     }
 }

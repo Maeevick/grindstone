@@ -573,127 +573,23 @@ fn share_of(gauge: &Element, selector: &str, attribute: &str) -> f64 {
 }
 
 #[wasm_bindgen_test]
-async fn gathers_gauges_label_the_goal_between_their_ends_then_the_body_mass_min_and_max_outward() {
-    answering(&format!(
-        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
-              "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_gather_tab(&screen);
-    settled().await;
-    let gauges = screen.query_selector_all(".aim-gauge").expect("the gauges");
-    let gauge = |at: u32| -> Element { gauges.item(at).expect("a gauge").unchecked_into() };
-    let (body, lean) = (gauge(0), gauge(1));
-    let label =
-        |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
-    let tick = |share: f64| format!("left: {share}%; transform: translateX(-{share}%)");
-    let band_from = share_of(&body, "rect.band", "x");
-    let band_to = band_from + share_of(&body, "rect.band", "width");
-
-    assert_eq!(
-        (labels_by_row(&body), labels_by_row(&lean).len()),
-        (
-            vec![
-                vec![
-                    label(
-                        "67.5 kg",
-                        "end tick-label starts-at",
-                        "left: 0%; right: 0%".into()
-                    ),
-                    label(
-                        "Goal 75.0",
-                        "acc tick-label",
-                        tick(share_of(&body, "line.optimal", "x1"))
-                    ),
-                    label(
-                        "82.5 kg",
-                        "end tick-label ends-at",
-                        "left: 0%; width: 100%".into()
-                    )
-                ],
-                vec![
-                    label(
-                        "Min. 74.3",
-                        "good tick-label ends-at",
-                        format!("left: 0%; width: {band_from}%")
-                    ),
-                    label(
-                        "Max. 75.8",
-                        "good tick-label starts-at",
-                        format!("left: {band_to}%; right: 0%")
-                    )
-                ]
-            ],
-            1
-        )
-    );
-}
-
-#[wasm_bindgen_test]
-async fn hydrates_gauge_labels_opt_then_min_and_max_outward_its_ends_bare() {
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Gauge
-                amount=1500.0
-                floor=1800.0
-                optimal=2000.0
-                cap=2200.0
-                shown_as=grind_core::figures::Figure::Volume
-            />
-        }
-    });
-    settled().await;
-    let gauge: Element = found(&screen, ".gauge");
-    let label =
-        |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
-    let optimal = share_of(&gauge, "line.optimal", "x1");
-    let band_from = share_of(&gauge, "rect.band", "x");
-    let band_to = band_from + share_of(&gauge, "rect.band", "width");
-
-    assert_eq!(
-        (
-            labels_by_row(&gauge),
-            texts_in_order(&gauge, ".gauge-labels span")
-        ),
-        (
-            vec![
-                vec![label(
-                    "Opt. 2000",
-                    "acc tick-label",
-                    format!("left: {optimal}%; transform: translateX(-{optimal}%)")
-                )],
-                vec![
-                    label(
-                        "Min. 1800",
-                        "good tick-label ends-at",
-                        format!("left: 0%; width: {band_from}%")
-                    ),
-                    label(
-                        "Max. 2200",
-                        "good tick-label starts-at",
-                        format!("left: {band_to}%; right: 0%")
-                    )
-                ]
-            ],
-            Vec::<String>::new()
-        )
-    );
-}
-
-#[wasm_bindgen_test]
 async fn an_edges_label_without_room_slides_over_its_edge_rather_than_out_of_the_gauge() {
     let screen = screen();
     let _worn = Worn::the_stylesheet();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <div style="width: 360px">
-                <Gauge
-                    amount=1500.0
-                    floor=1800.0
-                    optimal=2000.0
-                    cap=3600.0
-                    shown_as=grind_core::figures::Figure::Volume
+                <FuelGauge
+                    eaten=1800.0
+                    band=grind_core::fuel::Band {
+                        minimum_kcal_per_kg_of_lean_mass: 25.0,
+                        minimum_kcal: 1600.0,
+                        floor_kcal: 1610.0,
+                        cap_kcal: 2600.0,
+                        goal_kcal: 2300.0,
+                        maintenance_kcal: 2600.0,
+                    }
+                    ghost=None
                 />
             </div>
         }
@@ -732,11 +628,7 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
         texts_in_order(&screen, ".aim-gauge .tick-label.acc"),
         ["Goal 75.0", "Goal 66.0"]
     );
-    let body: Element = found(&screen, ".aim-gauge");
-    assert_eq!(
-        texts_in_order(&body, ".tick-label.end"),
-        ["67.5 kg", "82.5 kg"]
-    );
+
     let lean: Element = screen
         .query_selector_all(".aim-gauge")
         .expect("the gauges")
@@ -754,10 +646,6 @@ async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_perc
     assert!(
         (band_from - drawn("line.optimal", "x1")).abs() < 1e-9 && (band_to - 360.0).abs() < 1e-9,
         "{band_from} to {band_to}"
-    );
-    assert_eq!(
-        texts_in_order(&lean, ".tick-label.end"),
-        ["59.4 kg", "72.6 kg"]
     );
 }
 
@@ -1228,10 +1116,7 @@ async fn the_days_burn_shows_its_band_from_nothing_the_target_tick_and_green_fro
     let band: Element = found(&screen, ".burn-gauge svg .band");
 
     assert_eq!(band.get_attribute("x").as_deref(), Some("144"));
-    assert_eq!(
-        text_of(&screen, ".burn-gauge .tick-label"),
-        "Target 80 kcal"
-    );
+    assert_eq!(text_of(&screen, ".burn-gauge .tick-label"), "Target 80");
 }
 
 #[wasm_bindgen_test]
@@ -1601,7 +1486,7 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
             .iter()
             .map(|(text, ..)| text.as_str())
             .collect::<Vec<_>>(),
-        ["Goal 75.0", "Target 80 kcal", "Opt. 2000", "Goal 2199"]
+        ["Goal 75.0", "Target 80", "Opt. 2000", "Goal 2199"]
     );
     assert!(
         labelled
@@ -4578,7 +4463,7 @@ async fn drinking_past_the_cap_says_to_spread_the_cups_out() {
 }
 
 #[wasm_bindgen_test]
-async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
+async fn the_days_hydrate_shows_its_scale_its_band_and_its_optimal_ticked() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY} }}"#
     ));
@@ -4589,12 +4474,7 @@ async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
 
     let scale: Element = found(&screen, ".gauge");
     let labels = scale.text_content().unwrap_or_default();
-    assert!(
-        labels.contains("Min. 1800")
-            && labels.contains("Opt. 2000")
-            && labels.contains("Max. 2200"),
-        "{labels}"
-    );
+    assert_eq!(labels, "Opt. 2000");
     assert!(scale.query_selector("svg .band").ok().flatten().is_some());
     assert!(scale.query_selector("svg .amount").ok().flatten().is_some());
 }
