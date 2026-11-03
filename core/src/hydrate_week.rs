@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::drink::DrinkKind;
 use crate::hydrate::Hydrate;
 use crate::week::{Averaged, Banded, averaged};
 
@@ -10,6 +11,27 @@ pub struct HydrateWeek {
     pub drunk: Averaged,
     /// A logged day's share of water among its drinks, in percent, against three quarters at least.
     pub water: Averaged,
+}
+
+const WATER_SHARE_FLOOR_PERCENT: f64 = 75.0;
+
+/// A day's share of water among its drinks, in percent, judged against three quarters at least.
+fn water_share_of(day: &Hydrate) -> Banded {
+    let water_ml: f64 = day
+        .drinkings
+        .iter()
+        .filter(|(_, drunk)| drunk.kind == DrinkKind::Water)
+        .map(|(_, drunk)| drunk.volume_ml)
+        .sum();
+    Banded {
+        amount: if day.drunk_ml > 0.0 {
+            100.0 * water_ml / day.drunk_ml
+        } else {
+            0.0
+        },
+        floor: WATER_SHARE_FLOOR_PERCENT,
+        ceiling: 100.0,
+    }
 }
 
 /// The week's drinks, from its logged days; nothing without one.
@@ -27,12 +49,7 @@ pub fn hydrate_week_of(days: &[Hydrate]) -> Option<HydrateWeek> {
     Some(HydrateWeek {
         logged_days: days.len(),
         drunk,
-        water: Averaged {
-            per_day: 0.0,
-            floor: 75.0,
-            ceiling: 100.0,
-            in_band: 0,
-        },
+        water: averaged(&days.iter().map(water_share_of).collect::<Vec<_>>())?,
     })
 }
 
