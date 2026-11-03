@@ -238,36 +238,39 @@ fn row(eaten_g: f64, floor_g: f64, ceiling_g: f64) -> MacroRow {
     }
 }
 
-/// Each macro's floor and ceiling for the day.
+/// Each macro's floor and ceiling for the day, fixed whatever is eaten: protein, fat and fibre from their
+/// targets per kilo, under a share of the band's cap; carbohydrates fill the band, their floor rounded up and
+/// their ceiling down, so a gram rounded never turns them green.
 ///
-/// - Protein and fat floors from the targets per kilo, each at least 20% of the energy eaten and at most 33.3%,
-///   within EFSA's 20 to 35% for fat (2010) and the ISSN's 1.4 to 2.0 g/kg for protein: Jäger R. et al. (2017),
-///   J Int Soc Sports Nutr 14:20.
-/// - The fibre floor from its target per kilo, at least 2.4% of the energy eaten and at most 4%, after the
-///   Institute of Medicine's 14 g per 1000 kcal (2005).
+/// - Protein and fat at most a third of the cap, within EFSA's 20 to 35% for fat (2010) and the ISSN's 1.4 to
+///   2.0 g/kg for protein: Jäger R. et al. (2017), J Int Soc Sports Nutr 14:20.
+/// - Fibre at most 4% of the cap, after the Institute of Medicine's 14 g per 1000 kcal (2005).
 /// - Carbohydrates fill the band, never under 3 g per kilo of lean mass or the Institute of Medicine's 130 g (2005).
 fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets, band: Band) -> Macros {
-    let energy = eaten.energy_kcal;
     let protein = row(
         eaten.protein_g,
-        (targets.protein_g_per_kg * body.mass_kg).max(0.20 * energy / PROTEIN_KCAL_PER_G),
-        0.333 * energy / PROTEIN_KCAL_PER_G,
+        targets.protein_g_per_kg * body.mass_kg,
+        0.333 * band.cap_kcal / PROTEIN_KCAL_PER_G,
     );
     let fat = row(
         eaten.fat_g,
-        (targets.fat_g_per_kg * body.mass_kg).max(0.20 * energy / FAT_KCAL_PER_G),
-        0.333 * energy / FAT_KCAL_PER_G,
+        targets.fat_g_per_kg * body.mass_kg,
+        0.333 * band.cap_kcal / FAT_KCAL_PER_G,
     );
     let fibre = row(
         eaten.fibre_g,
-        (targets.fibre_g_per_kg * body.mass_kg).max(0.024 * energy / FIBRE_KCAL_PER_G),
-        0.04 * energy / FIBRE_KCAL_PER_G,
+        targets.fibre_g_per_kg * body.mass_kg,
+        0.04 * band.cap_kcal / FIBRE_KCAL_PER_G,
     );
     let spent_kcal = protein.floor_g.max(eaten.protein_g) * PROTEIN_KCAL_PER_G
         + fat.floor_g.max(eaten.fat_g) * FAT_KCAL_PER_G
         + fibre.floor_g.max(eaten.fibre_g) * FIBRE_KCAL_PER_G;
-    let carbs_floor = ((band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor_g(body));
-    let carbs_ceiling = ((band.cap_kcal - spent_kcal) / CARBS_KCAL_PER_G).max(carbs_floor);
+    let carbs_floor = ((band.floor_kcal - spent_kcal) / CARBS_KCAL_PER_G)
+        .max(carbs_floor_g(body))
+        .ceil();
+    let carbs_ceiling = ((band.cap_kcal - spent_kcal) / CARBS_KCAL_PER_G)
+        .floor()
+        .max(carbs_floor);
     Macros {
         protein,
         fat,
