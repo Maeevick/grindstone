@@ -1181,6 +1181,36 @@ mod tests {
     }
 
     #[test]
+    fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass() {
+        let fuel = FuelRecords {
+            targets: vec![(
+                day("2026-03-01"),
+                Kept::Own(FuelTargets {
+                    protein_g_per_kg: Some(2.0),
+                    fat_g_per_kg: None,
+                    fibre_g_per_kg: Some(0.4),
+                    carbs_g_per_kg: Some(3.0),
+                }),
+            )],
+            ..FuelRecords::default()
+        };
+
+        let macros = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &fuel,
+        )
+        .macros
+        .expect("macros");
+
+        assert_eq!(
+            [macros.protein, macros.fat, macros.fibre, macros.carbs].map(|row| row.goal_g),
+            [Some(160.0), None, Some(32.0), Some(240.0)]
+        );
+    }
+
+    #[test]
     fn the_body_in_force_is_the_last_weighed_on_or_before_the_day() {
         let mut records = a_mans_records(HIS_WAIST_CM);
         records.measurements.push(Measurement {
