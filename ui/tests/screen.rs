@@ -467,6 +467,101 @@ fn a_gathered_week() -> String {
     )
 }
 
+/// Each row of labels under a gauge's line: each label's text, classes and placing.
+fn labels_by_row(gauge: &Element) -> Vec<Vec<(String, String, String)>> {
+    let rows = gauge
+        .query_selector_all(".gauge-under-ticks")
+        .expect("the rows");
+    (0..rows.length())
+        .filter_map(|at| rows.item(at))
+        .map(|row| {
+            let row: Element = row.unchecked_into();
+            let labels = row.query_selector_all("span").expect("the labels");
+            (0..labels.length())
+                .filter_map(|at| labels.item(at))
+                .map(|label| {
+                    let label: Element = label.unchecked_into();
+                    (
+                        label.text_content().unwrap_or_default(),
+                        label.class_name(),
+                        label.get_attribute("style").unwrap_or_default(),
+                    )
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Where a gauge's mark falls, as a share of its line.
+fn share_of(gauge: &Element, selector: &str, attribute: &str) -> f64 {
+    100.0
+        * gauge
+            .query_selector(selector)
+            .ok()
+            .flatten()
+            .and_then(|found| found.get_attribute(attribute))
+            .and_then(|x| x.parse::<f64>().ok())
+            .unwrap_or(f64::NAN)
+        / 360.0
+}
+
+#[wasm_bindgen_test]
+async fn gathers_gauges_label_the_goal_between_their_ends_then_the_body_mass_min_and_max_outward() {
+    answering(&format!(
+        r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
+              "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_gather_tab(&screen);
+    settled().await;
+    let gauges = screen.query_selector_all(".aim-gauge").expect("the gauges");
+    let gauge = |at: u32| -> Element { gauges.item(at).expect("a gauge").unchecked_into() };
+    let (body, lean) = (gauge(0), gauge(1));
+    let label =
+        |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
+    let tick = |share: f64| format!("left: {share}%; transform: translateX(-{share}%)");
+    let band_from = share_of(&body, "rect.band", "x");
+    let band_to = band_from + share_of(&body, "rect.band", "width");
+
+    assert_eq!(
+        (labels_by_row(&body), labels_by_row(&lean).len()),
+        (
+            vec![
+                vec![
+                    label(
+                        "67.5 kg",
+                        "end tick-label starts-at",
+                        "left: 0%; right: 0%".into()
+                    ),
+                    label(
+                        "Goal 75.0",
+                        "acc tick-label",
+                        tick(share_of(&body, "line.optimal", "x1"))
+                    ),
+                    label(
+                        "82.5 kg",
+                        "end tick-label ends-at",
+                        "left: 0%; width: 100%".into()
+                    )
+                ],
+                vec![
+                    label(
+                        "Min. 74.3",
+                        "good tick-label ends-at",
+                        format!("left: 0%; width: {band_from}%")
+                    ),
+                    label(
+                        "Max. 75.8",
+                        "good tick-label starts-at",
+                        format!("left: {band_to}%; right: 0%")
+                    )
+                ]
+            ],
+            1
+        )
+    );
+}
+
 #[wasm_bindgen_test]
 async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_percent_and_one_for_its_lean_mass_green_from_its_goal_up_each_labelled_by_its_ends()
  {
