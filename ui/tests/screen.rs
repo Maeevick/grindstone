@@ -2472,6 +2472,44 @@ async fn fuels_four_macros_stand_under_its_gauge() {
 }
 
 #[wasm_bindgen_test]
+async fn fuels_entries_show_a_meals_description_and_ingredients_in_a_block_on_a_tap() {
+    answering(&format!(
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }},
+            "fuel_day": {}, "meals": [{PASTA_IN_CREAM}] }}"#,
+        fuelled_on("2026-10-10", 880.0),
+        fuelled_with("2026-10-10", "Pasta in cream", 350.0, 880.0),
+    ));
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+    settled().await;
+
+    if let Some(row) = screen
+        .query_selector(".last-days tr.entry.meal")
+        .ok()
+        .flatten()
+    {
+        row.unchecked_into::<web_sys::HtmlElement>().click();
+    }
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".last-days tr.details .description"),
+            texts_in_order(&screen, ".last-days tr.details li").len()
+        ),
+        (vec!["Boil, reduce, stir.".to_string()], 2)
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
