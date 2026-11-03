@@ -188,7 +188,7 @@ mod tests {
                 description: String::new(),
             })
             .expect("a drink saves");
-        for (date, water_ml, tea_ml) in [("2026-10-08", 300.0, 100.0), ("2026-10-09", 100.0, 300.0)]
+        for (date, water_ml, tea_ml) in [("2026-10-08", 300.0, 100.0), ("2026-10-09", 200.0, 200.0)]
         {
             log_drink(
                 &gather,
@@ -213,7 +213,7 @@ mod tests {
         assert_eq!(
             water,
             Some(Averaged {
-                per_day: 50.0,
+                per_day: 62.5,
                 floor: 75.0,
                 ceiling: 100.0,
                 in_band: 1

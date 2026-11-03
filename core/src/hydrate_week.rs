@@ -90,6 +90,14 @@ mod tests {
     }
 
     #[test]
+    fn a_day_with_nothing_drunk_has_no_share_of_water() {
+        assert_eq!(
+            hydrate_week_of(&[a_day(0.0)]).map(|week| week.water.per_day),
+            Some(0.0)
+        );
+    }
+
+    #[test]
     fn a_hydrate_week_without_a_logged_day_has_no_average() {
         assert_eq!(hydrate_week_of(&[]), None);
     }
