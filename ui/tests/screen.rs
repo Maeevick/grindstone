@@ -3261,7 +3261,7 @@ async fn each_tabs_form_opens_its_grimoire_from_the_right_of_its_title() {
         (
             vec![tab.to_string()],
             vec![format!("/{}/grimoire", tab.to_lowercase())],
-            vec!["📚".to_string(), "open the grimoire".to_string()],
+            vec!["open the grimoire".to_string(), "📚".to_string()],
         )
     };
     assert_eq!(
