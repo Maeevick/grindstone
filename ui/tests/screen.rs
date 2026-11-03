@@ -1529,6 +1529,37 @@ async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_
 }
 
 #[wasm_bindgen_test]
+async fn hydrates_tips_add_the_water_share_and_its_word() {
+    answering(
+        r#"{ "hydrate_over_the_window": { "logged_days": 6,
+            "drunk": { "per_day": 2200.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 },
+            "water": { "per_day": 62.0, "floor": 75.0, "ceiling": 100.0, "in_band": 2 } } }"#,
+    );
+    let screen = screen();
+    let _mounted = the_hydrate_week(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            cells_by_row(&screen, ".week tbody tr").last().cloned(),
+            attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
+            text_of(&screen, ".week p.tip")
+        ),
+        (
+            Some(
+                ["Water (%)", "62.0", "75.0–100.0", "2/6"]
+                    .map(String::from)
+                    .to_vec()
+            ),
+            vec!["good".to_string(), "low".to_string()],
+            "“A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high \
+             praise. A little more water than the others would do.”"
+                .to_string()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_hydrate_week_without_a_finished_logged_day_says_there_is_nothing_to_average_yet() {
     answering(r#"{ "hydrate_over_the_window": null }"#);
     let screen = screen();
