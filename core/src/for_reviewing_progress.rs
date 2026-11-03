@@ -8,7 +8,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::fuel_over;
+use crate::fuel::{Fuel, fuel_over};
 use crate::gather_records::GatherRecords;
 use crate::hydrate::hydrate_over;
 use crate::hydrate_counted::counted_on;
@@ -57,7 +57,7 @@ pub fn streak(
                             .any(|measured| measured.day == *day)
                     }),
                     fuelled: counted_on(*day, &fuelled.counted_from)
-                        .then(|| fuelled_day.energy == Some(Verdict::InBand)),
+                        .then(|| fuelled_in_band(&fuelled_day)),
                     worked_out: counted_on(*day, &burnt.counted_from)
                         .then(|| worked_out(*day, &burnt, &gathered)),
                     hydrated: counted_on(*day, &hydrated.counted_from)
@@ -67,6 +67,17 @@ pub fn streak(
         })
         .collect();
     Ok(streak_of(&ticked, today))
+}
+
+/// A day's energy stands in its band and each of its four macros in its own, as the gauge and the table show
+/// them.
+fn fuelled_in_band(fuelled: &Fuel) -> bool {
+    fuelled.energy == Some(Verdict::InBand)
+        && fuelled.macros.is_some_and(|macros| {
+            [macros.protein, macros.fat, macros.fibre, macros.carbs]
+                .iter()
+                .all(|row| row.verdict == Verdict::InBand)
+        })
 }
 
 /// A day's workouts reach its burn target as both are shown; before any weigh-in prices them, a single
