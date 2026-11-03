@@ -136,8 +136,11 @@ pub fn remove_workouts(
     date: &str,
     ids: &[i64],
 ) -> Result<Burn, Failure> {
-    let _ = ids;
-    burn_of_the_day(gather, burn, day(date)?)
+    let day = day(date)?;
+    for id in ids {
+        burn.remove_workout(*id)?;
+    }
+    burn_of_the_day(gather, burn, day)
 }
 
 pub fn set_day_off_the_clock(
