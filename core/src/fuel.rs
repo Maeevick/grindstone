@@ -732,6 +732,38 @@ mod tests {
     }
 
     #[test]
+    fn a_band_narrower_than_a_tenth_of_maintenance_widens_around_its_middle_five_percent_either_side()
+     {
+        let lean_waist_cm = 70.0;
+        let fat_kg = crate::composition::body_composition(
+            80.0,
+            180.0,
+            crate::composition::Tapes::Male {
+                neck_cm: 38.5,
+                waist_cm: lean_waist_cm,
+            },
+        )
+        .expect("a composition")
+        .fat_mass_kg;
+
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(lean_waist_cm),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        let middle = band.maintenance_kcal - 290.0 / 4.184 * fat_kg / 2.0;
+        assert!(
+            about(band.floor_kcal, middle - 0.05 * band.maintenance_kcal)
+                && about(band.cap_kcal, middle + 0.05 * band.maintenance_kcal),
+            "{band:?}"
+        );
+    }
+
+    #[test]
     fn once_eaten_digestion_is_priced_on_the_grams_eaten() {
         let mut fuel = aiming();
         let before = fuel_on(
