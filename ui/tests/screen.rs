@@ -3055,7 +3055,7 @@ async fn the_macros_preview_their_gaps_against_the_goals_of_the_day_previewed() 
     assert_eq!(
         attributes_of(
             &screen,
-            "table.macros tr.carbs td:nth-child(4) .ghost",
+            "table.macros tr.carbs td:nth-child(5) .ghost",
             "class"
         ),
         ["ghost low"]

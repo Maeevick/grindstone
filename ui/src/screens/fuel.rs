@@ -36,6 +36,7 @@ fn MacroLine(
         <tr class=key>
             <td>{name}</td>
             <td>{bare(Figure::Grams(row.floor_g))}</td>
+            <td>{bare(Figure::Grams(row.ceiling_g))}</td>
             <td class=verdict>
                 {bare(Figure::Grams(row.eaten_g))}
                 {more_g
@@ -75,6 +76,7 @@ fn MacrosTable(
                 <tr>
                     <th></th>
                     <th>"Goal (g)"</th>
+                    <th>"Max (g)"</th>
                     <th>"Current (g)"</th>
                     <th>"Δ (g)"</th>
                     <th>"% cal"</th>
@@ -117,6 +119,7 @@ fn MacrosTable(
             <tfoot>
                 <tr>
                     <td>"Total"</td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
