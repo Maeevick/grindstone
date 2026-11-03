@@ -200,7 +200,6 @@ mod tests {
                     kept: crate::kept::Kept::Own(crate::fuel_records::FuelTargets {
                         protein_g_per_kg: 2.0,
                         fat_g_per_kg: 0.9,
-                        fibre_g_per_kg: 0.4,
                     }),
                     counted: true,
                 },

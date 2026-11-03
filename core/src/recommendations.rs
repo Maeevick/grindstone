@@ -60,7 +60,6 @@ pub fn recommended(
         fuel: FuelTargets {
             protein_g_per_kg: PROTEIN_G_PER_KG,
             fat_g_per_kg: FAT_FLOOR_G_PER_KG,
-            fibre_g_per_kg: to_the_hundredth(FIBRE_G_A_DAY / body_mass_kg.unwrap_or(goal_mass_kg)),
         },
         usual_day: Volitional {
             sitting_min: SITTING_MIN,
@@ -76,7 +75,6 @@ const HIGHEST_NORMAL_BMI: f64 = 24.9;
 const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
 const PROTEIN_G_PER_KG: f64 = 1.6;
 const FAT_FLOOR_G_PER_KG: f64 = 0.8;
-const FIBRE_G_A_DAY: f64 = 25.0;
 const SITTING_MIN: f64 = 480.0;
 const STANDING_MIN: f64 = 120.0;
 const METRES_A_STEP: f64 = 0.75;
@@ -98,10 +96,6 @@ fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
 
 fn to_the_tenth(value: f64) -> f64 {
     (value * 10.0).round() / 10.0
-}
-
-fn to_the_hundredth(value: f64) -> f64 {
-    (value * 100.0).round() / 100.0
 }
 
 fn to_the_thousandth(value: f64) -> f64 {
@@ -170,21 +164,14 @@ mod tests {
     }
 
     #[test]
-    fn fat_has_a_practical_floor_and_fibre_spreads_25_g_over_the_body_mass() {
+    fn fat_has_a_practical_floor() {
         let advised = recommended(
             &born("1985-04-12", Gender::Male, 180.0),
             day("2026-10-11"),
             Some(80.0),
         );
-        let unweighed = recommended(
-            &born("1985-04-12", Gender::Male, 180.0),
-            day("2026-10-11"),
-            None,
-        );
 
         assert_eq!(advised.fuel.fat_g_per_kg, 0.8);
-        assert_eq!(advised.fuel.fibre_g_per_kg, 0.31);
-        assert_eq!(unweighed.fuel.fibre_g_per_kg, 0.36);
     }
 
     #[test]

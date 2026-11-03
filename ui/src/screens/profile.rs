@@ -369,7 +369,6 @@ fn FuelTargetsCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let protein = RwSignal::new(String::new());
     let fat = RwSignal::new(String::new());
-    let fibre = RwSignal::new(String::new());
     let whose = RwSignal::new(None::<bool>);
     let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
@@ -377,7 +376,6 @@ fn FuelTargetsCard() -> impl IntoView {
     let show = move |targets: FuelTargets| {
         protein.set(typed_back(targets.protein_g_per_kg));
         fat.set(typed_back(targets.fat_g_per_kg));
-        fibre.set(typed_back(targets.fibre_g_per_kg));
     };
     shown_in_force(
         async { tauri::fuel_targets_on(&today()).await },
@@ -404,11 +402,9 @@ fn FuelTargetsCard() -> impl IntoView {
     let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some([protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg]) = figures_typed([
-            &protein.get_untracked(),
-            &fat.get_untracked(),
-            &fibre.get_untracked(),
-        ]) else {
+        let Some([protein_g_per_kg, fat_g_per_kg]) =
+            figures_typed([&protein.get_untracked(), &fat.get_untracked()])
+        else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
@@ -416,7 +412,6 @@ fn FuelTargetsCard() -> impl IntoView {
             Kept::Own(FuelTargets {
                 protein_g_per_kg: protein_g_per_kg.unwrap_or(0.0),
                 fat_g_per_kg: fat_g_per_kg.unwrap_or(0.0),
-                fibre_g_per_kg: fibre_g_per_kg.unwrap_or(0.0),
             }),
             lines::fuel_targets_kept,
         );
@@ -425,16 +420,15 @@ fn FuelTargetsCard() -> impl IntoView {
         <section class="card">
             <h2>"How to feed the forge"</h2>
             <p class="hint">
-                "Grams per kilo of body mass a day: each is the floor of its band, which also asks for 20 to 33.3% of the day's energy (2.4 to 4% for fibre)."
+                "Grams per kilo of body mass a day, each the floor of its band, at most 35% of the energy eaten. Fat asks for 20% at least, fibre for 14 g per 1000 kcal eaten."
             </p>
             <form class="fuel-targets" on:submit=save>
                 <div class="row">
                     <DateField label="From" name="targets_from" value=from />
                 </div>
-                <div class="row thirds">
+                <div class="row">
                     <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
                     <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
-                    <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
                 </div>
                 <Whose whose=whose />
                 <Counted counted=counted />

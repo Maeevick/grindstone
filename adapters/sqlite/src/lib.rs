@@ -108,6 +108,7 @@ const MIGRATIONS: &[&str] = &[
     "create table gather_counted (effective_from text primary key, counted integer not null);
      create table fuel_counted (effective_from text primary key, counted integer not null);
      create table burn_counted (effective_from text primary key, counted integer not null);",
+    "alter table fuel_targets drop column fibre_g_per_kg",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
@@ -658,8 +659,7 @@ const FOODS: &str =
 const INTAKES: &str =
     "select id, day, food, unit, quantity, energy_kcal, protein_g, carbs_g, fat_g, fibre_g
      from intakes order by day, id";
-const FUEL_TARGETS: &str =
-    "select effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg, recommended
+const FUEL_TARGETS: &str = "select effective_from, protein_g_per_kg, fat_g_per_kg, recommended
      from fuel_targets order by effective_from";
 const MEALS: &str = "select meal from meals order by name";
 
@@ -690,11 +690,10 @@ fn targets_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Kept<FuelTa
     Ok((
         row.get(0)?,
         kept(
-            row.get(4)?,
+            row.get(3)?,
             FuelTargets {
                 protein_g_per_kg: row.get(1)?,
                 fat_g_per_kg: row.get(2)?,
-                fibre_g_per_kg: row.get(3)?,
             },
         ),
     ))
@@ -816,21 +815,17 @@ impl ForStoringFuelRecords for Sqlite {
             FuelTargets {
                 protein_g_per_kg: 0.0,
                 fat_g_per_kg: 0.0,
-                fibre_g_per_kg: 0.0,
             },
         );
         self.run(
-            "insert into fuel_targets
-                 (effective_from, protein_g_per_kg, fat_g_per_kg, fibre_g_per_kg, recommended)
-             values (?1, ?2, ?3, ?4, ?5)
+            "insert into fuel_targets (effective_from, protein_g_per_kg, fat_g_per_kg, recommended)
+             values (?1, ?2, ?3, ?4)
              on conflict (effective_from) do update set protein_g_per_kg = excluded.protein_g_per_kg,
-                 fat_g_per_kg = excluded.fat_g_per_kg, fibre_g_per_kg = excluded.fibre_g_per_kg,
-                 recommended = excluded.recommended",
+                 fat_g_per_kg = excluded.fat_g_per_kg, recommended = excluded.recommended",
             params![
                 from,
                 targets.protein_g_per_kg,
                 targets.fat_g_per_kg,
-                targets.fibre_g_per_kg,
                 recommended
             ],
         )
@@ -1868,8 +1863,7 @@ mod tests {
                     from,
                     Kept::Own(FuelTargets {
                         protein_g_per_kg: 1.6,
-                        fat_g_per_kg: 0.9,
-                        fibre_g_per_kg: 0.4
+                        fat_g_per_kg: 0.9
                     })
                 )])
             )

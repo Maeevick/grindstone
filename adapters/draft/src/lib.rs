@@ -6,7 +6,7 @@ use grind_core::exercise::{Exercise, exercise};
 use grind_core::failure::Failure;
 use grind_core::food::{Nutrients, Unit, food};
 use grind_core::for_importing::Drafted;
-use grind_core::fuel_records::{DEFAULT_FUEL_TARGETS, FuelRecords, FuelTargets};
+use grind_core::fuel_records::{FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
@@ -392,7 +392,6 @@ pub fn fuel_from_draft(backup: &str) -> Result<FuelRecords, DraftRefusal> {
             FuelTargets {
                 protein_g_per_kg: log.prot_g_kg,
                 fat_g_per_kg: log.fat_g_kg,
-                fibre_g_per_kg: DEFAULT_FUEL_TARGETS.fibre_g_per_kg,
             },
         ));
         intakes.extend(
@@ -806,19 +805,13 @@ mod tests {
             records
                 .targets
                 .into_iter()
-                .filter_map(|(from, aims)| {
-                    aims.own()
-                        .map(|aims| (from, aims.protein_g_per_kg, aims.fibre_g_per_kg))
-                })
+                .filter_map(|(from, aims)| aims.own().map(|aims| (from, aims.protein_g_per_kg)))
                 .collect::<Vec<_>>()
         });
 
         assert_eq!(
             targets,
-            Ok(vec![
-                (day("2026-08-02"), 2.0, 0.4),
-                (day("2026-09-01"), 2.025, 0.4)
-            ])
+            Ok(vec![(day("2026-08-02"), 2.0), (day("2026-09-01"), 2.025)])
         );
     }
 

@@ -154,12 +154,8 @@ pub fn set_fuel_targets(
     let from = day(&form.from)?;
     let kept = match form.kept {
         Kept::Own(targets) => Kept::Own(
-            fuel_targets(
-                targets.protein_g_per_kg,
-                targets.fat_g_per_kg,
-                targets.fibre_g_per_kg,
-            )
-            .map_err(Failure::Refused)?,
+            fuel_targets(targets.protein_g_per_kg, targets.fat_g_per_kg)
+                .map_err(Failure::Refused)?,
         ),
         Kept::Recommended => Kept::Recommended,
     };
@@ -651,16 +647,14 @@ mod tests {
         FuelTargets {
             protein_g_per_kg: 2.025,
             fat_g_per_kg: 0.9,
-            fibre_g_per_kg: 0.4,
         }
     }
 
-    fn the_recommended_targets(fibre_g_per_kg: f64) -> InForce<FuelTargets> {
+    fn the_recommended_targets() -> InForce<FuelTargets> {
         InForce {
             values: FuelTargets {
                 protein_g_per_kg: 1.6,
                 fat_g_per_kg: 0.8,
-                fibre_g_per_kg,
             },
             recommended: true,
             from: None,
@@ -711,7 +705,7 @@ mod tests {
                 fuel_targets_on(&gather, &fuel, "2026-10-10"),
                 fuel_targets_on(&GatherRecordsInMemory::default(), &fuel, "2026-10-10")
             ),
-            (Ok(Some(the_recommended_targets(0.31))), Ok(None))
+            (Ok(Some(the_recommended_targets())), Ok(None))
         );
     }
 
@@ -747,11 +741,11 @@ mod tests {
                 }),
                 Some(InForce {
                     from: since("2026-10-10"),
-                    ..the_recommended_targets(0.31)
+                    ..the_recommended_targets()
                 }),
                 Some(InForce {
                     from: since("2026-10-10"),
-                    ..the_recommended_targets(0.4)
+                    ..the_recommended_targets()
                 })
             ]
         );
@@ -1215,7 +1209,7 @@ mod tests {
         let advised = recommended_on(&gather, "2026-10-11").expect("recommendations");
 
         assert_eq!(advised.fuel.protein_g_per_kg, 1.6);
-        assert_eq!(advised.fuel.fibre_g_per_kg, 0.31);
+        assert!(advised.burn_target_kcal.is_some());
     }
 
     #[test]

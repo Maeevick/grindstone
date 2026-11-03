@@ -448,7 +448,6 @@ mod tests {
     const AIMS: FuelTargets = FuelTargets {
         protein_g_per_kg: 2.0,
         fat_g_per_kg: 0.9,
-        fibre_g_per_kg: 0.4,
     };
 
     /// A waist that leaves him well above the fat of his goals: a cut.
@@ -1181,7 +1180,6 @@ mod tests {
                 Kept::Own(FuelTargets {
                     protein_g_per_kg: 0.1,
                     fat_g_per_kg: 0.1,
-                    fibre_g_per_kg: 0.01,
                 }),
             )],
             ..FuelRecords::default()

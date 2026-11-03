@@ -859,7 +859,6 @@ pub mod honouring_for_storing_fuel_records {
         Kept::Own(FuelTargets {
             protein_g_per_kg,
             fat_g_per_kg: 0.9,
-            fibre_g_per_kg: 0.4,
         })
     }
 
