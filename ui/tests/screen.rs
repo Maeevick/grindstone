@@ -4446,6 +4446,40 @@ async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
 }
 
 #[wasm_bindgen_test]
+async fn hydrates_day_stands_its_water_and_its_other_drinks_under_the_band() {
+    let with_water = A_DAY_WITH_TWO_DRINKS.replace(
+        r#""drink": "Tea", "kind": "Other""#,
+        r#""drink": "Water", "kind": "Water""#,
+    );
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {with_water} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".bands table.kinds thead th"),
+            cells_by_row(&screen, ".bands table.kinds tbody tr"),
+            attributes_of(
+                &screen,
+                ".bands table.kinds tbody tr.water td:last-child",
+                "class"
+            )
+        ),
+        (
+            ["Kind", "Drunk (mL)", "%"].map(String::from).to_vec(),
+            vec![
+                ["Water", "200", "71.4"].map(String::from).to_vec(),
+                ["Others", "80", "28.6"].map(String::from).to_vec()
+            ],
+            vec!["low".to_string()]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_day_drunk_inside_its_band_says_no_more_than_its_line() {
     let in_band = A_DAY_WITH_TWO_DRINKS.replace(r#""verdict": "Low""#, r#""verdict": "InBand""#);
     answering(&format!(
