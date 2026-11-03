@@ -28,7 +28,7 @@ pub struct Hydrate {
 }
 
 /// The least share of water among a day's drinks, in percent, the rest counting towards the drinks alone.
-pub const WATER_SHARE_FLOOR_PERCENT: f64 = 75.0;
+pub const WATER_SHARE_FLOOR_PERCENT: f64 = 80.0;
 
 impl Hydrate {
     /// What the day drank of water.
