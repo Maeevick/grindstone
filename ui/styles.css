@@ -500,8 +500,9 @@ hr.divider {
     justify-content: safe flex-end;
 }
 
+/* Right to left, so that a label without room overflows towards the gauge rather than out of it. */
 .gauge-under-ticks .starts-at {
-    flex-direction: row-reverse;
+    direction: rtl;
 }
 
 .gauge-under-ticks .end {

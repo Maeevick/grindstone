@@ -36,7 +36,7 @@ fn TickRow(labels: Vec<Placed>) -> impl IntoView {
                     };
                     view! {
                         <span class=format!("{class} tick-label{anchored}") style=style>
-                            {label}
+                            <bdi dir="ltr">{label}</bdi>
                         </span>
                     }
                 })
