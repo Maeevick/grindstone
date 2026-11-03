@@ -2332,7 +2332,10 @@ async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_
     settled().await;
 
     assert_eq!(
-        (run, texts_in_order(&screen, ".last-days tr.details li")),
+        (
+            run,
+            texts_in_order(&screen, ".last-days tr.details.steps li")
+        ),
         (
             ["Morning rust", "120", "4.5", "36", "×"]
                 .map(String::from)
@@ -2360,7 +2363,7 @@ async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
     assert_eq!(
         (
             asked("remove_workouts"),
-            texts_in_order(&screen, ".last-days tr.details li").len()
+            texts_in_order(&screen, ".last-days tr.details.steps li").len()
         ),
         (r#"{"date":"2026-10-10","ids":[1,2]}"#.to_string(), 0)
     );
@@ -2376,7 +2379,7 @@ async fn burns_entries_end_on_neat_its_two_parts_always_open_in_a_block() {
     assert_eq!(
         (
             texts_in_order(&screen, ".last-days tr.entry td"),
-            texts_in_order(&screen, ".last-days tr.details li")
+            texts_in_order(&screen, ".last-days tr.details.neat li")
         ),
         (
             [

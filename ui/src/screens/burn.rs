@@ -146,7 +146,7 @@ fn CircuitEntry(
             open.get()
                 .then(|| {
                     view! {
-                        <tr class="details">
+                        <tr class="details steps">
                             <td colspan="5">
                                 <div class="pinned">
                                     <ul class="figures">
@@ -161,15 +161,27 @@ fn CircuitEntry(
     }
 }
 
-/// The time off the clock or the fidgeting among a day's entries: what it burnt, nothing to remove.
-fn neat_entry(activity: &'static str, kcal: f64) -> impl IntoView {
+/// The day's NEAT among its entries: what the time off the clock and the fidgeting burnt together, nothing to
+/// remove, and both parts always open in a block under it.
+fn neat_entry(volitional_kcal: f64, spontaneous_kcal: f64) -> impl IntoView {
+    let part = |activity: &str, kcal: f64| format!("{activity} · {}", shown(Figure::Energy(kcal)));
     view! {
         <tr class="entry neat">
-            <td>{activity}</td>
-            <td>{bare(Figure::Energy(kcal))}</td>
+            <td>"NEAT"</td>
+            <td>{bare(Figure::Energy(volitional_kcal + spontaneous_kcal))}</td>
             <td>"–"</td>
             <td>"–"</td>
             <td></td>
+        </tr>
+        <tr class="details neat">
+            <td colspan="5">
+                <div class="pinned">
+                    <ul class="figures">
+                        <li>{part("Off the clock (volitional)", volitional_kcal)}</li>
+                        <li>{part("Fidgeting (spontaneous)", spontaneous_kcal)}</li>
+                    </ul>
+                </div>
+            </td>
         </tr>
     }
 }
@@ -204,13 +216,7 @@ pub fn BurnEntries(date: String) -> impl IntoView {
                                     }
                                 })
                                 .collect_view()}
-                            {spent
-                                .map(|spent| {
-                                    view! {
-                                        {neat_entry("Off the clock (volitional)", spent.volitional_kcal)}
-                                        {neat_entry("Fidgeting (spontaneous)", spent.spontaneous_kcal)}
-                                    }
-                                })}
+                            {spent.map(|spent| neat_entry(spent.volitional_kcal, spent.spontaneous_kcal))}
                         }
                             .into_any()
                     }
