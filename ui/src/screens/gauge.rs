@@ -6,21 +6,34 @@ use leptos::prelude::*;
 use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
 use crate::screens::lines;
 
-/// A tick's label under it, in gold: anchored at the share of itself its tick takes of the line, so it stays
-/// under its tick without leaving the gauge.
+/// A row of tick labels, each under its tick in its colour: anchored at the share of itself its tick takes of
+/// the line, so it stays under its tick without leaving the gauge.
 #[component]
-fn TickLabel(at: f64, label: String) -> impl IntoView {
-    let share = 100.0 * at / 360.0;
+fn TickRow(labels: Vec<(f64, String, &'static str)>) -> impl IntoView {
     view! {
         <div class="gauge-under-ticks">
-            <span
-                class="acc tick-label"
-                style=format!("left: {share}%; transform: translateX(-{share}%)")
-            >
-                {label}
-            </span>
+            {labels
+                .into_iter()
+                .map(|(at, label, class)| {
+                    let share = 100.0 * at / 360.0;
+                    view! {
+                        <span
+                            class=format!("{class} tick-label")
+                            style=format!("left: {share}%; transform: translateX(-{share}%)")
+                        >
+                            {label}
+                        </span>
+                    }
+                })
+                .collect_view()}
         </div>
     }
+}
+
+/// A tick's label under it, in gold.
+#[component]
+fn TickLabel(at: f64, label: String) -> impl IntoView {
+    view! { <TickRow labels=vec![(at, label, "acc")] /> }
 }
 
 #[component]
@@ -152,20 +165,26 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 {placed.ghost.map(|ghost| view! { <circle class="ghost" cx=ghost.eaten_at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
-            <TickLabel at=placed.goal_at label=format!("Goal {}", bare(Figure::Energy(band.goal_kcal))) />
-            <TickLabel
-                at=placed.maintenance_at
-                label=format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal)))
-            />
-            <div class="gauge-labels">
-                <span class="low">
-                    {format!(
+            <TickRow labels=vec![
+                (
+                    placed.minimum_at,
+                    format!(
                         "EA{} {}",
                         bare(Figure::Count(band.minimum_kcal_per_kg_of_lean_mass)),
                         bare(Figure::Energy(band.minimum_kcal)),
-                    )}
-                </span>
-            </div>
+                    ),
+                    "low",
+                ),
+                (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc"),
+            ] />
+            <TickRow labels=vec![
+                (placed.floor_at, format!("Alpert {}", bare(Figure::Energy(band.floor_kcal))), "good"),
+                (
+                    placed.maintenance_at,
+                    format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal))),
+                    "acc",
+                ),
+            ] />
         </div>
     }
 }

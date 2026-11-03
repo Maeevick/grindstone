@@ -1943,9 +1943,7 @@ async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     );
     let gauge = text_of(&screen, ".fuel-gauge");
     assert!(
-        gauge.contains("EA25 1768")
-            && gauge.contains("Maintenance 2425")
-            && !gauge.contains("Alpert"),
+        gauge.contains("EA25 1768") && gauge.contains("Maintenance 2425"),
         "{gauge}"
     );
     found::<Element>(&screen, ".fuel-gauge line.minimum");
