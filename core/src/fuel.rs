@@ -43,9 +43,9 @@ pub struct MacroRow {
 }
 
 impl MacroRow {
-    /// What was eaten beyond the goal, which is the floor; short of it, the gap is negative.
+    /// What was eaten beyond the goal; short of it, the gap is negative; none without a goal.
     pub fn gap_g(&self) -> Option<f64> {
-        Some(self.eaten_g - self.floor_g)
+        self.goal_g.map(|goal_g| self.eaten_g - goal_g)
     }
 }
 
