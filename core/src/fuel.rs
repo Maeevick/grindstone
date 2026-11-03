@@ -174,14 +174,22 @@ fn band_for(
     .kcal()
         + burnt_kcal;
     let fat_left_kg = (body.fat_kg - aims.fat_mass_kg()).max(0.0);
+    let gain_cap_kcal = maintenance_kcal.max(goals_kcal);
+    let narrowest_kcal = NARROWEST_BAND_SHARE * maintenance_kcal;
     let (floor_kcal, cap_kcal) = widened(
         (
-            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg,
-            maintenance_kcal.max(goals_kcal),
+            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg,
+            gain_cap_kcal,
         ),
-        NARROWEST_BAND_SHARE * maintenance_kcal,
+        narrowest_kcal,
     );
-    let goal_kcal = floor_kcal;
+    let (goal_kcal, _) = widened(
+        (
+            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg,
+            gain_cap_kcal,
+        ),
+        narrowest_kcal,
+    );
     let band = Band {
         minimum_kcal_per_kg_of_lean_mass,
         minimum_kcal,
@@ -609,12 +617,12 @@ mod tests {
     }
 
     #[test]
-    fn a_gain_may_go_as_high_as_what_the_goal_body_would_spend() {
+    fn a_gain_may_go_as_high_as_what_the_goal_body_would_spend_its_goal_tick_at_maintenance() {
         let fuelled = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming());
 
         let (lean_kg, fat_kg) = the_body();
         assert_eq!(
-            fuelled.band.map(|band| (band.floor_kcal, band.cap_kcal)),
+            fuelled.band.map(|band| (band.goal_kcal, band.cap_kcal)),
             Some((
                 spent_before_eating_by(lean_kg, fat_kg),
                 spent_before_eating_by(95.0 * 0.8, 95.0 * 0.2)
@@ -642,7 +650,7 @@ mod tests {
     }
 
     #[test]
-    fn a_band_narrower_than_a_tenth_of_maintenance_widens_around_its_middle_five_percent_either_side_at_the_goal()
+    fn the_goal_tick_of_a_band_narrower_than_a_tenth_of_maintenance_stands_five_percent_under_its_middle()
      {
         let (lean_kg, fat_kg) = the_body();
         let band_aiming_at = |body_mass_kg: f64, goal_fat_kg: f64| {
@@ -658,7 +666,7 @@ mod tests {
             };
             fuel_on("2026-10-10", &aiming_at, &a_desk_job(), &aiming())
                 .band
-                .map(|band| (band.floor_kcal, band.cap_kcal))
+                .map(|band| band.goal_kcal)
                 .expect("a band")
         };
         let maintenance = spent_before_eating_by(lean_kg, fat_kg);
@@ -668,13 +676,9 @@ mod tests {
 
         let middle = maintenance - 290.0 / 4.184 / 2.0;
         assert!(
-            about(at_the_goal.0, 0.95 * maintenance) && about(at_the_goal.1, 1.05 * maintenance),
-            "{at_the_goal:?}"
-        );
-        assert!(
-            about(a_kilo_of_fat_away.0, middle - 0.05 * maintenance)
-                && about(a_kilo_of_fat_away.1, middle + 0.05 * maintenance),
-            "{a_kilo_of_fat_away:?}"
+            about(at_the_goal, 0.95 * maintenance)
+                && about(a_kilo_of_fat_away, middle - 0.05 * maintenance),
+            "{at_the_goal} {a_kilo_of_fat_away}"
         );
     }
 
