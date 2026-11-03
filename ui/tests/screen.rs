@@ -4446,6 +4446,22 @@ async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
 }
 
 #[wasm_bindgen_test]
+async fn a_day_drunk_inside_its_band_says_no_more_than_its_line() {
+    let in_band = A_DAY_WITH_TWO_DRINKS.replace(r#""verdict": "Low""#, r#""verdict": "InBand""#);
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {in_band} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-10".to_string()));
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".bands p.said"),
+        Vec::<String>::new()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn drinking_past_the_cap_says_to_spread_the_cups_out() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_PAST_THE_CAP} }}"#
