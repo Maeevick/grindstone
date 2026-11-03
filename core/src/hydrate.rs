@@ -389,6 +389,19 @@ mod tests {
     }
 
     #[test]
+    fn a_day_weighed_before_any_lean_mass_keeps_twenty_percent_either_side() {
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &weighed("2026-10-01", 80.0),
+            &BurnRecords::default(),
+            &FuelRecords::default(),
+        );
+
+        assert!(about(hydrate.floor_ml, 0.8 * 2800.0) && about(hydrate.cap_ml, 1.2 * 2800.0));
+    }
+
+    #[test]
     fn a_burn_of_unknown_size_without_any_weigh_in_adds_nothing_to_the_target() {
         let hydrate = hydrate_on(
             day("2026-10-10"),

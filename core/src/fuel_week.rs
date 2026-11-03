@@ -276,6 +276,36 @@ mod tests {
     }
 
     #[test]
+    fn the_energy_and_the_macros_are_ranked_together_by_the_share_they_miss() {
+        let on_the_goal = aimed(100.0, 50.0, 200.0, Some(100.0), 1);
+        let week = FuelWeek {
+            logged_days: 2,
+            energy: averaged(2600.0, 1800.0, 2400.0, 0),
+            protein: aimed(90.0, 50.0, 200.0, Some(100.0), 1),
+            fat: aimed(71.0, 48.0, 90.0, Some(64.0), 1),
+            fibre: on_the_goal,
+            carbs: aimed(110.0, 50.0, 200.0, Some(100.0), 1),
+        };
+
+        assert_eq!(
+            (week.short(), week.over()),
+            (
+                vec![],
+                vec![
+                    Gap {
+                        habit: Habit::Fat,
+                        per_day: 7.0
+                    },
+                    Gap {
+                        habit: Habit::Energy,
+                        per_day: 200.0
+                    }
+                ]
+            )
+        );
+    }
+
+    #[test]
     fn a_week_has_goals_once_a_macro_has_one() {
         let aimless = averaged(100.0, 50.0, 200.0, 1);
         let week = |fibre: Averaged| FuelWeek {
