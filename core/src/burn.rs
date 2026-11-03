@@ -106,8 +106,23 @@ pub enum BurnEntry {
 /// A day's entries, newest first: each workout on its own, the steps of a circuit run together, in the order
 /// they were logged.
 pub fn entries_of(workouts: &[BurntWorkout]) -> Vec<BurnEntry> {
-    let _ = workouts;
-    Vec::new()
+    let mut logged = workouts.to_vec();
+    logged.sort_by_key(|done| done.id);
+    let mut entries: Vec<BurnEntry> = Vec::new();
+    for done in logged {
+        match (entries.last_mut(), done.workout.circuit.clone()) {
+            (Some(BurnEntry::Circuit { name, workouts }), Some(circuit)) if *name == circuit => {
+                workouts.push(done);
+            }
+            (_, Some(circuit)) => entries.push(BurnEntry::Circuit {
+                name: circuit,
+                workouts: vec![done],
+            }),
+            (_, None) => entries.push(BurnEntry::Workout(done)),
+        }
+    }
+    entries.reverse();
+    entries
 }
 
 #[cfg(test)]
