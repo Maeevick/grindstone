@@ -164,6 +164,16 @@ pub async fn remove_workout(date: &str, id: i64) -> Result<Burn, Failure> {
     call("remove_workout", Removing { date, id }, broken).await
 }
 
+#[derive(Serialize)]
+struct RemovingSeveral<'a> {
+    date: &'a str,
+    ids: &'a [i64],
+}
+
+pub async fn remove_workouts(date: &str, ids: &[i64]) -> Result<Burn, Failure> {
+    call("remove_workouts", RemovingSeveral { date, ids }, broken).await
+}
+
 pub async fn set_day_off_the_clock(date: &str, form: &OffTheClockForm) -> Result<Burn, Failure> {
     call("set_day_off_the_clock", OnDayWith { date, form }, broken).await
 }

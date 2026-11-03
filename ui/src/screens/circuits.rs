@@ -9,7 +9,7 @@ use leptos::task::spawn_local;
 use crate::screens::{Recorded, lines};
 use crate::tauri;
 
-fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {
+pub(crate) fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {
     let goal = reps
         .map(|reps| format!("{reps} reps · "))
         .unwrap_or_default();

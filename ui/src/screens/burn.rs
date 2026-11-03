@@ -1,6 +1,4 @@
-use std::cmp::Reverse;
-
-use grind_core::burn::{Burn, BurntWorkout};
+use grind_core::burn::{Burn, BurnEntry, BurntWorkout, entries_of};
 use grind_core::circuit::{Circuit, StepForm, burnt_per_set};
 use grind_core::exercise::{Exercise, exercise as exercise_of};
 use grind_core::failure::Failure;
@@ -16,6 +14,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::charts::bare_or_dash;
+use crate::screens::circuits::how_a_step_goes;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
@@ -76,6 +75,92 @@ fn WorkoutEntry(done: BurntWorkout, said: RwSignal<Option<String>>) -> impl Into
     }
 }
 
+/// A step of a circuit run, in its block: the exercise, its sets of what a set took, and what it burnt.
+fn logged_step(done: &BurntWorkout) -> String {
+    let workout = &done.workout;
+    format!(
+        "{} · {} × {} · {}",
+        workout.exercise,
+        workout.sets,
+        how_a_step_goes(workout.reps, workout.minutes, workout.load_kg),
+        done.burnt_kcal
+            .map_or_else(|| "–".to_string(), |kcal| shown(Figure::Energy(kcal)))
+    )
+}
+
+/// A circuit run among its day's entries: the circuit by name, what its steps add up to, its removal, and on a
+/// tap its steps in a block under it.
+#[component]
+fn CircuitEntry(
+    name: String,
+    workouts: Vec<BurntWorkout>,
+    said: RwSignal<Option<String>>,
+) -> impl IntoView {
+    let open = RwSignal::new(false);
+    let recorded = Recorded::here();
+    let date = workouts
+        .first()
+        .map(|done| done.workout.day.to_string())
+        .unwrap_or_default();
+    let ids: Vec<i64> = workouts.iter().map(|done| done.id).collect();
+    let remove = move |event: leptos::ev::MouseEvent| {
+        event.stop_propagation();
+        let (date, ids) = (date.clone(), ids.clone());
+        spawn_local(async move {
+            match tauri::remove_workouts(&date, &ids).await {
+                Ok(_) => recorded.told(),
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
+    let burnt: Option<f64> = workouts
+        .iter()
+        .filter_map(|done| done.burnt_kcal)
+        .reduce(|sum, kcal| sum + kcal);
+    let minutes: f64 = workouts
+        .iter()
+        .map(|done| f64::from(done.workout.sets) * done.workout.minutes)
+        .sum();
+    let reps: Option<f64> = workouts
+        .iter()
+        .filter_map(|done| {
+            done.workout
+                .reps
+                .map(|reps| f64::from(reps * done.workout.sets))
+        })
+        .reduce(|sum, reps| sum + reps);
+    let steps: Vec<String> = workouts.iter().map(logged_step).collect();
+    view! {
+        <tr class="entry circuit" on:click=move |_| open.update(|open| *open = !*open)>
+            <td>{name}</td>
+            <td>{bare_or_dash(burnt, Figure::Energy)}</td>
+            <td>{bare(Figure::Duration(minutes))}</td>
+            <td>{bare_or_dash(reps, Figure::Count)}</td>
+            <td>
+                <button class="remove" type="button" on:click=remove aria-label="Remove this circuit run">
+                    "×"
+                </button>
+            </td>
+        </tr>
+        {move || {
+            open.get()
+                .then(|| {
+                    view! {
+                        <tr class="details">
+                            <td colspan="5">
+                                <div class="pinned">
+                                    <ul class="figures">
+                                        {steps.iter().map(|step| view! { <li>{step.clone()}</li> }).collect_view()}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                })
+        }}
+    }
+}
+
 /// The time off the clock or the fidgeting among a day's entries: what it burnt, nothing to remove.
 fn neat_entry(activity: &'static str, kcal: f64) -> impl IntoView {
     view! {
@@ -105,13 +190,19 @@ pub fn BurnEntries(date: String) -> impl IntoView {
             burn.get()
                 .map(|(answer, fuel)| match answer {
                     Ok(burn) => {
-                        let mut done = burn.workouts;
-                        done.sort_by_key(|workout| Reverse(workout.id));
                         let spent = fuel.ok().and_then(|fuel| fuel.budget);
                         view! {
-                            {done
+                            {entries_of(&burn.workouts)
                                 .into_iter()
-                                .map(|done| view! { <WorkoutEntry done=done said=said /> })
+                                .map(|entry| match entry {
+                                    BurnEntry::Workout(done) => {
+                                        view! { <WorkoutEntry done=done said=said /> }.into_any()
+                                    }
+                                    BurnEntry::Circuit { name, workouts } => {
+                                        view! { <CircuitEntry name=name workouts=workouts said=said /> }
+                                            .into_any()
+                                    }
+                                })
                                 .collect_view()}
                             {spent
                                 .map(|spent| {

@@ -2369,14 +2369,9 @@ async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting() {
     assert_eq!(
         texts_in_order(&screen, ".last-days tbody tr.entry td"),
         [
-            "Burpee · Morning rust",
-            "80",
-            "3",
-            "–",
-            "×",
-            "Push up · Morning rust",
-            "40",
-            "1.5",
+            "Morning rust",
+            "120",
+            "4.5",
             "36",
             "×",
             "Off the clock (volitional)",
