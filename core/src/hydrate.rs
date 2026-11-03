@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::body::body_on;
-use crate::burn::burn_on;
+use crate::burn::{body_mass_in_force_on, burn_on};
 use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
@@ -51,6 +51,9 @@ impl Hydrate {
 }
 
 const ML_PER_KCAL_SPENT: f64 = 1.0;
+/// Before the tapes read a lean mass, a weighed body drinks 35 mL a kilo, the common rule of thumb of 30 to 35 mL a
+/// kilo a day for adults; not an EFSA figure.
+const ML_A_KILO_OF_BODY_MASS: f64 = 35.0;
 const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
 const WATER_SHARE_OF_LEAN_MASS: f64 = 0.732;
 const BODY_WATER_TURNED_OVER_A_DAY: f64 = 0.07;
@@ -148,16 +151,26 @@ fn hydrated(
     let own_base_ml = version_in_force_on(&records.targets, day)
         .and_then(Kept::own)
         .copied();
-    let (target_ml, floor_ml) = match (own_base_ml, lean_kg_on(day, gather), fuelled.band) {
-        (Some(base_ml), _, _) => {
+    let weighed_kg = body_mass_in_force_on(day, &gather.measurements);
+    let (target_ml, floor_ml) = match (
+        own_base_ml,
+        lean_kg_on(day, gather),
+        fuelled.band,
+        weighed_kg,
+    ) {
+        (Some(base_ml), _, _, _) => {
             let target_ml = base_ml + burnt_kcal * ML_PER_KCAL_SPENT;
             (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
-        (None, Some(lean_kg), Some(band)) => {
+        (None, Some(lean_kg), Some(band), _) => {
             let target_ml = SHARE_LEFT_TO_DRINKS
                 * (turned_over_ml(lean_kg) + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
             let floor_ml = SHARE_LEFT_TO_DRINKS * band.maintenance_kcal * ML_PER_KCAL_SPENT;
             (target_ml, floor_ml.min(target_ml))
+        }
+        (None, None, _, Some(body_mass_kg)) => {
+            let target_ml = ML_A_KILO_OF_BODY_MASS * body_mass_kg + burnt_kcal * ML_PER_KCAL_SPENT;
+            (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
         _ => {
             let gender = version_in_force_on(&gather.profiles, day).map(|profile| profile.gender);

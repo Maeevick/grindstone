@@ -432,7 +432,7 @@ mod tests {
         )
         .expect("a hydrate");
 
-        assert!((hydrated.target_ml - (2000.0 + 252.0)).abs() < 1e-9);
+        assert!((hydrated.target_ml - (35.0 * 80.0 + 252.0)).abs() < 1e-9);
     }
 
     #[test]
