@@ -132,7 +132,10 @@ pub fn HydrateOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                             view! {
                                 {week_table(
                                     over.logged_days,
-                                    vec![("Drinks (mL)", over.drunk, Figure::Volume)],
+                                    vec![
+                                        ("Drinks (mL)", over.drunk, Figure::Volume),
+                                        ("Water (%)", over.water, |percent| Figure::Ratio(percent / 100.0)),
+                                    ],
                                 )}
                                 <p class="tip">{lines::quoted(&lines::hydrate_week_said(&over))}</p>
                             }

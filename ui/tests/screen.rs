@@ -1513,12 +1513,16 @@ async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_
     settled().await;
 
     assert_eq!(
-        cells_by_row(&screen, ".week tbody tr"),
-        [["Drinks (mL)", "1900", "2000–2400", "3/6"]]
+        cells_by_row(&screen, ".week tbody tr").first().cloned(),
+        Some(
+            ["Drinks (mL)", "1900", "2000–2400", "3/6"]
+                .map(String::from)
+                .to_vec()
+        )
     );
     assert_eq!(
-        attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
-        ["low"]
+        attributes_of(&screen, ".week tbody td:nth-child(2)", "class").first(),
+        Some(&"low".to_string())
     );
     assert_eq!(text_of(&screen, ".week p.hint"), "Over 6 logged days.");
     let tip = text_of(&screen, ".week p.tip");

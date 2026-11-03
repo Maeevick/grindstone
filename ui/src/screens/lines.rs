@@ -648,10 +648,11 @@ pub fn fuel_week_said(week: &FuelWeek) -> String {
     }
 }
 
-/// How far the window's drinks run from the band, said plainly before a word from the ledger.
+/// How far the window's drinks run from the band, then how much of them was water, said plainly before a word
+/// from the ledger.
 pub fn hydrate_week_said(week: &HydrateWeek) -> String {
     let gap = week.drunk.gap().unwrap_or_default();
-    match week.drunk.verdict() {
+    let drunk = match week.drunk.verdict() {
         Verdict::Low => format!(
             "Short of the band by {} a day. A glass more by mid-afternoon closes it; I measured, twice.",
             shown(Figure::Volume(-gap))
@@ -664,7 +665,12 @@ pub fn hydrate_week_said(week: &HydrateWeek) -> String {
             "A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high praise."
                 .into()
         }
-    }
+    };
+    let water = match week.water.verdict() {
+        Verdict::Low => "A little more water than the others would do.",
+        _ => "Keep going: water is the best one.",
+    };
+    format!("{drunk} {water}")
 }
 
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
