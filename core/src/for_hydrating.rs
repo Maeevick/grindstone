@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn the_average_over_a_window_tells_each_days_share_of_water_against_three_quarters() {
+    fn the_average_over_a_window_tells_each_days_share_of_water_against_four_fifths() {
         let (gather, burn, fuel, hydrate) = (
             GatherRecordsInMemory::default(),
             BurnRecordsInMemory::default(),
@@ -214,9 +214,9 @@ mod tests {
             water,
             Some(Averaged {
                 per_day: 62.5,
-                floor: 75.0,
+                floor: 80.0,
                 ceiling: 100.0,
-                in_band: 1
+                in_band: 0
             })
         );
     }
