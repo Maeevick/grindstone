@@ -70,11 +70,13 @@ pub fn Gauge(
                 {placed.ghost_at.map(|at| view! { <circle class="ghost" cx=at cy="12" r="5" /> })}
                 <circle class="amount" cx=placed.amount_at cy="12" r="5" />
             </svg>
-            <TickLabel at=placed.optimal_at label=format!("Optimal {}", shown(shown_as(optimal))) />
-            <div class="gauge-labels">
-                <span class="low">{format!("Min {}", shown(shown_as(floor)))}</span>
-                <span class="high">{format!("Max {}", shown(shown_as(cap)))}</span>
-            </div>
+            <TickRow labels=vec![
+                (placed.optimal_at, format!("Opt. {}", bare(shown_as(optimal))), "acc", Anchor::Tick),
+            ] />
+            <TickRow labels=vec![
+                (placed.band_from, format!("Min. {}", bare(shown_as(floor))), "good", Anchor::EndsAt),
+                (placed.band_to, format!("Max. {}", bare(shown_as(cap))), "good", Anchor::StartsAt),
+            ] />
         </div>
     }
 }

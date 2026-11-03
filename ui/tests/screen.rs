@@ -1504,7 +1504,7 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
         [
             "Goal 75.0",
             "Target 80 kcal",
-            "Optimal 2000 mL",
+            "Opt. 2000",
             "Goal 2199"
         ]
     );
@@ -4466,9 +4466,9 @@ async fn the_days_hydrate_shows_its_scale_from_min_through_optimal_to_max() {
     let scale: Element = found(&screen, ".gauge");
     let labels = scale.text_content().unwrap_or_default();
     assert!(
-        labels.contains("Min 1800 mL")
-            && labels.contains("Optimal 2000 mL")
-            && labels.contains("Max 2200 mL"),
+        labels.contains("Min. 1800")
+            && labels.contains("Opt. 2000")
+            && labels.contains("Max. 2200"),
         "{labels}"
     );
     assert!(scale.query_selector("svg .band").ok().flatten().is_some());
