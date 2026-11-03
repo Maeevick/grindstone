@@ -6,7 +6,7 @@ use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
     BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, Scope, TypedGoals, UsualDayForm,
 };
-use grind_core::fuel_records::FuelTargets;
+use grind_core::fuel_records::{FuelTargets, Per};
 use grind_core::gender::Gender;
 use grind_core::goals::{Goals, fat_percentage};
 use grind_core::kept::{InForce, Kept};
@@ -364,17 +364,25 @@ fn BurnTargetCard() -> impl IntoView {
     }
 }
 
+/// What the protein target is read per: the body mass, or the lean mass the tapes give.
+const PROTEIN_PER: [(Per, &str); 2] = [
+    (Per::BodyMass, "per kg of body mass"),
+    (Per::LeanMass, "per kg of lean mass"),
+];
+
 #[component]
 fn FuelTargetsCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let protein = RwSignal::new(String::new());
     let fat = RwSignal::new(String::new());
+    let per = RwSignal::new(Per::BodyMass);
     let whose = RwSignal::new(None::<bool>);
     let counted = RwSignal::new(true);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let show = move |targets: FuelTargets| {
         protein.set(typed_back(targets.protein_g_per_kg));
+        per.set(targets.protein_per);
         fat.set(typed_back(targets.fat_g_per_kg));
     };
     shown_in_force(
@@ -411,7 +419,7 @@ fn FuelTargetsCard() -> impl IntoView {
         keep(
             Kept::Own(FuelTargets {
                 protein_g_per_kg: protein_g_per_kg.unwrap_or(0.0),
-                protein_per: grind_core::fuel_records::Per::BodyMass,
+                protein_per: per.get_untracked(),
                 fat_g_per_kg: fat_g_per_kg.unwrap_or(0.0),
             }),
             lines::fuel_targets_kept,
@@ -430,6 +438,23 @@ fn FuelTargetsCard() -> impl IntoView {
                 <div class="row">
                     <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
                     <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
+                </div>
+                <div class="pills per">
+                    {PROTEIN_PER
+                        .into_iter()
+                        .map(|(named, label)| {
+                            view! {
+                                <button
+                                    type="button"
+                                    class=format!("pill per-{named:?}")
+                                    class:chosen=move || per.get() == named
+                                    on:click=move |_| per.set(named)
+                                >
+                                    {label}
+                                </button>
+                            }
+                        })
+                        .collect_view()}
                 </div>
                 <Whose whose=whose />
                 <Counted counted=counted />

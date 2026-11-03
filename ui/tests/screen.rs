@@ -5010,7 +5010,7 @@ async fn each_goal_card_shows_whether_its_tick_counts_in_the_streak_and_the_usua
             "form.water-target",
             "form.burn-target"
         ]
-        .map(|form| texts_in_order(&screen, &format!("{form} .pill.chosen")).concat()),
+        .map(|form| texts_in_order(&screen, &format!("{form} .streak .pill.chosen")).concat()),
         ["Counted", "Left out", "Left out", "Counted"]
     );
     assert!(texts_in_order(&screen, "form.usual-day .pill").is_empty());
