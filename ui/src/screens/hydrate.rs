@@ -16,7 +16,7 @@ use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEn
 use crate::screens::fields::{Chooser, DateField, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::{HydrateLastDays, entries_failed, entries_said};
-use crate::screens::profile::{Recommend, Whose, keep_and_show, shown_in_force};
+use crate::screens::profile::{Whose, keep_and_show, shown_in_force};
 use crate::screens::references::ReferencesLink;
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
@@ -437,7 +437,6 @@ pub fn HydrateTargetCard() -> impl IntoView {
             (filed, recorded),
         );
     };
-    let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some([typed]) = figures_typed([&water.get_untracked()]) else {
@@ -460,9 +459,8 @@ pub fn HydrateTargetCard() -> impl IntoView {
                     <FigureField label="Water a day (mL)" name="water_target" value=water />
                 </div>
                 <Whose whose=whose />
-                <Recommend keep=recommend />
                 <button class="cta" type="submit">
-                    "Keep this target"
+                    "Store this aim"
                 </button>
                 <ReferencesLink topic=Topic::Water />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}

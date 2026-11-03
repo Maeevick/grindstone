@@ -5005,23 +5005,16 @@ async fn no_profile_card_asks_whether_its_tick_counts_any_more() {
 }
 
 #[wasm_bindgen_test]
-async fn use_the_recommendation_keeps_it_from_the_cards_day_and_shows_it_followed() {
+async fn the_usual_days_recommendation_keeps_it_from_the_cards_day_and_shows_it_followed() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
     ));
     let screen = screen();
     let _mounted = the_profile_screen(&screen);
     settled().await;
-    typed_into(&screen, "goals_from", "2026-10-15");
 
     let mut kept = Vec::new();
-    for (form, command) in [
-        ("form.goals", "set_goals"),
-        ("form.fuel-targets", "set_fuel_targets"),
-        ("form.water-target", "set_hydrate_target"),
-        ("form.usual-day", "set_usual_day"),
-        ("form.burn-target", "set_burn_target"),
-    ] {
+    for (form, command) in [("form.usual-day", "set_usual_day")] {
         clicked(&screen, &format!("{form} button.recommend"));
         settled().await;
         kept.push((
@@ -5034,14 +5027,6 @@ async fn use_the_recommendation_keeps_it_from_the_cards_day_and_shows_it_followe
         kept.iter()
             .all(|(recommended, whose)| *recommended && whose == RECOMMENDED_AND_FOLLOWED),
         "{kept:?}"
-    );
-    assert!(asked("set_goals").contains(r#""from":"2026-10-15""#));
-    assert_eq!(
-        [
-            value_of(&screen, "target_mass"),
-            value_of(&screen, "target_fat")
-        ],
-        ["70.31", "16.5"]
     );
 }
 

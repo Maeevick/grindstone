@@ -124,7 +124,6 @@ fn GoalsCard() -> impl IntoView {
             (filed, recorded),
         );
     };
-    let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some([body_mass_kg, fat_percentage]) =
@@ -154,9 +153,8 @@ fn GoalsCard() -> impl IntoView {
                 </div>
                 <Whose whose=whose />
                 {move || healthy.get().map(|line| view! { <p class="hint healthy">{line}</p> })}
-                <Recommend keep=recommend />
                 <button class="cta" type="submit">
-                    "Keep these goals"
+                    "Engrave these goals"
                 </button>
                 <ReferencesLink topic=Topic::HealthyRanges />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
@@ -276,7 +274,6 @@ fn BurnTargetCard() -> impl IntoView {
             (filed, recorded),
         );
     };
-    let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some([typed]) = figures_typed([&kcal.get_untracked()]) else {
@@ -304,9 +301,8 @@ fn BurnTargetCard() -> impl IntoView {
                     <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />
                 </div>
                 <Whose whose=whose />
-                <Recommend keep=recommend />
                 <button class="cta" type="submit">
-                    "Keep this target"
+                    "Fire this ambition"
                 </button>
                 <ReferencesLink topic=Topic::Activity />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
@@ -355,7 +351,6 @@ fn FuelTargetsCard() -> impl IntoView {
             (filed, recorded),
         );
     };
-    let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some([protein_g_per_kg, fat_g_per_kg]) =
@@ -403,9 +398,8 @@ fn FuelTargetsCard() -> impl IntoView {
                         .collect_view()}
                 </div>
                 <Whose whose=whose />
-                <Recommend keep=recommend />
                 <button class="cta" type="submit">
-                    "Keep these targets"
+                    "Paint these targets"
                 </button>
                 <ReferencesLink topic=Topic::Macronutrients />
                 {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
