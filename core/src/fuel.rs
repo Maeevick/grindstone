@@ -1204,6 +1204,35 @@ mod tests {
     }
 
     #[test]
+    fn a_protein_target_per_kilo_of_lean_mass_floors_protein_on_the_lean_mass() {
+        let (lean_kg, _) = the_body();
+        let fuel = FuelRecords {
+            targets: vec![(
+                day("2026-03-01"),
+                Kept::Own(FuelTargets {
+                    protein_g_per_kg: 2.0,
+                    protein_per: crate::fuel_records::Per::LeanMass,
+                    fat_g_per_kg: 0.9,
+                }),
+            )],
+            ..FuelRecords::default()
+        };
+
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &fuel,
+        );
+
+        assert!(
+            fuelled
+                .macros
+                .is_some_and(|macros| about(macros.protein.floor_g, 2.0 * lean_kg))
+        );
+    }
+
+    #[test]
     fn a_macro_eaten_right_at_its_floor_is_in_its_band() {
         let mut fuel = aiming();
         eating(&mut fuel, "2026-10-10", &a_food(160.0, 227.5, 90.0, 35.0));

@@ -1082,7 +1082,8 @@ mod tests {
     #[test]
     fn fuel_targets_set_from_the_screen_are_the_ones_in_force_from_their_day() {
         let (_app, screen) = launched();
-        let aims = json!({ "protein_g_per_kg": 2.025, "protein_per": "BodyMass", "fat_g_per_kg": 0.9 });
+        let aims =
+            json!({ "protein_g_per_kg": 2.025, "protein_per": "BodyMass", "fat_g_per_kg": 0.9 });
 
         let set = invoke(
             &screen,
