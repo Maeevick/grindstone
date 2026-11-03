@@ -11,7 +11,6 @@ use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{Fuel, fuel_over};
 use crate::gather_records::GatherRecords;
 use crate::hydrate::{Hydrate, WATER_SHARE_FLOOR_PERCENT, hydrate_over};
-use crate::hydrate_counted::counted_on;
 use crate::refusal::Refusal;
 use crate::streak::{Streak, Ticks, streak_of};
 use crate::verdict::{Verdict, verdict_of};
@@ -50,18 +49,15 @@ pub fn streak(
             (
                 *day,
                 Ticks {
-                    weighed: counted_on(*day, &gathered.counted_from).then(|| {
+                    weighed: Some(
                         gathered
                             .measurements
                             .iter()
-                            .any(|measured| measured.day == *day)
-                    }),
-                    fuelled: counted_on(*day, &fuelled.counted_from)
-                        .then(|| fuelled_in_band(&fuelled_day)),
-                    worked_out: counted_on(*day, &burnt.counted_from)
-                        .then(|| worked_out(*day, &burnt, &gathered)),
-                    hydrated: counted_on(*day, &hydrated.counted_from)
-                        .then(|| hydrated_in_band(hydrated_day)),
+                            .any(|measured| measured.day == *day),
+                    ),
+                    fuelled: Some(fuelled_in_band(&fuelled_day)),
+                    worked_out: Some(worked_out(*day, &burnt, &gathered)),
+                    hydrated: Some(hydrated_in_band(hydrated_day)),
                 },
             )
         })
@@ -607,35 +603,6 @@ mod tests {
                     Some((Some(true), Some(true), Some(true)))
                 )
             );
-        }
-
-        #[test]
-        fn hydrate_left_out_from_a_date_leaves_its_days_on_the_other_three_ticks() {
-            let records = a_man_at_his_desk();
-            for (from, counted) in [("2026-03-01", false), ("2026-10-10", true)] {
-                crate::for_setting_up_the_profile::set_hydrate_target(
-                    &records.gather,
-                    &records.hydrate,
-                    &crate::for_setting_up_the_profile::HydrateTargetForm {
-                        from: from.into(),
-                        kept: crate::kept::Kept::Recommended,
-                        counted,
-                    },
-                )
-                .expect("a switch sets");
-            }
-            a_dry_day(&records, "2026-10-08", "Plate");
-            a_dry_day(&records, "2026-10-09", "Plate");
-            a_full_day(&records, "2026-10-10", "Plate");
-
-            let hydrated_on =
-                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.hydrated);
-
-            assert_eq!(
-                (hydrated_on("2026-10-09"), hydrated_on("2026-10-10")),
-                (None, Some(true))
-            );
-            assert_eq!(streak_on(&records, "2026-10-10").days, 3);
         }
 
         #[test]
