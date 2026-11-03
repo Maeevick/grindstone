@@ -576,7 +576,7 @@ mod tests {
         }
 
         #[test]
-        fn a_card_left_out_of_the_streak_from_a_day_takes_its_tick_out_from_that_day() {
+        fn every_tick_counts_from_the_first_record_whatever_was_once_left_out() {
             let records = a_man_at_his_desk();
             for date in ["2026-10-08", "2026-10-09", "2026-10-10"] {
                 a_full_day(&records, date, "Plate");
@@ -604,7 +604,7 @@ mod tests {
                 (three_ticks("2026-10-09"), three_ticks("2026-10-10")),
                 (
                     Some((Some(true), Some(true), Some(true))),
-                    Some((None, None, None))
+                    Some((Some(true), Some(true), Some(true)))
                 )
             );
         }
