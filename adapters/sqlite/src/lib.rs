@@ -1180,6 +1180,13 @@ mod tests {
     }
 
     #[test]
+    fn a_protein_target_per_kilo_of_lean_mass_comes_back_so() {
+        honouring_for_storing_fuel_records::a_protein_target_per_kilo_of_lean_mass_comes_back_so(
+            &database(),
+        );
+    }
+
+    #[test]
     fn targets_kept_as_the_recommendation_come_back_kept_so() {
         honouring_for_storing_fuel_records::targets_kept_as_the_recommendation_come_back_kept_so(
             &database(),

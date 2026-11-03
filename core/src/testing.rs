@@ -934,6 +934,24 @@ pub mod honouring_for_storing_fuel_records {
         );
     }
 
+    pub fn a_protein_target_per_kilo_of_lean_mass_comes_back_so(
+        records: &impl ForStoringFuelRecords,
+    ) {
+        let per_lean_mass = Kept::Own(FuelTargets {
+            protein_g_per_kg: 2.0,
+            protein_per: crate::fuel_records::Per::LeanMass,
+            fat_g_per_kg: 0.9,
+        });
+        records
+            .save_targets(day("2026-03-01"), &per_lean_mass)
+            .expect("targets save");
+
+        assert_eq!(
+            records.fuel_records().map(|fuelled| fuelled.targets),
+            Ok(vec![(day("2026-03-01"), per_lean_mass)])
+        );
+    }
+
     pub fn a_food_or_targets_saved_again_replace_the_earlier_ones(
         records: &impl ForStoringFuelRecords,
     ) {
@@ -1722,6 +1740,13 @@ mod tests {
     #[test]
     fn targets_kept_as_the_recommendation_come_back_kept_so() {
         honouring_for_storing_fuel_records::targets_kept_as_the_recommendation_come_back_kept_so(
+            &FuelRecordsInMemory::default(),
+        );
+    }
+
+    #[test]
+    fn a_protein_target_per_kilo_of_lean_mass_comes_back_so() {
+        honouring_for_storing_fuel_records::a_protein_target_per_kilo_of_lean_mass_comes_back_so(
             &FuelRecordsInMemory::default(),
         );
     }
