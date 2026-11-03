@@ -216,6 +216,7 @@ mod tests {
                 per_day: 62.5,
                 floor: 80.0,
                 ceiling: Some(100.0),
+                goal: None,
                 in_band: 0
             })
         );

@@ -18,6 +18,7 @@ fn water_share_of(day: &Hydrate) -> Banded {
         amount: day.water_share(),
         floor: WATER_SHARE_FLOOR_PERCENT,
         ceiling: Some(100.0),
+        goal: None,
     }
 }
 
@@ -30,6 +31,7 @@ pub fn hydrate_week_of(days: &[Hydrate]) -> Option<HydrateWeek> {
                 amount: day.drunk_ml,
                 floor: day.floor_ml,
                 ceiling: Some(day.cap_ml),
+                goal: None,
             })
             .collect::<Vec<_>>(),
     )?;
@@ -70,6 +72,7 @@ mod tests {
                     per_day: 2200.0,
                     floor: 2000.0,
                     ceiling: Some(2400.0),
+                    goal: None,
                     in_band: 1,
                 }
             ))

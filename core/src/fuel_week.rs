@@ -69,6 +69,7 @@ fn banded(row: MacroRow) -> Banded {
         amount: row.eaten_g,
         floor: row.floor_g,
         ceiling: row.ceiling_g,
+        goal: row.goal_g,
     }
 }
 
@@ -92,6 +93,7 @@ pub fn fuel_week_of(days: &[Fuel]) -> Option<FuelWeek> {
             amount: day.eaten.energy_kcal,
             floor: band.floor_kcal,
             ceiling: Some(band.cap_kcal),
+            goal: None,
         })?,
         protein: row(|_, _, macros| banded(macros.protein))?,
         fat: row(|_, _, macros| banded(macros.fat))?,
@@ -158,11 +160,21 @@ mod tests {
     }
 
     fn averaged(per_day: f64, floor: f64, ceiling: f64, in_band: usize) -> Averaged {
-        let ceiling = Some(ceiling);
+        aimed(per_day, floor, ceiling, None, in_band)
+    }
+
+    fn aimed(
+        per_day: f64,
+        floor: f64,
+        ceiling: f64,
+        goal: Option<f64>,
+        in_band: usize,
+    ) -> Averaged {
         Averaged {
             per_day,
             floor,
-            ceiling,
+            ceiling: Some(ceiling),
+            goal,
             in_band,
         }
     }
@@ -201,14 +213,14 @@ mod tests {
     }
 
     #[test]
-    fn what_runs_short_and_what_runs_over_are_named_furthest_first() {
+    fn a_macro_short_of_its_goal_or_over_it_by_more_than_a_tenth_is_named_furthest_first() {
         let week = FuelWeek {
             logged_days: 6,
             energy: averaged(2100.0, 1800.0, 2400.0, 4),
-            protein: averaged(96.0, 115.0, 190.0, 1),
-            fat: averaged(71.0, 48.0, 57.0, 2),
-            fibre: averaged(19.0, 25.0, 60.0, 0),
-            carbs: averaged(330.0, 200.0, 310.0, 2),
+            protein: aimed(96.0, 66.0, 190.0, Some(128.0), 1),
+            fat: aimed(71.0, 48.0, 90.0, Some(64.0), 2),
+            fibre: aimed(19.0, 15.0, 60.0, Some(32.0), 0),
+            carbs: aimed(260.0, 130.0, 400.0, Some(240.0), 2),
         };
 
         assert_eq!(
@@ -217,23 +229,17 @@ mod tests {
                 vec![
                     Gap {
                         habit: Habit::Fibre,
-                        per_day: -6.0
+                        per_day: -13.0
                     },
                     Gap {
                         habit: Habit::Protein,
-                        per_day: -19.0
+                        per_day: -32.0
                     }
                 ],
-                vec![
-                    Gap {
-                        habit: Habit::Fat,
-                        per_day: 14.0
-                    },
-                    Gap {
-                        habit: Habit::Carbs,
-                        per_day: 20.0
-                    }
-                ]
+                vec![Gap {
+                    habit: Habit::Fat,
+                    per_day: 7.0
+                }]
             )
         );
     }

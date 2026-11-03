@@ -10,6 +10,8 @@ pub struct Banded {
     pub floor: f64,
     /// None when nothing is too much.
     pub ceiling: Option<f64>,
+    /// The goal painted for the day, none until one is.
+    pub goal: Option<f64>,
 }
 
 /// A measure over a week's logged days: what a day took on average, against the average of their bands, and
@@ -20,6 +22,8 @@ pub struct Averaged {
     pub floor: f64,
     /// None when nothing is too much.
     pub ceiling: Option<f64>,
+    /// The goals painted for those days, on average; none when none was.
+    pub goal: Option<f64>,
     pub in_band: usize,
 }
 
@@ -55,6 +59,7 @@ pub fn averaged(days: &[Banded]) -> Option<Averaged> {
             .map(|day| day.ceiling)
             .sum::<Option<f64>>()
             .map(|sum| sum / logged),
+        goal: None,
         in_band: days
             .iter()
             .filter(|day| {
@@ -99,6 +104,7 @@ mod tests {
             amount,
             floor: 1800.0,
             ceiling: Some(2400.0),
+            goal: None,
         }
     }
 
@@ -107,6 +113,7 @@ mod tests {
             per_day,
             floor: 1800.0,
             ceiling: Some(2400.0),
+            goal: None,
             in_band: 0,
         }
     }
@@ -121,6 +128,7 @@ mod tests {
                 per_day: 2100.0,
                 floor: 1800.0,
                 ceiling: Some(2400.0),
+                goal: None,
                 in_band: 1,
             })
         );
