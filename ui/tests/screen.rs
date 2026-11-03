@@ -5097,6 +5097,43 @@ async fn use_the_recommendation_keeps_it_from_the_cards_day_and_shows_it_followe
 }
 
 #[wasm_bindgen_test]
+async fn the_protein_target_is_kept_per_kilo_of_body_mass_or_of_lean_mass() {
+    let per_lean_mass = IN_FORCE_ON_EVERY_CARD.replace(
+        r#""protein_g_per_kg": 1.6, "protein_per": "BodyMass", "fat_g_per_kg": 0.8 }, "recommended": true"#,
+        r#""protein_g_per_kg": 2.2, "protein_per": "LeanMass", "fat_g_per_kg": 0.8 }, "recommended": false"#,
+    );
+    answering(&format!(
+        r#"{{ {per_lean_mass}, "recommended_on": {RECOMMENDED},
+            "set_fuel_targets": {{ "values": {{ "protein_g_per_kg": 2.2, "protein_per": "BodyMass", "fat_g_per_kg": 0.8 }},
+                "recommended": false }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+    let chosen = texts_in_order(&screen, "form.fuel-targets .pills.per .pill.chosen");
+
+    if let Some(pill) = screen
+        .query_selector("form.fuel-targets .pills.per .pill.per-BodyMass")
+        .ok()
+        .flatten()
+    {
+        pill.unchecked_into::<web_sys::HtmlElement>().click();
+    }
+    found::<HtmlFormElement>(&screen, "form.fuel-targets")
+        .request_submit()
+        .expect("the targets are kept");
+    settled().await;
+
+    assert_eq!(
+        (
+            chosen,
+            asked("set_fuel_targets").contains(r#""protein_per":"BodyMass""#)
+        ),
+        (vec!["per kg of lean mass".to_string()], true)
+    );
+}
+
+#[wasm_bindgen_test]
 async fn hydrates_card_keeps_a_water_target_of_your_own() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
