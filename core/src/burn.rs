@@ -147,6 +147,28 @@ mod tests {
     }
 
     #[test]
+    fn two_circuits_run_back_to_back_stay_two_entries() {
+        let logged = [
+            done(1, "Push up", Some("Morning rust")),
+            done(2, "Squat", Some("Leg day")),
+        ];
+
+        assert_eq!(
+            entries_of(&logged),
+            [
+                BurnEntry::Circuit {
+                    name: "Leg day".into(),
+                    workouts: vec![logged[1].clone()]
+                },
+                BurnEntry::Circuit {
+                    name: "Morning rust".into(),
+                    workouts: vec![logged[0].clone()]
+                }
+            ]
+        );
+    }
+
+    #[test]
     fn a_days_workouts_group_each_circuit_run_newest_first_its_steps_in_their_order() {
         let rust = Some("Morning rust");
         let logged = [
