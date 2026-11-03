@@ -1374,7 +1374,7 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
     "intakes": [[1, { "day": "2026-10-10", "food": "Skyr", "unit": "Gram", "quantity": 200.0,
         "nutrients": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 } }]],
     "eaten": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "maintenance_kcal": 2424.8 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2424.8 },
     "energy": "Low",
     "macros": {
         "protein": { "eaten_g": 19.0, "floor_g": 160.0, "ceiling_g": 9.0, "verdict": "Low" },
@@ -1384,7 +1384,7 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
 
 const A_FUELLED_DAY_WITH_ITS_BUDGET: &str = r#"{ "day": "2026-10-10", "intakes": [],
     "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "maintenance_kcal": 2650.2 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2650.2 },
     "energy": "Low", "macros": null,
     "budget": { "resting_kcal": 1718.1, "organs_kcal": 102.5, "digestion_kcal": 275.8,
                 "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 } }"#;
@@ -2517,7 +2517,7 @@ fn a_fuelled_day_of(
         r#"{{ "day": "2026-10-10", "intakes": [],
             "eaten": {{ "energy_kcal": {kcal}, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 }},
             "band": {{ "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5,
-                       "floor_kcal": {floor}, "cap_kcal": {cap}, "maintenance_kcal": {maintenance} }},
+                       "floor_kcal": {floor}, "cap_kcal": {cap}, "goal_kcal": {floor}, "maintenance_kcal": {maintenance} }},
             "energy": "Low", "macros": null,
             "budget": {{ "resting_kcal": 1718.1, "organs_kcal": 102.5, "digestion_kcal": {digestion_kcal},
                          "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 }} }}"#
@@ -2526,7 +2526,7 @@ fn a_fuelled_day_of(
 
 const A_FUELLED_DAY_WITH_THE_PASTA: &str = r#"{ "day": "2026-10-10", "intakes": [],
     "eaten": { "energy_kcal": 468.0, "protein_g": 31.0, "carbs_g": 78.0, "fat_g": 1.5, "fibre_g": 3.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2235.3, "cap_kcal": 2686.1, "maintenance_kcal": 2460.7 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2235.3, "cap_kcal": 2686.1, "goal_kcal": 2235.3, "maintenance_kcal": 2460.7 },
     "energy": "Low",
     "macros": {
         "protein": { "eaten_g": 31.0, "floor_g": 160.0, "ceiling_g": 39.0, "verdict": "Low" },

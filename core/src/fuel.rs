@@ -26,6 +26,8 @@ pub struct Band {
     pub minimum_kcal: f64,
     pub floor_kcal: f64,
     pub cap_kcal: f64,
+    /// Where the goals would start the band: maintenance less what the fat left to lose can spare.
+    pub goal_kcal: f64,
     /// What the day spends, the budget plus the burn, wherever the band runs.
     pub maintenance_kcal: f64,
 }
@@ -184,6 +186,7 @@ fn band_for(
         minimum_kcal,
         floor_kcal: floor_kcal.max(minimum_kcal),
         cap_kcal: cap_kcal.max(minimum_kcal),
+        goal_kcal: 0.0,
         maintenance_kcal,
     };
     (band, budget)
@@ -689,6 +692,24 @@ mod tests {
         assert!(fuelled.band.is_some_and(|band| about(
             band.floor_kcal,
             band.cap_kcal - 290.0 / 4.184 * (fat_kg - his_goals_fat_kg)
+        )));
+    }
+
+    #[test]
+    fn the_goal_tick_stands_at_maintenance_less_what_the_fat_left_to_lose_can_spare() {
+        let (_, fat_kg) = the_body();
+        let his_goals_fat_kg = 70.0 * 0.1;
+
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        );
+
+        assert!(fuelled.band.is_some_and(|band| about(
+            band.goal_kcal,
+            band.maintenance_kcal - 290.0 / 4.184 * (fat_kg - his_goals_fat_kg)
         )));
     }
 
