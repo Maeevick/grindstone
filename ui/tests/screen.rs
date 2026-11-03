@@ -563,6 +563,58 @@ async fn gathers_gauges_label_the_goal_between_their_ends_then_the_body_mass_min
 }
 
 #[wasm_bindgen_test]
+async fn hydrates_gauge_labels_opt_then_min_and_max_outward_its_ends_bare() {
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Gauge
+                amount=1500.0
+                floor=1800.0
+                optimal=2000.0
+                cap=2200.0
+                shown_as=grind_core::figures::Figure::Volume
+            />
+        }
+    });
+    settled().await;
+    let gauge: Element = found(&screen, ".gauge");
+    let label =
+        |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
+    let optimal = share_of(&gauge, "line.optimal", "x1");
+    let band_from = share_of(&gauge, "rect.band", "x");
+    let band_to = band_from + share_of(&gauge, "rect.band", "width");
+
+    assert_eq!(
+        (
+            labels_by_row(&gauge),
+            texts_in_order(&gauge, ".gauge-labels span")
+        ),
+        (
+            vec![
+                vec![label(
+                    "Opt. 2000",
+                    "acc tick-label",
+                    format!("left: {optimal}%; transform: translateX(-{optimal}%)")
+                )],
+                vec![
+                    label(
+                        "Min. 1800",
+                        "good tick-label ends-at",
+                        format!("left: 0%; width: {band_from}%")
+                    ),
+                    label(
+                        "Max. 2200",
+                        "good tick-label starts-at",
+                        format!("left: {band_to}%; right: 0%")
+                    )
+                ]
+            ],
+            Vec::<String>::new()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_gathered_day_stands_on_a_line_for_its_body_mass_green_within_1_percent_and_one_for_its_lean_mass_green_from_its_goal_up_each_labelled_by_its_ends()
  {
     answering(&format!(
