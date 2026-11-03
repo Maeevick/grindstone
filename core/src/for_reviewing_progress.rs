@@ -327,6 +327,44 @@ mod tests {
         }
 
         #[test]
+        fn a_day_drunk_in_its_band_with_less_than_four_fifths_of_water_leaves_the_hydrate_tick_open()
+         {
+            let records = a_man_at_his_desk();
+            crate::for_cataloguing::add_drink(
+                &records.hydrate,
+                "Tea",
+                200.0,
+                crate::drink::DrinkKind::Other,
+                "",
+            )
+            .expect("a drink adds");
+            a_full_day(&records, "2026-10-09", "Plate");
+            a_dry_day(&records, "2026-10-10", "Plate");
+            for (drink, volume_ml) in [("Water", 2000.0), ("Tea", 1000.0)] {
+                crate::for_hydrating::log_drink(
+                    &records.gather,
+                    &records.burn,
+                    &records.fuel,
+                    &records.hydrate,
+                    &crate::for_hydrating::DrinkingForm {
+                        date: "2026-10-10".into(),
+                        drink: drink.into(),
+                        volume_ml: Some(volume_ml),
+                    },
+                )
+                .expect("a drink logs");
+            }
+
+            assert_eq!(
+                [
+                    ticks_on(&records, "2026-10-11", "2026-10-09").and_then(|ticks| ticks.hydrated),
+                    ticks_on(&records, "2026-10-11", "2026-10-10").and_then(|ticks| ticks.hydrated)
+                ],
+                [Some(true), Some(false)]
+            );
+        }
+
+        #[test]
         fn a_day_eaten_below_its_energy_band_leaves_the_fuel_tick_open() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-09", "Plate");
