@@ -1928,8 +1928,7 @@ async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_q
 }
 
 #[wasm_bindgen_test]
-async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_on_two_rows_each_under_its_tick()
- {
+async fn fuels_gauge_labels_ea_goal_and_max_then_alpert_and_maintenance_its_zones_edges_outward() {
     let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
     let screen = screen();
@@ -1969,17 +1968,43 @@ async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_on_two_rows_
         })
         .collect();
 
+    let at = |selector: &str, attribute: &str| {
+        100.0
+            * screen
+                .query_selector(&format!(".fuel-gauge {selector}"))
+                .ok()
+                .flatten()
+                .and_then(|found| found.get_attribute(attribute))
+                .and_then(|x| x.parse::<f64>().ok())
+                .unwrap_or(f64::NAN)
+            / 360.0
+    };
+    let ending_at = |share: f64| format!("left: 0%; width: {share}%");
+    let starting_at = |share: f64| format!("left: {share}%; right: 0%");
     let label =
         |text: &str, class: &str, style: String| (text.to_string(), class.to_string(), style);
     assert_eq!(
         labelled,
         [
             vec![
-                label("EA25 1768", "low tick-label", under("line.minimum", "x1")),
-                label("Goal 2300", "acc tick-label", under("line.goal", "x1"))
+                label(
+                    "EA25 1768",
+                    "low tick-label ends-at",
+                    ending_at(at("line.minimum", "x1"))
+                ),
+                label("Goal 2300", "acc tick-label", under("line.goal", "x1")),
+                label(
+                    "Max. 2650",
+                    "good tick-label starts-at",
+                    starting_at(at("rect.band", "x") + at("rect.band", "width"))
+                )
             ],
             vec![
-                label("Alpert 2199", "good tick-label", under("rect.band", "x")),
+                label(
+                    "Alpert 2199",
+                    "good tick-label ends-at",
+                    ending_at(at("rect.band", "x"))
+                ),
                 label(
                     "Maintenance 2425",
                     "acc tick-label",
