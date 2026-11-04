@@ -10,5 +10,5 @@ exclude_re = [
     "replace > with >= in fat_ratio_from_navy_formula",
     "replace < with <= in fat_ratio_from_navy_formula",
     "replace > with >= in deficit_before",
-    "hydrate\\.rs:(162:50|168:73|172:80): replace \\* with / in hydrated",
+    "hydrate\\.rs:(178:50|184:73|188:80): replace \\* with / in hydrated",
 ]
