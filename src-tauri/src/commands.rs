@@ -52,6 +52,9 @@ pub struct DraftBackup(pub PathBuf);
 /// Where a copy of the records lands: on the phone, the app's Documents folder, which USB reaches.
 pub struct CopyFile(pub PathBuf);
 
+/// Where a copy pushed over USB waits to be restored, beside the copies the app makes.
+pub struct RestoreFile(pub PathBuf);
+
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_measurement(
     records: State<Records>,
@@ -173,6 +176,15 @@ pub fn keep_a_copy(
     let copy = for_keeping_a_copy::keep_a_copy(&*records, &today)?;
     std::fs::write(&file.0, &copy.text).map_err(|error| Failure::Broken(error.to_string()))?;
     Ok(copy.counted)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn restore_a_copy(
+    records: State<Records>,
+    file: State<RestoreFile>,
+) -> Result<Counted, Failure> {
+    let _ = (records, file);
+    Err(Failure::Broken(String::new()))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -578,6 +590,7 @@ mod tests {
     struct Files {
         draft: PathBuf,
         copy: PathBuf,
+        restore: PathBuf,
     }
 
     impl Files {
@@ -585,6 +598,7 @@ mod tests {
             Self {
                 draft: PathBuf::from("/nowhere/grindstone-draft.json"),
                 copy: PathBuf::from("/nowhere/grindstone-export.json"),
+                restore: PathBuf::from("/nowhere/grindstone-import.json"),
             }
         }
     }
@@ -595,6 +609,7 @@ mod tests {
             .manage(Records(Mutex::new(records)))
             .manage(DraftBackup(files.draft))
             .manage(CopyFile(files.copy))
+            .manage(RestoreFile(files.restore))
             .invoke_handler(tauri::generate_handler![
                 log_measurement,
                 gather_week,
@@ -605,6 +620,7 @@ mod tests {
                 goals_on,
                 import_draft,
                 keep_a_copy,
+                restore_a_copy,
                 burn_day,
                 log_workout,
                 remove_workout,
@@ -862,6 +878,37 @@ mod tests {
         assert!(
             matches!(&answer, Err(failure) if failure["Broken"].is_string()),
             "{answer:?}"
+        );
+    }
+
+    #[test]
+    fn restoring_reads_the_copy_pushed_over_usb() {
+        let copy =
+            std::env::temp_dir().join(format!("grind-tauri-restore-{}.json", std::process::id()));
+        let (_phone, kept_from) = launched_with(Files {
+            copy: copy.clone(),
+            ..Files::nowhere()
+        });
+        invoke(
+            &kept_from,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+        invoke(&kept_from, "keep_a_copy", json!({ "today": "2026-11-04" })).expect("a copy kept");
+        let (_app, screen) = launched_with(Files {
+            restore: copy.clone(),
+            ..Files::nowhere()
+        });
+
+        let answer = invoke(&screen, "restore_a_copy", json!({}));
+
+        let days = invoke(&screen, "gather_week", json!({ "date": "2026-10-10" }))
+            .map(|week| week["days"].as_array().map(Vec::len));
+        let _ = std::fs::remove_file(&copy);
+        assert_eq!(
+            (answer.map(|counted| counted["records"].clone()), days),
+            (Ok(json!(1)), Ok(Some(1)))
         );
     }
 
