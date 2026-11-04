@@ -616,20 +616,32 @@ mod tests {
     }
 
     #[test]
-    fn the_cap_is_maintenance_and_a_twentieth_whatever_the_goals() {
-        let cap_over_maintenance = |gather: &GatherRecords| {
-            fuel_on("2026-10-10", gather, &a_desk_job(), &aiming())
-                .band
-                .map(|band| band.cap_kcal / band.maintenance_kcal)
-        };
+    fn without_a_gain_to_aim_for_the_cap_is_maintenance_and_a_twentieth() {
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
 
-        assert!(
-            [
-                cap_over_maintenance(&gaining()),
-                cap_over_maintenance(&a_mans_records(HIS_WAIST_CM))
-            ]
-            .iter()
-            .all(|share| share.is_some_and(|share| about(share, 1.05)))
+        assert!(about(band.cap_kcal / band.maintenance_kcal, 1.05));
+    }
+
+    #[test]
+    fn a_gain_to_aim_for_caps_the_band_at_half_a_percent_of_the_body_mass_a_week_its_goal_tick_at_a_twentieth()
+     {
+        let band = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming())
+            .band
+            .expect("a band");
+
+        assert_eq!(
+            (
+                (band.cap_kcal - band.maintenance_kcal).round(),
+                (band.goal_kcal / band.maintenance_kcal * 100.0).round()
+            ),
+            ((0.005 * 80.0 * 7700.0 / 7.0_f64).round(), 105.0)
         );
     }
 
