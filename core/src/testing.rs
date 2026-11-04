@@ -7,7 +7,7 @@ use crate::drinking::Drinking;
 use crate::exercise::Exercise;
 use crate::failure::Broken;
 use crate::food::{Food, Nutrients, Unit};
-use crate::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy};
+use crate::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy, Unrestorable};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -1034,6 +1034,13 @@ impl ForCopyingRecords for CopiedRecords {
             },
         })
     }
+
+    fn restored(&self, _: &str) -> Result<Counted, Unrestorable> {
+        Ok(Counted {
+            tables: self.tables,
+            records: self.records,
+        })
+    }
 }
 
 pub struct BrokenCopies;
@@ -1041,6 +1048,10 @@ pub struct BrokenCopies;
 impl ForCopyingRecords for BrokenCopies {
     fn copied(&self, _: NaiveDate) -> Result<RecordsCopy, Broken> {
         Err(Broken("the disk is full".into()))
+    }
+
+    fn restored(&self, _: &str) -> Result<Counted, Unrestorable> {
+        Err(Unrestorable::Broken(Broken("the disk is full".into())))
     }
 }
 

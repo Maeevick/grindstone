@@ -17,6 +17,16 @@ pub struct Counted {
     pub records: usize,
 }
 
+/// Why a copy could not be restored: not a copy at all, a copy of another schema, or a broken store.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Unrestorable {
+    NotACopy,
+    AnotherSchema { copy: i64, store: i64 },
+    Broken(Broken),
+}
+
 pub trait ForCopyingRecords {
     fn copied(&self, on: NaiveDate) -> Result<RecordsCopy, Broken>;
+    /// Every record replaced by the copy's, all of them or none.
+    fn restored(&self, copy: &str) -> Result<Counted, Unrestorable>;
 }

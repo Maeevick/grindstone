@@ -8,7 +8,7 @@ use grind_core::drinking::Drinking;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
 use grind_core::food::{Food, Nutrients, Unit};
-use grind_core::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy};
+use grind_core::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy, Unrestorable};
 use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
@@ -1001,6 +1001,11 @@ impl ForCopyingRecords for Sqlite {
     /// must match.
     fn copied(&self, on: NaiveDate) -> Result<RecordsCopy, Broken> {
         copy_of(&self.0, on).map_err(broken)
+    }
+
+    fn restored(&self, copy: &str) -> Result<Counted, Unrestorable> {
+        let _ = copy;
+        Err(Unrestorable::NotACopy)
     }
 }
 
