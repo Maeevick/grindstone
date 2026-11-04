@@ -1320,4 +1320,49 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn a_first_profile_leaves_a_card_already_kept_as_it_is() {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+        let first = NaiveDate::from_ymd_opt(2026, 3, 1).expect("a real day");
+        gather
+            .save_goals(
+                first,
+                &Kept::Own(Goals {
+                    body_mass_kg: 70.0,
+                    fat_ratio: 0.1,
+                }),
+            )
+            .expect("goals save");
+        burn.save_usual_day(first, &Kept::Recommended)
+            .expect("a usual day saves");
+        burn.save_burn_target(first, Kept::Own(40.0))
+            .expect("a burn target saves");
+        fuel.save_targets(first, &Kept::Recommended)
+            .expect("fuel targets save");
+        hydrate
+            .save_hydrate_target(first, Kept::Own(2800.0))
+            .expect("a water aim saves");
+
+        set_profile(&gather, &burn, &fuel, &hydrate, &a_mans_form("2026-11-04"))
+            .expect("a first profile set");
+
+        assert_eq!(
+            [
+                gather.gather_records().map(|gathered| gathered.goals.len()),
+                burn.burn_records().map(|burnt| burnt.usual_days.len()),
+                burn.burn_records().map(|burnt| burnt.targets.len()),
+                fuel.fuel_records().map(|fuelled| fuelled.targets.len()),
+                hydrate
+                    .hydrate_records()
+                    .map(|hydrated| hydrated.targets.len())
+            ],
+            [Ok(1); 5]
+        );
+    }
 }
