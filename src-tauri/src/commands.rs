@@ -183,8 +183,9 @@ pub fn restore_a_copy(
     records: State<Records>,
     file: State<RestoreFile>,
 ) -> Result<Counted, Failure> {
-    let _ = (records, file);
-    Err(Failure::Broken(String::new()))
+    let copy = std::fs::read_to_string(&file.0).expect("a copy pushed");
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    for_keeping_a_copy::restore_a_copy(&*records, &copy)
 }
 
 #[tauri::command(rename_all = "snake_case")]
