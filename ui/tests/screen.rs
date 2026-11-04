@@ -311,9 +311,31 @@ async fn the_hip_stays_in_its_place_open_to_a_woman_only() {
     assert!(!hip_closed(&screen), "a woman's profile asks for her hip");
 }
 
+/// A Profile card's parts in the order they stand: its title, how to fill it, its fields, why the
+/// recommendation stands, then its buttons; neighbouring fields read as one.
+fn parts_of(card: &Element) -> Vec<String> {
+    let found = card
+        .query_selector_all("h2, p.how, .field, p.why, button")
+        .expect("the parts");
+    let mut parts: Vec<String> = Vec::new();
+    for at in 0..found.length() {
+        let part: Element = found.item(at).expect("a part").unchecked_into();
+        let kind = match part.tag_name().as_str() {
+            "H2" => "title".to_string(),
+            "BUTTON" => part.text_content().unwrap_or_default(),
+            _ if part.class_list().contains("field") => "fields".to_string(),
+            _ if part.class_list().contains("how") => "how".to_string(),
+            _ => "why".to_string(),
+        };
+        if parts.last() != Some(&kind) {
+            parts.push(kind);
+        }
+    }
+    parts
+}
+
 #[wasm_bindgen_test]
-async fn only_the_usual_day_offers_its_recommendation_each_card_keeps_in_its_own_words_its_references_below()
- {
+async fn each_profile_card_reads_title_note_fields_note_then_its_buttons_and_none_asks_a_date() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
@@ -328,49 +350,44 @@ async fn only_the_usual_day_offers_its_recommendation_each_card_keeps_in_its_own
     });
     settled().await;
 
-    let offered: Vec<(bool, String)> = [
-        ".goals",
-        ".fuel-targets",
-        ".water-target",
-        ".usual-day",
-        ".burn-target",
-    ]
-    .into_iter()
-    .map(|card| {
+    let cards = screen
+        .query_selector_all("section.card.profile-card")
+        .expect("the cards");
+    let read: Vec<Vec<String>> = (0..cards.length())
+        .filter_map(|at| cards.item(at))
+        .map(|card| parts_of(&card.unchecked_into()))
+        .collect();
+    let card = |save: &str, forget: bool| {
+        let mut parts = vec!["title", "how", "fields", "why", save];
+        if forget {
+            parts.push("Forget it 🔄");
+        }
+        parts.into_iter().map(String::from).collect::<Vec<_>>()
+    };
+    assert_eq!(
+        read,
+        [
+            card("Keep this profile", false),
+            card("Engrave these goals", true),
+            card("Paint these targets", true),
+            card("Store this aim", true),
+            card("Fire this ambition", true),
+            card("Keep this usual day", true)
+        ]
+    );
+    assert_eq!(
         (
             screen
-                .query_selector(&format!("{card} button.recommend"))
-                .ok()
-                .flatten()
-                .is_some(),
-            texts_in_order(&screen, &format!("{card} button[type=submit]")).concat(),
-        )
-    })
-    .collect();
-    assert_eq!(
-        offered,
-        [
-            (false, "Engrave these goals"),
-            (false, "Paint these targets"),
-            (false, "Store this aim"),
-            (true, "Keep this usual day"),
-            (false, "Fire this ambition")
-        ]
-        .map(|(recommend, keep)| (recommend, keep.to_string()))
+                .query_selector_all(".profile-card input[type=date]")
+                .map(|found| found.length())
+                .unwrap_or_default(),
+            screen
+                .query_selector_all(".profile-card p.why a.references")
+                .map(|found| found.length())
+                .unwrap_or_default()
+        ),
+        (0, 6)
     );
-    for card in [
-        ".goals",
-        ".fuel-targets",
-        ".water-target",
-        ".usual-day",
-        ".burn-target",
-    ] {
-        found::<Element>(
-            &screen,
-            &format!("{card} button[type=submit] ~ a.references"),
-        );
-    }
-    assert!(screen.query_selector(".actions").ok().flatten().is_none());
     found::<Element>(&screen, ".disclaimer + hr.divider");
 }
 
