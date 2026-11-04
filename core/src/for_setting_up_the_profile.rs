@@ -9,7 +9,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::fuel_targets_in_force;
+use crate::fuel::{fuel_on, fuel_targets_in_force};
 use crate::fuel_records::{FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
@@ -246,7 +246,6 @@ pub fn recommended_on(
     fuel: &impl ForStoringFuelRecords,
     date: &str,
 ) -> Result<Recommendations, Failure> {
-    let _ = (burn, fuel);
     let day = day(date)?;
     let gathered = gather.gather_records()?;
     let profile = version_in_force_on(&gathered.profiles, day)
@@ -256,11 +255,21 @@ pub fn recommended_on(
         .iter()
         .map(|measured| (measured.day, measured.body_mass_kg))
         .collect();
-    Ok(recommended(
-        profile,
-        day,
-        version_in_force_on(&masses, day).copied(),
-    ))
+    let body_mass_kg = version_in_force_on(&masses, day).copied();
+    let floors = fuel_on(day, &gathered, &burn.burn_records()?, &fuel.fuel_records()?)
+        .macros
+        .zip(body_mass_kg)
+        .map(|(macros, kg)| FuelTargets {
+            protein_g_per_kg: Some(macros.protein.floor_g / kg),
+            fat_g_per_kg: Some(macros.fat.floor_g / kg),
+            fibre_g_per_kg: Some(macros.fibre.floor_g / kg),
+            carbs_g_per_kg: Some(macros.carbs.floor_g / kg),
+        })
+        .unwrap_or_default();
+    Ok(Recommendations {
+        fuel_floors_g_per_kg: floors,
+        ..recommended(profile, day, body_mass_kg)
+    })
 }
 
 #[cfg(test)]
