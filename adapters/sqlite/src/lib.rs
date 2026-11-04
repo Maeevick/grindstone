@@ -1258,6 +1258,19 @@ mod tests {
     }
 
     #[test]
+    fn a_text_that_is_not_a_copy_is_refused() {
+        let store = a_store_with_a_day(20);
+
+        assert_eq!(
+            [
+                store.restored("the draft's backup"),
+                store.restored(r#"{ "tables": { "measurements": "every day" } }"#)
+            ],
+            [Err(Unrestorable::NotACopy), Err(Unrestorable::NotACopy)]
+        );
+    }
+
+    #[test]
     fn a_database_that_cannot_be_opened_says_it_is_broken() {
         let nowhere = std::env::temp_dir().join("grind-sqlite-no-such-folder/grindstone.sqlite");
 
