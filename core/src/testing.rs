@@ -7,6 +7,7 @@ use crate::drinking::Drinking;
 use crate::exercise::Exercise;
 use crate::failure::Broken;
 use crate::food::{Food, Nutrients, Unit};
+use crate::for_copying_records::{ForCopyingRecords, RecordsCopy};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -1014,6 +1015,30 @@ impl ForStoringSwitchOver for SwitchOverInMemory {
     fn forget_switch_over(&self) -> Result<(), Broken> {
         self.0.set(None);
         Ok(())
+    }
+}
+
+/// A store that copies so many tables and records, its copy saying the day it was made on.
+pub struct CopiedRecords {
+    pub tables: usize,
+    pub records: usize,
+}
+
+impl ForCopyingRecords for CopiedRecords {
+    fn copied(&self, on: NaiveDate) -> Result<RecordsCopy, Broken> {
+        Ok(RecordsCopy {
+            text: format!("every record, copied on {on}"),
+            tables: self.tables,
+            records: self.records,
+        })
+    }
+}
+
+pub struct BrokenCopies;
+
+impl ForCopyingRecords for BrokenCopies {
+    fn copied(&self, _: NaiveDate) -> Result<RecordsCopy, Broken> {
+        Err(Broken("the disk is full".into()))
     }
 }
 
