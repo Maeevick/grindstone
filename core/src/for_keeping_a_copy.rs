@@ -12,7 +12,7 @@ pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<Record
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::CopiedRecords;
+    use crate::testing::{BrokenCopies, CopiedRecords};
 
     #[test]
     fn keeping_a_copy_tells_how_many_records_and_tables_it_holds() {
@@ -28,6 +28,14 @@ mod tests {
                 tables: 18,
                 records: 2431,
             })
+        );
+    }
+
+    #[test]
+    fn a_copy_the_store_cannot_make_is_a_failure() {
+        assert_eq!(
+            keep_a_copy(&BrokenCopies, "2026-11-04"),
+            Err(Failure::Broken("the disk is full".into()))
         );
     }
 }
