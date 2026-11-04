@@ -431,6 +431,47 @@ async fn a_saved_profile_says_from_which_day_it_is_kept() {
 }
 
 #[wasm_bindgen_test]
+async fn saving_tells_what_was_kept_and_what_was_there_before() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
+             "set_profile": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 181.0, "neck_cm": 38.5, "hip_cm": null }},
+             "set_goals": {{ "values": {{ "body_mass_kg": 70.0, "fat_ratio": 0.1 }}, "recommended": false }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    typed_into(&screen, "height", "181");
+    found::<HtmlFormElement>(&screen, "form.profile")
+        .request_submit()
+        .expect("the profile is saved");
+    typed_into(&screen, "target_mass", "70");
+    typed_into(&screen, "target_fat", "10");
+    found::<HtmlFormElement>(&screen, "form.goals")
+        .request_submit()
+        .expect("the goals are saved");
+    settled().await;
+
+    let told = |form: &str| {
+        let said = text_of(&screen, &format!("{form} .said"));
+        (
+            said.contains("kept from"),
+            said[said.find("Before:").unwrap_or(0)..].to_string(),
+        )
+    };
+    assert_eq!(
+        [told("form.profile"), told("form.goals")],
+        [
+            (
+                true,
+                "Before: born 1985-04-12, male, 180.0 cm tall, neck 38.5 cm.".to_string()
+            ),
+            (true, "Before: 68.0 kg and 12.0%.".to_string())
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn saved_goals_say_from_which_day_they_are_kept() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "set_goals": { "values": { "body_mass_kg": 70.0, "fat_ratio": 0.1 }, "recommended": false } }"#,
