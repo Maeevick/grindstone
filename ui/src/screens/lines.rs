@@ -673,7 +673,7 @@ fn gaps_said(gaps: &[Gap], a_day_first: bool) -> String {
 /// against its band, each macro against its goal; without a goal, an invitation to paint one.
 pub fn fuel_week_said(week: &FuelWeek) -> String {
     let (short, over) = (week.short(), week.over());
-    let said = match (short.is_empty(), over.is_empty()) {
+    match (short.is_empty(), over.is_empty()) {
         (true, true) if week.has_goals() => {
             "Every average sits on its goal. I checked twice, which for me counts as restraint."
                 .to_string()
@@ -692,16 +692,8 @@ pub fn fuel_week_said(week: &FuelWeek) -> String {
             gaps_said(&short, true),
             gaps_said(&over, false)
         ),
-    };
-    if week.has_goals() {
-        said
-    } else {
-        format!("{said} {PAINT_YOUR_TARGETS}")
     }
 }
-
-const PAINT_YOUR_TARGETS: &str =
-    "Paint your targets in Profile and I will tell how far each macro stands from them.";
 
 /// How far the window's drinks run from the band, then how much of them was water, said plainly before a word
 /// from the ledger.
