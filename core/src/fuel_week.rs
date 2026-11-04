@@ -37,14 +37,14 @@ pub struct Gap {
 const ON_THE_GOAL_SHARE: f64 = 0.1;
 
 impl FuelWeek {
-    /// What runs short: the energy under its band, each macro more than a tenth under its goal; furthest first
-    /// by the share it misses.
+    /// What runs short: the energy under its band, each macro more than a tenth under its goal, its floor
+    /// without one; furthest first by the share it misses.
     pub fn short(&self) -> Vec<Gap> {
         self.off(Verdict::Low)
     }
 
-    /// What runs over: the energy past its band, each macro more than a tenth past its goal; furthest first by
-    /// the share it passes.
+    /// What runs over: the energy past its band, each macro more than a tenth past a goal painted, a floor being
+    /// no fault to pass; furthest first by the share it passes.
     pub fn over(&self) -> Vec<Gap> {
         self.off(Verdict::High)
     }
@@ -82,12 +82,12 @@ impl FuelWeek {
         ]
         .into_iter()
         .filter_map(|(habit, row)| {
-            let goal = row.goal?;
+            let goal = row.goal.unwrap_or(row.floor);
             let per_day = row.per_day - goal;
             let off_by = per_day / goal;
             let is_off = match side {
                 Verdict::Low => off_by < -ON_THE_GOAL_SHARE,
-                _ => off_by > ON_THE_GOAL_SHARE,
+                _ => row.goal.is_some() && off_by > ON_THE_GOAL_SHARE,
             };
             is_off.then_some((Gap { habit, per_day }, off_by.abs()))
         });
