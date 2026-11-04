@@ -1258,6 +1258,30 @@ mod tests {
     }
 
     #[test]
+    fn a_copy_of_another_schema_version_is_refused_and_leaves_the_records_as_they_were() {
+        let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
+        let before = the_copy_of(&other);
+        let older = the_copy_of(&copied).replacen(
+            &format!("\"schema_version\": {}", MIGRATIONS.len()),
+            "\"schema_version\": 25",
+            1,
+        );
+
+        let restored = other.restored(&older);
+
+        assert_eq!(
+            (restored, the_copy_of(&other)),
+            (
+                Err(Unrestorable::AnotherSchema {
+                    copy: 25,
+                    store: MIGRATIONS.len() as i64
+                }),
+                before
+            )
+        );
+    }
+
+    #[test]
     fn a_text_that_is_not_a_copy_is_refused() {
         let store = a_store_with_a_day(20);
 
