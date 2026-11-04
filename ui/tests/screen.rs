@@ -33,6 +33,9 @@ export function answer_commands_with(answers) {
         window.__asked[command] = JSON.stringify(args);
         if (!(command in answers)) { throw { Broken: `no answer for ${command}` }; }
         const answer = answers[command];
+        if (answer !== null && typeof answer === 'object' && '__throws' in answer) {
+            throw answer.__throws;
+        }
         if (answer !== null && typeof answer === 'object' && '__by' in answer) {
             return answer[args[answer.__by]];
         }
@@ -4914,6 +4917,36 @@ async fn the_vaults_copy_tells_how_many_records_it_copied_and_how_to_bring_them_
     assert_eq!(
         text_of(&screen, "section#copy p.said"),
         "Copied 2431 records from 18 tables. Run make export-android now."
+    );
+}
+
+fn the_settings(screen: &Element) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Settings />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn the_vaults_copy_restores_once_restore_is_typed_and_tells_what_it_brought_back() {
+    answering(r#"{ "restore_a_copy": { "tables": 18, "records": 3332 } }"#);
+    let screen = screen();
+    let _mounted = the_settings(&screen);
+    settled().await;
+    let restore: web_sys::HtmlButtonElement = found(&screen, "section#copy button.restore");
+    let locked = restore.disabled();
+
+    typed_into(&screen, "confirm_restore", "RESTORE");
+    settled().await;
+    restore.click();
+    settled().await;
+
+    assert_eq!(
+        (locked, text_of(&screen, "section#copy p.said")),
+        (true, "Restored 3332 records from 18 tables.".to_string())
     );
 }
 
