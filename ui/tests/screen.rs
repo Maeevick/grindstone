@@ -472,6 +472,37 @@ async fn saving_tells_what_was_kept_and_what_was_there_before() {
 }
 
 #[wasm_bindgen_test]
+async fn a_figure_typed_alone_keeps_the_others_placeholders() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    typed_into(&screen, "target_mass", "70");
+    typed_into(&screen, "target_fat", "");
+    found::<HtmlFormElement>(&screen, "form.goals")
+        .request_submit()
+        .expect("the goals are saved");
+    typed_into(&screen, "usual_sitting", "600");
+    found::<HtmlFormElement>(&screen, "form.usual-day")
+        .request_submit()
+        .expect("the usual day is saved");
+    settled().await;
+
+    assert_eq!(
+        (asked("set_goals"), asked("set_usual_day")),
+        (
+            r#"{"form":{"from":"2026-10-10","kept":{"Own":{"body_mass_kg":70,"fat_percentage":16.5}}}}"#
+                .to_string(),
+            r#"{"form":{"from":"2026-09-01","kept":{"Own":{"sitting_min":600,"standing_min":120,"moving_km":6}}}}"#
+                .to_string()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn saved_goals_say_from_which_day_they_are_kept() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "set_goals": { "values": { "body_mass_kg": 70.0, "fat_ratio": 0.1 }, "recommended": false } }"#,
