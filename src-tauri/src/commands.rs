@@ -914,6 +914,15 @@ mod tests {
     }
 
     #[test]
+    fn restoring_with_no_copy_pushed_is_refused() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(&screen, "restore_a_copy", json!({}));
+
+        assert_eq!(answer, Err(json!({ "Refused": "NoCopyPushed" })));
+    }
+
+    #[test]
     fn importing_with_no_backup_pushed_says_where_it_was_expected() {
         let (_app, screen) = launched();
 
