@@ -1301,8 +1301,8 @@ mod tests {
         let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
         let before = the_copy_of(&other);
         let spoilt = the_copy_of(&copied).replacen(
-            "\"workouts\": []",
-            "\"workouts\": [{ \"no_such_column\": [1] }]",
+            "\"switch_over\": [",
+            "\"switch_over\": [{ \"only\": [1], \"day\": null }, ",
             1,
         );
 
