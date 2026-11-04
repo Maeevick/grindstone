@@ -20,6 +20,7 @@ use grind_core::for_copying_records::Counted;
 use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
+use grind_core::for_keeping_a_copy;
 use grind_core::for_reviewing_progress::{self, Window};
 use grind_core::for_setting_up_the_profile::{
     self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, UsualDayForm,
@@ -168,11 +169,10 @@ pub fn keep_a_copy(
     file: State<CopyFile>,
     today: String,
 ) -> Result<Counted, Failure> {
-    let _ = (records, file, today);
-    Ok(Counted {
-        tables: 0,
-        records: 0,
-    })
+    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
+    let copy = for_keeping_a_copy::keep_a_copy(&*records, &today)?;
+    std::fs::write(&file.0, &copy.text).expect("the copy is written");
+    Ok(copy.counted)
 }
 
 #[tauri::command(rename_all = "snake_case")]
