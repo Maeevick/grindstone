@@ -12,6 +12,7 @@ pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<Record
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::refusal::Refusal;
     use crate::testing::{BrokenCopies, CopiedRecords};
 
     #[test]
@@ -36,6 +37,19 @@ mod tests {
         assert_eq!(
             keep_a_copy(&BrokenCopies, "2026-11-04"),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn a_copy_dated_on_a_day_the_calendar_does_not_have_is_refused() {
+        let store = CopiedRecords {
+            tables: 18,
+            records: 2431,
+        };
+
+        assert_eq!(
+            keep_a_copy(&store, "2026-02-30"),
+            Err(Failure::Refused(Refusal::NotADate))
         );
     }
 }
