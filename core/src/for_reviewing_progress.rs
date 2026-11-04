@@ -39,6 +39,13 @@ pub fn streak(
     let Some(start) = gathered.profiles.iter().map(|(from, _)| *from).min() else {
         return Ok(streak_of(&[], today));
     };
+    let counted_from = |versions: Vec<NaiveDate>| versions.into_iter().min().unwrap_or(start);
+    let (weighed_from, fuelled_from, worked_out_from, hydrated_from) = (
+        counted_from(gathered.goals.iter().map(|(from, _)| *from).collect()),
+        counted_from(fuelled.targets.iter().map(|(from, _)| *from).collect()),
+        counted_from(burnt.targets.iter().map(|(from, _)| *from).collect()),
+        counted_from(hydrated.targets.iter().map(|(from, _)| *from).collect()),
+    );
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
     let ticked: Vec<(NaiveDate, Ticks)> = days
@@ -49,15 +56,16 @@ pub fn streak(
             (
                 *day,
                 Ticks {
-                    weighed: Some(
+                    weighed: (*day >= weighed_from).then(|| {
                         gathered
                             .measurements
                             .iter()
-                            .any(|measured| measured.day == *day),
-                    ),
-                    fuelled: Some(fuelled_in_band(&fuelled_day)),
-                    worked_out: Some(worked_out(*day, &burnt, &gathered)),
-                    hydrated: Some(hydrated_in_band(hydrated_day)),
+                            .any(|measured| measured.day == *day)
+                    }),
+                    fuelled: (*day >= fuelled_from).then(|| fuelled_in_band(&fuelled_day)),
+                    worked_out: (*day >= worked_out_from)
+                        .then(|| worked_out(*day, &burnt, &gathered)),
+                    hydrated: (*day >= hydrated_from).then(|| hydrated_in_band(hydrated_day)),
                 },
             )
         })
