@@ -32,12 +32,9 @@ pub struct Recommendations {
 ///   WHO (2000), *Obesity: preventing and managing the global epidemic*, Technical Report Series 894.
 /// - Healthy fat: the percentage body fat predicted at a BMI of 18.5 and 25 for the age and gender,
 ///   Gallagher D. et al. (2000), *Am J Clin Nutr* 72(3):694–701, table 4; the goal sits at its middle.
-/// - Protein: 1.6 g/kg, where the gains in lean mass from training level off: Morton R. W. et al.
-///   (2018), *Br J Sports Med* 52(6):376–384, 1.62 g/kg (95% CI 1.03 to 2.20); within the
-///   1.4 to 2.0 g/kg of Jäger R. et al. (2017), *J Int Soc Sports Nutr* 14:20.
-/// - Fat: 0.8 g/kg as a practical floor; the day's band also asks 20 to 33.3% of the energy eaten,
-///   within EFSA's 20 to 35% (2010) and near WHO's 30% at most (2023).
-/// - Fibre: 25 g a day, WHO (2023), *Carbohydrate intake for adults and children*, spread per kilo.
+/// - Each macro's floor and the water a day, read on the day's records rather than the profile alone, come with
+///   the recommendations from `recommended_on`: the floors as the Fuel band asks them, per kilo of body mass, and the
+///   water as Hydrate recommends it before the burn.
 /// - The usual day: sitting 8 hours at most, past which the least active die sooner, Ekelund U.
 ///   et al. (2016), *Lancet* 388(10051):1302–1310; standing 2 hours, the first step of
 ///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps a day past
