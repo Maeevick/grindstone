@@ -247,7 +247,7 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
         eaten_g,
         floor_g,
         ceiling_g,
-        goal_g: goal_g.unwrap_or_default(),
+        goal_g: goal_g.unwrap_or(floor_g),
         painted: goal_g.is_some(),
         verdict: verdict_of(eaten_g, floor_g, ceiling_g.unwrap_or(f64::INFINITY)),
     }
@@ -256,7 +256,7 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
 /// Each macro's health bounds and its goal. The floors are shares of the energy eaten, never less than the
 /// band's floor, the least the day must hold, so they stand before the first meal and rise with what is eaten
 /// past it; the ceilings, shares of the band's cap, the most the day may hold; the goal, the target painted per
-/// kilo of body mass, none until one is.
+/// kilo of body mass, the floor until one is.
 ///
 /// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), and 10% of the energy, at
 ///   most 35%, the Institute of Medicine's 10 to 35% (2005).
