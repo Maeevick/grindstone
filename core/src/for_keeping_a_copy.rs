@@ -6,7 +6,7 @@ use crate::for_copying_records::{ForCopyingRecords, RecordsCopy};
 /// A copy of every record, dated on the day it is kept.
 pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<RecordsCopy, Failure> {
     let day = NaiveDate::parse_from_str(today, "%Y-%m-%d").expect("a real day");
-    Ok(store.copied(day).expect("a copy"))
+    Ok(store.copied(day)?)
 }
 
 #[cfg(test)]
