@@ -1167,6 +1167,41 @@ mod tests {
         );
     }
 
+    fn a_store_with_a_day(day: u32) -> Sqlite {
+        let store = database();
+        store
+            .save_measurement(&Measurement {
+                day: NaiveDate::from_ymd_opt(2026, 10, day).expect("a real day"),
+                body_mass_kg: 80.0,
+                waist_cm: None,
+            })
+            .expect("a measurement saves");
+        store
+            .save_switch_over(NaiveDate::from_ymd_opt(2026, 10, day).expect("a real day"))
+            .expect("a switch-over saves");
+        store
+    }
+
+    fn the_copy_of(store: &Sqlite) -> String {
+        store
+            .copied(NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"))
+            .expect("a copy")
+            .text
+    }
+
+    #[test]
+    fn a_copy_restored_into_another_store_brings_back_every_record() {
+        let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
+        let copy = the_copy_of(&copied);
+
+        let restored = other.restored(&copy);
+
+        assert_eq!(
+            (restored.map(|counted| counted.records), the_copy_of(&other)),
+            (Ok(2), copy)
+        );
+    }
+
     #[test]
     fn a_database_that_cannot_be_opened_says_it_is_broken() {
         let nowhere = std::env::temp_dir().join("grind-sqlite-no-such-folder/grindstone.sqlite");
