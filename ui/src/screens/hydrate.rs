@@ -16,7 +16,7 @@ use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEn
 use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::{HydrateLastDays, entries_failed, entries_said};
-use crate::screens::profile::{Advised, ProfileCard, keep_and_show, shown_in_force};
+use crate::screens::profile::{Advised, ProfileCard, holding, keep_and_show, shown_in_force};
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -416,10 +416,12 @@ pub fn HydrateTargetCard() -> impl IntoView {
     let advised = Advised::here();
     let said = RwSignal::new(None::<String>);
     let show = move |ml: Option<f64>| water.set(ml.map(typed_back).unwrap_or_default());
+    let held = holding(lines::water_target_held);
     shown_in_force(
         async { tauri::hydrate_target_on(&today()).await },
         show,
         from,
+        held,
     );
     let keep = move |kept: Kept<f64>, filed: fn(&str) -> String| {
         let form = HydrateTargetForm {
@@ -432,6 +434,7 @@ pub fn HydrateTargetCard() -> impl IntoView {
             show,
             said,
             (filed, recorded),
+            held,
         );
     };
     let save = move |event: leptos::ev::SubmitEvent| {

@@ -1,12 +1,14 @@
 use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
-use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown};
+use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown, typed_back};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_copying_records::Counted;
 use grind_core::fuel::{Fuel, Verdict};
+use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::Habit;
 use grind_core::fuel_week::{FuelWeek, Gap};
+use grind_core::goals::Goals;
 use grind_core::heading::Aim;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
@@ -16,6 +18,7 @@ use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::streak::{Status, Streak};
+use grind_core::volitional::Volitional;
 
 pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
     Shall we begin with your profile, or restore a copy of your records first?";
@@ -518,6 +521,57 @@ pub const RECOMMENDATIONS_DISCLAIMER: &str = "Recommendations for health, made f
     and not a prescription. Grindstone takes no responsibility for them. Check them, adjust them, and keep adjusting \
     as your logs show what your body does: logging, monitoring, adjusting, enjoying. No activity multiplier inflates \
     the energy band: it only counts the workouts you log.";
+
+pub const THE_RECOMMENDATION: &str = "the recommendation";
+
+/// What a card held before a choice was kept, recalled so a slip can be typed back.
+pub fn before(held: &str) -> String {
+    format!("Before: {held}.")
+}
+
+pub fn goals_held(goals: &Goals) -> String {
+    format!(
+        "{} and {}",
+        shown(Figure::Mass(goals.body_mass_kg)),
+        shown(Figure::Ratio(goals.fat_ratio))
+    )
+}
+
+pub fn fuel_targets_held(targets: &FuelTargets) -> String {
+    let held: Vec<String> = [
+        ("protein", targets.protein_g_per_kg),
+        ("fat", targets.fat_g_per_kg),
+        ("fibre", targets.fibre_g_per_kg),
+        ("carbs", targets.carbs_g_per_kg),
+    ]
+    .into_iter()
+    .filter_map(|(macro_name, target)| {
+        target.map(|g_per_kg| format!("{macro_name} {} g/kg", typed_back(g_per_kg)))
+    })
+    .collect();
+    if held.is_empty() {
+        "no target".into()
+    } else {
+        held.join(", ")
+    }
+}
+
+pub fn water_target_held(ml: &f64) -> String {
+    shown(Figure::Volume(*ml))
+}
+
+pub fn burn_target_held(kcal: &f64) -> String {
+    shown(Figure::Energy(*kcal))
+}
+
+pub fn usual_day_held(usual: &Volitional) -> String {
+    format!(
+        "{} sitting, {} standing, {} moving",
+        shown(Figure::Duration(usual.sitting_min)),
+        shown(Figure::Duration(usual.standing_min)),
+        shown(Figure::Distance(usual.moving_km))
+    )
+}
 
 pub fn recommendation_kept(from: &str) -> String {
     format!("Filed: the recommendation is followed from {from}, as your body changes.")

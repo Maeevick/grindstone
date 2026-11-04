@@ -90,19 +90,35 @@ pub fn ProfileCard(
     }
 }
 
-/// A card's choice kept: once filed, its own values fill the card, a recommendation followed leaving it empty.
+/// What a card holds in force, in words: how to say it, and what it says now, for a confirmation to recall it.
+pub type Held<T> = (fn(&T) -> String, RwSignal<String>);
+
+/// A card's holding, in words: its own values said, or the recommendation.
+fn held_now<T>(own: Option<&T>, (say, held): Held<T>) {
+    held.set(
+        own.map(say)
+            .unwrap_or_else(|| lines::THE_RECOMMENDATION.into()),
+    );
+}
+
+/// A card's choice kept: once filed, its own values fill the card, a recommendation followed leaving it empty,
+/// and the confirmation recalls what the card held before.
 pub fn keep_and_show<T: 'static>(
     keeping: impl Future<Output = Result<Option<InForce<T>>, Failure>> + 'static,
     show: impl Fn(Option<T>) + 'static,
     said: RwSignal<Option<String>>,
     (filed, recorded): (String, Recorded),
+    held: Held<T>,
 ) {
     spawn_local(async move {
         said.set(Some(match keeping.await {
             Ok(Some(in_force)) => {
-                show(own(in_force));
+                let before = lines::before(&held.1.get_untracked());
+                let own = own(in_force);
+                held_now(own.as_ref(), held);
+                show(own);
                 recorded.told();
-                filed
+                format!("{filed} {before}")
             }
             Ok(None) => lines::NOTHING_TO_RECOMMEND_FOR.into(),
             Err(failure) => lines::failure(&failure),
@@ -111,11 +127,18 @@ pub fn keep_and_show<T: 'static>(
 }
 
 /// What is in force, its own values shown in the card and, once kept, the day it was kept from.
-pub fn shown<T>(in_force: InForce<T>, show: impl Fn(Option<T>), from: RwSignal<String>) {
+pub fn shown<T>(
+    in_force: InForce<T>,
+    show: impl Fn(Option<T>),
+    from: RwSignal<String>,
+    held: Held<T>,
+) {
     if let Some(kept_from) = in_force.from {
         from.set(kept_from.to_string());
     }
-    show(own(in_force));
+    let own = own(in_force);
+    held_now(own.as_ref(), held);
+    show(own);
 }
 
 /// What is in force today, shown in the card.
@@ -123,12 +146,18 @@ pub fn shown_in_force<T: 'static>(
     reading: impl Future<Output = Result<Option<InForce<T>>, Failure>> + 'static,
     show: impl Fn(Option<T>) + 'static,
     from: RwSignal<String>,
+    held: Held<T>,
 ) {
     spawn_local(async move {
         if let Ok(Some(in_force)) = reading.await {
-            shown(in_force, show, from);
+            shown(in_force, show, from, held);
         }
     });
+}
+
+/// A card's holding before anything is read: the recommendation.
+pub fn holding<T>(say: fn(&T) -> String) -> Held<T> {
+    (say, RwSignal::new(lines::THE_RECOMMENDATION.into()))
 }
 
 #[component]
@@ -151,7 +180,8 @@ fn GoalsCard() -> impl IntoView {
                 .unwrap_or_default(),
         );
     };
-    shown_in_force(async { tauri::goals_on(&today()).await }, show, from);
+    let held = holding(lines::goals_held);
+    shown_in_force(async { tauri::goals_on(&today()).await }, show, from, held);
     let keep = move |kept: Kept<TypedGoals>, filed: fn(&str) -> String| {
         let form = GoalsForm {
             from: from.get_untracked(),
@@ -163,6 +193,7 @@ fn GoalsCard() -> impl IntoView {
             show,
             said,
             (filed, recorded),
+            held,
         );
     };
     let save = move |event: leptos::ev::SubmitEvent| {
@@ -238,7 +269,13 @@ fn UsualDayCard() -> impl IntoView {
         standing.set(back(|usual| usual.standing_min));
         moving.set(back(|usual| usual.moving_km));
     };
-    shown_in_force(async { tauri::usual_day_on(&today()).await }, show, from);
+    let held = holding(lines::usual_day_held);
+    shown_in_force(
+        async { tauri::usual_day_on(&today()).await },
+        show,
+        from,
+        held,
+    );
     let keep = move |kept: Kept<Volitional>, filed: fn(&str) -> String| {
         let form = UsualDayForm {
             from: from.get_untracked(),
@@ -250,6 +287,7 @@ fn UsualDayCard() -> impl IntoView {
             show,
             said,
             (filed, recorded),
+            held,
         );
     };
     let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
@@ -317,9 +355,10 @@ fn BurnTargetCard() -> impl IntoView {
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let show = move |target: Option<f64>| kcal.set(target.map(typed_back).unwrap_or_default());
+    let held = holding(lines::burn_target_held);
     spawn_local(async move {
         match tauri::burn_target_on(&today()).await {
-            Ok(Some(target)) => shown(target, show, from),
+            Ok(Some(target)) => shown(target, show, from, held),
             Ok(None) => unweighed.set(true),
             Err(_) => {}
         }
@@ -335,6 +374,7 @@ fn BurnTargetCard() -> impl IntoView {
             show,
             said,
             (filed, recorded),
+            held,
         );
     };
     let save = move |event: leptos::ev::SubmitEvent| {
@@ -402,7 +442,13 @@ fn FuelTargetsCard() -> impl IntoView {
         fibre.set(back(targets.fibre_g_per_kg));
         carbs.set(back(targets.carbs_g_per_kg));
     };
-    shown_in_force(async { tauri::fuel_targets_on(&today()).await }, show, from);
+    let held = holding(lines::fuel_targets_held);
+    shown_in_force(
+        async { tauri::fuel_targets_on(&today()).await },
+        show,
+        from,
+        held,
+    );
     let keep = move |kept: Kept<FuelTargets>, filed: fn(&str) -> String| {
         let form = FuelTargetsForm {
             from: from.get_untracked(),
@@ -414,6 +460,7 @@ fn FuelTargetsCard() -> impl IntoView {
             show,
             said,
             (filed, recorded),
+            held,
         );
     };
     let save = move |event: leptos::ev::SubmitEvent| {
