@@ -20,7 +20,7 @@ use grind_core::streak::{Status, Streak};
 use grind_draft::{DraftRefusal, ImportFailure};
 
 pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
-    Shall we begin with your profile, or fetch the old records from the draft first?";
+    Shall we begin with your profile, or restore a copy of your records first?";
 
 pub const LOADING: &str = "Fetching the ledger…";
 
