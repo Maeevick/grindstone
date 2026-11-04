@@ -1320,6 +1320,20 @@ mod tests {
     }
 
     #[test]
+    fn the_switch_over_the_drafts_import_kept_is_dropped() {
+        let switch_overs: i64 = database()
+            .0
+            .query_row(
+                "select count(*) from sqlite_master where type = 'table' and name = 'switch_over'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("the tables count");
+
+        assert_eq!(switch_overs, 0);
+    }
+
+    #[test]
     fn a_database_that_cannot_be_opened_says_it_is_broken() {
         let nowhere = std::env::temp_dir().join("grind-sqlite-no-such-folder/grindstone.sqlite");
 
