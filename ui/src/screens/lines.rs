@@ -76,9 +76,6 @@ pub fn off_the_clock(burn: &Burn) -> &'static str {
     }
 }
 
-pub const BURN_TARGET_HINT: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. \
-    Until you keep your own, WHO's 150 minutes a week of moderate activity, priced on your body.";
-
 pub const NO_WEIGH_IN_TO_PRICE_A_WORKOUT: &str = "No weigh-in yet, so no kcal to price a workout on: \
     until then, a single workout holds the tick, a kcal will do.";
 
@@ -418,9 +415,6 @@ pub fn drunk_line(hydrate: &Hydrate) -> String {
 pub const PAST_THE_CAP: &str = "Past the cap. Under normal activity, kidneys clear about a litre an \
     hour, so spread the cups through the day. They will not thank you aloud, but they will thank you.";
 
-pub const HYDRATE_TARGET_HINT: &str = "The band follows your lean mass and the day's burn, food \
-    bringing a tenth of the water.";
-
 pub fn month_name(month: &str) -> String {
     chrono::NaiveDate::parse_from_str(&format!("{month}-01"), "%Y-%m-%d")
         .map(|first| first.format("%B %Y").to_string())
@@ -451,11 +445,43 @@ fn habit_name(habit: Habit) -> &'static str {
     }
 }
 
-pub const FUEL_TARGETS_HINT: &str = "Your targets, in grams a day per kilo of body mass; leave one empty for none. \
-    Healthy, whatever they are, on the day's energy (what is eaten, never less than the band's floor) and the band's \
-    cap: protein from 0.83 g per kg of body mass and 10% of the energy to 35% of the cap, fat from 20% to 35%, fibre \
-    from 14 g per 1000 kcal, carbs from 130 g. A target beyond them is yours to set; if you are not sure, ask a \
-    doctor or a coach first.";
+pub const PROFILE_HOW: &str = "Who the numbers belong to: the birthday, the gender, and in centimetres the height, \
+    the neck just below the larynx and, for a woman, the hip at its widest. They price every band.";
+
+pub const PROFILE_WHY: &str = "The US Navy formula reads the neck, the waist logged with each weigh-in and, for a \
+    woman, the hip, to tell the lean mass from the fat.";
+
+pub const GOALS_HOW: &str = "The body mass to reach, in kg, and its fat, in %. Type one alone and the other keeps \
+    its recommendation, shown in grey; leave both empty to follow the recommendation as your body changes.";
+
+pub const FUEL_TARGETS_HOW: &str = "Your targets, in grams a day per kilo of body mass. An empty one aims at its \
+    health floor, today's shown in grey.";
+
+pub const FUEL_TARGETS_WHY: &str = "Healthy, whatever they are, on the day's energy (what is eaten, never less than \
+    the band's floor) and the band's cap: protein from 0.83 g per kg of body mass and 10% of the energy to 35% of the \
+    cap, fat from 20% to 35%, fibre from 14 g per 1000 kcal, carbs from 130 g. A target beyond them is yours to set; \
+    if you are not sure, ask a doctor or a coach first.";
+
+pub const WATER_HOW: &str = "Your water a day, in mL, before the burn: the day's band adds what your workouts \
+    sweat out. Leave it empty to follow the recommendation, shown in grey.";
+
+pub const WATER_WHY: &str = "Recommended: once the tapes read a lean mass, nine tenths of the water it turns over \
+    in a day, food bringing the rest; weighed without one, 35 mL per kilo of body mass; before a weigh-in, EFSA's \
+    2.5 L a day for a man and 2 L for a woman, four fifths of it drunk.";
+
+pub const BURN_TARGET_HOW: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. Leave it \
+    empty to follow the recommendation, shown in grey.";
+
+pub const BURN_TARGET_WHY: &str =
+    "Recommended: WHO's 150 minutes a week of moderate activity, priced on your body.";
+
+pub const USUAL_DAY_HOW: &str = "Outside workouts: the minutes you usually sit and stand, the kilometres you \
+    usually move. It prices the day's NEAT. Type some alone and the others keep their recommendation; leave all \
+    empty to follow it.";
+
+pub const USUAL_DAY_WHY: &str = "Recommended: sitting 8 hours at most, past which the least active die sooner \
+    (Ekelund 2016); standing 2 hours (Buckley 2015); moving the steps past which the risk of dying stops falling, \
+    8000 a day under 60 and 6000 from 60 (Paluch 2022), at about 0.75 m a step.";
 
 pub const UNREADABLE: &str =
     "That is no number I can read. Digits, with a point or a comma, please.";

@@ -187,7 +187,7 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_to_restoring_
 }
 
 #[wasm_bindgen_test]
-async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_figures() {
+async fn each_profile_card_shares_its_rows_between_its_figures() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
@@ -204,22 +204,18 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
 
     assert_eq!(
         fields_in_rows(&screen, "form.goals"),
-        [vec!["goals_from"], vec!["target_mass", "target_fat"]]
+        [vec!["target_mass", "target_fat"]]
     );
     assert_eq!(
         fields_in_rows(&screen, "form.fuel-targets"),
         [
-            vec!["targets_from"],
             vec!["target_protein", "target_fat_g"],
             vec!["target_fibre", "target_carbs"]
         ]
     );
     assert_eq!(
         fields_in_rows(&screen, "form.usual-day"),
-        [
-            vec!["usual_from"],
-            vec!["usual_sitting", "usual_standing", "usual_moving"]
-        ]
+        [vec!["usual_sitting", "usual_standing", "usual_moving"]]
     );
 }
 
@@ -378,7 +374,7 @@ async fn each_profile_card_reads_title_note_fields_note_then_its_buttons_and_non
     assert_eq!(
         (
             screen
-                .query_selector_all(".profile-card input[type=date]")
+                .query_selector_all(".profile-card input[type=date]:not([name=birthday])")
                 .map(|found| found.length())
                 .unwrap_or_default(),
             screen
@@ -4998,7 +4994,7 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
     });
     settled().await;
 
-    let healthy = text_of(&screen, "form.goals p.healthy");
+    let healthy = text_of(&screen, "form.goals p.why");
 
     assert!(
         healthy.starts_with("Healthy at your height and age: 59.9 kg to 80.7 kg")
@@ -5077,37 +5073,6 @@ async fn each_goal_card_shows_what_is_in_force_and_whose_it_is() {
 }
 
 #[wasm_bindgen_test]
-async fn each_card_opens_on_the_day_its_values_were_kept_from_today_while_nothing_is_kept() {
-    answering(&format!(
-        r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_profile_screen(&screen);
-    settled().await;
-
-    let today = grind_ui::screens::today();
-    assert_eq!(
-        [
-            "from",
-            "goals_from",
-            "targets_from",
-            "water_target_from",
-            "burn_target_from",
-            "usual_from"
-        ]
-        .map(|name| value_of(&screen, name)),
-        [
-            "2026-03-01",
-            "2026-10-10",
-            &today,
-            "2026-10-12",
-            &today,
-            "2026-09-01"
-        ]
-    );
-}
-
-#[wasm_bindgen_test]
 async fn no_profile_card_asks_whether_its_tick_counts_any_more() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
@@ -5168,7 +5133,7 @@ async fn the_usual_days_recommendation_keeps_it_from_the_cards_day_and_shows_it_
 
     let mut kept = Vec::new();
     for (form, command) in [("form.usual-day", "set_usual_day")] {
-        clicked(&screen, &format!("{form} button.recommend"));
+        clicked(&screen, &format!("{form} button.forget"));
         settled().await;
         kept.push((
             asked(command).contains(r#""kept":"Recommended""#),
@@ -5208,7 +5173,7 @@ async fn hydrates_card_keeps_a_water_target_of_your_own() {
 }
 
 #[wasm_bindgen_test]
-async fn the_burn_target_card_keeps_its_own_kcal_from_a_date() {
+async fn the_burn_target_card_keeps_its_own_kcal() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
              "set_burn_target": {{ "values": 80.0, "recommended": false }} }}"#
@@ -5217,7 +5182,6 @@ async fn the_burn_target_card_keeps_its_own_kcal_from_a_date() {
     let _mounted = the_profile_screen(&screen);
     settled().await;
 
-    typed_into(&screen, "burn_target_from", "2026-10-15");
     typed_into(&screen, "burn_target", "80");
     found::<HtmlFormElement>(&screen, "form.burn-target")
         .request_submit()
@@ -5226,7 +5190,8 @@ async fn the_burn_target_card_keeps_its_own_kcal_from_a_date() {
 
     assert!(asked("set_burn_target").contains(r#""kept":{"Own":80}"#));
     let said = text_of(&screen, "form.burn-target .said");
-    assert!(said.contains("kept from 2026-10-15"), "{said}");
+    let today = grind_ui::screens::today();
+    assert!(said.contains(&format!("kept from {today}")), "{said}");
 }
 
 #[wasm_bindgen_test]

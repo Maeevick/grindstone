@@ -32,12 +32,42 @@ pub fn Whose(whose: RwSignal<Option<bool>>) -> impl IntoView {
     }
 }
 
+/// A Profile card: its title, how to fill it, its fields, why its recommendation stands with the references
+/// behind it, then its buttons and what was said.
 #[component]
-pub fn Recommend(keep: Callback<()>) -> impl IntoView {
+pub fn ProfileCard(
+    title: &'static str,
+    form: &'static str,
+    how: &'static str,
+    #[prop(into)] why: Signal<String>,
+    topic: Topic,
+    save: &'static str,
+    #[prop(optional)] forget: Option<Callback<()>>,
+    said: RwSignal<Option<String>>,
+    on_submit: Callback<leptos::ev::SubmitEvent>,
+    children: Children,
+) -> impl IntoView {
     view! {
-        <button class="cta ghost recommend" type="button" on:click=move |_| keep.run(())>
-            "Use the recommendation"
-        </button>
+        <section class="card profile-card">
+            <h2>{title}</h2>
+            <p class="hint how">{how}</p>
+            <form class=form on:submit=move |event| on_submit.run(event)>
+                {children()}
+                <p class="hint why">{move || why.get()} " " <ReferencesLink topic=topic /></p>
+                <button class="cta" type="submit">
+                    {save}
+                </button>
+                {forget
+                    .map(|forget| {
+                        view! {
+                            <button class="cta ghost forget" type="button" on:click=move |_| forget.run(())>
+                                "Forget it 🔄"
+                            </button>
+                        }
+                    })}
+                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            </form>
+        </section>
     }
 }
 
@@ -143,26 +173,25 @@ fn GoalsCard() -> impl IntoView {
             ),
         }
     };
+    let forget = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     view! {
-        <section class="card">
-            <h2>"Where the grindstone is heading"</h2>
-            <form class="goals" on:submit=save>
-                <div class="row">
-                    <DateField label="From" name="goals_from" value=from />
-                </div>
-                <div class="row">
-                    <FigureField label="Target mass (kg)" name="target_mass" value=target_mass />
-                    <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
-                </div>
-                <Whose whose=whose />
-                {move || healthy.get().map(|line| view! { <p class="hint healthy">{line}</p> })}
-                <button class="cta" type="submit">
-                    "Engrave these goals"
-                </button>
-                <ReferencesLink topic=Topic::HealthyRanges />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
+        <ProfileCard
+            title="Where the grindstone is heading"
+            form="goals"
+            how=lines::GOALS_HOW
+            why=Signal::derive(move || healthy.get().unwrap_or_default())
+            topic=Topic::HealthyRanges
+            save="Engrave these goals"
+            forget=forget
+            said=said
+            on_submit=Callback::new(save)
+        >
+            <div class="row">
+                <FigureField label="Target mass (kg)" name="target_mass" value=target_mass />
+                <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
+            </div>
+            <Whose whose=whose />
+        </ProfileCard>
     }
 }
 
@@ -221,29 +250,24 @@ fn UsualDayCard() -> impl IntoView {
         );
     };
     view! {
-        <section class="card">
-            <h2>"The forgotten bucket of sweat"</h2>
-            <p class="hint">
-                "Outside workouts: the minutes you usually sit and stand, the kilometres you usually move. It prices the day's NEAT."
-            </p>
-            <form class="usual-day" on:submit=save>
-                <div class="row">
-                    <DateField label="From" name="usual_from" value=from />
-                </div>
-                <div class="row thirds">
-                    <FigureField label="Sitting (min)" name="usual_sitting" value=sitting />
-                    <FigureField label="Standing (min)" name="usual_standing" value=standing />
-                    <FigureField label="Moving (km)" name="usual_moving" value=moving />
-                </div>
-                <Whose whose=whose />
-                <Recommend keep=recommend />
-                <button class="cta" type="submit">
-                    "Keep this usual day"
-                </button>
-                <ReferencesLink topic=Topic::Activity />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
+        <ProfileCard
+            title="The forgotten bucket of sweat"
+            form="usual-day"
+            how=lines::USUAL_DAY_HOW
+            why=lines::USUAL_DAY_WHY.to_string()
+            topic=Topic::Activity
+            save="Keep this usual day"
+            forget=recommend
+            said=said
+            on_submit=Callback::new(save)
+        >
+            <div class="row thirds">
+                <FigureField label="Sitting (min)" name="usual_sitting" value=sitting />
+                <FigureField label="Standing (min)" name="usual_standing" value=standing />
+                <FigureField label="Moving (km)" name="usual_moving" value=moving />
+            </div>
+            <Whose whose=whose />
+        </ProfileCard>
     }
 }
 
@@ -288,28 +312,35 @@ fn BurnTargetCard() -> impl IntoView {
             None => keep(Kept::Recommended, lines::recommendation_kept),
         }
     };
+    let forget = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
+    let why = Signal::derive(move || {
+        if unweighed.get() {
+            format!(
+                "{} {}",
+                lines::BURN_TARGET_WHY,
+                lines::NO_WEIGH_IN_TO_PRICE_A_WORKOUT
+            )
+        } else {
+            lines::BURN_TARGET_WHY.to_string()
+        }
+    });
     view! {
-        <section class="card">
-            <h2>"The aches the day owes"</h2>
-            <p class="hint">{lines::BURN_TARGET_HINT}</p>
-            <form class="burn-target" on:submit=save>
-                {move || {
-                    unweighed
-                        .get()
-                        .then(|| view! { <p class="hint">{lines::NO_WEIGH_IN_TO_PRICE_A_WORKOUT}</p> })
-                }}
-                <div class="row">
-                    <DateField label="From" name="burn_target_from" value=from />
-                    <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />
-                </div>
-                <Whose whose=whose />
-                <button class="cta" type="submit">
-                    "Fire this ambition"
-                </button>
-                <ReferencesLink topic=Topic::Activity />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
+        <ProfileCard
+            title="The aches the day owes"
+            form="burn-target"
+            how=lines::BURN_TARGET_HOW
+            why=why
+            topic=Topic::Activity
+            save="Fire this ambition"
+            forget=forget
+            said=said
+            on_submit=Callback::new(save)
+        >
+            <div class="row">
+                <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />
+            </div>
+            <Whose whose=whose />
+        </ProfileCard>
     }
 }
 
@@ -379,30 +410,29 @@ fn FuelTargetsCard() -> impl IntoView {
             lines::fuel_targets_kept,
         );
     };
+    let forget = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     view! {
-        <section class="card">
-            <h2>"How to feed the forge"</h2>
-            <p class="hint fuel-targets-hint">{lines::FUEL_TARGETS_HINT}</p>
-            <form class="fuel-targets" on:submit=save>
-                <div class="row">
-                    <DateField label="From" name="targets_from" value=from />
-                </div>
-                <div class="row">
-                    <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
-                    <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
-                </div>
-                <div class="row">
-                    <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
-                    <FigureField label="Carbs (g/kg)" name="target_carbs" value=carbs />
-                </div>
-                <Whose whose=whose />
-                <button class="cta" type="submit">
-                    "Paint these targets"
-                </button>
-                <ReferencesLink topic=Topic::Macronutrients />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
+        <ProfileCard
+            title="How to feed the forge"
+            form="fuel-targets"
+            how=lines::FUEL_TARGETS_HOW
+            why=lines::FUEL_TARGETS_WHY.to_string()
+            topic=Topic::Macronutrients
+            save="Paint these targets"
+            forget=forget
+            said=said
+            on_submit=Callback::new(save)
+        >
+            <div class="row">
+                <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
+                <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
+            </div>
+            <div class="row">
+                <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
+                <FigureField label="Carbs (g/kg)" name="target_carbs" value=carbs />
+            </div>
+            <Whose whose=whose />
+        </ProfileCard>
     }
 }
 
@@ -467,43 +497,42 @@ pub fn ProfileScreen() -> impl IntoView {
         <header class="screen-top">
             <h2>"Profile"</h2>
         </header>
-        <section class="card">
-            <h2>"The rusty you behind the numbers"</h2>
-            <form class="profile" on:submit=save>
-                <div class="row">
-                    <DateField label="From" name="from" value=from />
-                    <DateField label="Birthday" name="birthday" value=birthday />
-                </div>
-                <div class="row">
-                    <label class="field">
-                        "Gender" <select
-                            name="gender"
-                            prop:value=move || {
-                                if gender.get() == Gender::Female { "Female" } else { "Male" }
-                            }
-                            on:change=chosen
-                        >
-                            <option value="Male">"Male"</option>
-                            <option value="Female">"Female"</option>
-                        </select>
-                    </label>
-                    <FigureField label="Height (cm)" name="height" value=height />
-                </div>
-                <div class="row">
-                    <FigureField label="Neck (cm)" name="neck" value=neck />
-                    <FigureField
-                        label="Hip (cm)"
-                        name="hip"
-                        value=hip
-                        disabled=Signal::derive(move || gender.get() == Gender::Male)
-                    />
-                </div>
-                <button class="cta" type="submit">
-                    "Keep this profile"
-                </button>
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
+        <ProfileCard
+            title="The rusty you behind the numbers"
+            form="profile"
+            how=lines::PROFILE_HOW
+            why=lines::PROFILE_WHY.to_string()
+            topic=Topic::BodyComposition
+            save="Keep this profile"
+            said=said
+            on_submit=Callback::new(save)
+        >
+            <div class="row">
+                <DateField label="Birthday" name="birthday" value=birthday />
+                <label class="field">
+                    "Gender" <select
+                        name="gender"
+                        prop:value=move || {
+                            if gender.get() == Gender::Female { "Female" } else { "Male" }
+                        }
+                        on:change=chosen
+                    >
+                        <option value="Male">"Male"</option>
+                        <option value="Female">"Female"</option>
+                    </select>
+                </label>
+            </div>
+            <div class="row thirds">
+                <FigureField label="Height (cm)" name="height" value=height />
+                <FigureField label="Neck (cm)" name="neck" value=neck />
+                <FigureField
+                    label="Hip (cm)"
+                    name="hip"
+                    value=hip
+                    disabled=Signal::derive(move || gender.get() == Gender::Male)
+                />
+            </div>
+        </ProfileCard>
         <GoalsCard />
         <FuelTargetsCard />
         <HydrateTargetCard />

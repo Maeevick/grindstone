@@ -13,11 +13,10 @@ use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
-use crate::screens::fields::{Chooser, DateField, FigureField};
+use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::{HydrateLastDays, entries_failed, entries_said};
-use crate::screens::profile::{Whose, keep_and_show, shown_in_force};
-use crate::screens::references::ReferencesLink;
+use crate::screens::profile::{ProfileCard, Whose, keep_and_show, shown_in_force};
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -448,23 +447,24 @@ pub fn HydrateTargetCard() -> impl IntoView {
             None => keep(Kept::Recommended, lines::recommendation_kept),
         }
     };
+    let forget = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     view! {
-        <section class="card">
-            <h2>"Hydrate the material"</h2>
-            <p class="hint">{lines::HYDRATE_TARGET_HINT}</p>
-            <form class="water-target" on:submit=save>
-                <div class="row">
-                    <DateField label="From" name="water_target_from" value=from />
-                    <FigureField label="Water a day (mL)" name="water_target" value=water />
-                </div>
-                <Whose whose=whose />
-                <button class="cta" type="submit">
-                    "Store this aim"
-                </button>
-                <ReferencesLink topic=Topic::Water />
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-            </form>
-        </section>
+        <ProfileCard
+            title="Hydrate the material"
+            form="water-target"
+            how=lines::WATER_HOW
+            why=lines::WATER_WHY.to_string()
+            topic=Topic::Water
+            save="Store this aim"
+            forget=forget
+            said=said
+            on_submit=Callback::new(save)
+        >
+            <div class="row">
+                <FigureField label="Water a day (mL)" name="water_target" value=water />
+            </div>
+            <Whose whose=whose />
+        </ProfileCard>
     }
 }
 
