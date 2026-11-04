@@ -1362,7 +1362,7 @@ mod tests {
                     .hydrate_records()
                     .map(|hydrated| hydrated.targets.len())
             ],
-            [Ok(1); 5]
+            [Ok(1), Ok(1), Ok(1), Ok(1), Ok(1)]
         );
     }
 }
