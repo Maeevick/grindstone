@@ -29,5 +29,6 @@ pub enum Refusal {
     NotWeighed,
     NotAnEnergy,
     NotACopy,
+    NoCopyPushed,
     AnotherSchema { copy: i64, store: i64 },
 }

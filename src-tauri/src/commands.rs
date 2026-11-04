@@ -39,6 +39,7 @@ use grind_core::meal::Meal;
 use grind_core::pace::Pace;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
+use grind_core::refusal::Refusal;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
 use grind_draft::{ImportFailure, drafted};
@@ -183,7 +184,8 @@ pub fn restore_a_copy(
     records: State<Records>,
     file: State<RestoreFile>,
 ) -> Result<Counted, Failure> {
-    let copy = std::fs::read_to_string(&file.0).expect("a copy pushed");
+    let copy =
+        std::fs::read_to_string(&file.0).map_err(|_| Failure::Refused(Refusal::NoCopyPushed))?;
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_keeping_a_copy::restore_a_copy(&*records, &copy)
 }

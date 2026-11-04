@@ -235,6 +235,11 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotACopy) => {
             "That file is no copy of mine: I only restore what Copy the records wrote. Nothing changed.".into()
         }
+        Failure::Refused(Refusal::NoCopyPushed) => {
+            "No copy waits on the phone yet: plug it in and run make import-android \
+             BACKUP=exports/<file>.json first."
+                .into()
+        }
         Failure::Refused(Refusal::AnotherSchema { copy, store }) => format!(
             "That copy holds version {copy} of the records, and this phone keeps version {store}. I restore \
              only a copy of the same version: nothing changed."
