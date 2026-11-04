@@ -126,7 +126,7 @@ pub fn fuel_week_of(days: &[Fuel]) -> Option<FuelWeek> {
             amount: day.eaten.energy_kcal,
             floor: band.floor_kcal,
             ceiling: Some(band.cap_kcal),
-            goal: None,
+            goal: Some(band.goal_kcal),
         })?,
         protein: row(|_, _, macros| banded(macros.protein))?,
         fat: row(|_, _, macros| banded(macros.fat))?,
@@ -226,7 +226,7 @@ mod tests {
             fuel_week_of(&days),
             Some(FuelWeek {
                 logged_days: 2,
-                energy: averaged(2100.0, 1800.0, 2400.0, 2),
+                energy: aimed(2100.0, 1800.0, 2400.0, Some(1800.0), 2),
                 protein: averaged(110.0, 115.0, 190.0, 1),
                 fat: averaged(55.0, 48.0, 57.0, 1),
                 fibre: averaged(25.0, 25.0, 60.0, 1),
