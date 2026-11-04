@@ -1703,7 +1703,7 @@ async fn the_weeks_tip_names_what_runs_short_then_what_runs_over_furthest_first_
 }
 
 #[wasm_bindgen_test]
-async fn fuels_tip_invites_to_paint_targets_when_none_is() {
+async fn fuels_tip_invites_to_paint_no_target_the_health_floors_standing_as_goals() {
     let without_goals = A_FUEL_WEEK
         .replace(r#""goal": 115.0, "#, "")
         .replace(r#""goal": 57.0, "#, "")
@@ -1716,7 +1716,7 @@ async fn fuels_tip_invites_to_paint_targets_when_none_is() {
 
     let tip = text_of(&screen, ".week p.tip");
 
-    assert!(tip.contains("Paint your targets in Profile"), "{tip}");
+    assert!(!tip.contains("Paint your targets"), "{tip}");
 }
 
 #[wasm_bindgen_test]
