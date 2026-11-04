@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
 use crate::failure::Failure;
-use crate::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy};
+use crate::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy, Unrestorable};
 use crate::refusal::Refusal;
 
 /// A copy of every record, dated on the day it is kept.
@@ -13,14 +13,19 @@ pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<Record
 
 /// Every record replaced by the copy's, telling how many tables and records came back.
 pub fn restore_a_copy(store: &impl ForCopyingRecords, copy: &str) -> Result<Counted, Failure> {
-    Ok(store.restored(copy).expect("a copy restored"))
+    store.restored(copy).map_err(|why| match why {
+        Unrestorable::NotACopy => Failure::Refused(Refusal::NotACopy),
+        Unrestorable::AnotherSchema { copy, store } => {
+            Failure::Refused(Refusal::AnotherSchema { copy, store })
+        }
+        Unrestorable::Broken(broken) => broken.into(),
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::failure::Broken;
-    use crate::for_copying_records::Unrestorable;
     use crate::testing::{BrokenCopies, CopiedRecords, Unrestoring};
 
     #[test]
