@@ -5031,7 +5031,7 @@ const OWN: &str = "Your own values, kept as typed.";
 const RECOMMENDED_AND_FOLLOWED: &str = "The recommendation, followed as your body changes.";
 
 #[wasm_bindgen_test]
-async fn each_goal_card_shows_what_is_in_force_and_whose_it_is() {
+async fn each_card_shows_its_own_values_and_leaves_the_recommendation_to_its_placeholders() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED} }}"#
     ));
@@ -5039,37 +5039,41 @@ async fn each_goal_card_shows_what_is_in_force_and_whose_it_is() {
     let _mounted = the_profile_screen(&screen);
     settled().await;
 
+    let shown = |name: &str| {
+        let field: HtmlInputElement = found(&screen, &format!("input[name={name}]"));
+        (field.value(), field.placeholder())
+    };
     assert_eq!(
         [
             "target_mass",
             "target_fat",
             "target_protein",
             "target_fat_g",
+            "target_fibre",
+            "target_carbs",
             "water_target",
+            "burn_target",
             "usual_sitting",
-            "usual_moving",
-            "burn_target"
+            "usual_standing",
+            "usual_moving"
         ]
-        .map(|name| value_of(&screen, name)),
-        ["68", "12", "1.6", "0.8", "2800", "480", "6", "77.14"]
-    );
-    assert_eq!(
+        .map(shown),
         [
-            "form.goals",
-            "form.fuel-targets",
-            "form.water-target",
-            "form.usual-day",
-            "form.burn-target"
+            ("68", "70.31"),
+            ("12", "16.5"),
+            ("", "0.83"),
+            ("", "0.68"),
+            ("", "0.33"),
+            ("", "1.63"),
+            ("2800", "2480"),
+            ("", "77.14"),
+            ("", "480"),
+            ("", "120"),
+            ("", "6")
         ]
-        .map(|form| text_of(&screen, &format!("{form} .whose"))),
-        [
-            OWN,
-            RECOMMENDED_AND_FOLLOWED,
-            OWN,
-            RECOMMENDED_AND_FOLLOWED,
-            RECOMMENDED_AND_FOLLOWED
-        ]
+        .map(|(value, placeholder)| (value.to_string(), placeholder.to_string()))
     );
+    assert!(screen.query_selector(".whose").ok().flatten().is_none());
 }
 
 #[wasm_bindgen_test]
