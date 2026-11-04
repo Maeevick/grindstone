@@ -103,6 +103,7 @@ pub fn FuelOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                         ("Fibre (g)", over.fibre, Figure::Grams),
                                         ("Carbs (g)", over.carbs, Figure::Grams),
                                     ],
+                                    true,
                                 )}
                                 <p class="tip">{lines::quoted(&lines::fuel_week_said(&over))}</p>
                             }
@@ -136,6 +137,7 @@ pub fn HydrateOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                         ("Drinks (mL)", over.drunk, Figure::Volume),
                                         ("Water (%)", over.water, |percent| Figure::Ratio(percent / 100.0)),
                                     ],
+                                    false,
                                 )}
                                 <p class="tip">{lines::quoted(&lines::hydrate_week_said(&over))}</p>
                             }

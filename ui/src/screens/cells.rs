@@ -20,8 +20,9 @@ pub fn nutrient_cells(nutrients: Nutrients) -> impl IntoView {
 pub type WeekRow = (&'static str, Averaged, fn(f64) -> Figure);
 
 /// A week's averages over its logged days: a row per measure, a day on average against the average of their
-/// bands and coloured by it, with how many days stood in theirs.
-pub fn week_table(logged_days: usize, rows: Vec<WeekRow>) -> impl IntoView {
+/// bands and coloured by it, its goal when the measures have one (the floor standing in without one), with how
+/// many days stood in theirs.
+pub fn week_table(logged_days: usize, rows: Vec<WeekRow>, with_goals: bool) -> impl IntoView {
     view! {
         <p class="hint">{lines::over_logged_days(logged_days)}</p>
         <table class="macros">
@@ -30,6 +31,7 @@ pub fn week_table(logged_days: usize, rows: Vec<WeekRow>) -> impl IntoView {
                     <th></th>
                     <th>"A day"</th>
                     <th>"Band"</th>
+                    {with_goals.then(|| view! { <th>"Goal"</th> })}
                     <th>"In band"</th>
                 </tr>
             </thead>
@@ -47,6 +49,10 @@ pub fn week_table(logged_days: usize, rows: Vec<WeekRow>) -> impl IntoView {
                                         None => format!("≥ {}", bare(figure(row.floor))),
                                     }}
                                 </td>
+                                {with_goals
+                                    .then(|| {
+                                        view! { <td>{bare(figure(row.goal.unwrap_or(row.floor)))}</td> }
+                                    })}
                                 <td>{format!("{}/{logged_days}", row.in_band)}</td>
                             </tr>
                         }
