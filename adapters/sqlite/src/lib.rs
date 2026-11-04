@@ -1004,7 +1004,7 @@ impl ForCopyingRecords for Sqlite {
     }
 
     fn restored(&self, copy: &str) -> Result<Counted, Unrestorable> {
-        let copy: Copied = serde_json::from_str(copy).expect("a copy");
+        let copy: Copied = serde_json::from_str(copy).map_err(|_| Unrestorable::NotACopy)?;
         restore(&self.0, &copy.tables).map_err(|error| Unrestorable::Broken(broken(error)))
     }
 }
