@@ -71,12 +71,12 @@ pub struct BurnWeek {
 impl BurnWeek {
     /// What a day burnt, on average over every day of the week.
     pub fn burnt_kcal_a_day(&self) -> Option<f64> {
-        None
+        self.burnt_kcal.map(|kcal| kcal / self.days as f64)
     }
 
     /// A day's target, on average over every day of the week.
     pub fn target_kcal_a_day(&self) -> Option<f64> {
-        None
+        self.target_kcal.map(|kcal| kcal / self.days as f64)
     }
 
     /// Whether the week's burn reaches the sum of its days' targets, as both are shown.
@@ -109,9 +109,12 @@ pub fn burn_week_of(days: &[Burn]) -> Option<BurnWeek> {
             .total_cmp(&one.burnt_kcal.unwrap_or_default())
     });
     (!active.is_empty()).then(|| BurnWeek {
-        days: 0,
+        days: days.len(),
         active_days: active.len(),
-        days_on_target: 0,
+        days_on_target: days
+            .iter()
+            .filter(|day| day.verdict == Some(Verdict::InBand))
+            .count(),
         burnt_kcal: active.iter().map(|day| day.burnt_kcal).sum(),
         target_kcal: days.iter().map(|day| day.target_kcal).sum(),
         exercises,
