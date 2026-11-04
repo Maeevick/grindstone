@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::age::age_on;
 use crate::burn_target::target_on;
+use crate::fuel_records::FuelTargets;
 use crate::gender::Gender;
 use crate::profile::Profile;
 use crate::volitional::Volitional;
@@ -18,6 +19,10 @@ pub struct Recommendations {
     pub goal_fat_ratio: f64,
     pub usual_day: Volitional,
     pub burn_target_kcal: Option<f64>,
+    /// Each macro's health floor on the day, per kilo of body mass; none before a body to fuel.
+    pub fuel_floors_g_per_kg: FuelTargets,
+    /// The water a day to drink before the burn; none before a profile tells the gender.
+    pub water_ml: Option<f64>,
 }
 
 /// The recommendations for a profile on a day.
@@ -61,6 +66,8 @@ pub fn recommended(
             moving_km: to_the_tenth(steps_a_day(age) * METRES_A_STEP / 1000.0),
         },
         burn_target_kcal: target_on(day, &[], body_mass_kg).map(|target| target.values),
+        fuel_floors_g_per_kg: FuelTargets::default(),
+        water_ml: None,
     }
 }
 

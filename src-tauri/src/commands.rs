@@ -555,7 +555,7 @@ pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
 #[tauri::command(rename_all = "snake_case")]
 pub fn recommended_on(records: State<Records>, date: String) -> Result<Recommendations, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::recommended_on(&*records, &date)
+    for_setting_up_the_profile::recommended_on(&*records, &*records, &*records, &date)
 }
 
 #[cfg(test)]

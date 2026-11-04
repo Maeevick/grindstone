@@ -242,8 +242,11 @@ pub fn burn_target_on(
 
 pub fn recommended_on(
     gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
     date: &str,
 ) -> Result<Recommendations, Failure> {
+    let _ = (burn, fuel);
     let day = day(date)?;
     let gathered = gather.gather_records()?;
     let profile = version_in_force_on(&gathered.profiles, day)
@@ -263,7 +266,9 @@ pub fn recommended_on(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{BrokenGatherRecords, GatherRecordsInMemory};
+    use crate::testing::{
+        BrokenGatherRecords, BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory,
+    };
 
     fn a_mans_form(from: &str) -> ProfileForm {
         ProfileForm {
@@ -1064,7 +1069,13 @@ mod tests {
         crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, None)
             .expect("a measurement logs");
 
-        let advised = recommended_on(&gather, "2026-10-11").expect("recommendations");
+        let advised = recommended_on(
+            &gather,
+            &BurnRecordsInMemory::default(),
+            &FuelRecordsInMemory::default(),
+            "2026-10-11",
+        )
+        .expect("recommendations");
 
         assert!(advised.burn_target_kcal.is_some());
     }
@@ -1072,12 +1083,50 @@ mod tests {
     #[test]
     fn without_a_profile_there_is_nothing_to_recommend() {
         assert_eq!(
-            recommended_on(&GatherRecordsInMemory::default(), "2026-10-11"),
+            recommended_on(
+                &GatherRecordsInMemory::default(),
+                &BurnRecordsInMemory::default(),
+                &FuelRecordsInMemory::default(),
+                "2026-10-11"
+            ),
             Err(Failure::Refused(Refusal::NotAProfile))
         );
         assert_eq!(
-            recommended_on(&BrokenGatherRecords, "2026-10-11"),
+            recommended_on(
+                &BrokenGatherRecords,
+                &BurnRecordsInMemory::default(),
+                &FuelRecordsInMemory::default(),
+                "2026-10-11"
+            ),
             Err(Failure::Broken("the disk is full".into()))
+        );
+    }
+
+    #[test]
+    fn the_recommendations_tell_each_macros_floor_today_per_kilo_of_body_mass() {
+        let (gather, burn, fuel) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+        );
+        set_profile(&gather, &a_mans_form("2026-03-01")).expect("a profile set");
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(84.0))
+            .expect("a measurement logs");
+        let macros = crate::for_fuelling::fuel_day(&gather, &burn, &fuel, "2026-10-11")
+            .ok()
+            .and_then(|fuelled| fuelled.macros)
+            .expect("the day's macros");
+
+        let advised = recommended_on(&gather, &burn, &fuel, "2026-10-11").expect("recommendations");
+
+        assert_eq!(
+            advised.fuel_floors_g_per_kg,
+            FuelTargets {
+                protein_g_per_kg: Some(macros.protein.floor_g / 80.0),
+                fat_g_per_kg: Some(macros.fat.floor_g / 80.0),
+                fibre_g_per_kg: Some(macros.fibre.floor_g / 80.0),
+                carbs_g_per_kg: Some(macros.carbs.floor_g / 80.0),
+            }
         );
     }
 }

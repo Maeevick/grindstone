@@ -4961,7 +4961,7 @@ async fn the_danger_zone_erases_everything_once_erase_is_typed() {
 const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg": 70.308,
     "healthy_fat_ratio": [0.11, 0.22], "goal_fat_ratio": 0.165,
     "fuel": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8 },
-    "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "burn_target_kcal": 77.14 }"#;
+    "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "burn_target_kcal": 77.14 , "fuel_floors_g_per_kg": { "protein_g_per_kg": 0.83, "fat_g_per_kg": 0.68, "fibre_g_per_kg": 0.33, "carbs_g_per_kg": 1.63 }, "water_ml": 2480.0 }"#;
 
 #[wasm_bindgen_test]
 async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_its_targets_from_the_start()
