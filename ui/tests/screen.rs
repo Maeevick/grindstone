@@ -2711,6 +2711,28 @@ async fn fuels_macros_read_min_cur_max_goal_the_gap_and_the_share() {
 }
 
 #[wasm_bindgen_test]
+async fn a_macro_without_a_painted_target_reads_its_floor_as_its_goal_and_its_gap_against_it() {
+    answering(&format!(
+        r#"{{ "foods": [], "meals": [], "fuel_day": {} }}"#,
+        A_FUELLED_DAY.replace(
+            r#""goal_g": 32.0, "painted": true"#,
+            r#""goal_g": 32.0, "painted": false"#
+        )
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        cells_by_row(&screen, "table.macros tbody tr")
+            .into_iter()
+            .find(|cells| cells.first().is_some_and(|name| name.starts_with("Fib")))
+            .map(|cells| cells[4..6].to_vec()),
+        Some(["32", "-32"].map(String::from).to_vec())
+    );
+}
+
+#[wasm_bindgen_test]
 async fn fuels_four_macros_stand_under_its_gauge() {
     answering(&format!(
         r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY} }}"#
