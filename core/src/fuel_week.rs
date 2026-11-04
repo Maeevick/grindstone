@@ -82,7 +82,7 @@ impl FuelWeek {
         ]
         .into_iter()
         .filter_map(|(habit, row)| {
-            let goal = row.goal.unwrap_or(row.floor);
+            let goal = row.goal_or_floor();
             let per_day = row.per_day - goal;
             let off_by = per_day / goal;
             let is_off = match side {

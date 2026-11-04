@@ -36,6 +36,11 @@ impl Averaged {
         )
     }
 
+    /// The goal the average is told against: the goals painted, the floor without one.
+    pub fn goal_or_floor(&self) -> f64 {
+        self.goal.unwrap_or(self.floor)
+    }
+
     /// How far the average runs from its band, a day: under its floor short, past its ceiling over, nothing
     /// within it.
     pub fn gap(&self) -> Option<f64> {

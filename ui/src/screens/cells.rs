@@ -51,7 +51,7 @@ pub fn week_table(logged_days: usize, rows: Vec<WeekRow>, with_goals: bool) -> i
                                 </td>
                                 {with_goals
                                     .then(|| {
-                                        view! { <td>{bare(figure(row.goal.unwrap_or(row.floor)))}</td> }
+                                        view! { <td>{bare(figure(row.goal_or_floor()))}</td> }
                                     })}
                                 <td>{format!("{}/{logged_days}", row.in_band)}</td>
                             </tr>
