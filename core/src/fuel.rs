@@ -39,15 +39,17 @@ pub struct MacroRow {
     pub floor_g: f64,
     /// None when nothing is too much.
     pub ceiling_g: Option<f64>,
-    /// The goal painted for the day, none until one is.
-    pub goal_g: Option<f64>,
+    /// The goal painted for the day, the health floor until one is.
+    pub goal_g: f64,
+    /// Whether the goal was painted, not the floor standing in.
+    pub painted: bool,
     pub verdict: Verdict,
 }
 
 impl MacroRow {
-    /// What was eaten beyond the goal; short of it, the gap is negative; none without a goal.
-    pub fn gap_g(&self) -> Option<f64> {
-        self.goal_g.map(|goal_g| self.eaten_g - goal_g)
+    /// What was eaten beyond the goal; short of it, the gap is negative.
+    pub fn gap_g(&self) -> f64 {
+        self.eaten_g - self.goal_g
     }
 }
 
@@ -245,7 +247,8 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
         eaten_g,
         floor_g,
         ceiling_g,
-        goal_g,
+        goal_g: goal_g.unwrap_or_default(),
+        painted: goal_g.is_some(),
         verdict: verdict_of(eaten_g, floor_g, ceiling_g.unwrap_or(f64::INFINITY)),
     }
 }
@@ -1263,7 +1266,8 @@ mod tests {
     }
 
     #[test]
-    fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass() {
+    fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass_the_health_floor_without_one()
+     {
         let fuel = FuelRecords {
             targets: vec![(
                 day("2026-03-01"),
@@ -1287,8 +1291,14 @@ mod tests {
         .expect("macros");
 
         assert_eq!(
-            [macros.protein, macros.fat, macros.fibre, macros.carbs].map(|row| row.goal_g),
-            [Some(160.0), None, Some(32.0), Some(240.0)]
+            [macros.protein, macros.fat, macros.fibre, macros.carbs]
+                .map(|row| (row.goal_g.round(), row.painted)),
+            [
+                (160.0, true),
+                (macros.fat.floor_g.round(), false),
+                (32.0, true),
+                (240.0, true)
+            ]
         );
     }
 
@@ -1308,20 +1318,17 @@ mod tests {
     }
 
     #[test]
-    fn a_macros_gap_is_what_was_eaten_beyond_its_goal_none_without_a_goal() {
+    fn a_macros_gap_is_what_was_eaten_beyond_its_goal() {
         let short = MacroRow {
             eaten_g: 120.0,
             floor_g: 130.0,
             ceiling_g: Some(180.0),
-            goal_g: Some(150.0),
+            goal_g: 150.0,
+            painted: true,
             verdict: Verdict::Low,
         };
-        let aimless = MacroRow {
-            goal_g: None,
-            ..short
-        };
 
-        assert_eq!([short.gap_g(), aimless.gap_g()], [Some(-30.0), None]);
+        assert_eq!(short.gap_g(), -30.0);
     }
 
     #[test]

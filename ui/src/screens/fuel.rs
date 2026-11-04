@@ -43,7 +43,7 @@ fn MacroLine(
                     .map(|grams| view! { <span class="ghost">{format!("+{}", bare(Figure::Grams(grams)))}</span> })}
             </td>
             <td>{bare_or_dash(row.ceiling_g, Figure::Grams)}</td>
-            <td>{bare_or_dash(row.goal_g, Figure::Grams)}</td>
+            <td>{bare_or_dash(row.painted.then_some(row.goal_g), Figure::Grams)}</td>
             <td class=verdict>
                 {match previewed {
                     Some(after) => {
@@ -51,12 +51,13 @@ fn MacroLine(
                             <span class=format!(
                                 "ghost {}",
                                 lines::verdict_class(after.verdict),
-                            )>{after.gap_g().map_or_else(|| "–".to_string(), |gap| signed(Figure::Grams(gap)))}</span>
+                            )>{after.painted.then(|| after.gap_g()).map_or_else(|| "–".to_string(), |gap| signed(Figure::Grams(gap)))}</span>
                         }
                             .into_any()
                     }
                     None => row
-                        .gap_g()
+                        .painted
+                        .then(|| row.gap_g())
                         .map_or_else(|| "–".to_string(), |gap| signed(Figure::Grams(gap)))
                         .into_any(),
                 }}

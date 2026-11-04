@@ -102,7 +102,7 @@ fn banded(row: MacroRow) -> Banded {
         amount: row.eaten_g,
         floor: row.floor_g,
         ceiling: row.ceiling_g,
-        goal: row.goal_g,
+        goal: row.painted.then_some(row.goal_g),
     }
 }
 
@@ -148,7 +148,8 @@ mod tests {
             eaten_g,
             floor_g,
             ceiling_g: Some(ceiling_g),
-            goal_g: None,
+            goal_g: 0.0,
+            painted: false,
             verdict: verdict_of(eaten_g, floor_g, ceiling_g),
         }
     }

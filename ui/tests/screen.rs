@@ -1497,10 +1497,10 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
     "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2424.8 },
     "energy": "Low",
     "macros": {
-        "protein": { "eaten_g": 19.0, "floor_g": 160.0, "goal_g": 160.0, "ceiling_g": 9.0, "verdict": "Low" },
-        "fat": { "eaten_g": 0.0, "floor_g": 72.0, "goal_g": 72.0, "ceiling_g": 4.0, "verdict": "Low" },
-        "fibre": { "eaten_g": 0.0, "floor_g": 32.0, "goal_g": 32.0, "ceiling_g": 2.2, "verdict": "Low" },
-        "carbs": { "eaten_g": 8.0, "floor_g": 212.1, "goal_g": 212.1, "ceiling_g": 295.0, "verdict": "Low" } } }"#;
+        "protein": { "eaten_g": 19.0, "floor_g": 160.0, "goal_g": 160.0, "painted": true, "ceiling_g": 9.0, "verdict": "Low" },
+        "fat": { "eaten_g": 0.0, "floor_g": 72.0, "goal_g": 72.0, "painted": true, "ceiling_g": 4.0, "verdict": "Low" },
+        "fibre": { "eaten_g": 0.0, "floor_g": 32.0, "goal_g": 32.0, "painted": true, "ceiling_g": 2.2, "verdict": "Low" },
+        "carbs": { "eaten_g": 8.0, "floor_g": 212.1, "goal_g": 212.1, "painted": true, "ceiling_g": 295.0, "verdict": "Low" } } }"#;
 
 const A_FUELLED_DAY_WITH_ITS_BUDGET: &str = r#"{ "day": "2026-10-10", "intakes": [],
     "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 },
@@ -2970,10 +2970,10 @@ const A_FUELLED_DAY_WITH_THE_PASTA: &str = r#"{ "day": "2026-10-10", "intakes": 
     "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2235.3, "cap_kcal": 2686.1, "goal_kcal": 2235.3, "maintenance_kcal": 2460.7 },
     "energy": "Low",
     "macros": {
-        "protein": { "eaten_g": 31.0, "floor_g": 160.0, "goal_g": 160.0, "ceiling_g": 39.0, "verdict": "Low" },
-        "fat": { "eaten_g": 1.5, "floor_g": 72.0, "goal_g": 72.0, "ceiling_g": 17.3, "verdict": "Low" },
-        "fibre": { "eaten_g": 3.0, "floor_g": 32.0, "goal_g": 32.0, "ceiling_g": 9.4, "verdict": "Low" },
-        "carbs": { "eaten_g": 78.0, "floor_g": 220.0, "goal_g": 220.0, "ceiling_g": 302.0, "verdict": "Low" } } }"#;
+        "protein": { "eaten_g": 31.0, "floor_g": 160.0, "goal_g": 160.0, "painted": true, "ceiling_g": 39.0, "verdict": "Low" },
+        "fat": { "eaten_g": 1.5, "floor_g": 72.0, "goal_g": 72.0, "painted": true, "ceiling_g": 17.3, "verdict": "Low" },
+        "fibre": { "eaten_g": 3.0, "floor_g": 32.0, "goal_g": 32.0, "painted": true, "ceiling_g": 9.4, "verdict": "Low" },
+        "carbs": { "eaten_g": 78.0, "floor_g": 220.0, "goal_g": 220.0, "painted": true, "ceiling_g": 302.0, "verdict": "Low" } } }"#;
 
 #[wasm_bindgen_test]
 async fn the_macros_preview_their_gaps_against_the_goals_of_the_day_previewed() {
