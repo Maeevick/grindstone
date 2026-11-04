@@ -1287,4 +1287,37 @@ mod tests {
         assert_eq!(fuelled.targets, vec![(started, Kept::Recommended)]);
         assert_eq!(hydrated.targets, vec![(started, Kept::Recommended)]);
     }
+
+    #[test]
+    fn a_profile_kept_again_leaves_the_cards_as_they_are() {
+        let (gather, burn) = (born("1985-04-12"), BurnRecordsInMemory::default());
+        burn.save_burn_target(
+            NaiveDate::from_ymd_opt(2026, 3, 1).expect("a real day"),
+            Kept::Own(40.0),
+        )
+        .expect("a burn target saves");
+
+        set_profile(
+            &gather,
+            &burn,
+            &FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &a_mans_form("2026-11-04"),
+        )
+        .expect("a profile set again");
+
+        assert_eq!(
+            (
+                gather.gather_records().map(|gathered| gathered.goals),
+                burn.burn_records().map(|burnt| burnt.targets)
+            ),
+            (
+                Ok(vec![]),
+                Ok(vec![(
+                    NaiveDate::from_ymd_opt(2026, 3, 1).expect("a real day"),
+                    Kept::Own(40.0)
+                )])
+            )
+        );
+    }
 }
