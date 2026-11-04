@@ -57,10 +57,10 @@ const FEWEST_WEIGH_INS: usize = 4;
 /// How finely a mass and a ratio are shown, so a change that shows as nothing holds steady.
 const A_TENTH_OF_A_KILO: f64 = 0.1;
 const A_TENTH_OF_A_PERCENT: f64 = 0.001;
-const DAYS_A_WEEK: f64 = 7.0;
+pub(crate) const DAYS_A_WEEK: f64 = 7.0;
 const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
 const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
-const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
+pub(crate) const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
 
 /// The most a body can lose in a week without eating into its lean mass: 1% of its mass, 1 kg at most, and
 /// no more than its fat store can spare.

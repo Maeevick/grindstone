@@ -10,9 +10,11 @@ use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
+use crate::judgement::GAIN_SHARE_A_WEEK_AT_MOST;
 use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
+use crate::pace::{DAYS_A_WEEK, KCAL_PER_KG_OF_FAT_TISSUE};
 use crate::profile::Profile;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
@@ -138,8 +140,9 @@ fn digested(eaten: Nutrients) -> Eaten {
 }
 
 /// The day's band around its maintenance, the budget plus the burn: the floor is what the whole fat mass can
-/// spare below it; the cap, a twentieth above it, the small surplus of a gain; the goal tick, what the fat left
-/// to lose above the fat of the goals can spare.
+/// spare below it; the cap, a twentieth above it, the small surplus of a gain, or with a gain to aim for, the
+/// most a body should gain, half a percent of its mass a week; the goal tick, with a gain to aim for, that small
+/// surplus, else what the fat left to lose above the fat of the goals can spare.
 /// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
 /// minimum per kilo of lean mass plus the burn.
 ///
@@ -171,7 +174,14 @@ fn band_for(
     );
     let maintenance_kcal = budget.kcal() + burnt_kcal;
     let fat_left_kg = (body.fat_kg - aims.fat_mass_kg()).max(0.0);
-    let gain_cap_kcal = (1.0 + SURPLUS_SHARE) * maintenance_kcal;
+    let surplus_kcal = SURPLUS_SHARE * maintenance_kcal;
+    let gaining = aims.body_mass_kg > body.mass_kg;
+    let gain_cap_kcal = maintenance_kcal
+        + if gaining {
+            GAIN_SHARE_A_WEEK_AT_MOST * body.mass_kg * KCAL_PER_KG_OF_FAT_TISSUE / DAYS_A_WEEK
+        } else {
+            surplus_kcal
+        };
     let narrowest_kcal = NARROWEST_BAND_SHARE * maintenance_kcal;
     let (floor_kcal, cap_kcal) = widened(
         (
@@ -182,7 +192,11 @@ fn band_for(
     );
     let (goal_kcal, _) = widened(
         (
-            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg,
+            if gaining {
+                maintenance_kcal + surplus_kcal
+            } else {
+                maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg
+            },
             gain_cap_kcal,
         ),
         narrowest_kcal,
