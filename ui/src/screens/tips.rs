@@ -196,7 +196,7 @@ pub fn BurnOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                             };
                             view! {
                                 <p class="hint">{lines::over_active_days(over.active_days, over.days)}</p>
-                                <table class="burnt">
+                                <table class="macros">
                                     <thead>
                                         <tr>
                                             <th></th>

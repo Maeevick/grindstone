@@ -1783,14 +1783,14 @@ async fn burns_tips_read_over_its_active_days_then_a_day_against_its_goal_then_i
     assert_eq!(
         (
             laid_out,
-            texts_in_order(&screen, ".week table.burnt thead th"),
-            cells_by_row(&screen, ".week table.burnt tbody tr"),
-            attributes_of(&screen, ".week table.burnt tbody td:nth-child(2)", "class")
+            texts_in_order(&screen, ".week table.macros thead th"),
+            cells_by_row(&screen, ".week table.macros tbody tr"),
+            attributes_of(&screen, ".week table.macros tbody td:nth-child(2)", "class")
         ),
         (
             vec![
                 ("P.hint".to_string(), "Over 3 active days in 6.".to_string()),
-                ("TABLE.burnt".to_string(), String::new()),
+                ("TABLE.macros".to_string(), String::new()),
                 ("TABLE.workouts".to_string(), String::new()),
                 (
                     "P.hint".to_string(),
