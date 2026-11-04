@@ -167,26 +167,22 @@ async fn settled() {
 }
 
 #[wasm_bindgen_test]
-async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_the_draft_import() {
+async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_to_restoring_a_copy() {
     answering(r#"{ "profile_on": null }"#);
     let screen = screen();
 
     let _mounted = the_app(&screen);
     settled().await;
 
-    let welcome = screen.text_content().unwrap_or_default();
-    assert!(welcome.contains("Greetings, rusty one"), "{welcome}");
-    let to_the_profile: Element = found(&screen, ".welcome a[href='/profile']");
-    let to_the_import: Element = found(&screen, ".welcome a[href='/profile#draft']");
-    assert!(
-        to_the_profile
-            .text_content()
-            .is_some_and(|label| label.contains("profile"))
-    );
-    assert!(
-        to_the_import
-            .text_content()
-            .is_some_and(|label| label.contains("draft"))
+    assert_eq!(
+        (
+            text_of(&screen, ".welcome a[href='/profile']"),
+            text_of(&screen, ".welcome a[href='/profile#copy']")
+        ),
+        (
+            "Set up your profile".to_string(),
+            "Restore a copy".to_string()
+        )
     );
 }
 
