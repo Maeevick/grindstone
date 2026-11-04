@@ -13,8 +13,7 @@ pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<Record
 
 /// Every record replaced by the copy's, telling how many tables and records came back.
 pub fn restore_a_copy(store: &impl ForCopyingRecords, copy: &str) -> Result<Counted, Failure> {
-    let _ = (store, copy);
-    Err(Failure::Broken(String::new()))
+    Ok(store.restored(copy).expect("a copy restored"))
 }
 
 #[cfg(test)]
