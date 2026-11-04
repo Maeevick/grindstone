@@ -8,6 +8,7 @@ use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::Habit;
 use grind_core::fuel_week::{FuelWeek, Gap};
+use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::heading::Aim;
 use grind_core::hydrate::Hydrate;
@@ -15,6 +16,7 @@ use grind_core::hydrate_week::HydrateWeek;
 use grind_core::judgement::{AT_THE_AIM_SHARE, Judgement};
 use grind_core::meal::Ingredient;
 use grind_core::pace::{Lean, Pace, SafeLoss};
+use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::streak::{Status, Streak};
@@ -527,6 +529,25 @@ pub const THE_RECOMMENDATION: &str = "the recommendation";
 /// What a card held before a choice was kept, recalled so a slip can be typed back.
 pub fn before(held: &str) -> String {
     format!("Before: {held}.")
+}
+
+pub const NOTHING_HELD: &str = "nothing yet";
+
+pub fn profile_held(profile: &Profile) -> String {
+    let gender = match profile.gender {
+        Gender::Male => "male",
+        Gender::Female => "female",
+    };
+    let hip = profile
+        .hip_cm
+        .map(|cm| format!(", hip {}", shown(Figure::Length(cm))))
+        .unwrap_or_default();
+    format!(
+        "born {}, {gender}, {} tall, neck {}{hip}",
+        profile.birthday,
+        shown(Figure::Length(profile.height_cm)),
+        shown(Figure::Length(profile.neck_cm))
+    )
 }
 
 pub fn goals_held(goals: &Goals) -> String {

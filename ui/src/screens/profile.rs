@@ -547,6 +547,7 @@ pub fn ProfileScreen() -> impl IntoView {
     let hip = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
+    let held = RwSignal::new(lines::NOTHING_HELD.to_string());
     let advised = Advised(RwSignal::new(None));
     provide_context(advised);
     spawn_local(async move {
@@ -556,6 +557,7 @@ pub fn ProfileScreen() -> impl IntoView {
     });
     spawn_local(async move {
         if let Ok(Some((kept_from, profile))) = tauri::profile_on(&today()).await {
+            held.set(lines::profile_held(&profile));
             from.set(kept_from.to_string());
             birthday.set(profile.birthday.to_string());
             gender.set(profile.gender);
@@ -592,9 +594,11 @@ pub fn ProfileScreen() -> impl IntoView {
         };
         spawn_local(async move {
             said.set(Some(match tauri::set_profile(&form).await {
-                Ok(_) => {
+                Ok(profile) => {
+                    let before = lines::before(&held.get_untracked());
+                    held.set(lines::profile_held(&profile));
                     recorded.told();
-                    lines::profile_kept(&form.from)
+                    format!("{} {before}", lines::profile_kept(&form.from))
                 }
                 Err(failure) => lines::failure(&failure),
             }));
