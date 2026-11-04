@@ -13,7 +13,7 @@ use crate::fuel::{fuel_on, fuel_targets_in_force};
 use crate::fuel_records::{FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
-use crate::hydrate::water_target_in_force;
+use crate::hydrate::{recommended_water_ml, water_target_in_force};
 use crate::kept::{InForce, Kept};
 use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
@@ -268,6 +268,7 @@ pub fn recommended_on(
         .unwrap_or_default();
     Ok(Recommendations {
         fuel_floors_g_per_kg: floors,
+        water_ml: Some(recommended_water_ml(day, &gathered, body_mass_kg)),
         ..recommended(profile, day, body_mass_kg)
     })
 }

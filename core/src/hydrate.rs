@@ -103,6 +103,22 @@ fn turned_over_ml(lean_kg: f64) -> f64 {
     lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
 }
 
+/// The water a day recommended before the burn: once a lean mass is known, nine tenths of the water it turns over;
+/// a body weighed without one, 35 mL a kilo; before a weigh-in, EFSA's base for the gender.
+pub(crate) fn recommended_water_ml(
+    day: NaiveDate,
+    gather: &GatherRecords,
+    body_mass_kg: Option<f64>,
+) -> f64 {
+    match (lean_kg_on(day, gather), body_mass_kg) {
+        (Some(lean_kg), _) => SHARE_LEFT_TO_DRINKS * turned_over_ml(lean_kg),
+        (None, Some(kg)) => ML_A_KILO_OF_BODY_MASS * kg,
+        (None, None) => default_base_ml(
+            version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
+        ),
+    }
+}
+
 /// The water target in force on a day: kept from the latest day up to it (the earliest before any), its own
 /// base or the recommendation; never kept, the recommendation: once a lean mass is known, nine tenths of the
 /// water it turns over in a day, before, EFSA's base.
