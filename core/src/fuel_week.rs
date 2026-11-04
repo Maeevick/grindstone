@@ -358,4 +358,27 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn a_floor_standing_as_a_goal_names_a_short_week_never_an_over_one() {
+        let week = FuelWeek {
+            logged_days: 6,
+            energy: averaged(2100.0, 1800.0, 2400.0, 4),
+            protein: averaged(50.0, 100.0, 190.0, 0),
+            fat: averaged(120.0, 48.0, 90.0, 0),
+            fibre: averaged(25.0, 24.0, 60.0, 6),
+            carbs: averaged(260.0, 130.0, 400.0, 6),
+        };
+
+        assert_eq!(
+            (week.short(), week.over()),
+            (
+                vec![Gap {
+                    habit: Habit::Protein,
+                    per_day: -50.0
+                }],
+                vec![]
+            )
+        );
+    }
 }
