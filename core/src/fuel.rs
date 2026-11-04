@@ -113,8 +113,8 @@ const LEAST_PROTEIN_SHARE: f64 = 0.10;
 const MOST_PROTEIN_SHARE: f64 = 0.35;
 const LEAST_FAT_SHARE: f64 = 0.20;
 const MOST_FAT_SHARE: f64 = 0.35;
-/// 14 g per 1000 kcal at 2 kcal a gram.
-const LEAST_FIBRE_SHARE: f64 = 0.028;
+/// 10 g per 1000 kcal at 2 kcal a gram.
+const LEAST_FIBRE_SHARE: f64 = 0.02;
 const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
@@ -261,8 +261,8 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
 /// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), and 10% of the energy, at
 ///   most 35%, the Institute of Medicine's 10 to 35% (2005).
 /// - Fat at least 20% and at most 35% of the energy, EFSA's reference range (2010).
-/// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
-///   2 kcal a gram; no ceiling, none being set.
+/// - Fibre at least 10 g per 1000 kcal, EFSA's 25 g a day for adults (2010) on a 2500 kcal day, 2% of the energy
+///   at 2 kcal a gram; no ceiling, none being set.
 /// - Carbohydrates at least 130 g, the Institute of Medicine's (2005); no ceiling, the energy's cap telling what
 ///   is too much.
 fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -> Macros {
