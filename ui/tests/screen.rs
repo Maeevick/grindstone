@@ -1544,29 +1544,39 @@ fn the_fuel_week(screen: &Element) -> impl Drop {
 }
 
 const A_FUEL_WEEK: &str = r#"{ "logged_days": 6,
-    "energy": { "per_day": 2100.0, "floor": 1800.0, "ceiling": 2400.0, "in_band": 4 },
+    "energy": { "per_day": 2100.0, "floor": 1800.0, "ceiling": 2400.0, "goal": 2000.0, "in_band": 4 },
     "protein": { "per_day": 96.0, "floor": 115.0, "ceiling": 190.0, "goal": 115.0, "in_band": 1 },
     "fat": { "per_day": 71.0, "floor": 48.0, "ceiling": 57.0, "goal": 57.0, "in_band": 2 },
     "fibre": { "per_day": 19.0, "floor": 25.0, "ceiling": 60.0, "goal": 25.0, "in_band": 0 },
     "carbs": { "per_day": 330.0, "floor": 200.0, "ceiling": 310.0, "goal": 290.0, "in_band": 2 } }"#;
 
 #[wasm_bindgen_test]
-async fn the_weeks_average_tells_each_measure_a_day_against_its_band_and_how_many_days_stood_in_it()
-{
+async fn the_weeks_average_tells_each_measure_a_day_against_its_band_its_goal_and_how_many_days_stood_in_it()
+ {
     answering(&format!(r#"{{ "fuel_over_the_window": {A_FUEL_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_fuel_week(&screen);
     settled().await;
 
     assert_eq!(
-        cells_by_row(&screen, ".week tbody tr"),
-        [
-            ["Energy (kcal)", "2100", "1800–2400", "4/6"],
-            ["Protein (g)", "96", "115–190", "1/6"],
-            ["Fat (g)", "71", "48–57", "2/6"],
-            ["Fibre (g)", "19", "25–60", "0/6"],
-            ["Carbs (g)", "330", "200–310", "2/6"]
-        ]
+        (
+            texts_in_order(&screen, ".week thead th"),
+            cells_by_row(&screen, ".week tbody tr")
+        ),
+        (
+            ["", "A day", "Band", "Goal", "In band"]
+                .map(String::from)
+                .to_vec(),
+            [
+                ["Energy (kcal)", "2100", "1800–2400", "2000", "4/6"],
+                ["Protein (g)", "96", "115–190", "115", "1/6"],
+                ["Fat (g)", "71", "48–57", "57", "2/6"],
+                ["Fibre (g)", "19", "25–60", "25", "0/6"],
+                ["Carbs (g)", "330", "200–310", "290", "2/6"]
+            ]
+            .map(|row| row.map(String::from).to_vec())
+            .to_vec()
+        )
     );
     assert_eq!(
         attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
