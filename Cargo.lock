@@ -1616,16 +1616,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grind-draft"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "grind-core",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "grind-sqlite"
 version = "0.1.0"
 dependencies = [
