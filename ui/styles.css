@@ -758,6 +758,12 @@ a.references {
 	font-size: 0.8rem;
 }
 
+.why a.references {
+	display: inline;
+	margin: 0;
+	font-size: inherit;
+}
+
 .disclaimer {
 	margin: 12px 4px 0;
 	font-size: 0.78rem;
