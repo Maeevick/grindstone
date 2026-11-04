@@ -464,7 +464,7 @@ pub const FUEL_TARGETS_HOW: &str = "Your targets, in grams a day per kilo of bod
 
 pub const FUEL_TARGETS_WHY: &str = "Healthy, whatever they are, on the day's energy (what is eaten, never less than \
     the band's floor) and the band's cap: protein from 0.83 g per kg of body mass and 10% of the energy to 35% of the \
-    cap, fat from 20% to 35%, fibre from 10 g per 1000 kcal, carbs from 130 g. A target beyond them is yours to set; \
+    cap, fat from 20% to 35%, fibre from 14 g per 1000 kcal, carbs from 130 g. A target beyond them is yours to set; \
     if you are not sure, ask a doctor or a coach first.";
 
 pub const WATER_HOW: &str = "Your water a day, in mL, before the burn: the day's band adds what your workouts \
