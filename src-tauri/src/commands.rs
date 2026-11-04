@@ -845,6 +845,18 @@ mod tests {
     }
 
     #[test]
+    fn a_copy_that_cannot_be_written_says_it_is_broken() {
+        let (_app, screen) = launched();
+
+        let answer = invoke(&screen, "keep_a_copy", json!({ "today": "2026-11-04" }));
+
+        assert!(
+            matches!(&answer, Err(failure) if failure["Broken"].is_string()),
+            "{answer:?}"
+        );
+    }
+
+    #[test]
     fn importing_with_no_backup_pushed_says_where_it_was_expected() {
         let (_app, screen) = launched();
 
