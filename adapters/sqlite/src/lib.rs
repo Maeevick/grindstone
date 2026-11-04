@@ -1005,15 +1005,30 @@ impl ForCopyingRecords for Sqlite {
 
     fn restored(&self, copy: &str) -> Result<Counted, Unrestorable> {
         let copy: Copied = serde_json::from_str(copy).map_err(|_| Unrestorable::NotACopy)?;
-        restore(&self.0, &copy.tables).map_err(|error| Unrestorable::Broken(broken(error)))
+        let store: i64 = self
+            .0
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(unrestorable)?;
+        if copy.schema_version != store {
+            return Err(Unrestorable::AnotherSchema {
+                copy: copy.schema_version,
+                store,
+            });
+        }
+        restore(&self.0, &copy.tables).map_err(unrestorable)
     }
+}
+
+fn unrestorable(error: rusqlite::Error) -> Unrestorable {
+    Unrestorable::Broken(broken(error))
 }
 
 type Rows = Vec<serde_json::Map<String, serde_json::Value>>;
 
-/// A copy as it is read back: each table's rows, column by column.
+/// A copy as it is read back: its schema version and each table's rows, column by column.
 #[derive(Deserialize)]
 struct Copied {
+    schema_version: i64,
     tables: std::collections::BTreeMap<String, Rows>,
 }
 
