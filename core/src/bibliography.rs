@@ -102,7 +102,7 @@ pub const REFERENCES: [Reference; 33] = [
         title: "Nutrition recommendations for bodybuilders in the off-season: a narrative review",
         published_in: "Sports 7(7):154",
         page: Some("https://doi.org/10.3390/sports7070154"),
-        used_for: "A gain of 0.25 to 0.5% of the body mass a week, more built than stored",
+        used_for: "A gain of 0.25 to 0.5% of the body mass a week, more built than stored; its upper rate caps the band with a gain to aim for",
     },
     Reference {
         topic: Topic::HealthyRanges,
@@ -183,7 +183,7 @@ pub const REFERENCES: [Reference; 33] = [
         title: "Effect of small and large energy surpluses on strength, muscle, and skinfold thickness in resistance-trained individuals: a parallel groups design",
         published_in: "Sports Medicine - Open 9:102",
         page: Some("https://pubmed.ncbi.nlm.nih.gov/37914977/"),
-        used_for: "The band's cap in a gain, what the body of the goals would spend: a small surplus, as a large one mostly adds fat",
+        used_for: "The band's cap, maintenance and a twentieth, and its goal tick with a gain to aim for: a small surplus, as a large one mostly adds fat",
     },
     Reference {
         topic: Topic::Activity,

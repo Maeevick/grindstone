@@ -117,7 +117,7 @@ const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
 const NARROWEST_BAND_SHARE: f64 = 0.1;
-/// A small surplus for a gain, a twentieth of the maintenance: Helms E. R. et al. (2023), Sports Med Open 9:17,
+/// A small surplus for a gain, a twentieth of the maintenance: Helms E. R. et al. (2023), Sports Med Open 9:102,
 /// a 5% surplus building as much lean mass as 15% for less fat.
 const SURPLUS_SHARE: f64 = 0.05;
 
