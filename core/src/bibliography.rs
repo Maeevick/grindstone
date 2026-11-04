@@ -273,7 +273,7 @@ pub const REFERENCES: [Reference; 33] = [
         title: "Scientific Opinion on Dietary Reference Values for carbohydrates and dietary fibre",
         published_in: "EFSA Journal 8(3):1462",
         page: Some("https://doi.org/10.2903/j.efsa.2010.1462"),
-        used_for: "Fibre of 25 g a day for adults",
+        used_for: "Fibre of 25 g a day for adults, read as 10 g per 1000 kcal on a 2500 kcal day: the fibre floor",
     },
     Reference {
         topic: Topic::Macronutrients,
@@ -291,7 +291,7 @@ pub const REFERENCES: [Reference; 33] = [
         title: "Dietary Reference Intakes for energy, carbohydrate, fiber, fat, fatty acids, cholesterol, protein, and amino acids",
         published_in: "The National Academies Press, Washington",
         page: Some("https://doi.org/10.17226/10490"),
-        used_for: "At least 130 g of carbohydrates, and fibre of 14 g per 1000 kcal",
+        used_for: "At least 130 g of carbohydrates",
     },
     Reference {
         topic: Topic::Water,
