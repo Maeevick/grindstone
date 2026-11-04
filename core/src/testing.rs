@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 use crate::burn_records::BurnRecords;
 use crate::circuit::{Circuit, CircuitStep};
@@ -12,7 +12,6 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::for_storing_switch_over::ForStoringSwitchOver;
 use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::goals::Goals;
@@ -999,25 +998,6 @@ pub mod honouring_for_storing_fuel_records {
     }
 }
 
-#[derive(Default)]
-pub struct SwitchOverInMemory(Cell<Option<NaiveDate>>);
-
-impl ForStoringSwitchOver for SwitchOverInMemory {
-    fn save_switch_over(&self, day: NaiveDate) -> Result<(), Broken> {
-        self.0.set(Some(day));
-        Ok(())
-    }
-
-    fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
-        Ok(self.0.get())
-    }
-
-    fn forget_switch_over(&self) -> Result<(), Broken> {
-        self.0.set(None);
-        Ok(())
-    }
-}
-
 /// A store that copies so many tables and records, its copy saying the day it was made on.
 pub struct CopiedRecords {
     pub tables: usize,
@@ -1065,53 +1045,6 @@ impl ForCopyingRecords for Unrestoring {
 
     fn restored(&self, _: &str) -> Result<Counted, Unrestorable> {
         Err(self.0.clone())
-    }
-}
-
-pub struct BrokenSwitchOver;
-
-impl ForStoringSwitchOver for BrokenSwitchOver {
-    fn save_switch_over(&self, _: NaiveDate) -> Result<(), Broken> {
-        Err(Broken("the disk is full".into()))
-    }
-
-    fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
-        Err(Broken("the disk is full".into()))
-    }
-
-    fn forget_switch_over(&self) -> Result<(), Broken> {
-        Err(Broken("the disk is full".into()))
-    }
-}
-
-pub mod honouring_for_storing_switch_over {
-    use super::*;
-
-    pub fn a_forgotten_switch_over_leaves_none(records: &impl ForStoringSwitchOver) {
-        let day = NaiveDate::parse_from_str("2026-10-10", "%Y-%m-%d").expect("a real day");
-        records.save_switch_over(day).expect("a switch-over saves");
-
-        records
-            .forget_switch_over()
-            .expect("the switch-over is forgotten");
-
-        assert_eq!(records.switch_over(), Ok(None));
-    }
-
-    pub fn no_switch_over_until_one_is_saved_and_the_latest_one_stands(
-        records: &impl ForStoringSwitchOver,
-    ) {
-        let day = |date| NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day");
-        assert_eq!(records.switch_over(), Ok(None));
-
-        records
-            .save_switch_over(day("2026-10-10"))
-            .expect("a switch-over saves");
-        records
-            .save_switch_over(day("2026-10-11"))
-            .expect("a switch-over saves");
-
-        assert_eq!(records.switch_over(), Ok(Some(day("2026-10-11"))));
     }
 }
 
@@ -1723,13 +1656,6 @@ mod tests {
     }
 
     #[test]
-    fn no_switch_over_until_one_is_saved_and_the_latest_one_stands() {
-        honouring_for_storing_switch_over::no_switch_over_until_one_is_saved_and_the_latest_one_stands(
-            &SwitchOverInMemory::default(),
-        );
-    }
-
-    #[test]
     fn crafted_circuits_come_back_by_name_with_their_steps_in_order() {
         honouring_for_storing_burn_records::crafted_circuits_come_back_by_name_with_their_steps_in_order(
             &BurnRecordsInMemory::default(),
@@ -1782,13 +1708,6 @@ mod tests {
     fn replacing_the_hydrate_records_leaves_only_the_new_ones() {
         honouring_for_storing_hydrate_records::replacing_the_hydrate_records_leaves_only_the_new_ones(
             &HydrateRecordsInMemory::default(),
-        );
-    }
-
-    #[test]
-    fn a_forgotten_switch_over_leaves_none() {
-        honouring_for_storing_switch_over::a_forgotten_switch_over_leaves_none(
-            &SwitchOverInMemory::default(),
         );
     }
 }

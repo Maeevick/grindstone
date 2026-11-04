@@ -549,7 +549,7 @@ pub fn burn_month(
 #[tauri::command(rename_all = "snake_case")]
 pub fn erase_everything(records: State<Records>) -> Result<(), Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_starting_over::erase_everything(&*records, &*records, &*records, &*records, &*records)
+    for_starting_over::erase_everything(&*records, &*records, &*records, &*records)
 }
 
 #[tauri::command(rename_all = "snake_case")]

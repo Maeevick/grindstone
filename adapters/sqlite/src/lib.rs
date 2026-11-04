@@ -13,7 +13,6 @@ use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
 use grind_core::for_storing_hydrate_records::ForStoringHydrateRecords;
-use grind_core::for_storing_switch_over::ForStoringSwitchOver;
 use grind_core::fuel_records::{FuelRecords, FuelTargets};
 use grind_core::gather_records::GatherRecords;
 use grind_core::gender::Gender;
@@ -854,27 +853,6 @@ impl ForStoringFuelRecords for Sqlite {
     }
 }
 
-impl ForStoringSwitchOver for Sqlite {
-    fn save_switch_over(&self, day: NaiveDate) -> Result<(), Broken> {
-        self.run(
-            "insert into switch_over (only, day) values (1, ?1)
-             on conflict (only) do update set day = excluded.day",
-            params![day],
-        )
-    }
-
-    fn switch_over(&self) -> Result<Option<NaiveDate>, Broken> {
-        Ok(self
-            .rows("select day from switch_over", |row| row.get(0))?
-            .into_iter()
-            .next())
-    }
-
-    fn forget_switch_over(&self) -> Result<(), Broken> {
-        self.run("delete from switch_over", [])
-    }
-}
-
 const DRINKS: &str = "select name, volume_ml, kind, description from drinks order by name";
 const DRINKINGS: &str =
     "select id, day, drink, volume_ml, kind, servings from drinkings order by day, id";
@@ -1155,7 +1133,6 @@ mod tests {
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
     use grind_core::testing::honouring_for_storing_hydrate_records;
-    use grind_core::testing::honouring_for_storing_switch_over;
 
     fn database() -> Sqlite {
         Sqlite::in_memory().expect("an in-memory database opens and migrates")
@@ -1195,8 +1172,14 @@ mod tests {
             })
             .expect("a measurement saves");
         database
-            .save_switch_over(NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"))
-            .expect("a switch-over saves");
+            .save_goals(
+                NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+                &Kept::Own(Goals {
+                    body_mass_kg: 70.0,
+                    fat_ratio: 0.1,
+                }),
+            )
+            .expect("goals save");
         let tables: i64 = database
             .0
             .query_row(
@@ -1217,7 +1200,7 @@ mod tests {
                     read["schema_version"].clone(),
                     read["exported_on"].clone(),
                     read["tables"]["measurements"].clone(),
-                    read["tables"]["switch_over"].clone(),
+                    read["tables"]["goals"].clone(),
                     read["tables"].as_object().map(serde_json::Map::len)
                 )),
                 copy.counted.tables,
@@ -1228,7 +1211,7 @@ mod tests {
                     serde_json::json!(MIGRATIONS.len()),
                     serde_json::json!("2026-11-04"),
                     serde_json::json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": null }]),
-                    serde_json::json!([{ "only": 1, "day": "2026-10-10" }]),
+                    serde_json::json!([{ "effective_from": "2026-10-10", "body_mass_kg": 70.0, "fat_ratio": 0.1, "recommended": 0 }]),
                     Some(tables as usize)
                 )),
                 tables as usize,
@@ -1247,8 +1230,14 @@ mod tests {
             })
             .expect("a measurement saves");
         store
-            .save_switch_over(NaiveDate::from_ymd_opt(2026, 10, day).expect("a real day"))
-            .expect("a switch-over saves");
+            .save_goals(
+                NaiveDate::from_ymd_opt(2026, 10, day).expect("a real day"),
+                &Kept::Own(Goals {
+                    body_mass_kg: 70.0,
+                    fat_ratio: 0.1,
+                }),
+            )
+            .expect("goals save");
         store
     }
 
@@ -1301,8 +1290,8 @@ mod tests {
         let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
         let before = the_copy_of(&other);
         let spoilt = the_copy_of(&copied).replacen(
-            "\"switch_over\": [",
-            "\"switch_over\": [{ \"only\": [1], \"day\": null }, ",
+            "\"goals\": [",
+            "\"goals\": [{ \"recommended\": [1], \"effective_from\": null }, ",
             1,
         );
 
@@ -1626,13 +1615,6 @@ mod tests {
     }
 
     #[test]
-    fn no_switch_over_until_one_is_saved_and_the_latest_one_stands() {
-        honouring_for_storing_switch_over::no_switch_over_until_one_is_saved_and_the_latest_one_stands(
-            &database(),
-        );
-    }
-
-    #[test]
     fn crafted_circuits_come_back_by_name_with_their_steps_in_order() {
         honouring_for_storing_burn_records::crafted_circuits_come_back_by_name_with_their_steps_in_order(
             &database(),
@@ -1839,11 +1821,6 @@ mod tests {
                 ("Kombucha", DrinkKind::Other, 1.0)
             ]
         );
-    }
-
-    #[test]
-    fn a_forgotten_switch_over_leaves_none() {
-        honouring_for_storing_switch_over::a_forgotten_switch_over_leaves_none(&database());
     }
 
     #[test]
