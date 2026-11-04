@@ -2,12 +2,13 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check test-ui mutants mutants-all android import-draft-android export-android
+.PHONY: help dev test check test-ui mutants mutants-all android import-draft-android export-android import-android
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 BASE ?= origin/main
 DRAFT_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-draft.json
 COPY_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-export.json
+RESTORE_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-import.json
 TEST_SUPPORT := core/src/testing\.rs
 WIRING := (src-tauri/src/(main|lib|configurator)|ui/src/(main|app|tauri|screens)|ui/src/screens/[a-z_]+)\.rs
 
@@ -49,3 +50,8 @@ import-draft-android: ## push a draft backup to the phone over USB, for Settings
 export-android: ## bring the copy made in Settings from the phone over USB into exports/, stamped with its time
 	mkdir -p exports
 	adb pull $(COPY_ON_THE_PHONE) exports/grindstone-export-$$(date +%Y-%m-%d-%H%M%S).json
+
+import-android: ## push a copy from exports/ to the phone over USB, for Settings to restore: make import-android BACKUP=exports/<file>.json
+	@test -f "$(BACKUP)" || { echo "usage: make import-android BACKUP=exports/<file>.json"; exit 1; }
+	chmod 644 "$(BACKUP)"
+	adb push "$(BACKUP)" $(RESTORE_ON_THE_PHONE)
