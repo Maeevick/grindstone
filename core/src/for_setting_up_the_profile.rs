@@ -1138,4 +1138,41 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn the_recommendations_tell_the_water_a_day_from_the_lean_mass_the_body_mass_or_the_gender() {
+        let measured = |waist_cm: Option<f64>| {
+            let gather = GatherRecordsInMemory::default();
+            set_profile(&gather, &a_mans_form("2026-03-01")).expect("a profile set");
+            if let Some(waist) = waist_cm {
+                crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(waist))
+                    .expect("a measurement logs");
+            }
+            gather
+        };
+        let (unweighed, tape_measured) = (measured(None), measured(Some(84.0)));
+        let weighed = GatherRecordsInMemory::default();
+        set_profile(&weighed, &a_mans_form("2026-03-01")).expect("a profile set");
+        crate::for_tracking::log_measurement(&weighed, "2026-10-01", 80.0, None)
+            .expect("a measurement logs");
+        let water = |gather: &GatherRecordsInMemory| {
+            recommended_on(
+                gather,
+                &BurnRecordsInMemory::default(),
+                &FuelRecordsInMemory::default(),
+                "2026-10-11",
+            )
+            .ok()
+            .and_then(|advised| advised.water_ml)
+        };
+
+        assert_eq!(
+            [water(&unweighed), water(&weighed), water(&tape_measured)],
+            [
+                Some(crate::hydrate_base::default_base_ml(Some(Gender::Male))),
+                Some(35.0 * 80.0),
+                Some(the_lean_masss_turnover_share_ml(&tape_measured))
+            ]
+        );
+    }
 }
