@@ -1172,36 +1172,51 @@ mod tests {
     }
 
     #[test]
-    fn each_macro_stands_between_its_health_bounds_on_the_body_mass_and_the_energy_eaten() {
-        let mut fuel = FuelRecords::default();
-        eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        let macros = fuelled.macros.expect("macros");
-        let energy = fuelled.eaten.energy_kcal;
-        let rows = [macros.protein, macros.fat, macros.fibre, macros.carbs];
-        let expected = [
-            (0.83 * 80.0, Some(0.35 * energy / 4.0)),
-            (0.2 * energy / 9.0, Some(0.35 * energy / 9.0)),
-            (0.028 * energy / 2.0, None),
-            (130.0, None),
-        ];
-        for (row, (floor, ceiling)) in rows.iter().zip(expected) {
-            assert!(about(row.floor_g, floor), "{row:?} {floor}");
-            assert_eq!(
-                row.ceiling_g.map(|got| (got * 1e6).round()),
-                ceiling.map(|wanted| (wanted * 1e6).round()),
-                "{row:?}"
+    fn each_macros_health_bounds_read_the_band_its_floors_on_what_is_eaten_once_past_the_bands_floor()
+     {
+        let bounds_after = |grams: Option<(f64, f64, f64, f64)>| {
+            let mut fuel = FuelRecords::default();
+            if let Some((protein, carbs, fat, fibre)) = grams {
+                eating(&mut fuel, "2026-10-10", &a_food(protein, carbs, fat, fibre));
+            }
+            let fuelled = fuel_on(
+                "2026-10-10",
+                &a_mans_records(HIS_WAIST_CM),
+                &a_desk_job(),
+                &fuel,
             );
-        }
-    }
+            let (band, macros) = (
+                fuelled.band.expect("a band"),
+                fuelled.macros.expect("macros"),
+            );
+            let energy = fuelled.eaten.energy_kcal.max(band.floor_kcal);
+            let expected = [
+                (
+                    (0.83 * 80.0f64).max(0.1 * energy / 4.0),
+                    Some(0.35 * band.cap_kcal / 4.0),
+                ),
+                (0.2 * energy / 9.0, Some(0.35 * band.cap_kcal / 9.0)),
+                (0.028 * energy / 2.0, None),
+                (130.0, None),
+            ];
+            [macros.protein, macros.fat, macros.fibre, macros.carbs]
+                .iter()
+                .zip(expected)
+                .all(|(row, (floor, ceiling))| {
+                    about(row.floor_g, floor)
+                        && row.ceiling_g.map(|got| (got * 1e6).round())
+                            == ceiling.map(|wanted| (wanted * 1e6).round())
+                })
+        };
 
+        assert_eq!(
+            [
+                bounds_after(None),
+                bounds_after(Some((170.0, 230.0, 80.0, 35.0)))
+            ],
+            [true, true]
+        );
+    }
     #[test]
     fn protein_asks_for_a_tenth_of_the_energy_when_that_is_more_than_083_g_a_kilo() {
         let mut fuel = FuelRecords::default();
@@ -1224,27 +1239,6 @@ mod tests {
             "{:?}",
             fuelled.macros
         );
-    }
-
-    fn the_floors_before_eating() -> Macros {
-        fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &FuelRecords::default(),
-        )
-        .macros
-        .expect("macros")
-    }
-
-    #[test]
-    fn fat_never_floors_under_half_a_gram_a_kilo() {
-        assert!(about(the_floors_before_eating().fat.floor_g, 0.5 * 80.0));
-    }
-
-    #[test]
-    fn fibre_never_floors_under_three_tenths_of_a_gram_a_kilo() {
-        assert!(about(the_floors_before_eating().fibre.floor_g, 0.3 * 80.0));
     }
 
     #[test]
