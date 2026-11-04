@@ -126,14 +126,8 @@ pub fn keep_and_show<T: 'static>(
     });
 }
 
-/// What is in force, its own values shown in the card and, once kept, the day it was kept from.
-pub fn shown<T>(
-    in_force: InForce<T>,
-    show: impl Fn(Option<T>),
-    from: RwSignal<String>,
-    held: Held<T>,
-) {
-    let _ = from;
+/// What is in force, its own values shown in the card.
+pub fn shown<T>(in_force: InForce<T>, show: impl Fn(Option<T>), held: Held<T>) {
     let own = own(in_force);
     held_now(own.as_ref(), held);
     show(own);
@@ -143,12 +137,11 @@ pub fn shown<T>(
 pub fn shown_in_force<T: 'static>(
     reading: impl Future<Output = Result<Option<InForce<T>>, Failure>> + 'static,
     show: impl Fn(Option<T>) + 'static,
-    from: RwSignal<String>,
     held: Held<T>,
 ) {
     spawn_local(async move {
         if let Ok(Some(in_force)) = reading.await {
-            shown(in_force, show, from, held);
+            shown(in_force, show, held);
         }
     });
 }
@@ -177,7 +170,6 @@ pub fn holding<T>(say: fn(&T) -> String) -> Held<T> {
 
 #[component]
 fn GoalsCard() -> impl IntoView {
-    let from = RwSignal::new(today());
     let target_mass = RwSignal::new(String::new());
     let target_fat = RwSignal::new(String::new());
     let advised = Advised::here();
@@ -196,10 +188,10 @@ fn GoalsCard() -> impl IntoView {
         );
     };
     let held = holding(lines::goals_held);
-    shown_in_force(async { tauri::goals_on(&today()).await }, show, from, held);
+    shown_in_force(async { tauri::goals_on(&today()).await }, show, held);
     let keep = move |kept: Kept<TypedGoals>, filed: fn(&str) -> String| {
         let form = GoalsForm {
-            from: from.get_untracked(),
+            from: today(),
             kept,
         };
         let filed = filed(&form.from);
@@ -269,7 +261,6 @@ fn GoalsCard() -> impl IntoView {
 
 #[component]
 fn UsualDayCard() -> impl IntoView {
-    let from = RwSignal::new(today());
     let sitting = RwSignal::new(String::new());
     let standing = RwSignal::new(String::new());
     let moving = RwSignal::new(String::new());
@@ -289,15 +280,10 @@ fn UsualDayCard() -> impl IntoView {
         moving.set(back(|usual| usual.moving_km));
     };
     let held = holding(lines::usual_day_held);
-    shown_in_force(
-        async { tauri::usual_day_on(&today()).await },
-        show,
-        from,
-        held,
-    );
+    shown_in_force(async { tauri::usual_day_on(&today()).await }, show, held);
     let keep = move |kept: Kept<Volitional>, filed: fn(&str) -> String| {
         let form = UsualDayForm {
-            from: from.get_untracked(),
+            from: today(),
             kept,
         };
         let filed = filed(&form.from);
@@ -374,7 +360,6 @@ fn UsualDayCard() -> impl IntoView {
 
 #[component]
 fn BurnTargetCard() -> impl IntoView {
-    let from = RwSignal::new(today());
     let kcal = RwSignal::new(String::new());
     let unweighed = RwSignal::new(false);
     let advised = Advised::here();
@@ -384,14 +369,14 @@ fn BurnTargetCard() -> impl IntoView {
     let held = holding(lines::burn_target_held);
     spawn_local(async move {
         match tauri::burn_target_on(&today()).await {
-            Ok(Some(target)) => shown(target, show, from, held),
+            Ok(Some(target)) => shown(target, show, held),
             Ok(None) => unweighed.set(true),
             Err(_) => {}
         }
     });
     let keep = move |kept: Kept<f64>, filed: fn(&str) -> String| {
         let form = BurnTargetForm {
-            from: from.get_untracked(),
+            from: today(),
             kept,
         };
         let filed = filed(&form.from);
@@ -452,7 +437,6 @@ fn BurnTargetCard() -> impl IntoView {
 
 #[component]
 fn FuelTargetsCard() -> impl IntoView {
-    let from = RwSignal::new(today());
     let protein = RwSignal::new(String::new());
     let fat = RwSignal::new(String::new());
     let fibre = RwSignal::new(String::new());
@@ -469,15 +453,10 @@ fn FuelTargetsCard() -> impl IntoView {
         carbs.set(back(targets.carbs_g_per_kg));
     };
     let held = holding(lines::fuel_targets_held);
-    shown_in_force(
-        async { tauri::fuel_targets_on(&today()).await },
-        show,
-        from,
-        held,
-    );
+    shown_in_force(async { tauri::fuel_targets_on(&today()).await }, show, held);
     let keep = move |kept: Kept<FuelTargets>, filed: fn(&str) -> String| {
         let form = FuelTargetsForm {
-            from: from.get_untracked(),
+            from: today(),
             kept,
         };
         let filed = filed(&form.from);
@@ -565,7 +544,6 @@ fn FuelTargetsCard() -> impl IntoView {
 
 #[component]
 pub fn ProfileScreen() -> impl IntoView {
-    let from = RwSignal::new(today());
     let birthday = RwSignal::new(String::new());
     let gender = RwSignal::new(Gender::Male);
     let height = RwSignal::new(String::new());
@@ -610,7 +588,7 @@ pub fn ProfileScreen() -> impl IntoView {
             return;
         };
         let form = ProfileForm {
-            from: from.get_untracked(),
+            from: today(),
             birthday: birthday.get_untracked(),
             gender: gender.get_untracked(),
             height_cm: height_cm.unwrap_or(0.0),

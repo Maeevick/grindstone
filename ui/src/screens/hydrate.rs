@@ -411,7 +411,6 @@ pub fn DrinksList(drinks: RwSignal<Vec<Drink>>, said: RwSignal<Option<String>>) 
 #[component]
 pub fn HydrateTargetCard() -> impl IntoView {
     let recorded = Recorded::here();
-    let from = RwSignal::new(today());
     let water = RwSignal::new(String::new());
     let advised = Advised::here();
     let said = RwSignal::new(None::<String>);
@@ -420,12 +419,11 @@ pub fn HydrateTargetCard() -> impl IntoView {
     shown_in_force(
         async { tauri::hydrate_target_on(&today()).await },
         show,
-        from,
         held,
     );
     let keep = move |kept: Kept<f64>, filed: fn(&str) -> String| {
         let form = HydrateTargetForm {
-            from: from.get_untracked(),
+            from: today(),
             kept,
         };
         let filed = filed(&form.from);
