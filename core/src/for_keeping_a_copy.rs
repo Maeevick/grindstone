@@ -2,17 +2,18 @@ use chrono::NaiveDate;
 
 use crate::failure::Failure;
 use crate::for_copying_records::{ForCopyingRecords, RecordsCopy};
+use crate::refusal::Refusal;
 
 /// A copy of every record, dated on the day it is kept.
 pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<RecordsCopy, Failure> {
-    let day = NaiveDate::parse_from_str(today, "%Y-%m-%d").expect("a real day");
+    let day = NaiveDate::parse_from_str(today, "%Y-%m-%d")
+        .map_err(|_| Failure::Refused(Refusal::NotADate))?;
     Ok(store.copied(day)?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::refusal::Refusal;
     use crate::testing::{BrokenCopies, CopiedRecords};
 
     #[test]
