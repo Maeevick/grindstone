@@ -71,5 +71,5 @@ The screen calls the app's commands through Tauri. Each command hands over to on
 
 | Document | Use it to |
 | --- | --- |
-| [GETTING_STARTED.md](GETTING_STARTED.md) | run and test the app on the Mac |
+| [GETTING_STARTED.md](GETTING_STARTED.md) | run and test the app locally |
 | [RUNBOOK.md](RUNBOOK.md) | go from nothing to the app installed on the phone, toolchain and USB connection included, and update it |
