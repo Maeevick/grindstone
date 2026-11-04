@@ -3,6 +3,7 @@ use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown};
 use grind_core::food::{Nutrients, Unit};
+use grind_core::for_copying_records::Counted;
 use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_week::Habit;
@@ -519,6 +520,17 @@ pub const FUEL_TARGETS_HINT: &str = "Your targets, in grams a day per kilo of bo
 
 pub const UNREADABLE: &str =
     "That is no number I can read. Digits, with a point or a comma, please.";
+
+pub const COPY_HOW: &str = "Every record, written to grindstone-export.json in the app's Documents folder. \
+    make export-android brings it to the Mac over USB.";
+
+pub fn copied(copy: Counted) -> String {
+    format!(
+        "Copied {} from {}. Run make export-android now.",
+        counted(copy.records, "record", "records"),
+        counted(copy.tables, "table", "tables")
+    )
+}
 
 pub const ERASE_WARNING: &str = "Erasing removes every record on this device: measurements, profile, goals, \
     foods, meals, intakes, drinks, workouts, circuits and settings. There is no undo. The app starts again \

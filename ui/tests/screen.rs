@@ -225,7 +225,8 @@ async fn each_profile_card_gives_its_day_a_row_and_shares_the_next_between_its_f
 }
 
 #[wasm_bindgen_test]
-async fn the_profile_ends_past_a_divider_on_the_settings_the_drafts_records_then_the_danger_zone() {
+async fn the_profile_ends_past_a_divider_on_the_settings_the_vaults_copy_the_drafts_records_then_the_danger_zone()
+ {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
@@ -243,8 +244,13 @@ async fn the_profile_ends_past_a_divider_on_the_settings_the_drafts_records_then
 
     let headings = texts_in_order(&screen, "h2");
     assert_eq!(
-        headings[headings.len().saturating_sub(3)..],
-        ["Settings", "The draft's records", "Danger zone"],
+        headings[headings.len().saturating_sub(4)..],
+        [
+            "Settings",
+            "The vault's copy",
+            "The draft's records",
+            "Danger zone"
+        ],
         "{headings:?}"
     );
     found::<Element>(&screen, "section#draft button.import");

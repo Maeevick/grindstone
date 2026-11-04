@@ -24,6 +24,7 @@ pub fn Settings() -> impl IntoView {
         <header class="screen-top">
             <h2>"Settings"</h2>
         </header>
+        <VaultsCopy />
         <section class="card" id="draft">
             <h2>"The draft's records"</h2>
             <p class="hint">{lines::IMPORT_HOW}</p>
@@ -33,6 +34,29 @@ pub fn Settings() -> impl IntoView {
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
         </section>
         <DangerZone />
+    }
+}
+
+#[component]
+fn VaultsCopy() -> impl IntoView {
+    let said = RwSignal::new(None::<String>);
+    let copy = move |_| {
+        spawn_local(async move {
+            said.set(Some(match tauri::keep_a_copy(&today()).await {
+                Ok(counted) => lines::copied(counted),
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
+    view! {
+        <section class="card" id="copy">
+            <h2>"The vault's copy"</h2>
+            <p class="hint">{lines::COPY_HOW}</p>
+            <button class="cta copy" type="button" on:click=copy>
+                "Copy the records"
+            </button>
+            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+        </section>
     }
 }
 
