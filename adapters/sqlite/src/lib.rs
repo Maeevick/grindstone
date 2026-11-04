@@ -8,6 +8,7 @@ use grind_core::drinking::Drinking;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
 use grind_core::food::{Food, Nutrients, Unit};
+use grind_core::for_copying_records::{ForCopyingRecords, RecordsCopy};
 use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
@@ -994,6 +995,17 @@ impl ForStoringHydrateRecords for Sqlite {
     }
 }
 
+impl ForCopyingRecords for Sqlite {
+    fn copied(&self, on: NaiveDate) -> Result<RecordsCopy, Broken> {
+        let _ = on;
+        Ok(RecordsCopy {
+            text: String::new(),
+            tables: 0,
+            records: 0,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1033,6 +1045,59 @@ mod tests {
 
         std::fs::remove_file(&file).expect("the test database is removed");
         assert_eq!(reopened, Ok(vec![measured]));
+    }
+
+    #[test]
+    fn a_copy_holds_every_table_with_its_rows_and_the_schema_version() {
+        let database = database();
+        database
+            .save_measurement(&Measurement {
+                day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+                body_mass_kg: 80.0,
+                waist_cm: None,
+            })
+            .expect("a measurement saves");
+        database
+            .save_switch_over(NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"))
+            .expect("a switch-over saves");
+        let tables: i64 = database
+            .0
+            .query_row(
+                "select count(*) from sqlite_master where type = 'table' and name not like 'sqlite_%'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("the tables count");
+
+        let copy = database
+            .copied(NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"))
+            .expect("a copy");
+
+        let read: Option<serde_json::Value> = serde_json::from_str(&copy.text).ok();
+        assert_eq!(
+            (
+                read.map(|read| (
+                    read["schema_version"].clone(),
+                    read["exported_on"].clone(),
+                    read["tables"]["measurements"].clone(),
+                    read["tables"]["switch_over"].clone(),
+                    read["tables"].as_object().map(serde_json::Map::len)
+                )),
+                copy.tables,
+                copy.records
+            ),
+            (
+                Some((
+                    serde_json::json!(MIGRATIONS.len()),
+                    serde_json::json!("2026-11-04"),
+                    serde_json::json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": null }]),
+                    serde_json::json!([{ "only": 1, "day": "2026-10-10" }]),
+                    Some(tables as usize)
+                )),
+                tables as usize,
+                2
+            )
+        );
     }
 
     #[test]
