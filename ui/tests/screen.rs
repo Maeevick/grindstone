@@ -533,10 +533,14 @@ async fn a_figure_typed_alone_keeps_the_others_placeholders() {
     assert_eq!(
         (asked("set_goals"), asked("set_usual_day")),
         (
-            r#"{"form":{"from":"2026-10-10","kept":{"Own":{"body_mass_kg":70,"fat_percentage":16.5}}}}"#
-                .to_string(),
-            r#"{"form":{"from":"2026-09-01","kept":{"Own":{"sitting_min":600,"standing_min":120,"moving_km":6}}}}"#
-                .to_string()
+            format!(
+                r#"{{"form":{{"from":"{}","kept":{{"Own":{{"body_mass_kg":70,"fat_percentage":16.5}}}}}}}}"#,
+                grind_ui::screens::today()
+            ),
+            format!(
+                r#"{{"form":{{"from":"{}","kept":{{"Own":{{"sitting_min":600,"standing_min":120,"moving_km":6}}}}}}}}"#,
+                grind_ui::screens::today()
+            )
         )
     );
 }

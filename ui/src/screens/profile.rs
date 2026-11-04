@@ -133,9 +133,7 @@ pub fn shown<T>(
     from: RwSignal<String>,
     held: Held<T>,
 ) {
-    if let Some(kept_from) = in_force.from {
-        from.set(kept_from.to_string());
-    }
+    let _ = from;
     let own = own(in_force);
     held_now(own.as_ref(), held);
     show(own);
@@ -584,9 +582,8 @@ pub fn ProfileScreen() -> impl IntoView {
         }
     });
     spawn_local(async move {
-        if let Ok(Some((kept_from, profile))) = tauri::profile_on(&today()).await {
+        if let Ok(Some((_, profile))) = tauri::profile_on(&today()).await {
             held.set(lines::profile_held(&profile));
-            from.set(kept_from.to_string());
             birthday.set(profile.birthday.to_string());
             gender.set(profile.gender);
             height.set(profile.height_cm.to_string());
