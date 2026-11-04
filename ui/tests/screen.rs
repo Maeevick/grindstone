@@ -4890,6 +4890,28 @@ async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_
 }
 
 #[wasm_bindgen_test]
+async fn the_vaults_copy_tells_how_many_records_it_copied_and_how_to_bring_them_to_the_mac() {
+    answering(r#"{ "keep_a_copy": { "tables": 18, "records": 2431 } }"#);
+    let screen = screen();
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <Settings />
+            </Router>
+        }
+    });
+    settled().await;
+
+    found::<web_sys::HtmlElement>(&screen, "section#copy button.copy").click();
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, "section#copy p.said"),
+        "Copied 2431 records from 18 tables. Run make export-android now."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_danger_zone_erases_everything_once_erase_is_typed() {
     answering(r#"{ "erase_everything": null }"#);
     let screen = screen();
