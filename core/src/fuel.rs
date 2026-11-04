@@ -107,12 +107,10 @@ const CARBS_FLOOR_G: f64 = 130.0;
 const LEAST_PROTEIN_G_PER_KG: f64 = 0.83;
 const LEAST_PROTEIN_SHARE: f64 = 0.10;
 const MOST_PROTEIN_SHARE: f64 = 0.35;
-const LEAST_FAT_G_PER_KG: f64 = 0.5;
 const LEAST_FAT_SHARE: f64 = 0.20;
 const MOST_FAT_SHARE: f64 = 0.35;
 /// 14 g per 1000 kcal at 2 kcal a gram.
 const LEAST_FIBRE_SHARE: f64 = 0.028;
-const LEAST_FIBRE_G_PER_KG: f64 = 0.3;
 const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
@@ -238,46 +236,43 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
     }
 }
 
-/// Each macro's health bounds and its goal: the bounds read against the body mass and the energy eaten so far, so the table warns as
-/// the day goes, red for the moment, green once the rest of the day is eaten; the goal from the target painted
-/// per kilo of body mass, none until one is.
+/// Each macro's health bounds and its goal. The floors are shares of the energy eaten, never less than the
+/// band's floor, the least the day must hold, so they stand before the first meal and rise with what is eaten
+/// past it; the ceilings, shares of the band's cap, the most the day may hold; the goal, the target painted per
+/// kilo of body mass, none until one is.
 ///
-/// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), and at least 10% of the
-///   energy, at most 35%, the Institute of Medicine's 10 to 35% (2005).
-/// - Fat at least 20% and at most 35% of the energy, EFSA's reference range (2010), and never under half a gram
-///   a kilo of body mass, so the floor never falls to nothing before eating.
+/// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), and 10% of the energy, at
+///   most 35%, the Institute of Medicine's 10 to 35% (2005).
+/// - Fat at least 20% and at most 35% of the energy, EFSA's reference range (2010).
 /// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
-///   2 kcal a gram, and never under three tenths of a gram a kilo of body mass; no ceiling, none being set.
+///   2 kcal a gram; no ceiling, none being set.
 /// - Carbohydrates at least 130 g, the Institute of Medicine's (2005); no ceiling, the energy's cap telling what
 ///   is too much.
-fn macros_for(eaten: Nutrients, body: &Body, targets: FuelTargets) -> Macros {
-    let energy = eaten.energy_kcal;
+fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -> Macros {
+    let at_least = eaten.energy_kcal.max(band.floor_kcal);
+    let at_most = band.cap_kcal;
     let goal = |target: Option<f64>| target.map(|g_per_kg| g_per_kg * body.mass_kg);
     Macros {
         protein: row(
             eaten.protein_g,
             (
                 (LEAST_PROTEIN_G_PER_KG * body.mass_kg)
-                    .max(LEAST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
-                Some(MOST_PROTEIN_SHARE * energy / PROTEIN_KCAL_PER_G),
+                    .max(LEAST_PROTEIN_SHARE * at_least / PROTEIN_KCAL_PER_G),
+                Some(MOST_PROTEIN_SHARE * at_most / PROTEIN_KCAL_PER_G),
             ),
             goal(targets.protein_g_per_kg),
         ),
         fat: row(
             eaten.fat_g,
             (
-                (LEAST_FAT_G_PER_KG * body.mass_kg).max(LEAST_FAT_SHARE * energy / FAT_KCAL_PER_G),
-                Some(MOST_FAT_SHARE * energy / FAT_KCAL_PER_G),
+                LEAST_FAT_SHARE * at_least / FAT_KCAL_PER_G,
+                Some(MOST_FAT_SHARE * at_most / FAT_KCAL_PER_G),
             ),
             goal(targets.fat_g_per_kg),
         ),
         fibre: row(
             eaten.fibre_g,
-            (
-                (LEAST_FIBRE_G_PER_KG * body.mass_kg)
-                    .max(LEAST_FIBRE_SHARE * energy / FIBRE_KCAL_PER_G),
-                None,
-            ),
+            (LEAST_FIBRE_SHARE * at_least / FIBRE_KCAL_PER_G, None),
             goal(targets.fibre_g_per_kg),
         ),
         carbs: row(
@@ -334,7 +329,7 @@ impl Ledgers<'_> {
                 deficit_before(day, gaps),
                 digested(eaten),
             );
-            (band, macros_for(eaten, &body, targets), budget)
+            (band, macros_for(eaten, &body, band, targets), budget)
         });
         Fuel {
             day,
