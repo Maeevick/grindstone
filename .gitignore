@@ -6,6 +6,9 @@ target
 # The screen built by Trunk
 /ui/dist
 
+# The copies of the records brought from the phone: personal data
+/exports/
+
 # Android signing: the keystore and its password stay off the repository
 /src-tauri/gen/android/keystore.properties
 *.jks

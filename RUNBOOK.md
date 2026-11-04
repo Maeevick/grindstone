@@ -283,6 +283,16 @@ Then, in the app, open the Profile and scroll to its settings, then **Import the
 
 The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records. It can run again with a newer backup until the switch.
 
+## 12. The vault's copy
+
+In the app, open the Profile, scroll to its settings, then **Copy the records**. The app writes every record to `grindstone-export.json` in its Documents folder and tells how many records and tables it copied. With the phone plugged in:
+
+```sh
+make export-android
+```
+
+The copy lands in `exports/`, stamped with the time it was pulled, and stays out of git: it is personal data. Pull it straight away: uninstalling the app wipes its Documents folder.
+
 ## Update
 
 ```sh
