@@ -117,6 +117,9 @@ const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
 const NARROWEST_BAND_SHARE: f64 = 0.1;
+/// A small surplus for a gain, a twentieth of the maintenance: Helms E. R. et al. (2023), Sports Med Open 9:17,
+/// a 5% surplus building as much lean mass as 15% for less fat.
+const SURPLUS_SHARE: f64 = 0.05;
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
     summed(intakes.iter().map(|(_, eaten)| eaten.nutrients))
@@ -136,8 +139,9 @@ fn digested(eaten: Nutrients) -> Eaten {
     }
 }
 
-/// The day's band around its maintenance, the budget plus the burn: the floor is what the fat left to lose,
-/// above the fat of the goals, can spare below it; the cap, what the body of the goals would spend, when more.
+/// The day's band around its maintenance, the budget plus the burn: the floor is what the whole fat mass can
+/// spare below it; the cap, a twentieth above it, the small surplus of a gain; the goal tick, what the fat left
+/// to lose above the fat of the goals can spare.
 /// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
 /// minimum per kilo of lean mass plus the burn.
 ///
@@ -168,19 +172,8 @@ fn band_for(
         digested,
     );
     let maintenance_kcal = budget.kcal() + burnt_kcal;
-    let goals_kcal = daily_energy_budget(
-        body.age,
-        aims.lean_mass_kg,
-        aims.fat_mass_kg(),
-        body.gender,
-        off_the_clock,
-        deficit,
-        digested,
-    )
-    .kcal()
-        + burnt_kcal;
     let fat_left_kg = (body.fat_kg - aims.fat_mass_kg()).max(0.0);
-    let gain_cap_kcal = maintenance_kcal.max(goals_kcal);
+    let gain_cap_kcal = (1.0 + SURPLUS_SHARE) * maintenance_kcal;
     let narrowest_kcal = NARROWEST_BAND_SHARE * maintenance_kcal;
     let (floor_kcal, cap_kcal) = widened(
         (
@@ -583,7 +576,7 @@ mod tests {
         let burnt = burnt_by(&walked, 80.0);
         assert!(fuelled.band.is_some_and(|band| {
             about(band.maintenance_kcal, budget.kcal() + burnt)
-                && about(band.cap_kcal, budget.kcal() + burnt)
+                && about(band.cap_kcal, 1.05 * (budget.kcal() + burnt))
         }));
         assert_eq!(fuelled.budget, Some(budget));
     }
@@ -670,10 +663,13 @@ mod tests {
         let at_the_goal = band_aiming_at(80.0, fat_kg);
         let a_kilo_of_fat_away = band_aiming_at(79.0, fat_kg - 1.0);
 
-        let middle = maintenance - 290.0 / 4.184 / 2.0;
+        let middle = |spared: f64| maintenance + (0.05 * maintenance - spared) / 2.0;
         assert!(
-            about(at_the_goal, 0.95 * maintenance)
-                && about(a_kilo_of_fat_away, middle - 0.05 * maintenance),
+            about(at_the_goal, middle(0.0) - 0.05 * maintenance)
+                && about(
+                    a_kilo_of_fat_away,
+                    middle(290.0 / 4.184) - 0.05 * maintenance
+                ),
             "{at_the_goal} {a_kilo_of_fat_away}"
         );
     }
@@ -751,7 +747,8 @@ mod tests {
         .band
         .expect("a band");
 
-        let middle = band.maintenance_kcal - 290.0 / 4.184 * fat_kg / 2.0;
+        let middle =
+            band.maintenance_kcal + (0.05 * band.maintenance_kcal - 290.0 / 4.184 * fat_kg) / 2.0;
         assert!(
             about(band.floor_kcal, middle - 0.05 * band.maintenance_kcal)
                 && about(band.cap_kcal, middle + 0.05 * band.maintenance_kcal),
@@ -971,11 +968,14 @@ mod tests {
         }
     }
 
-    fn cap_with(deficit: Deficit) -> f64 {
-        cap_eating(deficit, (0.0, 0.0, 0.0, 0.0))
+    fn maintenance_with(deficit: Deficit) -> f64 {
+        maintenance_eating(deficit, (0.0, 0.0, 0.0, 0.0))
     }
 
-    fn cap_eating(deficit: Deficit, (protein, carb, fat, fib): (f64, f64, f64, f64)) -> f64 {
+    fn maintenance_eating(
+        deficit: Deficit,
+        (protein, carb, fat, fib): (f64, f64, f64, f64),
+    ) -> f64 {
         let (lean_kg, fat_kg) = the_body();
         daily_energy_budget(
             41,
@@ -999,7 +999,7 @@ mod tests {
 
     fn gap_on(date: &str, fuel: &FuelRecords) -> f64 {
         let fuelled = fuel_on(date, &a_mans_records(HIS_WAIST_CM), &a_desk_job(), fuel);
-        cap_of(&fuelled) - fuelled.eaten.energy_kcal
+        maintenance_of(&fuelled) - fuelled.eaten.energy_kcal
     }
 
     #[test]
@@ -1020,12 +1020,10 @@ mod tests {
 
         let fuelled = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &fuel);
 
-        assert!(
-            fuelled.band.is_some_and(|band| about(
-                band.maintenance_kcal,
-                cap_with(deficit_of(mean_gap, 1))
-            ))
-        );
+        assert!(fuelled.band.is_some_and(|band| about(
+            band.maintenance_kcal,
+            maintenance_with(deficit_of(mean_gap, 1))
+        )));
     }
 
     #[test]
@@ -1042,7 +1040,10 @@ mod tests {
             &fuel,
         );
 
-        assert!(about(cap_of(&fuelled), cap_with(deficit_of(mean_gap, 1))));
+        assert!(about(
+            maintenance_of(&fuelled),
+            maintenance_with(deficit_of(mean_gap, 1))
+        ));
     }
 
     #[test]
@@ -1060,8 +1061,8 @@ mod tests {
         );
 
         assert!(about(
-            cap_of(&fuelled),
-            cap_eating(deficit_of(gap, 0), (170.0, 230.0, 80.0, 35.0))
+            maintenance_of(&fuelled),
+            maintenance_eating(deficit_of(gap, 0), (170.0, 230.0, 80.0, 35.0))
         ));
     }
 
@@ -1084,11 +1085,17 @@ mod tests {
             &fuel,
         );
 
-        assert!(about(cap_of(&fuelled), cap_with(deficit_of(mean_gap, 4))));
+        assert!(about(
+            maintenance_of(&fuelled),
+            maintenance_with(deficit_of(mean_gap, 4))
+        ));
     }
 
-    fn cap_of(fuelled: &Fuel) -> f64 {
-        fuelled.band.map(|band| band.cap_kcal).unwrap_or_default()
+    fn maintenance_of(fuelled: &Fuel) -> f64 {
+        fuelled
+            .band
+            .map(|band| band.maintenance_kcal)
+            .unwrap_or_default()
     }
 
     #[test]
@@ -1109,7 +1116,10 @@ mod tests {
             &feasting,
         );
 
-        assert!(about(cap_of(&fuelled), cap_with(deficit_of(0.0, 0))));
+        assert!(about(
+            maintenance_of(&fuelled),
+            maintenance_with(deficit_of(0.0, 0))
+        ));
     }
 
     #[test]
@@ -1122,7 +1132,7 @@ mod tests {
             &a_desk_job(),
             &fuel,
         );
-        let gap = cap_of(&eve) - eve.eaten.energy_kcal;
+        let gap = maintenance_of(&eve) - eve.eaten.energy_kcal;
 
         let fuelled = fuel_on(
             "2026-10-10",
@@ -1131,7 +1141,10 @@ mod tests {
             &fuel,
         );
 
-        assert!(about(cap_of(&fuelled), cap_with(deficit_of(gap, 1))));
+        assert!(about(
+            maintenance_of(&fuelled),
+            maintenance_with(deficit_of(gap, 1))
+        ));
     }
 
     #[test]
@@ -1141,7 +1154,7 @@ mod tests {
         eating(&mut fuel, "2026-10-09", &a_food(120.0, 80.0, 30.0, 10.0));
         let gap_on = |date: &str| {
             let fuelled = fuel_on(date, &a_mans_records(HIS_WAIST_CM), &a_desk_job(), &fuel);
-            cap_of(&fuelled) - fuelled.eaten.energy_kcal
+            maintenance_of(&fuelled) - fuelled.eaten.energy_kcal
         };
         let mean_gap = (gap_on("2026-10-02") + gap_on("2026-10-09")) / 2.0;
 
@@ -1152,7 +1165,10 @@ mod tests {
             &fuel,
         );
 
-        assert!(about(cap_of(&fuelled), cap_with(deficit_of(mean_gap, 2))));
+        assert!(about(
+            maintenance_of(&fuelled),
+            maintenance_with(deficit_of(mean_gap, 2))
+        ));
     }
 
     #[test]
