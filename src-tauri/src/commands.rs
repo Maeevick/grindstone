@@ -574,15 +574,27 @@ mod tests {
     use tauri::webview::InvokeRequest;
     use tauri::{App, WebviewWindow, WebviewWindowBuilder};
 
-    fn launched_with(
-        backup: PathBuf,
+    /// The files the app reads and writes on the phone, nowhere unless a test puts one somewhere.
+    struct Files {
+        draft: PathBuf,
         copy: PathBuf,
-    ) -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
+    }
+
+    impl Files {
+        fn nowhere() -> Self {
+            Self {
+                draft: PathBuf::from("/nowhere/grindstone-draft.json"),
+                copy: PathBuf::from("/nowhere/grindstone-export.json"),
+            }
+        }
+    }
+
+    fn launched_with(files: Files) -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
         let records = Sqlite::in_memory().expect("an in-memory database opens");
         let app = mock_builder()
             .manage(Records(Mutex::new(records)))
-            .manage(DraftBackup(backup))
-            .manage(CopyFile(copy))
+            .manage(DraftBackup(files.draft))
+            .manage(CopyFile(files.copy))
             .invoke_handler(tauri::generate_handler![
                 log_measurement,
                 gather_week,
@@ -657,10 +669,7 @@ mod tests {
     }
 
     fn launched() -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
-        launched_with(
-            PathBuf::from("/nowhere/grindstone-draft.json"),
-            PathBuf::from("/nowhere/grindstone-export.json"),
-        )
+        launched_with(Files::nowhere())
     }
 
     fn invoke(
@@ -797,10 +806,10 @@ mod tests {
                    "hip": null, "weight": 72.15, "waist": 80.5, "weight_target": 70.0, "fat_target": 10.0 }] }"#,
         )
         .expect("a backup pushed");
-        let (_app, screen) = launched_with(
-            backup.clone(),
-            PathBuf::from("/nowhere/grindstone-export.json"),
-        );
+        let (_app, screen) = launched_with(Files {
+            draft: backup.clone(),
+            ..Files::nowhere()
+        });
 
         let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
@@ -817,10 +826,10 @@ mod tests {
     fn keeping_a_copy_writes_it_into_the_documents_folder() {
         let copy =
             std::env::temp_dir().join(format!("grind-tauri-copy-{}.json", std::process::id()));
-        let (_app, screen) = launched_with(
-            PathBuf::from("/nowhere/grindstone-draft.json"),
-            copy.clone(),
-        );
+        let (_app, screen) = launched_with(Files {
+            copy: copy.clone(),
+            ..Files::nowhere()
+        });
         invoke(
             &screen,
             "log_measurement",
@@ -875,10 +884,10 @@ mod tests {
             std::process::id()
         ));
         std::fs::write(&backup, "{ not a backup").expect("a backup pushed");
-        let (_app, screen) = launched_with(
-            backup.clone(),
-            PathBuf::from("/nowhere/grindstone-export.json"),
-        );
+        let (_app, screen) = launched_with(Files {
+            draft: backup.clone(),
+            ..Files::nowhere()
+        });
 
         let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
