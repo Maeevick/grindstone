@@ -433,6 +433,9 @@ mod tests {
         };
         set_profile(
             &logged.gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
             &ProfileForm {
                 from: "2026-03-01".into(),
                 birthday: "1985-04-12".into(),
@@ -551,7 +554,14 @@ mod tests {
             neck_cm: 38.5,
             hip_cm: None,
         };
-        set_profile(&gather, &profile).expect("a profile set");
+        set_profile(
+            &gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &profile,
+        )
+        .expect("a profile set");
         log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");
 
         let chart = gather_chart(&gather, "2026-10-10", Window::Days30).expect("a chart");

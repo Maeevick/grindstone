@@ -173,6 +173,9 @@ mod tests {
             };
             set_profile(
                 &records.gather,
+                &records.burn,
+                &records.fuel,
+                &records.hydrate,
                 &ProfileForm {
                     from: "2026-03-01".into(),
                     birthday: "1985-04-12".into(),
@@ -428,6 +431,9 @@ mod tests {
             };
             set_profile(
                 &records.gather,
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
                 &ProfileForm {
                     from: "2026-03-01".into(),
                     birthday: "1985-04-12".into(),

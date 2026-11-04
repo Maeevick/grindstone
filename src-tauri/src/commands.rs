@@ -120,7 +120,7 @@ pub fn remove_measurement(records: State<Records>, date: String) -> Result<Gathe
 #[tauri::command(rename_all = "snake_case")]
 pub fn set_profile(records: State<Records>, form: ProfileForm) -> Result<Profile, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_profile(&*records, &form)
+    for_setting_up_the_profile::set_profile(&*records, &*records, &*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]

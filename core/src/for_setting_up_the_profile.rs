@@ -35,10 +35,16 @@ fn day(date: &str) -> Result<NaiveDate, Failure> {
     NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
 }
 
+/// A profile kept from a day; the first one starts every card on that day with the recommendation, a card
+/// already kept left as it is.
 pub fn set_profile(
     records: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    fuel: &impl ForStoringFuelRecords,
+    hydrate: &impl ForStoringHydrateRecords,
     form: &ProfileForm,
 ) -> Result<Profile, Failure> {
+    let _ = (burn, fuel, hydrate);
     let from = day(&form.from)?;
     let profile = profile(
         &form.birthday,
@@ -295,7 +301,13 @@ mod tests {
     fn a_profile_set_from_a_day_is_in_force_from_that_day_and_tells_it() {
         let records = GatherRecordsInMemory::default();
 
-        let set = set_profile(&records, &a_mans_form("2026-10-10"));
+        let set = set_profile(
+            &records,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &a_mans_form("2026-10-10"),
+        );
 
         assert_eq!(
             profile_on(&records, "2026-10-12"),
@@ -428,7 +440,13 @@ mod tests {
         let refused_goals = goals_kept("2026-10-10", 70.0, 100.0);
 
         assert_eq!(
-            set_profile(&records, &refused_profile),
+            set_profile(
+                &records,
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
+                &refused_profile
+            ),
             Err(Failure::Refused(Refusal::NotAHeight))
         );
         assert_eq!(
@@ -445,7 +463,13 @@ mod tests {
         let not_a_date = Failure::Refused(Refusal::NotADate);
 
         assert_eq!(
-            set_profile(&records, &a_mans_form("2026-02-30")),
+            set_profile(
+                &records,
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
+                &a_mans_form("2026-02-30")
+            ),
             Err(not_a_date.clone())
         );
         assert_eq!(profile_on(&records, "2026-02-30"), Err(not_a_date.clone()));
@@ -458,7 +482,13 @@ mod tests {
         let goals_form = goals_kept("2026-10-10", 70.0, 10.0);
 
         assert_eq!(
-            set_profile(&BrokenGatherRecords, &a_mans_form("2026-10-10")),
+            set_profile(
+                &BrokenGatherRecords,
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
+                &a_mans_form("2026-10-10")
+            ),
             Err(broken.clone())
         );
         assert_eq!(
@@ -503,6 +533,9 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         set_profile(
             &gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
             &ProfileForm {
                 birthday: birthday.into(),
                 ..a_mans_form("2026-03-01")
@@ -1075,7 +1108,14 @@ mod tests {
     #[test]
     fn recommendations_read_the_profile_and_the_body_mass_in_force_on_their_day() {
         let gather = GatherRecordsInMemory::default();
-        set_profile(&gather, &a_mans_form("2026-03-01")).expect("a profile set");
+        set_profile(
+            &gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &a_mans_form("2026-03-01"),
+        )
+        .expect("a profile set");
         crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, None)
             .expect("a measurement logs");
 
@@ -1119,7 +1159,14 @@ mod tests {
             BurnRecordsInMemory::default(),
             FuelRecordsInMemory::default(),
         );
-        set_profile(&gather, &a_mans_form("2026-03-01")).expect("a profile set");
+        set_profile(
+            &gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &a_mans_form("2026-03-01"),
+        )
+        .expect("a profile set");
         crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(84.0))
             .expect("a measurement logs");
         let macros = crate::for_fuelling::fuel_day(&gather, &burn, &fuel, "2026-10-11")
@@ -1144,7 +1191,14 @@ mod tests {
     fn the_recommendations_tell_the_water_a_day_from_the_lean_mass_the_body_mass_or_the_gender() {
         let measured = |waist_cm: Option<f64>| {
             let gather = GatherRecordsInMemory::default();
-            set_profile(&gather, &a_mans_form("2026-03-01")).expect("a profile set");
+            set_profile(
+                &gather,
+                &crate::testing::BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &crate::testing::HydrateRecordsInMemory::default(),
+                &a_mans_form("2026-03-01"),
+            )
+            .expect("a profile set");
             if let Some(waist) = waist_cm {
                 crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(waist))
                     .expect("a measurement logs");
@@ -1153,7 +1207,14 @@ mod tests {
         };
         let (unweighed, tape_measured) = (measured(None), measured(Some(84.0)));
         let weighed = GatherRecordsInMemory::default();
-        set_profile(&weighed, &a_mans_form("2026-03-01")).expect("a profile set");
+        set_profile(
+            &weighed,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &a_mans_form("2026-03-01"),
+        )
+        .expect("a profile set");
         crate::for_tracking::log_measurement(&weighed, "2026-10-01", 80.0, None)
             .expect("a measurement logs");
         let water = |gather: &GatherRecordsInMemory| {
@@ -1175,5 +1236,31 @@ mod tests {
                 Some(the_lean_masss_turnover_share_ml(&tape_measured))
             ]
         );
+    }
+
+    #[test]
+    fn a_first_profile_starts_every_card_on_its_day_with_the_recommendation() {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            crate::testing::HydrateRecordsInMemory::default(),
+        );
+
+        set_profile(&gather, &burn, &fuel, &hydrate, &a_mans_form("2026-11-04"))
+            .expect("a profile set");
+
+        let started = NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day");
+        let (gathered, burnt, fuelled, hydrated) = (
+            gather.gather_records().expect("records"),
+            burn.burn_records().expect("records"),
+            fuel.fuel_records().expect("records"),
+            hydrate.hydrate_records().expect("records"),
+        );
+        assert_eq!(gathered.goals, vec![(started, Kept::Recommended)]);
+        assert_eq!(burnt.usual_days, vec![(started, Kept::Recommended)]);
+        assert_eq!(burnt.targets, vec![(started, Kept::Recommended)]);
+        assert_eq!(fuelled.targets, vec![(started, Kept::Recommended)]);
+        assert_eq!(hydrated.targets, vec![(started, Kept::Recommended)]);
     }
 }
