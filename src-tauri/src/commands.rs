@@ -16,6 +16,7 @@ use grind_core::for_cataloguing::{self, FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
     self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
+use grind_core::for_copying_records::Counted;
 use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_importing::{self, Imported};
@@ -46,6 +47,9 @@ use tauri::State;
 pub struct Records(pub Mutex<Sqlite>);
 
 pub struct DraftBackup(pub PathBuf);
+
+/// Where a copy of the records lands: on the phone, the app's Documents folder, which USB reaches.
+pub struct CopyFile(pub PathBuf);
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn log_measurement(
@@ -156,6 +160,19 @@ pub fn import_draft(
         &*records, &*records, &*records, &*records, &*records, &drafted, &today,
     )
     .map_err(ImportFailure::Failed)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn keep_a_copy(
+    records: State<Records>,
+    file: State<CopyFile>,
+    today: String,
+) -> Result<Counted, Failure> {
+    let _ = (records, file, today);
+    Ok(Counted {
+        tables: 0,
+        records: 0,
+    })
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -557,11 +574,15 @@ mod tests {
     use tauri::webview::InvokeRequest;
     use tauri::{App, WebviewWindow, WebviewWindowBuilder};
 
-    fn launched_with(backup: PathBuf) -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
+    fn launched_with(
+        backup: PathBuf,
+        copy: PathBuf,
+    ) -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
         let records = Sqlite::in_memory().expect("an in-memory database opens");
         let app = mock_builder()
             .manage(Records(Mutex::new(records)))
             .manage(DraftBackup(backup))
+            .manage(CopyFile(copy))
             .invoke_handler(tauri::generate_handler![
                 log_measurement,
                 gather_week,
@@ -571,6 +592,7 @@ mod tests {
                 set_goals,
                 goals_on,
                 import_draft,
+                keep_a_copy,
                 burn_day,
                 log_workout,
                 remove_workout,
@@ -635,7 +657,10 @@ mod tests {
     }
 
     fn launched() -> (App<MockRuntime>, WebviewWindow<MockRuntime>) {
-        launched_with(PathBuf::from("/nowhere/grindstone-draft.json"))
+        launched_with(
+            PathBuf::from("/nowhere/grindstone-draft.json"),
+            PathBuf::from("/nowhere/grindstone-export.json"),
+        )
     }
 
     fn invoke(
@@ -772,7 +797,10 @@ mod tests {
                    "hip": null, "weight": 72.15, "waist": 80.5, "weight_target": 70.0, "fat_target": 10.0 }] }"#,
         )
         .expect("a backup pushed");
-        let (_app, screen) = launched_with(backup.clone());
+        let (_app, screen) = launched_with(
+            backup.clone(),
+            PathBuf::from("/nowhere/grindstone-export.json"),
+        );
 
         let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
@@ -781,6 +809,37 @@ mod tests {
             answer,
             Ok(
                 json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0, "foods": 0, "intakes": 0, "drinks": 2, "drinkings": 0 })
+            )
+        );
+    }
+
+    #[test]
+    fn keeping_a_copy_writes_it_into_the_documents_folder() {
+        let copy =
+            std::env::temp_dir().join(format!("grind-tauri-copy-{}.json", std::process::id()));
+        let (_app, screen) = launched_with(
+            PathBuf::from("/nowhere/grindstone-draft.json"),
+            copy.clone(),
+        );
+        invoke(
+            &screen,
+            "log_measurement",
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+        )
+        .expect("a measurement logs");
+
+        let answer = invoke(&screen, "keep_a_copy", json!({ "today": "2026-11-04" }));
+
+        let written = std::fs::read_to_string(&copy)
+            .ok()
+            .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+            .map(|written| written["tables"]["measurements"].clone());
+        let _ = std::fs::remove_file(&copy);
+        assert_eq!(
+            (answer.map(|counted| counted["records"].clone()), written),
+            (
+                Ok(json!(1)),
+                Some(json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": null }]))
             )
         );
     }
@@ -804,7 +863,10 @@ mod tests {
             std::process::id()
         ));
         std::fs::write(&backup, "{ not a backup").expect("a backup pushed");
-        let (_app, screen) = launched_with(backup.clone());
+        let (_app, screen) = launched_with(
+            backup.clone(),
+            PathBuf::from("/nowhere/grindstone-export.json"),
+        );
 
         let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
 
