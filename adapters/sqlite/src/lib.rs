@@ -1297,6 +1297,27 @@ mod tests {
     }
 
     #[test]
+    fn a_restore_failing_half_way_leaves_the_records_as_they_were() {
+        let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
+        let before = the_copy_of(&other);
+        let spoilt = the_copy_of(&copied).replacen(
+            "\"workouts\": []",
+            "\"workouts\": [{ \"no_such_column\": [1] }]",
+            1,
+        );
+
+        let restored = other.restored(&spoilt);
+
+        assert_eq!(
+            (
+                matches!(restored, Err(Unrestorable::Broken(_))),
+                the_copy_of(&other)
+            ),
+            (true, before)
+        );
+    }
+
+    #[test]
     fn a_text_that_is_not_a_copy_is_refused() {
         let store = a_store_with_a_day(20);
 
