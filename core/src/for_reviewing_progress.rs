@@ -411,6 +411,45 @@ mod tests {
         }
 
         #[test]
+        fn each_tick_counts_from_its_cards_oldest_version_the_profiles_first_day_without_one() {
+            let records = a_man_at_his_desk();
+            let from = |date: &str| day(date);
+            records
+                .gather
+                .save_goals(from("2026-10-01"), &crate::kept::Kept::Recommended)
+                .expect("goals save");
+            records
+                .fuel
+                .save_targets(from("2026-10-05"), &crate::kept::Kept::Recommended)
+                .expect("fuel targets save");
+            records
+                .hydrate
+                .save_hydrate_target(from("2026-10-07"), crate::kept::Kept::Recommended)
+                .expect("a water aim saves");
+
+            assert_eq!(
+                [
+                    ticks_on(&records, "2026-10-10", "2026-09-30"),
+                    ticks_on(&records, "2026-10-10", "2026-10-06")
+                ],
+                [
+                    Some(Ticks {
+                        weighed: None,
+                        fuelled: None,
+                        worked_out: Some(false),
+                        hydrated: None,
+                    }),
+                    Some(Ticks {
+                        weighed: Some(false),
+                        fuelled: Some(false),
+                        worked_out: Some(false),
+                        hydrated: None,
+                    })
+                ]
+            );
+        }
+
+        #[test]
         fn without_a_profile_there_is_no_streak_yet() {
             let records = Records {
                 gather: GatherRecordsInMemory::default(),
