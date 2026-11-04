@@ -10,6 +10,7 @@ use grind_core::fuel_records::FuelTargets;
 use grind_core::gender::Gender;
 use grind_core::goals::{Goals, fat_percentage};
 use grind_core::kept::{InForce, Kept};
+use grind_core::recommendations::Recommendations;
 use grind_core::volitional::Volitional;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -22,14 +23,32 @@ use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
-/// Whose values a card shows: the recommendation followed, or values of its own.
-#[component]
-pub fn Whose(whose: RwSignal<Option<bool>>) -> impl IntoView {
-    move || {
-        whose
-            .get()
-            .map(|recommended| view! { <p class="hint whose">{lines::whose(recommended)}</p> })
+/// The recommendations for today, read once for every Profile card: their placeholders and notes.
+#[derive(Clone, Copy)]
+pub struct Advised(pub RwSignal<Option<Recommendations>>);
+
+impl Advised {
+    /// The recommendations the Profile shares, or none outside it.
+    pub fn here() -> Self {
+        use_context::<Self>().unwrap_or_else(|| Self(RwSignal::new(None)))
     }
+
+    /// A figure of the recommendations, written as a field's placeholder.
+    pub fn placeholder(self, figure: fn(&Recommendations) -> Option<f64>) -> Signal<String> {
+        Signal::derive(move || {
+            self.0
+                .get()
+                .as_ref()
+                .and_then(figure)
+                .map(typed_back)
+                .unwrap_or_default()
+        })
+    }
+}
+
+/// What a card holds of what is in force: its own values, none while it follows the recommendation.
+fn own<T>(in_force: InForce<T>) -> Option<T> {
+    (!in_force.recommended).then_some(in_force.values)
 }
 
 /// A Profile card: its title, how to fill it, its fields, why its recommendation stands with the references
@@ -71,19 +90,17 @@ pub fn ProfileCard(
     }
 }
 
-/// A card's choice kept: once filed, what is in force fills the card and says whose it is.
+/// A card's choice kept: once filed, its own values fill the card, a recommendation followed leaving it empty.
 pub fn keep_and_show<T: 'static>(
     keeping: impl Future<Output = Result<Option<InForce<T>>, Failure>> + 'static,
-    show: impl Fn(T) + 'static,
-    whose: RwSignal<Option<bool>>,
+    show: impl Fn(Option<T>) + 'static,
     said: RwSignal<Option<String>>,
     (filed, recorded): (String, Recorded),
 ) {
     spawn_local(async move {
         said.set(Some(match keeping.await {
             Ok(Some(in_force)) => {
-                show(in_force.values);
-                whose.set(Some(in_force.recommended));
+                show(own(in_force));
                 recorded.told();
                 filed
             }
@@ -93,30 +110,23 @@ pub fn keep_and_show<T: 'static>(
     });
 }
 
-/// What is in force, shown in the card with whose it is and, once kept, the day it was kept from.
-pub fn shown<T>(
-    in_force: InForce<T>,
-    show: impl Fn(T),
-    whose: RwSignal<Option<bool>>,
-    from: RwSignal<String>,
-) {
-    show(in_force.values);
-    whose.set(Some(in_force.recommended));
+/// What is in force, its own values shown in the card and, once kept, the day it was kept from.
+pub fn shown<T>(in_force: InForce<T>, show: impl Fn(Option<T>), from: RwSignal<String>) {
     if let Some(kept_from) = in_force.from {
         from.set(kept_from.to_string());
     }
+    show(own(in_force));
 }
 
 /// What is in force today, shown in the card.
 pub fn shown_in_force<T: 'static>(
     reading: impl Future<Output = Result<Option<InForce<T>>, Failure>> + 'static,
-    show: impl Fn(T) + 'static,
-    whose: RwSignal<Option<bool>>,
+    show: impl Fn(Option<T>) + 'static,
     from: RwSignal<String>,
 ) {
     spawn_local(async move {
         if let Ok(Some(in_force)) = reading.await {
-            shown(in_force, show, whose, from);
+            shown(in_force, show, from);
         }
     });
 }
@@ -126,20 +136,22 @@ fn GoalsCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let target_mass = RwSignal::new(String::new());
     let target_fat = RwSignal::new(String::new());
-    let healthy = RwSignal::new(None::<String>);
-    let whose = RwSignal::new(None::<bool>);
+    let advised = Advised::here();
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
-    let show = move |goals: Goals| {
-        target_mass.set(typed_back(goals.body_mass_kg));
-        target_fat.set(typed_back(fat_percentage(&goals)));
+    let show = move |goals: Option<Goals>| {
+        target_mass.set(
+            goals
+                .map(|goals| typed_back(goals.body_mass_kg))
+                .unwrap_or_default(),
+        );
+        target_fat.set(
+            goals
+                .map(|goals| typed_back(fat_percentage(&goals)))
+                .unwrap_or_default(),
+        );
     };
-    shown_in_force(async { tauri::goals_on(&today()).await }, show, whose, from);
-    spawn_local(async move {
-        if let Ok(advised) = tauri::recommended_on(&today()).await {
-            healthy.set(Some(lines::healthy_ranges(&advised)));
-        }
-    });
+    shown_in_force(async { tauri::goals_on(&today()).await }, show, from);
     let keep = move |kept: Kept<TypedGoals>, filed: fn(&str) -> String| {
         let form = GoalsForm {
             from: from.get_untracked(),
@@ -149,7 +161,6 @@ fn GoalsCard() -> impl IntoView {
         keep_and_show(
             async move { tauri::set_goals(&form).await },
             show,
-            whose,
             said,
             (filed, recorded),
         );
@@ -179,7 +190,9 @@ fn GoalsCard() -> impl IntoView {
             title="Where the grindstone is heading"
             form="goals"
             how=lines::GOALS_HOW
-            why=Signal::derive(move || healthy.get().unwrap_or_default())
+            why=Signal::derive(move || {
+                advised.0.get().as_ref().map(lines::healthy_ranges).unwrap_or_default()
+            })
             topic=Topic::HealthyRanges
             save="Engrave these goals"
             forget=forget
@@ -187,10 +200,19 @@ fn GoalsCard() -> impl IntoView {
             on_submit=Callback::new(save)
         >
             <div class="row">
-                <FigureField label="Target mass (kg)" name="target_mass" value=target_mass />
-                <FigureField label="Target fat (%)" name="target_fat" value=target_fat />
+                <FigureField
+                    label="Target mass (kg)"
+                    name="target_mass"
+                    value=target_mass
+                    placeholder=advised.placeholder(|advised| Some(advised.goal_mass_kg))
+                />
+                <FigureField
+                    label="Target fat (%)"
+                    name="target_fat"
+                    value=target_fat
+                    placeholder=advised.placeholder(|advised| Some(100.0 * advised.goal_fat_ratio))
+                />
             </div>
-            <Whose whose=whose />
         </ProfileCard>
     }
 }
@@ -201,20 +223,22 @@ fn UsualDayCard() -> impl IntoView {
     let sitting = RwSignal::new(String::new());
     let standing = RwSignal::new(String::new());
     let moving = RwSignal::new(String::new());
-    let whose = RwSignal::new(None::<bool>);
+    let advised = Advised::here();
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
-    let show = move |usual: Volitional| {
-        sitting.set(typed_back(usual.sitting_min));
-        standing.set(typed_back(usual.standing_min));
-        moving.set(typed_back(usual.moving_km));
+    let show = move |usual: Option<Volitional>| {
+        let back = |figure: fn(&Volitional) -> f64| {
+            usual
+                .as_ref()
+                .map(figure)
+                .map(typed_back)
+                .unwrap_or_default()
+        };
+        sitting.set(back(|usual| usual.sitting_min));
+        standing.set(back(|usual| usual.standing_min));
+        moving.set(back(|usual| usual.moving_km));
     };
-    shown_in_force(
-        async { tauri::usual_day_on(&today()).await },
-        show,
-        whose,
-        from,
-    );
+    shown_in_force(async { tauri::usual_day_on(&today()).await }, show, from);
     let keep = move |kept: Kept<Volitional>, filed: fn(&str) -> String| {
         let form = UsualDayForm {
             from: from.get_untracked(),
@@ -224,7 +248,6 @@ fn UsualDayCard() -> impl IntoView {
         keep_and_show(
             async move { tauri::set_usual_day(&form).await },
             show,
-            whose,
             said,
             (filed, recorded),
         );
@@ -262,11 +285,25 @@ fn UsualDayCard() -> impl IntoView {
             on_submit=Callback::new(save)
         >
             <div class="row thirds">
-                <FigureField label="Sitting (min)" name="usual_sitting" value=sitting />
-                <FigureField label="Standing (min)" name="usual_standing" value=standing />
-                <FigureField label="Moving (km)" name="usual_moving" value=moving />
+                <FigureField
+                    label="Sitting (min)"
+                    name="usual_sitting"
+                    value=sitting
+                    placeholder=advised.placeholder(|advised| Some(advised.usual_day.sitting_min))
+                />
+                <FigureField
+                    label="Standing (min)"
+                    name="usual_standing"
+                    value=standing
+                    placeholder=advised.placeholder(|advised| Some(advised.usual_day.standing_min))
+                />
+                <FigureField
+                    label="Moving (km)"
+                    name="usual_moving"
+                    value=moving
+                    placeholder=advised.placeholder(|advised| Some(advised.usual_day.moving_km))
+                />
             </div>
-            <Whose whose=whose />
         </ProfileCard>
     }
 }
@@ -276,13 +313,13 @@ fn BurnTargetCard() -> impl IntoView {
     let from = RwSignal::new(today());
     let kcal = RwSignal::new(String::new());
     let unweighed = RwSignal::new(false);
-    let whose = RwSignal::new(None::<bool>);
+    let advised = Advised::here();
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
-    let show = move |target: f64| kcal.set(typed_back(target));
+    let show = move |target: Option<f64>| kcal.set(target.map(typed_back).unwrap_or_default());
     spawn_local(async move {
         match tauri::burn_target_on(&today()).await {
-            Ok(Some(target)) => shown(target, show, whose, from),
+            Ok(Some(target)) => shown(target, show, from),
             Ok(None) => unweighed.set(true),
             Err(_) => {}
         }
@@ -296,7 +333,6 @@ fn BurnTargetCard() -> impl IntoView {
         keep_and_show(
             async move { tauri::set_burn_target(&form).await },
             show,
-            whose,
             said,
             (filed, recorded),
         );
@@ -337,9 +373,13 @@ fn BurnTargetCard() -> impl IntoView {
             on_submit=Callback::new(save)
         >
             <div class="row">
-                <FigureField label="Target (kcal a day)" name="burn_target" value=kcal />
+                <FigureField
+                    label="Target (kcal a day)"
+                    name="burn_target"
+                    value=kcal
+                    placeholder=advised.placeholder(|advised| advised.burn_target_kcal)
+                />
             </div>
-            <Whose whose=whose />
         </ProfileCard>
     }
 }
@@ -351,22 +391,18 @@ fn FuelTargetsCard() -> impl IntoView {
     let fat = RwSignal::new(String::new());
     let fibre = RwSignal::new(String::new());
     let carbs = RwSignal::new(String::new());
-    let whose = RwSignal::new(None::<bool>);
+    let advised = Advised::here();
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
-    let show = move |targets: FuelTargets| {
+    let show = move |targets: Option<FuelTargets>| {
+        let targets = targets.unwrap_or_default();
         let back = |figure: Option<f64>| figure.map(typed_back).unwrap_or_default();
         protein.set(back(targets.protein_g_per_kg));
         fat.set(back(targets.fat_g_per_kg));
         fibre.set(back(targets.fibre_g_per_kg));
         carbs.set(back(targets.carbs_g_per_kg));
     };
-    shown_in_force(
-        async { tauri::fuel_targets_on(&today()).await },
-        show,
-        whose,
-        from,
-    );
+    shown_in_force(async { tauri::fuel_targets_on(&today()).await }, show, from);
     let keep = move |kept: Kept<FuelTargets>, filed: fn(&str) -> String| {
         let form = FuelTargetsForm {
             from: from.get_untracked(),
@@ -376,7 +412,6 @@ fn FuelTargetsCard() -> impl IntoView {
         keep_and_show(
             async move { tauri::set_fuel_targets(&form).await },
             show,
-            whose,
             said,
             (filed, recorded),
         );
@@ -424,14 +459,33 @@ fn FuelTargetsCard() -> impl IntoView {
             on_submit=Callback::new(save)
         >
             <div class="row">
-                <FigureField label="Protein (g/kg)" name="target_protein" value=protein />
-                <FigureField label="Fat (g/kg)" name="target_fat_g" value=fat />
+                <FigureField
+                    label="Protein (g/kg)"
+                    name="target_protein"
+                    value=protein
+                    placeholder=advised.placeholder(|advised| advised.fuel_floors_g_per_kg.protein_g_per_kg)
+                />
+                <FigureField
+                    label="Fat (g/kg)"
+                    name="target_fat_g"
+                    value=fat
+                    placeholder=advised.placeholder(|advised| advised.fuel_floors_g_per_kg.fat_g_per_kg)
+                />
             </div>
             <div class="row">
-                <FigureField label="Fibre (g/kg)" name="target_fibre" value=fibre />
-                <FigureField label="Carbs (g/kg)" name="target_carbs" value=carbs />
+                <FigureField
+                    label="Fibre (g/kg)"
+                    name="target_fibre"
+                    value=fibre
+                    placeholder=advised.placeholder(|advised| advised.fuel_floors_g_per_kg.fibre_g_per_kg)
+                />
+                <FigureField
+                    label="Carbs (g/kg)"
+                    name="target_carbs"
+                    value=carbs
+                    placeholder=advised.placeholder(|advised| advised.fuel_floors_g_per_kg.carbs_g_per_kg)
+                />
             </div>
-            <Whose whose=whose />
         </ProfileCard>
     }
 }
@@ -446,6 +500,13 @@ pub fn ProfileScreen() -> impl IntoView {
     let hip = RwSignal::new(String::new());
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
+    let advised = Advised(RwSignal::new(None));
+    provide_context(advised);
+    spawn_local(async move {
+        if let Ok(recommended) = tauri::recommended_on(&today()).await {
+            advised.0.set(Some(recommended));
+        }
+    });
     spawn_local(async move {
         if let Ok(Some((kept_from, profile))) = tauri::profile_on(&today()).await {
             from.set(kept_from.to_string());

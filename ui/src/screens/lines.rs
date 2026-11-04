@@ -519,15 +519,6 @@ pub const RECOMMENDATIONS_DISCLAIMER: &str = "Recommendations for health, made f
     as your logs show what your body does: logging, monitoring, adjusting, enjoying. No activity multiplier inflates \
     the energy band: it only counts the workouts you log.";
 
-/// Whose values a card shows.
-pub fn whose(recommended: bool) -> &'static str {
-    if recommended {
-        "The recommendation, followed as your body changes."
-    } else {
-        "Your own values, kept as typed."
-    }
-}
-
 pub fn recommendation_kept(from: &str) -> String {
     format!("Filed: the recommendation is followed from {from}, as your body changes.")
 }

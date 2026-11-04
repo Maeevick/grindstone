@@ -5027,9 +5027,6 @@ fn the_profile_screen(screen: &Element) -> impl Drop {
     })
 }
 
-const OWN: &str = "Your own values, kept as typed.";
-const RECOMMENDED_AND_FOLLOWED: &str = "The recommendation, followed as your body changes.";
-
 #[wasm_bindgen_test]
 async fn each_card_shows_its_own_values_and_leaves_the_recommendation_to_its_placeholders() {
     answering(&format!(
@@ -5127,28 +5124,24 @@ async fn a_card_kept_empty_follows_the_recommendation() {
 }
 
 #[wasm_bindgen_test]
-async fn the_usual_days_recommendation_keeps_it_from_the_cards_day_and_shows_it_followed() {
+async fn forgetting_the_usual_day_follows_the_recommendation_and_empties_its_fields() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
     ));
     let screen = screen();
     let _mounted = the_profile_screen(&screen);
     settled().await;
+    typed_into(&screen, "usual_sitting", "600");
 
-    let mut kept = Vec::new();
-    for (form, command) in [("form.usual-day", "set_usual_day")] {
-        clicked(&screen, &format!("{form} button.forget"));
-        settled().await;
-        kept.push((
-            asked(command).contains(r#""kept":"Recommended""#),
-            text_of(&screen, &format!("{form} .whose")),
-        ));
-    }
+    clicked(&screen, "form.usual-day button.forget");
+    settled().await;
 
-    assert!(
-        kept.iter()
-            .all(|(recommended, whose)| *recommended && whose == RECOMMENDED_AND_FOLLOWED),
-        "{kept:?}"
+    assert_eq!(
+        (
+            asked("set_usual_day").contains(r#""kept":"Recommended""#),
+            value_of(&screen, "usual_sitting")
+        ),
+        (true, String::new())
     );
 }
 
@@ -5173,7 +5166,7 @@ async fn hydrates_card_keeps_a_water_target_of_your_own() {
         "{}",
         asked("set_hydrate_target")
     );
-    assert_eq!(text_of(&screen, "form.water-target .whose"), OWN);
+    assert_eq!(value_of(&screen, "water_target"), "3000");
 }
 
 #[wasm_bindgen_test]
