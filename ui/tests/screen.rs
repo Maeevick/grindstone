@@ -1731,7 +1731,7 @@ fn the_burn_week(screen: &Element) -> impl Drop {
     })
 }
 
-const A_BURN_WEEK: &str = r#"{ "active_days": 3, "burnt_kcal": 458.0, "target_kcal": 308.0, "exercises": [
+const A_BURN_WEEK: &str = r#"{ "days": 6, "active_days": 3, "days_on_target": 2, "burnt_kcal": 458.0, "target_kcal": 308.0, "exercises": [
     { "exercise": "Walking", "times": 2, "minutes": 90.0, "reps": null, "burnt_kcal": 378.0 },
     { "exercise": "Push up", "times": 2, "minutes": 3.0, "reps": 72.0, "burnt_kcal": 80.0 } ] }"#;
 

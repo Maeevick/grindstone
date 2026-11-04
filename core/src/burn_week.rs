@@ -55,17 +55,30 @@ impl ExerciseWeek {
     }
 }
 
-/// What the week up to a day burnt, the day included: its days with a workout, its burn against the sum of
-/// its days' targets, and each exercise summed up, the most burnt first.
+/// What the week up to a day burnt, the day included: its days, those with a workout and those that reached
+/// their target, its burn against the sum of its days' targets, and each exercise summed up, the most burnt
+/// first.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BurnWeek {
+    pub days: usize,
     pub active_days: usize,
+    pub days_on_target: usize,
     pub burnt_kcal: Option<f64>,
     pub target_kcal: Option<f64>,
     pub exercises: Vec<ExerciseWeek>,
 }
 
 impl BurnWeek {
+    /// What a day burnt, on average over every day of the week.
+    pub fn burnt_kcal_a_day(&self) -> Option<f64> {
+        None
+    }
+
+    /// A day's target, on average over every day of the week.
+    pub fn target_kcal_a_day(&self) -> Option<f64> {
+        None
+    }
+
     /// Whether the week's burn reaches the sum of its days' targets, as both are shown.
     pub fn on_target(&self) -> Option<bool> {
         Some(verdict_of(self.burnt_kcal?, self.target_kcal?, f64::INFINITY) == Verdict::InBand)
@@ -96,7 +109,9 @@ pub fn burn_week_of(days: &[Burn]) -> Option<BurnWeek> {
             .total_cmp(&one.burnt_kcal.unwrap_or_default())
     });
     (!active.is_empty()).then(|| BurnWeek {
+        days: 0,
         active_days: active.len(),
+        days_on_target: 0,
         burnt_kcal: active.iter().map(|day| day.burnt_kcal).sum(),
         target_kcal: days.iter().map(|day| day.target_kcal).sum(),
         exercises,
@@ -137,15 +152,19 @@ mod tests {
     }
 
     fn a_day(date: &str, workouts: Vec<BurntWorkout>) -> Burn {
+        let burnt_kcal = workouts
+            .iter()
+            .map(|done| done.burnt_kcal)
+            .sum::<Option<f64>>();
         Burn {
             day: day(date),
-            burnt_kcal: workouts.iter().map(|done| done.burnt_kcal).sum(),
+            burnt_kcal,
             workouts,
             off_the_clock: None,
             off_the_clock_is_usual: true,
             body_mass_kg: Some(70.0),
             target_kcal: Some(77.0),
-            verdict: None,
+            verdict: burnt_kcal.map(|burnt| verdict_of(burnt, 77.0, f64::INFINITY)),
         }
     }
 
@@ -159,7 +178,9 @@ mod tests {
 
     fn a_week(burnt_kcal: Option<f64>, target_kcal: Option<f64>) -> BurnWeek {
         BurnWeek {
+            days: 7,
             active_days: 3,
+            days_on_target: 0,
             burnt_kcal,
             target_kcal,
             exercises: vec![],
@@ -176,12 +197,17 @@ mod tests {
         ];
 
         assert_eq!(
-            burn_week_of(&days),
-            Some(BurnWeek {
-                active_days: 3,
-                burnt_kcal: Some(458.0),
-                target_kcal: Some(308.0),
-                exercises: vec![
+            burn_week_of(&days).map(|week| (
+                week.active_days,
+                week.burnt_kcal,
+                week.target_kcal,
+                week.exercises
+            )),
+            Some((
+                3,
+                Some(458.0),
+                Some(308.0),
+                vec![
                     ExerciseWeek {
                         exercise: "Walking".into(),
                         times: 2,
@@ -196,8 +222,8 @@ mod tests {
                         reps: Some(72.0),
                         burnt_kcal: Some(80.0),
                     },
-                ],
-            })
+                ]
+            ))
         );
     }
 
@@ -270,6 +296,29 @@ mod tests {
                 burn_week_of(&[])
             ],
             [None, None]
+        );
+    }
+
+    #[test]
+    fn a_week_tells_its_burn_and_its_target_a_day_over_all_its_days_and_how_many_reached_their_target()
+     {
+        let days = [
+            a_day("2026-10-04", vec![walking(60.0, 252.0)]),
+            a_day("2026-10-05", vec![]),
+            a_day("2026-10-06", vec![walking(10.0, 40.0)]),
+            a_day("2026-10-07", vec![]),
+        ];
+
+        let week = burn_week_of(&days).expect("a sum-up");
+
+        assert_eq!(
+            (
+                week.days,
+                week.burnt_kcal_a_day(),
+                week.target_kcal_a_day(),
+                week.days_on_target
+            ),
+            (4, Some(73.0), Some(77.0), 1)
         );
     }
 }
