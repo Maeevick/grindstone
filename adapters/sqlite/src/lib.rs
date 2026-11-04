@@ -1004,8 +1004,63 @@ impl ForCopyingRecords for Sqlite {
     }
 
     fn restored(&self, copy: &str) -> Result<Counted, Unrestorable> {
-        let _ = copy;
-        Err(Unrestorable::NotACopy)
+        let copy: Copied = serde_json::from_str(copy).expect("a copy");
+        restore(&self.0, &copy.tables).map_err(|error| Unrestorable::Broken(broken(error)))
+    }
+}
+
+type Rows = Vec<serde_json::Map<String, serde_json::Value>>;
+
+/// A copy as it is read back: each table's rows, column by column.
+#[derive(Deserialize)]
+struct Copied {
+    tables: std::collections::BTreeMap<String, Rows>,
+}
+
+fn restore(
+    connection: &Connection,
+    tables: &std::collections::BTreeMap<String, Rows>,
+) -> rusqlite::Result<Counted> {
+    let restoring = connection.unchecked_transaction()?;
+    let names = restoring
+        .prepare(EVERY_TABLE)?
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    for name in &names {
+        restoring.execute(&format!("delete from \"{name}\""), [])?;
+    }
+    let mut records = 0;
+    for (name, rows) in tables {
+        for row in rows {
+            let names = row
+                .keys()
+                .map(|column| format!("\"{column}\""))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let slots = vec!["?"; row.len()].join(", ");
+            restoring.execute(
+                &format!("insert into \"{name}\" ({names}) values ({slots})"),
+                rusqlite::params_from_iter(row.values().map(sql_of)),
+            )?;
+            records += 1;
+        }
+    }
+    restoring.commit()?;
+    Ok(Counted {
+        tables: tables.len(),
+        records,
+    })
+}
+
+fn sql_of(value: &serde_json::Value) -> rusqlite::types::Value {
+    match value {
+        serde_json::Value::Null => rusqlite::types::Value::Null,
+        serde_json::Value::Number(number) => number.as_i64().map_or_else(
+            || rusqlite::types::Value::Real(number.as_f64().unwrap_or_default()),
+            rusqlite::types::Value::Integer,
+        ),
+        serde_json::Value::String(text) => rusqlite::types::Value::Text(text.clone()),
+        other => rusqlite::types::Value::Text(other.to_string()),
     }
 }
 
