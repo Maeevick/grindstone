@@ -1055,6 +1055,19 @@ impl ForCopyingRecords for BrokenCopies {
     }
 }
 
+/// A store that will not restore a copy, for the reason it is given.
+pub struct Unrestoring(pub Unrestorable);
+
+impl ForCopyingRecords for Unrestoring {
+    fn copied(&self, _: NaiveDate) -> Result<RecordsCopy, Broken> {
+        Err(Broken("the disk is full".into()))
+    }
+
+    fn restored(&self, _: &str) -> Result<Counted, Unrestorable> {
+        Err(self.0.clone())
+    }
+}
+
 pub struct BrokenSwitchOver;
 
 impl ForStoringSwitchOver for BrokenSwitchOver {

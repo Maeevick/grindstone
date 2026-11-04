@@ -28,4 +28,6 @@ pub enum Refusal {
     NotACookingRatio,
     NotWeighed,
     NotAnEnergy,
+    NotACopy,
+    AnotherSchema { copy: i64, store: i64 },
 }

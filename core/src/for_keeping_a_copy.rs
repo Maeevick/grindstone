@@ -19,7 +19,9 @@ pub fn restore_a_copy(store: &impl ForCopyingRecords, copy: &str) -> Result<Coun
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{BrokenCopies, CopiedRecords};
+    use crate::failure::Broken;
+    use crate::for_copying_records::Unrestorable;
+    use crate::testing::{BrokenCopies, CopiedRecords, Unrestoring};
 
     #[test]
     fn keeping_a_copy_tells_how_many_records_and_tables_it_holds() {
@@ -74,6 +76,30 @@ mod tests {
                 tables: 18,
                 records: 3332,
             })
+        );
+    }
+
+    #[test]
+    fn a_copy_the_store_cannot_restore_is_refused_or_broken_as_the_store_tells() {
+        let restoring = |why: Unrestorable| restore_a_copy(&Unrestoring(why), "a copy");
+
+        assert_eq!(
+            [
+                restoring(Unrestorable::NotACopy),
+                restoring(Unrestorable::AnotherSchema {
+                    copy: 25,
+                    store: 26
+                }),
+                restoring(Unrestorable::Broken(Broken("the disk is full".into())))
+            ],
+            [
+                Err(Failure::Refused(Refusal::NotACopy)),
+                Err(Failure::Refused(Refusal::AnotherSchema {
+                    copy: 25,
+                    store: 26
+                })),
+                Err(Failure::Broken("the disk is full".into()))
+            ]
         );
     }
 }

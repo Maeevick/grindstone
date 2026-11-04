@@ -232,6 +232,13 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotAnEnergy) => {
             "That is no amount of sweat I can file: kilocalories, from nothing up.".into()
         }
+        Failure::Refused(Refusal::NotACopy) => {
+            "That file is no copy of mine: I only restore what Copy the records wrote. Nothing changed.".into()
+        }
+        Failure::Refused(Refusal::AnotherSchema { copy, store }) => format!(
+            "That copy holds version {copy} of the records, and this phone keeps version {store}. I restore \
+             only a copy of the same version: nothing changed."
+        ),
         Failure::Refused(Refusal::NotWeighed) => {
             "That ingredient is counted in pieces, and the lab cooks by mass: add it in grams or \
              millilitres for now."
