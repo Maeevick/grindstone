@@ -1743,25 +1743,25 @@ async fn burns_week_sum_up_totals_each_exercise_with_its_average_a_time_beneath(
     settled().await;
 
     assert_eq!(
-        texts_in_order(&screen, ".week tbody td:first-child"),
+        texts_in_order(&screen, ".week table.workouts tbody td:first-child"),
         ["Walking", "Push up"]
     );
     assert_eq!(
-        texts_in_order(&screen, ".week tbody td:nth-child(2)"),
+        texts_in_order(&screen, ".week table.workouts tbody td:nth-child(2)"),
         ["2", "2"]
     );
     assert_eq!(
-        texts_in_order(&screen, ".week tbody .total"),
+        texts_in_order(&screen, ".week table.workouts tbody .total"),
         ["90", "–", "378", "3", "72", "80"]
     );
     assert_eq!(
-        texts_in_order(&screen, ".week tbody .a-time"),
+        texts_in_order(&screen, ".week table.workouts tbody .a-time"),
         ["45", "", "189", "1.5", "36", "40"]
     );
 }
 
 #[wasm_bindgen_test]
-async fn burns_tips_read_over_its_active_days_then_its_table_then_its_tip() {
+async fn burns_tips_read_over_its_active_days_then_a_day_against_its_goal_then_its_exercises() {
     answering(&format!(r#"{{ "burn_over_the_window": {A_BURN_WEEK} }}"#));
     let screen = screen();
     let _mounted = the_burn_week(&screen);
@@ -1783,20 +1783,25 @@ async fn burns_tips_read_over_its_active_days_then_its_table_then_its_tip() {
     assert_eq!(
         (
             laid_out,
-            attributes_of(&screen, ".week p.tip span", "class")
+            texts_in_order(&screen, ".week table.burnt thead th"),
+            cells_by_row(&screen, ".week table.burnt tbody tr"),
+            attributes_of(&screen, ".week table.burnt tbody td:nth-child(2)", "class")
         ),
         (
             vec![
-                ("P.hint".to_string(), "Over 3 active days.".to_string()),
+                ("P.hint".to_string(), "Over 3 active days in 6.".to_string()),
+                ("TABLE.burnt".to_string(), String::new()),
                 ("TABLE.workouts".to_string(), String::new()),
                 (
                     "P.hint".to_string(),
                     "Totals, with a time's average beneath.".to_string()
                 ),
-                (
-                    "P.tip".to_string(),
-                    "“458 kcal burnt against its days' 308 kcal target.”".to_string()
-                ),
+            ],
+            ["", "A day", "Goal", "On goal"].map(String::from).to_vec(),
+            vec![
+                ["Burnt (kcal)", "76", "51", "2/6"]
+                    .map(String::from)
+                    .to_vec()
             ],
             vec!["good".to_string()]
         )
