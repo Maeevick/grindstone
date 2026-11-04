@@ -194,11 +194,26 @@ pub fn BurnOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                 Some(false) => "low",
                                 None => "",
                             };
-                            let burnt = over
-                                .burnt_kcal
-                                .map_or_else(|| "–".to_string(), |kcal| shown(Figure::Energy(kcal)));
                             view! {
-                                <p class="hint">{lines::over_active_days(over.active_days)}</p>
+                                <p class="hint">{lines::over_active_days(over.active_days, over.days)}</p>
+                                <table class="burnt">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>"A day"</th>
+                                            <th>"Goal"</th>
+                                            <th>"On goal"</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>"Burnt (kcal)"</td>
+                                            <td class=held>{bare_or_dash(over.burnt_kcal_a_day(), Figure::Energy)}</td>
+                                            <td>{bare_or_dash(over.target_kcal_a_day(), Figure::Energy)}</td>
+                                            <td>{format!("{}/{}", over.days_on_target, over.days)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                                 <table class="workouts">
                                     <thead>
                                         <tr>
@@ -212,12 +227,6 @@ pub fn BurnOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                     <tbody>{over.exercises.into_iter().map(summed_up).collect_view()}</tbody>
                                 </table>
                                 <p class="hint">{lines::A_TIME_BENEATH}</p>
-                                <p class="tip">
-                                    "“"
-                                    <span class=held>{burnt}</span>
-                                    {lines::burnt_against(over.target_kcal)}
-                                    "”"
-                                </p>
                             }
                                 .into_any()
                         }

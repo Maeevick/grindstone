@@ -677,21 +677,11 @@ pub fn hydrate_week_said(week: &HydrateWeek) -> String {
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
 /// What the window's burn stands against, after its figure: the sum of its days' targets when known.
-pub fn burnt_against(target_kcal: Option<f64>) -> String {
-    match target_kcal {
-        Some(target) => format!(
-            " burnt against its days' {} target.",
-            shown(Figure::Energy(target))
-        ),
-        None => " burnt.".into(),
-    }
-}
-
-pub fn over_active_days(days: usize) -> String {
-    if days == 1 {
-        "Over 1 active day.".into()
+pub fn over_active_days(active: usize, days: usize) -> String {
+    if active == 1 {
+        format!("Over 1 active day in {days}.")
     } else {
-        format!("Over {days} active days.")
+        format!("Over {active} active days in {days}.")
     }
 }
 
