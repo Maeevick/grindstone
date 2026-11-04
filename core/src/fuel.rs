@@ -628,36 +628,21 @@ mod tests {
     }
 
     #[test]
-    fn a_gain_may_go_as_high_as_what_the_goal_body_would_spend_its_goal_tick_at_maintenance() {
-        let fuelled = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming());
-
-        let (lean_kg, fat_kg) = the_body();
-        assert_eq!(
-            fuelled.band.map(|band| (band.goal_kcal, band.cap_kcal)),
-            Some((
-                spent_before_eating_by(lean_kg, fat_kg),
-                spent_before_eating_by(95.0 * 0.8, 95.0 * 0.2)
-            ))
-        );
-    }
-
-    #[test]
-    fn a_gains_cap_adds_the_days_burn_to_what_the_goal_body_would_spend() {
-        let mut burn = a_desk_job();
-        let walking = Exercise {
-            name: "Walking".into(),
-            met: 4.0,
-            description: String::new(),
+    fn the_cap_is_maintenance_and_a_twentieth_whatever_the_goals() {
+        let cap_over_maintenance = |gather: &GatherRecords| {
+            fuel_on("2026-10-10", gather, &a_desk_job(), &aiming())
+                .band
+                .map(|band| band.cap_kcal / band.maintenance_kcal)
         };
-        let walked = workout("2026-10-10", &walking, 60.0, None, 1, 0.0).expect("a workout");
-        burn.workouts.push((1, walked.clone()));
 
-        let fuelled = fuel_on("2026-10-10", &gaining(), &burn, &aiming());
-
-        assert!(fuelled.band.is_some_and(|band| about(
-            band.cap_kcal,
-            spent_before_eating_by(95.0 * 0.8, 95.0 * 0.2) + burnt_by(&walked, 80.0)
-        )));
+        assert!(
+            [
+                cap_over_maintenance(&gaining()),
+                cap_over_maintenance(&a_mans_records(HIS_WAIST_CM))
+            ]
+            .iter()
+            .all(|share| share.is_some_and(|share| about(share, 1.05)))
+        );
     }
 
     #[test]
