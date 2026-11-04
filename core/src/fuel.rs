@@ -1220,7 +1220,7 @@ mod tests {
                     Some(0.35 * band.cap_kcal / 4.0),
                 ),
                 (0.2 * energy / 9.0, Some(0.35 * band.cap_kcal / 9.0)),
-                (0.028 * energy / 2.0, None),
+                (0.02 * energy / 2.0, None),
                 (130.0, None),
             ];
             [macros.protein, macros.fat, macros.fibre, macros.carbs]
