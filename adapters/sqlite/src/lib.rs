@@ -8,7 +8,7 @@ use grind_core::drinking::Drinking;
 use grind_core::exercise::Exercise;
 use grind_core::failure::Broken;
 use grind_core::food::{Food, Nutrients, Unit};
-use grind_core::for_copying_records::{ForCopyingRecords, RecordsCopy};
+use grind_core::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy};
 use grind_core::for_storing_burn_records::ForStoringBurnRecords;
 use grind_core::for_storing_fuel_records::ForStoringFuelRecords;
 use grind_core::for_storing_gather_records::ForStoringGatherRecords;
@@ -1033,8 +1033,10 @@ fn copy_of(connection: &Connection, on: NaiveDate) -> rusqlite::Result<RecordsCo
     });
     Ok(RecordsCopy {
         text: format!("{copy:#}"),
-        tables: counted,
-        records,
+        counted: Counted {
+            tables: counted,
+            records,
+        },
     })
 }
 
@@ -1143,8 +1145,8 @@ mod tests {
                     read["tables"]["switch_over"].clone(),
                     read["tables"].as_object().map(serde_json::Map::len)
                 )),
-                copy.tables,
-                copy.records
+                copy.counted.tables,
+                copy.counted.records
             ),
             (
                 Some((

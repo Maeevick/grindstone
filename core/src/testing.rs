@@ -7,7 +7,7 @@ use crate::drinking::Drinking;
 use crate::exercise::Exercise;
 use crate::failure::Broken;
 use crate::food::{Food, Nutrients, Unit};
-use crate::for_copying_records::{ForCopyingRecords, RecordsCopy};
+use crate::for_copying_records::{Counted, ForCopyingRecords, RecordsCopy};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -1028,8 +1028,10 @@ impl ForCopyingRecords for CopiedRecords {
     fn copied(&self, on: NaiveDate) -> Result<RecordsCopy, Broken> {
         Ok(RecordsCopy {
             text: format!("every record, copied on {on}"),
-            tables: self.tables,
-            records: self.records,
+            counted: Counted {
+                tables: self.tables,
+                records: self.records,
+            },
         })
     }
 }

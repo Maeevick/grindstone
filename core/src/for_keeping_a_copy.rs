@@ -14,6 +14,7 @@ pub fn keep_a_copy(store: &impl ForCopyingRecords, today: &str) -> Result<Record
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::for_copying_records::Counted;
     use crate::testing::{BrokenCopies, CopiedRecords};
 
     #[test]
@@ -27,8 +28,10 @@ mod tests {
             keep_a_copy(&store, "2026-11-04"),
             Ok(RecordsCopy {
                 text: "every record, copied on 2026-11-04".into(),
-                tables: 18,
-                records: 2431,
+                counted: Counted {
+                    tables: 18,
+                    records: 2431,
+                },
             })
         );
     }
