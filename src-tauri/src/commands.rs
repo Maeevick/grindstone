@@ -171,7 +171,7 @@ pub fn keep_a_copy(
 ) -> Result<Counted, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     let copy = for_keeping_a_copy::keep_a_copy(&*records, &today)?;
-    std::fs::write(&file.0, &copy.text).expect("the copy is written");
+    std::fs::write(&file.0, &copy.text).map_err(|error| Failure::Broken(error.to_string()))?;
     Ok(copy.counted)
 }
 
