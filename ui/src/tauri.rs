@@ -385,6 +385,10 @@ pub async fn keep_a_copy(today: &str) -> Result<Counted, Failure> {
     call("keep_a_copy", Today { today }, broken).await
 }
 
+pub async fn restore_a_copy() -> Result<Counted, Failure> {
+    call("restore_a_copy", Nothing {}, broken).await
+}
+
 pub async fn circuits() -> Result<Vec<Circuit>, Failure> {
     call("circuits", Nothing {}, broken).await
 }

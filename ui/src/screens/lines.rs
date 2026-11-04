@@ -544,6 +544,17 @@ pub fn copied(copy: Counted) -> String {
     )
 }
 
+pub const RESTORE_WARNING: &str = "Restoring replaces every record on this phone with the copy pushed by \
+    make import-android BACKUP=exports/<file>.json. There is no undo: copy the records first.";
+
+pub fn restored(copy: Counted) -> String {
+    format!(
+        "Restored {} from {}.",
+        counted(copy.records, "record", "records"),
+        counted(copy.tables, "table", "tables")
+    )
+}
+
 pub const ERASE_WARNING: &str = "Erasing removes every record on this device: measurements, profile, goals, \
     foods, meals, intakes, drinks, workouts, circuits and settings. There is no undo. The app starts again \
     as on its first launch, and the draft can be imported again.";

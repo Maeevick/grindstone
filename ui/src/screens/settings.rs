@@ -37,9 +37,25 @@ pub fn Settings() -> impl IntoView {
     }
 }
 
+const RESTORE: &str = "RESTORE";
+
 #[component]
 fn VaultsCopy() -> impl IntoView {
     let said = RwSignal::new(None::<String>);
+    let confirmed = RwSignal::new(String::new());
+    let recorded = Recorded::here();
+    let restore = move |_| {
+        spawn_local(async move {
+            said.set(Some(match tauri::restore_a_copy().await {
+                Ok(counted) => {
+                    confirmed.set(String::new());
+                    recorded.told();
+                    lines::restored(counted)
+                }
+                Err(failure) => lines::failure(&failure),
+            }));
+        });
+    };
     let copy = move |_| {
         spawn_local(async move {
             said.set(Some(match tauri::keep_a_copy(&today()).await {
@@ -54,6 +70,24 @@ fn VaultsCopy() -> impl IntoView {
             <p class="hint">{lines::COPY_HOW}</p>
             <button class="cta copy" type="button" on:click=copy>
                 "Copy the records"
+            </button>
+            <p class="hint">{lines::RESTORE_WARNING}</p>
+            <label class="field">
+                {format!("Type {RESTORE} to confirm")}
+                <input
+                    name="confirm_restore"
+                    autocomplete="off"
+                    prop:value=move || confirmed.get()
+                    on:input=move |event| confirmed.set(event_target_value(&event))
+                />
+            </label>
+            <button
+                class="cta restore"
+                type="button"
+                disabled=move || confirmed.get().trim() != RESTORE
+                on:click=restore
+            >
+                "Restore the copy"
             </button>
             {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
         </section>
