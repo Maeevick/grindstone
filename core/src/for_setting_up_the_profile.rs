@@ -44,7 +44,6 @@ pub fn set_profile(
     hydrate: &impl ForStoringHydrateRecords,
     form: &ProfileForm,
 ) -> Result<Profile, Failure> {
-    let _ = (burn, fuel, hydrate);
     let from = day(&form.from)?;
     let profile = profile(
         &form.birthday,
@@ -54,7 +53,30 @@ pub fn set_profile(
         form.hip_cm,
     )
     .map_err(Failure::Refused)?;
+    let gathered = records.gather_records()?;
     records.save_profile(from, &profile)?;
+    if gathered.profiles.is_empty() {
+        let (burnt, fuelled, hydrated) = (
+            burn.burn_records()?,
+            fuel.fuel_records()?,
+            hydrate.hydrate_records()?,
+        );
+        if gathered.goals.is_empty() {
+            records.save_goals(from, &Kept::Recommended)?;
+        }
+        if burnt.usual_days.is_empty() {
+            burn.save_usual_day(from, &Kept::Recommended)?;
+        }
+        if burnt.targets.is_empty() {
+            burn.save_burn_target(from, Kept::Recommended)?;
+        }
+        if fuelled.targets.is_empty() {
+            fuel.save_targets(from, &Kept::Recommended)?;
+        }
+        if hydrated.targets.is_empty() {
+            hydrate.save_hydrate_target(from, Kept::Recommended)?;
+        }
+    }
     Ok(profile)
 }
 
@@ -529,19 +551,21 @@ mod tests {
         }
     }
 
+    /// A profile kept with no card started beside it, as records kept before a first profile seeded them.
     fn born(birthday: &str) -> GatherRecordsInMemory {
         let gather = GatherRecordsInMemory::default();
-        set_profile(
-            &gather,
-            &crate::testing::BurnRecordsInMemory::default(),
-            &crate::testing::FuelRecordsInMemory::default(),
-            &crate::testing::HydrateRecordsInMemory::default(),
-            &ProfileForm {
-                birthday: birthday.into(),
-                ..a_mans_form("2026-03-01")
-            },
-        )
-        .expect("a profile sets");
+        gather
+            .save_profile(
+                NaiveDate::from_ymd_opt(2026, 3, 1).expect("a real day"),
+                &Profile {
+                    birthday: NaiveDate::parse_from_str(birthday, "%Y-%m-%d").expect("a real day"),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile saves");
         gather
     }
 

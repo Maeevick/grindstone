@@ -429,21 +429,19 @@ mod tests {
                 fuel: FuelRecordsInMemory::default(),
                 hydrate: HydrateRecordsInMemory::default(),
             };
-            set_profile(
-                &records.gather,
-                &crate::testing::BurnRecordsInMemory::default(),
-                &crate::testing::FuelRecordsInMemory::default(),
-                &crate::testing::HydrateRecordsInMemory::default(),
-                &ProfileForm {
-                    from: "2026-03-01".into(),
-                    birthday: "1985-04-12".into(),
-                    gender: Gender::Male,
-                    height_cm: 180.0,
-                    neck_cm: 38.5,
-                    hip_cm: None,
-                },
-            )
-            .expect("a profile set");
+            records
+                .gather
+                .save_profile(
+                    day("2026-03-01"),
+                    &crate::profile::Profile {
+                        birthday: day("1985-04-12"),
+                        gender: Gender::Male,
+                        height_cm: 180.0,
+                        neck_cm: 38.5,
+                        hip_cm: None,
+                    },
+                )
+                .expect("a profile saves");
             let from = |date: &str| day(date);
             records
                 .gather
