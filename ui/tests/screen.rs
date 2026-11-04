@@ -4951,6 +4951,27 @@ async fn the_vaults_copy_restores_once_restore_is_typed_and_tells_what_it_brough
 }
 
 #[wasm_bindgen_test]
+async fn a_copy_of_another_version_is_refused_in_plain_words() {
+    answering(
+        r#"{ "restore_a_copy": { "__throws": { "Refused": { "AnotherSchema": { "copy": 25, "store": 26 } } } } }"#,
+    );
+    let screen = screen();
+    let _mounted = the_settings(&screen);
+    settled().await;
+
+    typed_into(&screen, "confirm_restore", "RESTORE");
+    settled().await;
+    found::<web_sys::HtmlElement>(&screen, "section#copy button.restore").click();
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, "section#copy p.said"),
+        "That copy holds version 25 of the records, and this phone keeps version 26. I restore only a \
+         copy of the same version: nothing changed."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_danger_zone_erases_everything_once_erase_is_typed() {
     answering(r#"{ "erase_everything": null }"#);
     let screen = screen();
