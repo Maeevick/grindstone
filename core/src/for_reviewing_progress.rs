@@ -420,7 +420,24 @@ mod tests {
 
         #[test]
         fn each_tick_counts_from_its_cards_oldest_version_the_profiles_first_day_without_one() {
-            let records = a_man_at_his_desk();
+            let records = Records {
+                gather: GatherRecordsInMemory::default(),
+                burn: BurnRecordsInMemory::default(),
+                fuel: FuelRecordsInMemory::default(),
+                hydrate: HydrateRecordsInMemory::default(),
+            };
+            set_profile(
+                &records.gather,
+                &ProfileForm {
+                    from: "2026-03-01".into(),
+                    birthday: "1985-04-12".into(),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile set");
             let from = |date: &str| day(date);
             records
                 .gather
