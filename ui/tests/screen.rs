@@ -5124,6 +5124,33 @@ async fn a_card_kept_empty_follows_the_recommendation() {
 }
 
 #[wasm_bindgen_test]
+async fn forgetting_a_card_follows_the_recommendation_and_tells_what_was_there_before() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    let mut told = Vec::new();
+    for form in ["form.goals", "form.water-target", "form.burn-target"] {
+        clicked(&screen, &format!("{form} button.forget"));
+        settled().await;
+        let said = text_of(&screen, &format!("{form} .said"));
+        told.push(said[said.find("Before:").unwrap_or(0)..].to_string());
+    }
+
+    assert_eq!(
+        told,
+        [
+            "Before: 68.0 kg and 12.0%.",
+            "Before: 2800 mL.",
+            "Before: the recommendation."
+        ]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn forgetting_the_usual_day_follows_the_recommendation_and_empties_its_fields() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
