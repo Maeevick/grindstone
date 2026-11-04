@@ -6,33 +6,12 @@ use crate::tauri;
 
 #[component]
 pub fn Settings() -> impl IntoView {
-    let said = RwSignal::new(None::<String>);
-    let recorded = Recorded::here();
-    let import = move |_| {
-        spawn_local(async move {
-            said.set(Some(match tauri::import_draft(&today()).await {
-                Ok(imported) => {
-                    recorded.told();
-                    lines::imported(&imported)
-                }
-                Err(failure) => lines::import_failure(&failure),
-            }));
-        });
-    };
     view! {
         <hr class="divider" />
         <header class="screen-top">
             <h2>"Settings"</h2>
         </header>
         <VaultsCopy />
-        <section class="card" id="draft">
-            <h2>"The draft's records"</h2>
-            <p class="hint">{lines::IMPORT_HOW}</p>
-            <button class="cta import" type="button" on:click=import>
-                "Import the draft"
-            </button>
-            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
-        </section>
         <DangerZone />
     }
 }

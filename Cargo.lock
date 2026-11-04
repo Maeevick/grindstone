@@ -1643,7 +1643,6 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "grind-core",
- "grind-draft",
  "js-sys",
  "leptos",
  "leptos_router",

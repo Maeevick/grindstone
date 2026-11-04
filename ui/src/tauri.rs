@@ -16,7 +16,6 @@ use grind_core::for_charting::{
 use grind_core::for_copying_records::Counted;
 use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::for_hydrating::DrinkingForm;
-use grind_core::for_importing::Imported;
 use grind_core::for_reviewing_progress::Window;
 use grind_core::for_setting_up_the_profile::{
     BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, UsualDayForm,
@@ -35,7 +34,6 @@ use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
-use grind_draft::ImportFailure;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use wasm_bindgen::prelude::*;
@@ -372,13 +370,6 @@ struct Opening<'a> {
 
 pub async fn open_page(url: &str) -> Result<(), Failure> {
     call("plugin:opener|open_url", Opening { url }, broken).await
-}
-
-pub async fn import_draft(today: &str) -> Result<Imported, ImportFailure> {
-    call("import_draft", Today { today }, |reason| {
-        ImportFailure::Failed(Failure::Broken(reason))
-    })
-    .await
 }
 
 pub async fn keep_a_copy(today: &str) -> Result<Counted, Failure> {

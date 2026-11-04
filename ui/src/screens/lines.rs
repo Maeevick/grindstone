@@ -4,7 +4,6 @@ use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_copying_records::Counted;
-use grind_core::for_importing::Imported;
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_week::Habit;
 use grind_core::fuel_week::{FuelWeek, Gap};
@@ -17,7 +16,6 @@ use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::streak::{Status, Streak};
-use grind_draft::{DraftRefusal, ImportFailure};
 
 pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
     Shall we begin with your profile, or restore a copy of your records first?";
@@ -34,27 +32,8 @@ pub fn goals_kept(from: &str) -> String {
     format!("Noted in the margin, in very small letters: these goals are kept from {from}.")
 }
 
-pub const IMPORT_HOW: &str = "Bring the draft's latest backup from the Mac with make import-draft-android, \
-    the phone plugged in, then import it here. It replaces every record the draft had. \
-    Run it again with a newer backup until you switch for good.";
-
 fn counted(count: usize, one: &str, many: &str) -> String {
     format!("{count} {}", if count == 1 { one } else { many })
-}
-
-pub fn imported(imported: &Imported) -> String {
-    format!(
-        "Filed: {}, {}, {}, {}, {}, {}, {}, {} and {}.",
-        counted(imported.measurements, "day", "days"),
-        counted(imported.profiles, "profile", "profiles"),
-        counted(imported.goals, "goal", "goals"),
-        counted(imported.exercises, "exercise", "exercises"),
-        counted(imported.workouts, "workout", "workouts"),
-        counted(imported.foods, "food", "foods"),
-        counted(imported.intakes, "intake", "intakes"),
-        counted(imported.drinks, "drink", "drinks"),
-        counted(imported.drinkings, "drinking", "drinkings")
-    )
 }
 
 pub fn added(name: &str) -> String {
@@ -65,7 +44,7 @@ pub const NO_WORKOUT: &str = "No workout on this day. A brisk half-hour walk wil
     calls it active rest, the streak counts it as the day's burn.";
 
 pub const NO_EXERCISE: &str = "The catalog is empty. Add an exercise and its MET \
-    (the 2024 Compendium of Physical Activities lists them), or import the draft's.";
+    (the 2024 Compendium of Physical Activities lists them).";
 
 /// The workouts' burn, and how far it stands from the day's target: what is left to reach it, or how far past.
 pub fn burnt(burn: &Burn) -> String {
@@ -112,57 +91,6 @@ pub fn usual_day_kept(from: &str) -> String {
 }
 
 pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only.";
-
-pub fn import_failure(refused: &ImportFailure) -> String {
-    match refused {
-        ImportFailure::NoBackupFound(where_expected) => format!(
-            "No backup in the tunnels. Bring one with make import-draft-android first; I looked in {where_expected}."
-        ),
-        ImportFailure::Draft(DraftRefusal::Unreadable(where_it_stopped)) => {
-            format!(
-                "This backup reads like lab notes: it stops making sense at {where_it_stopped}."
-            )
-        }
-        ImportFailure::Draft(DraftRefusal::NotAVersionWeRead(version)) => {
-            format!("A backup of version {version}: I only read the draft's 0.4.0.")
-        }
-        ImportFailure::Draft(DraftRefusal::NotAMeasurement { date, refusal }) => {
-            format!(
-                "The day {date} would not be gathered: {}",
-                failure_of_refusal(*refusal)
-            )
-        }
-        ImportFailure::Draft(DraftRefusal::NotAnExercise { name, refusal }) => {
-            format!(
-                "The activity {name} would not join the catalog: {}",
-                failure_of_refusal(*refusal)
-            )
-        }
-        ImportFailure::Draft(DraftRefusal::NotAWorkout { date, refusal }) => {
-            format!(
-                "A workout of {date} would not be filed: {}",
-                failure_of_refusal(*refusal)
-            )
-        }
-        ImportFailure::Draft(DraftRefusal::NotAFood { name, refusal }) => {
-            format!(
-                "The food {name} would not join the catalog: {}",
-                failure_of_refusal(*refusal)
-            )
-        }
-        ImportFailure::Draft(DraftRefusal::NotADrinking { date, refusal }) => {
-            format!(
-                "A drink of {date} would not be filed: {}",
-                failure_of_refusal(*refusal)
-            )
-        }
-        ImportFailure::Failed(failed) => failure(failed),
-    }
-}
-
-fn failure_of_refusal(refusal: grind_core::refusal::Refusal) -> String {
-    failure(&Failure::Refused(refusal))
-}
 
 pub fn failure(failure: &Failure) -> String {
     match failure {
@@ -262,8 +190,7 @@ pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow
 
 pub const NO_MEAL: &str = "No meal cooked yet. The lab is spotless, which worries everyone.";
 
-pub const NO_FOOD: &str =
-    "The catalog has no food yet. Add one with its figures per portion, or import the draft's.";
+pub const NO_FOOD: &str = "The catalog has no food yet. Add one with its figures per portion.";
 
 pub fn energy_line(fuel: &Fuel) -> String {
     let eaten = shown(Figure::Energy(fuel.eaten.energy_kcal));
@@ -557,7 +484,7 @@ pub fn restored(copy: Counted) -> String {
 
 pub const ERASE_WARNING: &str = "Erasing removes every record on this device: measurements, profile, goals, \
     foods, meals, intakes, drinks, workouts, circuits and settings. There is no undo. The app starts again \
-    as on its first launch, and the draft can be imported again.";
+    as on its first launch, and a copy can be restored.";
 
 pub const ERASED: &str = "Everything is erased. Home starts over with the welcome.";
 
