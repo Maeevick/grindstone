@@ -381,4 +381,17 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn a_fuel_week_averages_the_goal_tick_as_the_energys_goal() {
+        let days = [
+            a_day(2000.0, 100.0, 50.0, 20.0, 250.0),
+            a_day(2200.0, 120.0, 60.0, 30.0, 230.0),
+        ];
+
+        assert_eq!(
+            fuel_week_of(&days).and_then(|week| week.energy.goal),
+            Some(1800.0)
+        );
+    }
 }
