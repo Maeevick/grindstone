@@ -15,7 +15,7 @@ Version 0.1, the full scope, on five tabs under an icon bar (🏠 Home, ⚖️ G
 
 - **Every screen** wears a header: the logo, the name and the tagline, leading Home, a person opening the Profile at the right, then today in four tiles, ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each green when its streak tick holds and red when it does not, each opening its tab. The tiles read again after every change to the records and every move between screens.
 - **Every table** puts its figures on the right, its names and dates on the left.
-- **Home:** a welcome until a profile exists. After that:
+- **Home:** a welcome until a profile exists, pointing to the profile and to restoring a copy. After that:
   - the streak:
     - from the profile's first day, four ticks every day: a weigh-in; Fuel, meaning the day's energy inside its band and each of the four macros inside its own; Hydrate inside its band with four fifths of the drinks water at least; Burn, meaning the day's workouts reach its burn target, any workout before a first weigh-in prices them. A tracker without a log fails its tick; all four always count, from the first record;
     - each tick held to its gauge's band as shown, with no grace: what the gauges show green is what the streak counts;
@@ -51,9 +51,9 @@ Version 0.1, the full scope, on five tabs under an icon bar (🏠 Home, ⚖️ G
   - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only), goals (under them, from the start, the healthy body mass for the height and body fat for the age, with a word to ask a doctor or a coach before aiming beyond them), fuel targets (protein, fat, fibre and carbs in g per kg of body mass, each optional, any value allowed, the note giving the healthy ranges), a water target a day (its base, each kcal burnt adding a millilitre, the band a fifth either side), the day's burn target and the usual day off the clock, each kept from a chosen day, its From opening on the day the values in force were kept from (today while nothing is kept), so that it reads as a sentence: keeping on that day replaces them from it;
   - an empty goal, water target or burn target follows the recommendation, the note saying which; only the usual day keeps "Use the recommendation" above "Keep". The buttons read Engrave these goals, Paint these targets, Store this aim, Fire this ambition. The recommendations: WHO's normal body mass index, Gallagher's healthy fat, a usual day of 8 hours sitting at most (Ekelund), 2 standing (Buckley) and the steps that pay off at the age (Paluch), and WHO's 150 minutes a week of moderate activity as the burn target on the body weighed, any workout holding the tick before a weigh-in; for water, nine tenths of what the lean mass turns over in a day, 35 mL per kg of body mass before a lean mass, EFSA's base before a weigh-in;
   - from each card, a link to the scientific references, cited in full with their public pages, then the disclaimer;
-  - past a divider, the settings close the screen: the vault's copy, every record written as JSON to the app's Documents folder for `make export-android` to bring to the Mac over USB, and restored from a copy `make import-android` pushes back, once `RESTORE` is typed, all of it or nothing, refused from another schema version, the draft's import, and a danger zone that erases everything.
+  - past a divider, the settings close the screen: the vault's copy, every record written as JSON to the app's Documents folder for `make export-android` to bring to the Mac over USB, and restored from a copy `make import-android` pushes back, once `RESTORE` is typed, all of it or nothing, refused from another schema version, and a danger zone that erases everything.
 
-Next, together: daily challenges, statistics with a real meaning, export and import options, Health Connect steps, posture analysis.
+Next, together: daily challenges, statistics with a real meaning, Health Connect steps, posture analysis.
 
 ## How
 
@@ -63,7 +63,6 @@ Next, together: daily challenges, statistics with a real meaning, export and imp
 | `src-tauri` | Tauri 2 | the app shell on Android, and on the Mac under `make dev`: its commands and the configurator that wires everything at start |
 | `core` | plain Rust | the application: its rules, what it offers (driving ports) and what it needs (driven ports) |
 | `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage port |
-| `adapters/draft` | serde_json | reads the draft's backup into the core's records |
 
 The screen calls the app's commands through Tauri. Each command hands over to one of the core's driving ports (`for_tracking`, `for_fuelling`, `for_hydrating`, `for_burning`, `for_cataloguing`, `for_setting_up_the_profile`, `for_reviewing_progress`, `for_charting`, `for_importing`), which store through the SQLite adapter in the app's data folder.
 

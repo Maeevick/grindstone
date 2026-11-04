@@ -2,11 +2,10 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check test-ui mutants mutants-all android import-draft-android export-android import-android
+.PHONY: help dev test check test-ui mutants mutants-all android export-android import-android
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 BASE ?= origin/main
-DRAFT_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-draft.json
 COPY_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-export.json
 RESTORE_ON_THE_PHONE := /sdcard/Android/data/com.maeevick.grindstone/files/Documents/grindstone-import.json
 TEST_SUPPORT := core/src/testing\.rs
@@ -41,11 +40,6 @@ mutants-all: ## mutation testing of the whole core, four at a time, once a day
 android: ## build the release APK and install it on the phone plugged over USB, keeping its data
 	cargo tauri android build --apk --target aarch64
 	adb install -r $(APK)
-
-import-draft-android: ## push a draft backup to the phone over USB, for Settings to import: make import-draft-android BACKUP=path/to/backup.json
-	@test -f "$(BACKUP)" || { echo "usage: make import-draft-android BACKUP=path/to/backup.json"; exit 1; }
-	chmod 644 "$(BACKUP)"
-	adb push "$(BACKUP)" $(DRAFT_ON_THE_PHONE)
 
 export-android: ## bring the copy made in Settings from the phone over USB into exports/, stamped with its time
 	mkdir -p exports

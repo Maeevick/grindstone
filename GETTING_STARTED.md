@@ -58,7 +58,7 @@ make android   # the phone over USB, once the Android toolchain is in place
 
 To start from empty, quit the app and delete that file.
 
-The draft's records are imported on the phone: [RUNBOOK.md](RUNBOOK.md), step 11.
+The phone's records are copied to the Mac, and restored, through Settings: [RUNBOOK.md](RUNBOOK.md), step 11.
 
 ## Next
 

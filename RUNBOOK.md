@@ -267,23 +267,7 @@ Expected: `Success`.
 6. **Burn** (🔥): log a workout, then put two exercises in a session, set its sets, and keep it as a circuit.
 7. Close the app from the recent apps, then open it again: Home shows the streak and its chart, and today's tiles hold the day's figures.
 
-## 11. The draft's records
-
-The app must have run once, which creates its Documents folder. With the phone plugged in:
-
-```sh
-make import-draft-android BACKUP=../grindstone_draft/data/backups/<latest backup>.json
-```
-
-Then, in the app, open the Profile and scroll to its settings, then **Import the draft**. The app tells what it filed:
-- measurements, profiles and goals;
-- exercises and workouts;
-- foods and intakes;
-- drinks and drinkings.
-
-The draft's coffees become Expresso drinkings of 80 mL each, and its teas 200 mL each. The import replaces those records. It can run again with a newer backup until the switch.
-
-## 12. The vault's copy
+## 11. The vault's copy
 
 In the app, open the Profile, scroll to its settings, then **Copy the records**. The app writes every record to `grindstone-export.json` in its Documents folder and tells how many records and tables it copied. With the phone plugged in:
 
