@@ -472,6 +472,45 @@ async fn saving_tells_what_was_kept_and_what_was_there_before() {
 }
 
 #[wasm_bindgen_test]
+async fn every_card_saves_on_today() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED},
+             "set_profile": {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+
+    for form in [
+        "form.profile",
+        "form.goals",
+        "form.fuel-targets",
+        "form.water-target",
+        "form.burn-target",
+        "form.usual-day",
+    ] {
+        found::<HtmlFormElement>(&screen, form)
+            .request_submit()
+            .expect("the card is saved");
+    }
+    settled().await;
+
+    let today = format!(r#""from":"{}""#, grind_ui::screens::today());
+    assert_eq!(
+        [
+            "set_profile",
+            "set_goals",
+            "set_fuel_targets",
+            "set_hydrate_target",
+            "set_burn_target",
+            "set_usual_day"
+        ]
+        .map(|command| asked(command).contains(&today)),
+        [true; 6]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_figure_typed_alone_keeps_the_others_placeholders() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
