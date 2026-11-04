@@ -17,7 +17,6 @@ serde.workspace = true
 chrono.workspace = true
 grind-core.workspace = true
 grind-sqlite.workspace = true
-grind-draft.workspace = true
 
 [dev-dependencies]
 tauri = { version = "2.12", features = ["test"] }

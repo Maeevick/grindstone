@@ -19,7 +19,6 @@ use grind_core::for_charting::{
 use grind_core::for_copying_records::Counted;
 use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
-use grind_core::for_importing::{self, Imported};
 use grind_core::for_keeping_a_copy;
 use grind_core::for_reviewing_progress::{self, Window};
 use grind_core::for_setting_up_the_profile::{
@@ -42,13 +41,10 @@ use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::streak::Streak;
 use grind_core::volitional::Volitional;
-use grind_draft::{ImportFailure, drafted};
 use grind_sqlite::Sqlite;
 use tauri::State;
 
 pub struct Records(pub Mutex<Sqlite>);
-
-pub struct DraftBackup(pub PathBuf);
 
 /// Where a copy of the records lands: on the phone, the app's Documents folder, which USB reaches.
 pub struct CopyFile(pub PathBuf);
@@ -149,22 +145,6 @@ pub fn set_goals(
 pub fn goals_on(records: State<Records>, date: String) -> Result<Option<InForce<Goals>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_setting_up_the_profile::goals_on(&*records, &date)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn import_draft(
-    records: State<Records>,
-    backup: State<DraftBackup>,
-    today: String,
-) -> Result<Imported, ImportFailure> {
-    let backup = std::fs::read_to_string(&backup.0)
-        .map_err(|_| ImportFailure::NoBackupFound(backup.0.display().to_string()))?;
-    let drafted = drafted(&backup).map_err(ImportFailure::Draft)?;
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_importing::import_drafted(
-        &*records, &*records, &*records, &*records, &*records, &drafted, &today,
-    )
-    .map_err(ImportFailure::Failed)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -591,7 +571,6 @@ mod tests {
 
     /// The files the app reads and writes on the phone, nowhere unless a test puts one somewhere.
     struct Files {
-        draft: PathBuf,
         copy: PathBuf,
         restore: PathBuf,
     }
@@ -599,7 +578,6 @@ mod tests {
     impl Files {
         fn nowhere() -> Self {
             Self {
-                draft: PathBuf::from("/nowhere/grindstone-draft.json"),
                 copy: PathBuf::from("/nowhere/grindstone-export.json"),
                 restore: PathBuf::from("/nowhere/grindstone-import.json"),
             }
@@ -610,7 +588,6 @@ mod tests {
         let records = Sqlite::in_memory().expect("an in-memory database opens");
         let app = mock_builder()
             .manage(Records(Mutex::new(records)))
-            .manage(DraftBackup(files.draft))
             .manage(CopyFile(files.copy))
             .manage(RestoreFile(files.restore))
             .invoke_handler(tauri::generate_handler![
@@ -621,7 +598,6 @@ mod tests {
                 profile_on,
                 set_goals,
                 goals_on,
-                import_draft,
                 keep_a_copy,
                 restore_a_copy,
                 burn_day,
@@ -815,33 +791,6 @@ mod tests {
     }
 
     #[test]
-    fn importing_the_draft_backup_pushed_over_usb_tells_what_it_brought() {
-        let backup =
-            std::env::temp_dir().join(format!("grind-tauri-draft-{}.json", std::process::id()));
-        std::fs::write(
-            &backup,
-            r#"{ "settings": { "version": "0.4.0" }, "measurement_bases": { "birthday": "1985-04-12" },
-                 "measurement_logs": [{ "date": "2026-10-08", "gender": "male", "height": 180.0, "neck": 38.5,
-                   "hip": null, "weight": 72.15, "waist": 80.5, "weight_target": 70.0, "fat_target": 10.0 }] }"#,
-        )
-        .expect("a backup pushed");
-        let (_app, screen) = launched_with(Files {
-            draft: backup.clone(),
-            ..Files::nowhere()
-        });
-
-        let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
-
-        std::fs::remove_file(&backup).expect("the test backup is removed");
-        assert_eq!(
-            answer,
-            Ok(
-                json!({ "measurements": 1, "profiles": 1, "goals": 1, "exercises": 0, "workouts": 0, "foods": 0, "intakes": 0, "drinks": 2, "drinkings": 0 })
-            )
-        );
-    }
-
-    #[test]
     fn keeping_a_copy_writes_it_into_the_documents_folder() {
         let copy =
             std::env::temp_dir().join(format!("grind-tauri-copy-{}.json", std::process::id()));
@@ -922,39 +871,6 @@ mod tests {
         let answer = invoke(&screen, "restore_a_copy", json!({}));
 
         assert_eq!(answer, Err(json!({ "Refused": "NoCopyPushed" })));
-    }
-
-    #[test]
-    fn importing_with_no_backup_pushed_says_where_it_was_expected() {
-        let (_app, screen) = launched();
-
-        let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
-
-        assert_eq!(
-            answer,
-            Err(json!({ "NoBackupFound": "/nowhere/grindstone-draft.json" }))
-        );
-    }
-
-    #[test]
-    fn importing_a_backup_that_cannot_be_read_hands_the_screen_the_draft_refusal() {
-        let backup = std::env::temp_dir().join(format!(
-            "grind-tauri-unreadable-{}.json",
-            std::process::id()
-        ));
-        std::fs::write(&backup, "{ not a backup").expect("a backup pushed");
-        let (_app, screen) = launched_with(Files {
-            draft: backup.clone(),
-            ..Files::nowhere()
-        });
-
-        let answer = invoke(&screen, "import_draft", json!({ "today": "2026-10-10" }));
-
-        std::fs::remove_file(&backup).expect("the test backup is removed");
-        assert!(
-            matches!(&answer, Err(refusal) if refusal["Draft"]["Unreadable"].is_string()),
-            "{answer:?}"
-        );
     }
 
     fn with_walking_in_the_catalog(screen: &WebviewWindow<MockRuntime>) {
