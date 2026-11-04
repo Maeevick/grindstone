@@ -155,6 +155,23 @@ pub fn shown_in_force<T: 'static>(
     });
 }
 
+/// What a field gives once a card is saved with some of its figures typed: its own figure, or its placeholder.
+fn typed_or_placeholder(typed: RwSignal<String>, placeholder: Signal<String>) -> String {
+    let typed = typed.get_untracked();
+    if typed.trim().is_empty() {
+        placeholder.get_untracked()
+    } else {
+        typed
+    }
+}
+
+/// Whether every field of a card was left empty.
+fn all_empty(fields: &[RwSignal<String>]) -> bool {
+    fields
+        .iter()
+        .all(|field| field.get_untracked().trim().is_empty())
+}
+
 /// A card's holding before anything is read: the recommendation.
 pub fn holding<T>(say: fn(&T) -> String) -> Held<T> {
     (say, RwSignal::new(lines::THE_RECOMMENDATION.into()))
@@ -196,24 +213,28 @@ fn GoalsCard() -> impl IntoView {
             held,
         );
     };
+    let mass_placeholder = advised.placeholder(|advised| Some(advised.goal_mass_kg));
+    let fat_placeholder = advised.placeholder(|advised| Some(100.0 * advised.goal_fat_ratio));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
-        let Some([body_mass_kg, fat_percentage]) =
-            figures_typed([&target_mass.get_untracked(), &target_fat.get_untracked()])
-        else {
+        if all_empty(&[target_mass, target_fat]) {
+            keep(Kept::Recommended, lines::recommendation_kept);
+            return;
+        }
+        let Some([body_mass_kg, fat_percentage]) = figures_typed([
+            &typed_or_placeholder(target_mass, mass_placeholder),
+            &typed_or_placeholder(target_fat, fat_placeholder),
+        ]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
         };
-        match (body_mass_kg, fat_percentage) {
-            (None, None) => keep(Kept::Recommended, lines::recommendation_kept),
-            _ => keep(
-                Kept::Own(TypedGoals {
-                    body_mass_kg: body_mass_kg.unwrap_or(0.0),
-                    fat_percentage: fat_percentage.unwrap_or(0.0),
-                }),
-                lines::goals_kept,
-            ),
-        }
+        keep(
+            Kept::Own(TypedGoals {
+                body_mass_kg: body_mass_kg.unwrap_or(0.0),
+                fat_percentage: fat_percentage.unwrap_or(0.0),
+            }),
+            lines::goals_kept,
+        );
     };
     let forget = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
     view! {
@@ -235,13 +256,13 @@ fn GoalsCard() -> impl IntoView {
                     label="Target mass (kg)"
                     name="target_mass"
                     value=target_mass
-                    placeholder=advised.placeholder(|advised| Some(advised.goal_mass_kg))
+                    placeholder=mass_placeholder
                 />
                 <FigureField
                     label="Target fat (%)"
                     name="target_fat"
                     value=target_fat
-                    placeholder=advised.placeholder(|advised| Some(100.0 * advised.goal_fat_ratio))
+                    placeholder=fat_placeholder
                 />
             </div>
         </ProfileCard>
@@ -291,12 +312,19 @@ fn UsualDayCard() -> impl IntoView {
         );
     };
     let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
+    let sitting_placeholder = advised.placeholder(|advised| Some(advised.usual_day.sitting_min));
+    let standing_placeholder = advised.placeholder(|advised| Some(advised.usual_day.standing_min));
+    let moving_placeholder = advised.placeholder(|advised| Some(advised.usual_day.moving_km));
     let save = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
+        if all_empty(&[sitting, standing, moving]) {
+            keep(Kept::Recommended, lines::recommendation_kept);
+            return;
+        }
         let Some([sitting_min, standing_min, moving_km]) = figures_typed([
-            &sitting.get_untracked(),
-            &standing.get_untracked(),
-            &moving.get_untracked(),
+            &typed_or_placeholder(sitting, sitting_placeholder),
+            &typed_or_placeholder(standing, standing_placeholder),
+            &typed_or_placeholder(moving, moving_placeholder),
         ]) else {
             said.set(Some(lines::UNREADABLE.into()));
             return;
@@ -327,19 +355,19 @@ fn UsualDayCard() -> impl IntoView {
                     label="Sitting (min)"
                     name="usual_sitting"
                     value=sitting
-                    placeholder=advised.placeholder(|advised| Some(advised.usual_day.sitting_min))
+                    placeholder=sitting_placeholder
                 />
                 <FigureField
                     label="Standing (min)"
                     name="usual_standing"
                     value=standing
-                    placeholder=advised.placeholder(|advised| Some(advised.usual_day.standing_min))
+                    placeholder=standing_placeholder
                 />
                 <FigureField
                     label="Moving (km)"
                     name="usual_moving"
                     value=moving
-                    placeholder=advised.placeholder(|advised| Some(advised.usual_day.moving_km))
+                    placeholder=moving_placeholder
                 />
             </div>
         </ProfileCard>
