@@ -1004,13 +1004,13 @@ impl ForCopyingRecords for Sqlite {
     }
 }
 
+const EVERY_TABLE: &str = "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' order by name";
+
 fn copy_of(connection: &Connection, on: NaiveDate) -> rusqlite::Result<RecordsCopy> {
     let schema_version: i64 =
         connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
     let names = connection
-        .prepare(
-            "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' order by name",
-        )?
+        .prepare(EVERY_TABLE)?
         .query_map([], |row| row.get::<_, String>(0))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     let mut tables = serde_json::Map::new();
