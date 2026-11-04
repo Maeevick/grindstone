@@ -26,6 +26,7 @@ use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
 use grind_core::volitional::Volitional;
 use grind_core::workout::Workout;
+use rusqlite::types::ValueRef;
 use rusqlite::{Connection, params};
 use serde::Deserialize;
 
@@ -996,13 +997,72 @@ impl ForStoringHydrateRecords for Sqlite {
 }
 
 impl ForCopyingRecords for Sqlite {
+    /// Every table as an array of its rows, column by column as stored, under the schema version an import
+    /// must match.
     fn copied(&self, on: NaiveDate) -> Result<RecordsCopy, Broken> {
-        let _ = on;
-        Ok(RecordsCopy {
-            text: String::new(),
-            tables: 0,
-            records: 0,
-        })
+        copy_of(&self.0, on).map_err(broken)
+    }
+}
+
+fn copy_of(connection: &Connection, on: NaiveDate) -> rusqlite::Result<RecordsCopy> {
+    let schema_version: i64 =
+        connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    let names = connection
+        .prepare(
+            "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' order by name",
+        )?
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    let mut tables = serde_json::Map::new();
+    for name in names {
+        let rows = rows_of(connection, &name)?;
+        tables.insert(name, serde_json::Value::Array(rows));
+    }
+    let (counted, records) = (
+        tables.len(),
+        tables
+            .values()
+            .filter_map(serde_json::Value::as_array)
+            .map(Vec::len)
+            .sum(),
+    );
+    let copy = serde_json::json!({
+        "schema_version": schema_version,
+        "exported_on": on.to_string(),
+        "tables": tables,
+    });
+    Ok(RecordsCopy {
+        text: format!("{copy:#}"),
+        tables: counted,
+        records,
+    })
+}
+
+fn rows_of(connection: &Connection, table: &str) -> rusqlite::Result<Vec<serde_json::Value>> {
+    let mut statement = connection.prepare(&format!("select * from \"{table}\" order by rowid"))?;
+    let columns: Vec<String> = statement
+        .column_names()
+        .into_iter()
+        .map(String::from)
+        .collect();
+    statement
+        .query_map([], |row| {
+            columns
+                .iter()
+                .enumerate()
+                .map(|(at, column)| Ok((column.clone(), json_of(row.get_ref(at)?))))
+                .collect::<rusqlite::Result<serde_json::Map<_, _>>>()
+                .map(serde_json::Value::Object)
+        })?
+        .collect()
+}
+
+fn json_of(value: ValueRef) -> serde_json::Value {
+    match value {
+        ValueRef::Null => serde_json::Value::Null,
+        ValueRef::Integer(integer) => integer.into(),
+        ValueRef::Real(real) => real.into(),
+        ValueRef::Text(bytes) | ValueRef::Blob(bytes) => String::from_utf8_lossy(bytes).into(),
     }
 }
 
