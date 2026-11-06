@@ -1089,3 +1089,27 @@ td .ghost.low,
 td .ghost.high {
 	color: #f87171;
 }
+
+.pace-head {
+	display: flex;
+	justify-content: flex-end;
+}
+
+button.info {
+	background: none;
+	border: 0;
+	padding: 2px 4px;
+	font-size: 0.95rem;
+	cursor: pointer;
+}
+
+.info-bubble {
+	margin: 4px 0 8px;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: #111214;
+	color: var(--mut);
+	font-size: 0.8rem;
+	line-height: 1.4;
+}

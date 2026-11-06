@@ -51,6 +51,7 @@ fn failed(failure: &Failure) -> AnyView {
 /// Gather over the window: how each measure moved a week, and the body mass's pace judged.
 #[component]
 pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
+    let told = RwSignal::new(false);
     let pace = LocalResource::new(move || {
         let (today, window) = (today.clone(), window.get());
         async move { tauri::pace_over_the_window(&today, window).await }
@@ -62,6 +63,21 @@ pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                     .map(|answer| match answer {
                         Ok(Some(pace)) => {
                             view! {
+                                <div class="pace-head">
+                                    <button
+                                        class="info"
+                                        type="button"
+                                        aria-label=lines::PACE_INFO_LABEL
+                                        aria-expanded=move || told.get().to_string()
+                                        on:click=move |_| told.update(|told| *told = !*told)
+                                    >
+                                        "ℹ️"
+                                    </button>
+                                </div>
+                                {move || {
+                                    told.get()
+                                        .then(|| view! { <p class="info-bubble" role="note">{lines::PACE_INFO}</p> })
+                                }}
                                 <ul class="pace-lines">
                                     {pace_line("Body mass", Some(pace.body_mass), Figure::Mass)}
                                     {pace_line("Lean mass", pace.lean_mass, Figure::Mass)}
