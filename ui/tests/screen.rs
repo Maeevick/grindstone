@@ -854,6 +854,33 @@ fn the_pace(screen: &Element) -> impl Drop {
     })
 }
 
+#[wasm_bindgen_test]
+async fn the_paces_info_opens_a_bubble_telling_how_it_is_read_and_closes_it_again() {
+    answering(&format!(r#"{{ "pace_over_the_window": {A_PACE} }}"#));
+    let screen = screen();
+    let _mounted = the_pace(&screen);
+    settled().await;
+    let bubble = |screen: &Element| screen.query_selector(".pace .info-bubble").ok().flatten();
+    let closed = bubble(&screen).is_none();
+
+    clicked(&screen, ".pace button.info");
+    settled().await;
+    let told = text_of(&screen, ".pace .info-bubble");
+    let expanded = attributes_of(&screen, ".pace button.info", "aria-expanded");
+    clicked(&screen, ".pace button.info");
+    settled().await;
+
+    assert_eq!(
+        (
+            closed,
+            told.contains("seven-day average") && told.contains("week before"),
+            expanded,
+            bubble(&screen).is_none()
+        ),
+        (true, true, vec!["true".to_string()], true)
+    );
+}
+
 async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
     answering(&format!(
         r#"{{ "pace_over_the_window": {{ "body_mass": {{ "by": -0.623, "heading": "Toward" }},
