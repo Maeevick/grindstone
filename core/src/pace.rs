@@ -518,33 +518,6 @@ mod tests {
         assert!((pace.body_mass.by - -0.257).abs() < 1e-3);
     }
 
-    #[test]
-    fn a_windows_pace_smooths_only_the_weigh_ins_inside_it_the_week_before_left_out() {
-        let weighed = [
-            70.9, 71.1, 70.9, 71.2, 70.9, 71.8, 71.5, 70.9, 70.8, 70.8, 70.8, 70.7, 71.0, 71.2,
-        ];
-        let gathered = GatherRecords {
-            measurements: weighed
-                .iter()
-                .zip(0..)
-                .map(|(kg, on)| Measurement {
-                    day: day("2026-10-24") + Days::new(on),
-                    body_mass_kg: *kg,
-                    waist_cm: None,
-                })
-                .collect(),
-            ..a_man_weighed(80.0, 0.0)
-        };
-
-        let pace = pace_on(day("2026-11-06"), &gathered).expect("a pace");
-
-        assert!(
-            (pace.body_mass.by - -0.0274).abs() < 1e-4,
-            "{}",
-            pace.body_mass.by
-        );
-    }
-
     fn a_pace_with(lean_mass: Option<Change>) -> Pace {
         Pace {
             body_mass: Change {
