@@ -941,6 +941,33 @@ mod tests {
     }
 
     #[test]
+    fn the_burn_chart_starts_on_the_burn_targets_first_day() {
+        let logged = a_logged_man();
+        crate::for_setting_up_the_profile::set_burn_target(
+            &logged.gather,
+            &logged.burn,
+            &crate::for_setting_up_the_profile::BurnTargetForm {
+                from: "2026-10-01".into(),
+                kept: crate::kept::Kept::Own(300.0),
+            },
+        )
+        .expect("a burn target keeps");
+
+        let chart = burn_chart(
+            &logged.gather,
+            &logged.burn,
+            "2026-10-10",
+            Window::Everything,
+        )
+        .expect("a chart");
+
+        assert_eq!(
+            chart.burnt.iter().map(|(day, _)| *day).collect::<Vec<_>>(),
+            vec![day("2026-10-09"), day("2026-10-10")]
+        );
+    }
+
+    #[test]
     fn a_week_window_charts_the_seven_days_ending_today() {
         let logged = a_logged_man();
         log_measurement(&logged.gather, "2026-10-01", 81.0, Some(80.0))
