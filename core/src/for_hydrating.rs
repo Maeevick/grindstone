@@ -251,6 +251,39 @@ mod tests {
     }
 
     #[test]
+    fn the_average_over_a_window_counts_from_the_water_aims_first_day() {
+        let (gather, burn, fuel, hydrate) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+            a_catalog_with_tea(),
+        );
+        crate::for_setting_up_the_profile::set_hydrate_target(
+            &gather,
+            &hydrate,
+            &crate::for_setting_up_the_profile::HydrateTargetForm {
+                from: "2026-10-01".into(),
+                kept: crate::kept::Kept::Own(2800.0),
+            },
+        )
+        .expect("a water target keeps");
+        for date in ["2026-09-20", "2026-10-05", "2026-10-08"] {
+            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
+        }
+
+        let over = hydrate_over_the_window(
+            &gather,
+            &burn,
+            &fuel,
+            &hydrate,
+            "2026-10-10",
+            Window::Everything,
+        );
+
+        assert_eq!(over.ok().flatten().map(|over| over.logged_days), Some(2));
+    }
+
+    #[test]
     fn a_window_up_to_a_today_the_calendar_does_not_have_is_refused() {
         assert_eq!(
             hydrate_over_the_window(
