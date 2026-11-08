@@ -257,6 +257,28 @@ mod tests {
     }
 
     #[test]
+    fn the_average_over_a_window_counts_from_the_fuel_targets_first_day() {
+        let fuel = a_catalog_with_skyr();
+        let (gather, burn) = (a_man_with_a_waist(), BurnRecordsInMemory::default());
+        crate::for_setting_up_the_profile::set_fuel_targets(
+            &gather,
+            &fuel,
+            &crate::for_setting_up_the_profile::FuelTargetsForm {
+                from: "2026-10-01".into(),
+                kept: crate::kept::Kept::Recommended,
+            },
+        )
+        .expect("fuel targets keep");
+        for date in ["2026-08-20", "2026-10-05", "2026-10-08"] {
+            log_intake(&gather, &burn, &fuel, &skyr(date, 200.0)).expect("an intake");
+        }
+
+        let over = fuel_over_the_window(&gather, &burn, &fuel, "2026-10-10", Window::Everything);
+
+        assert_eq!(over.ok().flatten().map(|over| over.logged_days), Some(2));
+    }
+
+    #[test]
     fn the_day_previewed_with_more_eaten_stands_as_it_will_once_they_are_logged() {
         let fuel = a_catalog_with_skyr();
         let (gather, burn) = (a_man_with_a_waist(), BurnRecordsInMemory::default());
