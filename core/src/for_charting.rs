@@ -96,12 +96,14 @@ pub fn fuel_chart(
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    let span = span_of(day_of(today)?, window, None);
+    let today = day_of(today)?;
     let (gathered, burnt, fuelled) = (
         gather.gather_records()?,
         burn.burn_records()?,
         fuel.fuel_records()?,
     );
+    let began = began_on(fuelled.targets.iter().map(|(from, _)| *from), &gathered);
+    let span = span_of(today, window, began);
     let days = days_within(fuelled.intakes.iter().map(|(_, eaten)| eaten.day), span);
     let fuelled_days = fuel_over(&days, &gathered, &burnt, &fuelled);
     Ok(BandChart {
