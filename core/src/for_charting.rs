@@ -970,6 +970,36 @@ mod tests {
     }
 
     #[test]
+    fn the_gather_chart_starts_on_the_goals_first_day() {
+        let gather = GatherRecordsInMemory::default();
+        set_goals(
+            &gather,
+            &GoalsForm {
+                from: "2026-10-01".into(),
+                kept: crate::kept::Kept::Own(crate::for_setting_up_the_profile::TypedGoals {
+                    body_mass_kg: 70.0,
+                    fat_percentage: 10.0,
+                }),
+            },
+        )
+        .expect("goals set");
+        for (date, kg) in [
+            ("2026-08-01", 82.0),
+            ("2026-10-09", 80.2),
+            ("2026-10-10", 80.0),
+        ] {
+            log_measurement(&gather, date, kg, None).expect("a measurement logs");
+        }
+
+        let chart = gather_chart(&gather, "2026-10-10", Window::Everything).expect("a chart");
+
+        assert_eq!(
+            chart.masses.iter().map(|(day, _)| *day).collect::<Vec<_>>(),
+            vec![day("2026-10-09"), day("2026-10-10")]
+        );
+    }
+
+    #[test]
     fn a_week_window_charts_the_seven_days_ending_today() {
         let logged = a_logged_man();
         log_measurement(&logged.gather, "2026-10-01", 81.0, Some(80.0))
