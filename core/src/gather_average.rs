@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
+use crate::composition::Composition;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 
@@ -19,6 +20,11 @@ fn mean(values: impl Iterator<Item = f64>) -> Option<f64> {
     (count > 0).then(|| sum / f64::from(count))
 }
 
+fn composed(days: &[Day], figure: fn(&Composition) -> f64) -> impl Iterator<Item = f64> + '_ {
+    days.iter()
+        .filter_map(move |measured| measured.composition.as_ref().map(figure))
+}
+
 /// The average from a first day to the last, both included; none without a weigh-in.
 pub fn averaged_between(
     first: NaiveDate,
@@ -32,8 +38,8 @@ pub fn averaged_between(
     Some(GatherAverage {
         weigh_ins: days.len(),
         body_mass_kg: mean(days.iter().map(|measured| measured.body_mass_kg))?,
-        lean_mass_kg: None,
-        fat_mass_kg: None,
-        fat_ratio: None,
+        lean_mass_kg: mean(composed(&days, |split| split.lean_mass_kg)),
+        fat_mass_kg: mean(composed(&days, |split| split.fat_mass_kg)),
+        fat_ratio: mean(composed(&days, |split| split.fat_ratio)),
     })
 }
