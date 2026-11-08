@@ -869,29 +869,19 @@ async fn on_seven_days_the_pace_says_it_needs_thirty_days() {
 }
 
 #[wasm_bindgen_test]
-async fn the_paces_info_opens_a_bubble_telling_how_it_is_read_and_closes_it_again() {
+async fn the_pace_offers_no_info_bubble_any_more() {
     answering(&format!(r#"{{ "pace_over_the_window": {A_PACE} }}"#));
     let screen = screen();
-    let _mounted = the_pace(&screen, Window::Days30);
-    settled().await;
-    let bubble = |screen: &Element| screen.query_selector(".pace .info-bubble").ok().flatten();
-    let closed = bubble(&screen).is_none();
 
-    clicked(&screen, ".pace button.info");
-    settled().await;
-    let told = text_of(&screen, ".pace .info-bubble");
-    let expanded = attributes_of(&screen, ".pace button.info", "aria-expanded");
-    clicked(&screen, ".pace button.info");
+    let _mounted = the_pace(&screen, Window::Days30);
     settled().await;
 
     assert_eq!(
         (
-            closed,
-            told.contains("seven-day average") && told.contains("week before"),
-            expanded,
-            bubble(&screen).is_none()
+            screen.query_selector(".pace .pace-lines").ok().flatten().is_some(),
+            screen.query_selector(".pace button.info").ok().flatten().is_none()
         ),
-        (true, true, vec!["true".to_string()], true)
+        (true, true)
     );
 }
 
