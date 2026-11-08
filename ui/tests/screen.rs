@@ -855,6 +855,20 @@ fn the_pace(screen: &Element, window: Window) -> impl Drop {
 }
 
 #[wasm_bindgen_test]
+async fn on_seven_days_the_pace_says_it_needs_thirty_days() {
+    answering(r#"{ "pace_over_the_window": null }"#);
+    let screen = screen();
+
+    let _mounted = the_pace(&screen, Window::Days7);
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, ".pace p.empty"),
+        "A pace needs 30 days. Over a week, water and salt move the scale more than you do."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_paces_info_opens_a_bubble_telling_how_it_is_read_and_closes_it_again() {
     answering(&format!(r#"{{ "pace_over_the_window": {A_PACE} }}"#));
     let screen = screen();
