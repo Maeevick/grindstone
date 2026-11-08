@@ -47,7 +47,8 @@ pub fn streak(
     let Some(start) = gathered.profiles.iter().map(|(from, _)| *from).min() else {
         return Ok(streak_of(&[], today));
     };
-    let counted_from = |versions: Vec<NaiveDate>| versions.into_iter().min().unwrap_or(start);
+    let counted_from =
+        |versions: Vec<NaiveDate>| began_on(versions.into_iter(), &gathered).unwrap_or(start);
     let (weighed_from, fuelled_from, worked_out_from, hydrated_from) = (
         counted_from(gathered.goals.iter().map(|(from, _)| *from).collect()),
         counted_from(fuelled.targets.iter().map(|(from, _)| *from).collect()),
@@ -108,13 +109,29 @@ fn worked_out(day: NaiveDate, burnt: &BurnRecords, gathered: &GatherRecords) -> 
             .is_none_or(|verdict| verdict == Verdict::InBand)
 }
 
-pub(crate) fn first_day_of(window: Window, today: NaiveDate) -> NaiveDate {
-    match window {
+/// The first day a card counts from: its oldest version, else the profile's first day; none before a profile.
+pub(crate) fn began_on(
+    versions: impl Iterator<Item = NaiveDate>,
+    gathered: &GatherRecords,
+) -> Option<NaiveDate> {
+    versions
+        .min()
+        .or_else(|| gathered.profiles.iter().map(|(from, _)| *from).min())
+}
+
+/// A window's first day up to today, never before its card began.
+pub(crate) fn first_day_of(
+    window: Window,
+    today: NaiveDate,
+    began: Option<NaiveDate>,
+) -> NaiveDate {
+    let first = match window {
         Window::Days7 => today - Days::new(6),
         Window::Days30 => today - Days::new(29),
         Window::Days90 => today - Days::new(89),
         Window::Everything => NaiveDate::MIN,
-    }
+    };
+    began.map_or(first, |began| first.max(began))
 }
 
 #[cfg(test)]

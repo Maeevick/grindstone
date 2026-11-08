@@ -86,7 +86,8 @@ pub fn burn_over_the_window(
     let today = day(today)?;
     let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
     let first_workout = burnt.workouts.iter().map(|(_, done)| done.day).min();
-    let Some(first) = first_workout.map(|first| first.max(first_day_of(window, today))) else {
+    let Some(first) = first_workout.map(|first| first.max(first_day_of(window, today, None)))
+    else {
         return Ok(None);
     };
     let days: Vec<Burn> = the_days_between(first, today)

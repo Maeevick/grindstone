@@ -57,7 +57,7 @@ pub fn pace_over_the_window(
         return Ok(None);
     }
     Ok(pace_between(
-        first_day_of(window, today),
+        first_day_of(window, today, None),
         today,
         &records.gather_records()?,
     ))

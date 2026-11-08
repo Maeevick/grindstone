@@ -78,7 +78,7 @@ pub fn fuel_over_the_window(
     let today = day(today)?;
     let fuelled = fuel.fuel_records()?;
     let logged = logged_between(
-        first_day_of(window, today),
+        first_day_of(window, today, None),
         today,
         today,
         fuelled.intakes.iter().map(|(_, eaten)| eaten.day),

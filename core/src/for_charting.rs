@@ -47,7 +47,7 @@ fn day_of(date: &str) -> Result<NaiveDate, Failure> {
 
 fn span_of(today: &str, window: Window) -> Result<(NaiveDate, NaiveDate), Failure> {
     let today = day_of(today)?;
-    Ok((first_day_of(window, today), today))
+    Ok((first_day_of(window, today, None), today))
 }
 
 fn days_within(

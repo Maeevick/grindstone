@@ -62,7 +62,7 @@ pub fn hydrate_over_the_window(
     let today = day(today)?;
     let hydrated = hydrate.hydrate_records()?;
     let logged = logged_between(
-        first_day_of(window, today),
+        first_day_of(window, today, None),
         today,
         today,
         hydrated.drinkings.iter().map(|(_, drunk)| drunk.day),
