@@ -60,11 +60,8 @@ pub fn hydrate_over_the_window(
     window: Window,
 ) -> Result<Option<HydrateWeek>, Failure> {
     let today = day(today)?;
-    let hydrated = hydrate.hydrate_records()?;
-    let began = began_on(
-        hydrated.targets.iter().map(|(from, _)| *from),
-        &gather.gather_records()?,
-    );
+    let (gathered, hydrated) = (gather.gather_records()?, hydrate.hydrate_records()?);
+    let began = began_on(hydrated.targets.iter().map(|(from, _)| *from), &gathered);
     let logged = logged_between(
         first_day_of(window, today, began),
         today,
@@ -74,7 +71,7 @@ pub fn hydrate_over_the_window(
     Ok(hydrate_week_of(&hydrate_over(
         &logged,
         &hydrated,
-        &gather.gather_records()?,
+        &gathered,
         &burn.burn_records()?,
         &fuel.fuel_records()?,
     )))
