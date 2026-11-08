@@ -24,6 +24,7 @@ use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::FuelWeek;
+use grind_core::gather_average::GatherAverage;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
@@ -327,6 +328,18 @@ pub async fn burn_month(month: &str, picked: &str) -> Result<Month<BurnRow>, Fai
 
 pub async fn pace_over_the_window(today: &str, window: Window) -> Result<Option<Pace>, Failure> {
     call("pace_over_the_window", Reviewing { today, window }, broken).await
+}
+
+pub async fn gather_average_over_the_window(
+    today: &str,
+    window: Window,
+) -> Result<Option<GatherAverage>, Failure> {
+    call(
+        "gather_average_over_the_window",
+        Reviewing { today, window },
+        broken,
+    )
+    .await
 }
 
 pub async fn fuel_over_the_window(

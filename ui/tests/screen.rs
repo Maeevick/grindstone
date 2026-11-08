@@ -4846,7 +4846,9 @@ const A_PACE: &str = r#"{ "body_mass": { "by": -0.4, "heading": "Toward" },
 #[wasm_bindgen_test]
 async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_and_tip_over_its_window() {
     answering(&format!(
-        r#"{{ "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
+        r#"{{ "gather_average_over_the_window": {{ "weigh_ins": 5, "body_mass_kg": 71.04,
+                 "lean_mass_kg": 61.62, "fat_mass_kg": 9.42, "fat_ratio": 0.1326 }},
+             "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
              "hydrate_over_the_window": null, "burn_over_the_window": {A_BURN_WEEK} }}"#
     ));
     let screen = screen();
@@ -4864,9 +4866,9 @@ async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_and_tip_over_its_
         .ok()
         .flatten()
         .is_some();
-    let paced = texts_in_order(&screen, "section.card.tips .pace-lines li").len();
+    let gathered = texts_in_order(&screen, "section.card.tips .pace-lines li").len();
     assert_eq!(
-        (untitled_chart, charted_in_the_tips, paced),
+        (untitled_chart, charted_in_the_tips, gathered),
         (false, true, 4)
     );
     clicked(&screen, "section.card.tips .chip-Fuel");

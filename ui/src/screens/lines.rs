@@ -741,8 +741,16 @@ pub fn paced_over(weigh_ins: usize) -> String {
     }
 }
 
-pub const PACE_NEEDS_A_MONTH: &str =
-    "A pace needs 30 days. Over a week, water and salt move the scale more than you do.";
+pub fn averaged_over(weigh_ins: usize) -> String {
+    if weigh_ins == 1 {
+        "Average over 1 weigh-in, today included.".into()
+    } else {
+        format!("Average over {weigh_ins} weigh-ins, today included.")
+    }
+}
+
+pub const NO_WEIGH_IN_YET: &str =
+    "No weigh-in in these 7 days yet. The scale is patient: it has nowhere else to be.";
 
 /// Past the safe loss: said plainly first, figures to the hundredth, lean mass named only when the tape
 /// sees it leave.
