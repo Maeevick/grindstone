@@ -163,8 +163,10 @@ pub fn burn_chart(
     today: &str,
     window: Window,
 ) -> Result<BurnChart, Failure> {
-    let span = span_of(day_of(today)?, window, None);
+    let today = day_of(today)?;
     let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
+    let began = began_on(burnt.targets.iter().map(|(from, _)| *from), &gathered);
+    let span = span_of(today, window, began);
     let days = days_within(burnt.workouts.iter().map(|(_, done)| done.day), span);
     let burns: Vec<Burn> = days
         .iter()
