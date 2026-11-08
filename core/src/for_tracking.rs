@@ -95,6 +95,26 @@ mod tests {
     }
 
     #[test]
+    fn a_week_of_daily_weigh_ins_gives_no_pace() {
+        let records = GatherRecordsInMemory::default();
+        for (date, kg) in [
+            ("2026-10-04", 80.0),
+            ("2026-10-05", 79.9),
+            ("2026-10-06", 79.8),
+            ("2026-10-07", 79.7),
+            ("2026-10-08", 79.6),
+            ("2026-10-09", 79.5),
+            ("2026-10-10", 79.4),
+        ] {
+            log_measurement(&records, date, kg, None).expect("a measurement logs");
+        }
+
+        let paced = pace_over_the_window(&records, "2026-10-10", Window::Days7);
+
+        assert_eq!(paced.ok().flatten().map(|pace| pace.body_mass.by), None);
+    }
+
+    #[test]
     fn the_pace_over_a_window_reads_the_weigh_ins_across_it() {
         let records = GatherRecordsInMemory::default();
         for (date, kg) in [
