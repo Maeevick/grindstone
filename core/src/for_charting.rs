@@ -64,8 +64,10 @@ pub fn gather_chart(
     today: &str,
     window: Window,
 ) -> Result<GatherChart, Failure> {
-    let (first, last) = span_of(day_of(today)?, window, None);
+    let today = day_of(today)?;
     let gathered = gather.gather_records()?;
+    let began = began_on(gathered.goals.iter().map(|(from, _)| *from), &gathered);
+    let (first, last) = span_of(today, window, began);
     let days: Vec<Day> = ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
         .filter(|measured| (first..=last).contains(&measured.day))
