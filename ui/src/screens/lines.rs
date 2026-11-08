@@ -724,10 +724,10 @@ pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
 /// What the window's burn stands against, after its figure: the sum of its days' targets when known.
 pub fn over_active_days(active: usize, days: usize) -> String {
-    if active == 1 {
-        format!("Over 1 active day in {days}.")
+    if days == 1 {
+        format!("Average over 1 day, {active} active, today left out.")
     } else {
-        format!("Over {active} active days in {days}.")
+        format!("Average over {days} days, {active} active, today left out.")
     }
 }
 
