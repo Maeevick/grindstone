@@ -731,14 +731,6 @@ pub fn over_active_days(active: usize, days: usize) -> String {
     }
 }
 
-pub const PACE_INFO_LABEL: &str = "How the pace is read";
-
-pub const PACE_INFO: &str = "The pace is the slope, per week, of your seven-day average: each day averages the \
-    weigh-ins of the seven days ending on it. On 7 days, those averages still carry the week before, so the pace \
-    lags the chart and can even point the other way; on 30 and 90 days the lag fades. It needs at least 4 weigh-ins \
-    in the window, and a day's weight swings by about 0.5 kg either way with water, salt and digestion: read 7 days \
-    as a hint, 30 and 90 days as the trend.";
-
 pub const NO_PACE_YET: &str =
     "Too few weigh-ins for a pace yet. Patience is half the hunt. The other half is also patience.";
 pub const PACE_NEEDS_A_MONTH: &str =
