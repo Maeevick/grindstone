@@ -45,8 +45,10 @@ impl Averaged {
     /// within it.
     pub fn gap(&self) -> Option<f64> {
         match self.verdict() {
-            Verdict::Low => Some(self.per_day - self.floor),
-            Verdict::High => self.ceiling.map(|ceiling| self.per_day - ceiling),
+            Verdict::Low => Some(self.per_day.round() - self.floor.round()),
+            Verdict::High => self
+                .ceiling
+                .map(|ceiling| self.per_day.round() - ceiling.round()),
             Verdict::InBand => None,
         }
     }
