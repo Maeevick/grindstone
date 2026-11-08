@@ -370,6 +370,29 @@ mod tests {
     }
 
     #[test]
+    fn the_sum_up_over_a_window_counts_from_the_burn_targets_first_day() {
+        let gather = GatherRecordsInMemory::default();
+        log_measurement(&gather, "2026-09-01", 80.0, None).expect("a measurement logs");
+        let burn = a_catalog_with_walking();
+        crate::for_setting_up_the_profile::set_burn_target(
+            &gather,
+            &burn,
+            &crate::for_setting_up_the_profile::BurnTargetForm {
+                from: "2026-10-01".into(),
+                kept: crate::kept::Kept::Own(300.0),
+            },
+        )
+        .expect("a burn target keeps");
+        for date in ["2026-09-20", "2026-10-05", "2026-10-08"] {
+            log_workout(&gather, &burn, &walking(date, 30.0)).expect("a workout logs");
+        }
+
+        let over = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Everything);
+
+        assert_eq!(over.ok().flatten().map(|over| over.active_days), Some(2));
+    }
+
+    #[test]
     fn a_window_up_to_a_today_the_calendar_does_not_have_is_refused() {
         assert_eq!(
             burn_over_the_window(
