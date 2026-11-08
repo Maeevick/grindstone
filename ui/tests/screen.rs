@@ -855,6 +855,20 @@ fn the_pace(screen: &Element, window: Window) -> impl Drop {
 }
 
 #[wasm_bindgen_test]
+async fn the_pace_says_it_reads_the_slope_of_the_seven_day_average_over_its_weigh_ins() {
+    answering(&format!(r#"{{ "pace_over_the_window": {A_PACE} }}"#));
+    let screen = screen();
+
+    let _mounted = the_pace(&screen, Window::Days30);
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, ".pace p.hint"),
+        "Pace: the slope of the 7-day average over 12 weigh-ins."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn on_seven_days_the_pace_says_it_needs_thirty_days() {
     answering(r#"{ "pace_over_the_window": null }"#);
     let screen = screen();
