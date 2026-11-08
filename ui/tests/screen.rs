@@ -1720,7 +1720,10 @@ async fn the_weeks_average_tells_each_measure_a_day_against_its_band_its_goal_an
         attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
         ["good", "low", "high", "low", "high"]
     );
-    assert_eq!(text_of(&screen, ".week p.hint"), "Over 6 logged days.");
+    assert_eq!(
+        text_of(&screen, ".week p.hint"),
+        "Average over 6 logged days, today left out."
+    );
 }
 
 #[wasm_bindgen_test]
@@ -1806,7 +1809,10 @@ async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_
         attributes_of(&screen, ".week tbody td:nth-child(2)", "class").first(),
         Some(&"low".to_string())
     );
-    assert_eq!(text_of(&screen, ".week p.hint"), "Over 6 logged days.");
+    assert_eq!(
+        text_of(&screen, ".week p.hint"),
+        "Average over 6 logged days, today left out."
+    );
     let tip = text_of(&screen, ".week p.tip");
     assert!(
         tip.starts_with("“Short of the band by 100 mL a day. ") && tip.ends_with('”'),
