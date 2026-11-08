@@ -899,7 +899,7 @@ async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
                          "lean_mass": {lean_mass},
                          "fat_mass": {{ "by": -0.4, "heading": "Toward" }},
                          "fat_ratio": {{ "by": -0.005, "heading": "Toward" }},
-                         "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "safe_loss_by": "FatStore" }} }}"#
+                         "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "weigh_ins": 12, "safe_loss_by": "FatStore" }} }}"#
     ));
     let screen = screen();
     let _mounted = the_pace(&screen, Window::Days30);
@@ -938,7 +938,7 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
                          "lean_mass": { "by": -0.1, "heading": "Away" },
                          "fat_mass": { "by": -0.3, "heading": "Toward" },
                          "fat_ratio": { "by": 0.0, "heading": "Steady" },
-                         "judgement": "VeryGood", "safe_loss_kg": 0.48, "safe_loss_by": "FatStore" } }"#,
+                         "judgement": "VeryGood", "safe_loss_kg": 0.48, "weigh_ins": 12, "safe_loss_by": "FatStore" } }"#,
     );
     let screen = screen();
     let _mounted = the_pace(&screen, Window::Days30);
@@ -4798,7 +4798,7 @@ const THE_CHARTS: &str = r#""gather_chart": { "masses": [["2026-10-09", 80.2], [
 const A_PACE: &str = r#"{ "body_mass": { "by": -0.4, "heading": "Toward" },
     "lean_mass": { "by": 0.1, "heading": "Toward" }, "fat_mass": { "by": -0.5, "heading": "Toward" },
     "fat_ratio": { "by": -0.006, "heading": "Toward" },
-    "judgement": "VeryGood", "safe_loss_kg": 0.7, "safe_loss_by": "MassShare" }"#;
+    "judgement": "VeryGood", "safe_loss_kg": 0.7, "weigh_ins": 12, "safe_loss_by": "MassShare" }"#;
 
 #[wasm_bindgen_test]
 async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_and_tip_over_its_window() {

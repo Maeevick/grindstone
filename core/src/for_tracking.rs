@@ -150,6 +150,25 @@ mod tests {
     }
 
     #[test]
+    fn the_pace_tells_how_many_weigh_ins_of_its_window_it_reads() {
+        let records = GatherRecordsInMemory::default();
+        for (date, kg) in [
+            ("2026-09-01", 81.6),
+            ("2026-09-15", 81.0),
+            ("2026-09-18", 80.7),
+            ("2026-09-22", 80.4),
+            ("2026-09-26", 80.1),
+            ("2026-09-30", 79.8),
+        ] {
+            log_measurement(&records, date, kg, None).expect("a measurement logs");
+        }
+
+        let paced = pace_over_the_window(&records, "2026-10-10", Window::Days30);
+
+        assert_eq!(paced.ok().flatten().map(|pace| pace.weigh_ins), Some(5));
+    }
+
+    #[test]
     fn the_pace_over_a_window_reads_the_weigh_ins_across_it() {
         let records = GatherRecordsInMemory::default();
         for (date, kg) in [

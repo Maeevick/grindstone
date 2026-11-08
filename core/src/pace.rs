@@ -29,6 +29,7 @@ pub struct Pace {
     pub judgement: Judgement,
     pub safe_loss_kg: f64,
     pub safe_loss_by: SafeLoss,
+    pub weigh_ins: usize,
 }
 
 /// What the measured lean mass did over the week: left, by so much a week; held; or went unmeasured,
@@ -169,6 +170,7 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
         judgement,
         safe_loss_kg,
         safe_loss_by,
+        weigh_ins: 0,
     })
 }
 
@@ -530,6 +532,7 @@ mod tests {
             judgement: Judgement::LosingTooFast,
             safe_loss_kg: 0.5,
             safe_loss_by: SafeLoss::FatStore,
+            weigh_ins: 5,
         }
     }
 
