@@ -62,6 +62,7 @@ pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                     .map(|answer| match answer {
                         Ok(Some(pace)) => {
                             view! {
+                                <p class="hint">{lines::paced_over(pace.weigh_ins)}</p>
                                 <ul class="pace-lines">
                                     {pace_line("Body mass", Some(pace.body_mass), Figure::Mass)}
                                     {pace_line("Lean mass", pace.lean_mass, Figure::Mass)}

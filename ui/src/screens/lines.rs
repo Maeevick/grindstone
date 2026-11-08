@@ -733,6 +733,14 @@ pub fn over_active_days(active: usize, days: usize) -> String {
 
 pub const NO_PACE_YET: &str =
     "Too few weigh-ins for a pace yet. Patience is half the hunt. The other half is also patience.";
+pub fn paced_over(weigh_ins: usize) -> String {
+    if weigh_ins == 1 {
+        "Pace: the slope of the 7-day average over 1 weigh-in.".into()
+    } else {
+        format!("Pace: the slope of the 7-day average over {weigh_ins} weigh-ins.")
+    }
+}
+
 pub const PACE_NEEDS_A_MONTH: &str =
     "A pace needs 30 days. Over a week, water and salt move the scale more than you do.";
 

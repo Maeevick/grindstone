@@ -976,7 +976,7 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
         ["toward", "away", "toward", "steady"]
     );
     let tip = text_of(&screen, ".pace p.tip");
-    assert_eq!(attributes_of(&screen, ".pace p", "class"), ["tip"]);
+    assert_eq!(attributes_of(&screen, ".pace p", "class"), ["hint", "tip"]);
     assert!(tip.starts_with('“') && tip.ends_with('”'), "{tip}");
 }
 
