@@ -1037,21 +1037,14 @@ mod tests {
 
         let crossed = [
             "pace_over_the_window",
+            "gather_average_over_the_window",
             "fuel_over_the_window",
             "hydrate_over_the_window",
             "burn_over_the_window",
         ]
         .map(|command| invoke(&screen, command, over_30_days.clone()));
 
-        assert_eq!(
-            crossed,
-            [
-                Ok(json!(null)),
-                Ok(json!(null)),
-                Ok(json!(null)),
-                Ok(json!(null))
-            ]
-        );
+        assert_eq!(crossed, [(); 5].map(|_| Ok(json!(null))));
     }
 
     #[test]
