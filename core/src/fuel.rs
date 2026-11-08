@@ -47,9 +47,10 @@ pub struct MacroRow {
 }
 
 impl MacroRow {
-    /// What was eaten beyond the goal; short of it, the gap is negative.
+    /// What was eaten beyond the goal, as both are shown, to the gram, as the verdict reads them; short of it,
+    /// the gap is negative.
     pub fn gap_g(&self) -> f64 {
-        self.eaten_g - self.goal_g
+        self.eaten_g.round() - self.goal_g.round()
     }
 }
 
