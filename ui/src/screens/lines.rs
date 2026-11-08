@@ -741,6 +741,8 @@ pub const PACE_INFO: &str = "The pace is the slope, per week, of your seven-day 
 
 pub const NO_PACE_YET: &str =
     "Too few weigh-ins for a pace yet. Patience is half the hunt. The other half is also patience.";
+pub const PACE_NEEDS_A_MONTH: &str =
+    "A pace needs 30 days. Over a week, water and salt move the scale more than you do.";
 
 /// Past the safe loss: said plainly first, figures to the hundredth, lean mass named only when the tape
 /// sees it leave.

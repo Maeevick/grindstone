@@ -88,7 +88,14 @@ pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                             }
                                 .into_any()
                         }
-                        Ok(None) => view! { <p class="empty">{lines::NO_PACE_YET}</p> }.into_any(),
+                        Ok(None) => {
+                            let said = if window.get_untracked().reads_a_pace() {
+                                lines::NO_PACE_YET
+                            } else {
+                                lines::PACE_NEEDS_A_MONTH
+                            };
+                            view! { <p class="empty">{said}</p> }.into_any()
+                        }
                         Err(failure) => failed(&failure),
                     })
             }}
