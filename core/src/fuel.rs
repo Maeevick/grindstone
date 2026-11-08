@@ -1332,6 +1332,23 @@ mod tests {
     }
 
     #[test]
+    fn a_macros_gap_is_the_difference_of_its_figures_as_shown_so_its_row_adds_up() {
+        let row = |eaten_g: f64, goal_g: f64| MacroRow {
+            eaten_g,
+            floor_g: goal_g,
+            ceiling_g: None,
+            goal_g,
+            painted: false,
+            verdict: verdict_of(eaten_g, goal_g, f64::INFINITY),
+        };
+
+        assert_eq!(
+            [row(23.6, 24.4).gap_g(), row(23.6, 24.6).gap_g()],
+            [0.0, -1.0]
+        );
+    }
+
+    #[test]
     fn each_macro_takes_its_share_of_the_energy_eaten_and_together_they_account_for_it() {
         let eaten = Nutrients {
             energy_kcal: 2000.0,
