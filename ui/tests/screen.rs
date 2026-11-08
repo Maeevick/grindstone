@@ -869,16 +869,36 @@ async fn the_pace_says_it_reads_the_slope_of_the_seven_day_average_over_its_weig
 }
 
 #[wasm_bindgen_test]
-async fn on_seven_days_the_pace_says_it_needs_thirty_days() {
-    answering(r#"{ "pace_over_the_window": null }"#);
+async fn on_seven_days_gather_averages_each_measure_over_its_weigh_ins_today_included() {
+    answering(
+        r#"{ "gather_average_over_the_window": { "weigh_ins": 5, "body_mass_kg": 71.04,
+             "lean_mass_kg": 61.62, "fat_mass_kg": 9.42, "fat_ratio": 0.1326 } }"#,
+    );
     let screen = screen();
 
     let _mounted = the_pace(&screen, Window::Days7);
     settled().await;
 
     assert_eq!(
-        text_of(&screen, ".pace p.empty"),
-        "A pace needs 30 days. Over a week, water and salt move the scale more than you do."
+        (
+            text_of(&screen, ".pace p.hint"),
+            texts_in_order(&screen, ".pace li > span")
+        ),
+        (
+            "Average over 5 weigh-ins, today included.".to_string(),
+            [
+                "Body mass",
+                "71.0 kg",
+                "Lean mass",
+                "61.6 kg",
+                "Fat mass",
+                "9.4 kg",
+                "Fat %",
+                "13.3%"
+            ]
+            .map(String::from)
+            .to_vec()
+        )
     );
 }
 
