@@ -5,6 +5,7 @@ use crate::aims::{Aims, aims_on};
 use crate::failure::Failure;
 use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_gather_records::ForStoringGatherRecords;
+use crate::gather_average::{GatherAverage, averaged_between};
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
@@ -59,6 +60,22 @@ pub fn pace_over_the_window(
     let gathered = records.gather_records()?;
     let began = began_on(gathered.goals.iter().map(|(from, _)| *from), &gathered);
     Ok(pace_between(
+        first_day_of(window, today, began),
+        today,
+        &gathered,
+    ))
+}
+
+/// Each measure averaged over the weigh-ins of a window up to today, today included: a weigh-in is whole once made.
+pub fn gather_average_over_the_window(
+    records: &impl ForStoringGatherRecords,
+    today: &str,
+    window: Window,
+) -> Result<Option<GatherAverage>, Failure> {
+    let today = day_of(today)?;
+    let gathered = records.gather_records()?;
+    let began = began_on(gathered.goals.iter().map(|(from, _)| *from), &gathered);
+    Ok(averaged_between(
         first_day_of(window, today, began),
         today,
         &gathered,
@@ -166,6 +183,28 @@ mod tests {
         let paced = pace_over_the_window(&records, "2026-10-10", Window::Days30);
 
         assert_eq!(paced.ok().flatten().map(|pace| pace.weigh_ins), Some(5));
+    }
+
+    #[test]
+    fn the_average_over_a_window_reads_the_body_mass_over_its_weigh_ins_today_included() {
+        let records = GatherRecordsInMemory::default();
+        for (date, kg) in [
+            ("2026-10-03", 81.0),
+            ("2026-10-05", 80.0),
+            ("2026-10-08", 79.6),
+            ("2026-10-10", 79.4),
+        ] {
+            log_measurement(&records, date, kg, None).expect("a measurement logs");
+        }
+
+        let averaged = gather_average_over_the_window(&records, "2026-10-10", Window::Days7)
+            .ok()
+            .flatten();
+
+        assert_eq!(
+            averaged.map(|average| (average.weigh_ins, format!("{:.2}", average.body_mass_kg))),
+            Some((3, "79.67".to_string()))
+        );
     }
 
     #[test]
