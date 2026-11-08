@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::gather_records::GatherRecords;
+use crate::ledger::{Day, ledger};
 
 /// Each measure averaged over the weigh-ins of a span, the composition over those with a waist.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -13,11 +14,26 @@ pub struct GatherAverage {
     pub fat_ratio: Option<f64>,
 }
 
+fn mean(values: impl Iterator<Item = f64>) -> Option<f64> {
+    let (sum, count) = values.fold((0.0, 0), |(sum, count), value| (sum + value, count + 1));
+    (count > 0).then(|| sum / f64::from(count))
+}
+
 /// The average from a first day to the last, both included; none without a weigh-in.
 pub fn averaged_between(
-    _first: NaiveDate,
-    _last: NaiveDate,
-    _gathered: &GatherRecords,
+    first: NaiveDate,
+    last: NaiveDate,
+    gathered: &GatherRecords,
 ) -> Option<GatherAverage> {
-    None
+    let days: Vec<Day> = ledger(&gathered.measurements, &gathered.profiles)
+        .into_iter()
+        .filter(|measured| (first..=last).contains(&measured.day))
+        .collect();
+    Some(GatherAverage {
+        weigh_ins: days.len(),
+        body_mass_kg: mean(days.iter().map(|measured| measured.body_mass_kg))?,
+        lean_mass_kg: None,
+        fat_mass_kg: None,
+        fat_ratio: None,
+    })
 }
