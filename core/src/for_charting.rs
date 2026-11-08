@@ -907,6 +907,38 @@ mod tests {
     }
 
     #[test]
+    fn the_fuel_chart_starts_on_the_fuel_targets_first_day() {
+        let logged = a_logged_man();
+        crate::for_setting_up_the_profile::set_fuel_targets(
+            &logged.gather,
+            &logged.fuel,
+            &crate::for_setting_up_the_profile::FuelTargetsForm {
+                from: "2026-10-01".into(),
+                kept: crate::kept::Kept::Recommended,
+            },
+        )
+        .expect("fuel targets keep");
+
+        let chart = fuel_chart(
+            &logged.gather,
+            &logged.burn,
+            &logged.fuel,
+            "2026-10-10",
+            Window::Everything,
+        )
+        .expect("a chart");
+
+        assert_eq!(
+            chart
+                .amounts
+                .iter()
+                .map(|(day, _)| *day)
+                .collect::<Vec<_>>(),
+            vec![day("2026-10-09"), day("2026-10-10")]
+        );
+    }
+
+    #[test]
     fn a_week_window_charts_the_seven_days_ending_today() {
         let logged = a_logged_man();
         log_measurement(&logged.gather, "2026-10-01", 81.0, Some(80.0))
