@@ -904,7 +904,7 @@ async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
     let screen = screen();
     let _mounted = the_pace(&screen, Window::Days30);
     settled().await;
-    text_of(&screen, ".pace p")
+    text_of(&screen, ".pace p.tip")
 }
 
 #[wasm_bindgen_test]
@@ -961,7 +961,7 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
         attributes_of(&screen, ".pace li span span", "class"),
         ["toward", "away", "toward", "steady"]
     );
-    let tip = text_of(&screen, ".pace p");
+    let tip = text_of(&screen, ".pace p.tip");
     assert_eq!(attributes_of(&screen, ".pace p", "class"), ["tip"]);
     assert!(tip.starts_with('“') && tip.ends_with('”'), "{tip}");
 }
