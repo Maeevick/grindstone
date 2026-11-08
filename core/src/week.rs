@@ -127,6 +127,25 @@ mod tests {
     }
 
     #[test]
+    fn an_averages_gap_is_the_difference_of_its_figures_as_shown() {
+        let averaged = |per_day: f64, floor: f64, ceiling: f64| Averaged {
+            per_day,
+            floor,
+            ceiling: Some(ceiling),
+            goal: None,
+            in_band: 0,
+        };
+
+        assert_eq!(
+            [
+                averaged(23.4, 24.6, 60.0).gap(),
+                averaged(61.6, 20.0, 60.4).gap()
+            ],
+            [Some(-2.0), Some(2.0)]
+        );
+    }
+
+    #[test]
     fn a_week_averages_its_logged_days_and_their_bands_and_counts_the_days_in_theirs() {
         let week = averaged(&[banded(2000.0), banded(1700.0), banded(2600.0)]);
 
