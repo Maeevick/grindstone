@@ -23,6 +23,12 @@ pub enum Window {
     Everything,
 }
 
+impl Window {
+    pub fn reads_a_pace(self) -> bool {
+        true
+    }
+}
+
 pub fn streak(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
@@ -119,6 +125,20 @@ mod tests {
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    #[test]
+    fn only_a_window_of_thirty_days_or_more_reads_a_pace() {
+        let windows = [
+            Window::Days7,
+            Window::Days30,
+            Window::Days90,
+            Window::Everything,
+        ];
+
+        let reading_a_pace = windows.map(Window::reads_a_pace);
+
+        assert_eq!(reading_a_pace, [false, true, true, true]);
     }
 
     mod the_streak {
