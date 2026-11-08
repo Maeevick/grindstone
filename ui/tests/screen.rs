@@ -878,8 +878,16 @@ async fn the_pace_offers_no_info_bubble_any_more() {
 
     assert_eq!(
         (
-            screen.query_selector(".pace .pace-lines").ok().flatten().is_some(),
-            screen.query_selector(".pace button.info").ok().flatten().is_none()
+            screen
+                .query_selector(".pace .pace-lines")
+                .ok()
+                .flatten()
+                .is_some(),
+            screen
+                .query_selector(".pace button.info")
+                .ok()
+                .flatten()
+                .is_none()
         ),
         (true, true)
     );
