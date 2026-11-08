@@ -639,9 +639,9 @@ pub const NO_WEEK_YET: &str = "No finished day of the window is logged yet. I on
 
 pub fn over_logged_days(days: usize) -> String {
     if days == 1 {
-        "Over 1 logged day.".into()
+        "Average over 1 logged day, today left out.".into()
     } else {
-        format!("Over {days} logged days.")
+        format!("Average over {days} logged days, today left out.")
     }
 }
 
