@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 
-/// Each measure averaged over the weigh-ins of a span, the composition over those with a waist.
+/// Each measure averaged over the weigh-ins of a span, the composition as the ledger carries it.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GatherAverage {
     pub weigh_ins: usize,

@@ -208,6 +208,56 @@ mod tests {
     }
 
     #[test]
+    fn the_average_over_a_window_reads_the_composition_of_its_weigh_ins_as_the_ledger_carries_it() {
+        let records = GatherRecordsInMemory::default();
+        records
+            .save_profile(
+                day("2026-03-01"),
+                &Profile {
+                    birthday: day("1985-04-12"),
+                    gender: Gender::Male,
+                    height_cm: 180.0,
+                    neck_cm: 38.5,
+                    hip_cm: None,
+                },
+            )
+            .expect("a profile saves");
+        let mut week = None;
+        for (date, kg, waist_cm) in [
+            ("2026-10-05", 80.0, None),
+            ("2026-10-08", 79.6, Some(82.0)),
+            ("2026-10-10", 79.4, None),
+        ] {
+            week = log_measurement(&records, date, kg, waist_cm).ok();
+        }
+        let splits: Vec<_> = week
+            .map(|week| {
+                week.days
+                    .iter()
+                    .filter_map(|measured| measured.composition)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mean_of = |figure: fn(&crate::composition::Composition) -> f64| {
+            Some(splits.iter().map(figure).sum::<f64>() / 3.0)
+        };
+
+        let averaged = gather_average_over_the_window(&records, "2026-10-10", Window::Days7)
+            .ok()
+            .flatten();
+
+        assert_eq!(splits.len(), 3);
+        assert_eq!(
+            averaged.map(|average| (average.lean_mass_kg, average.fat_mass_kg, average.fat_ratio)),
+            Some((
+                mean_of(|split| split.lean_mass_kg),
+                mean_of(|split| split.fat_mass_kg),
+                mean_of(|split| split.fat_ratio)
+            ))
+        );
+    }
+
+    #[test]
     fn the_pace_over_a_window_reads_the_weigh_ins_across_it() {
         let records = GatherRecordsInMemory::default();
         for (date, kg) in [
