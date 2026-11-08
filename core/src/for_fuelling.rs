@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::failure::Failure;
 use crate::food::Nutrients;
 use crate::for_cataloguing::IngredientForm;
-use crate::for_reviewing_progress::{Window, first_day_of};
+use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
@@ -76,16 +76,17 @@ pub fn fuel_over_the_window(
     window: Window,
 ) -> Result<Option<FuelWeek>, Failure> {
     let today = day(today)?;
-    let fuelled = fuel.fuel_records()?;
+    let (gathered, fuelled) = (gather.gather_records()?, fuel.fuel_records()?);
+    let began = began_on(fuelled.targets.iter().map(|(from, _)| *from), &gathered);
     let logged = logged_between(
-        first_day_of(window, today, None),
+        first_day_of(window, today, began),
         today,
         today,
         fuelled.intakes.iter().map(|(_, eaten)| eaten.day),
     );
     Ok(fuel_week_of(&fuel_over(
         &logged,
-        &gather.gather_records()?,
+        &gathered,
         &burn.burn_records()?,
         &fuelled,
     )))
