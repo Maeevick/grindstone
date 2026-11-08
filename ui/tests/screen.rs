@@ -1933,7 +1933,10 @@ async fn burns_tips_read_over_its_active_days_then_a_day_against_its_goal_then_i
         ),
         (
             vec![
-                ("P.hint".to_string(), "Over 3 active days in 6.".to_string()),
+                (
+                    "P.hint".to_string(),
+                    "Average over 6 days, 3 active, today left out.".to_string()
+                ),
                 ("TABLE.macros".to_string(), String::new()),
                 ("TABLE.workouts".to_string(), String::new()),
                 (
