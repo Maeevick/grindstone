@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::aims::{Aims, aims_on};
 use crate::failure::Failure;
-use crate::for_reviewing_progress::{Window, first_day_of};
+use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
@@ -56,10 +56,12 @@ pub fn pace_over_the_window(
     if !window.reads_a_pace() {
         return Ok(None);
     }
+    let gathered = records.gather_records()?;
+    let began = began_on(gathered.goals.iter().map(|(from, _)| *from), &gathered);
     Ok(pace_between(
-        first_day_of(window, today, None),
+        first_day_of(window, today, began),
         today,
-        &records.gather_records()?,
+        &gathered,
     ))
 }
 
