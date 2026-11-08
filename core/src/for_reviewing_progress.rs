@@ -24,8 +24,10 @@ pub enum Window {
 }
 
 impl Window {
+    /// Whether a pace means anything over the window: a day's weight swings about 0.5 kg with water and salt,
+    /// so a week's slope carries about 0.66 kg a week of noise, 30 days' about 0.07.
     pub fn reads_a_pace(self) -> bool {
-        true
+        self != Window::Days7
     }
 }
 
