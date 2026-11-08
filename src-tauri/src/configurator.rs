@@ -43,6 +43,7 @@ pub fn run() {
             commands::fuel_day,
             commands::fuel_day_with,
             commands::pace_over_the_window,
+            commands::gather_average_over_the_window,
             commands::fuel_over_the_window,
             commands::hydrate_over_the_window,
             commands::burn_over_the_window,
