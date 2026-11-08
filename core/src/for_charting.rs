@@ -45,13 +45,8 @@ fn day_of(date: &str) -> Result<NaiveDate, Failure> {
     NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
 }
 
-fn span_of(
-    today: &str,
-    window: Window,
-    began: Option<NaiveDate>,
-) -> Result<(NaiveDate, NaiveDate), Failure> {
-    let today = day_of(today)?;
-    Ok((first_day_of(window, today, began), today))
+fn span_of(today: NaiveDate, window: Window, began: Option<NaiveDate>) -> (NaiveDate, NaiveDate) {
+    (first_day_of(window, today, began), today)
 }
 
 fn days_within(
@@ -69,7 +64,7 @@ pub fn gather_chart(
     today: &str,
     window: Window,
 ) -> Result<GatherChart, Failure> {
-    let (first, last) = span_of(today, window, None)?;
+    let (first, last) = span_of(day_of(today)?, window, None);
     let gathered = gather.gather_records()?;
     let days: Vec<Day> = ledger(&gathered.measurements, &gathered.profiles)
         .into_iter()
@@ -101,7 +96,7 @@ pub fn fuel_chart(
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    let span = span_of(today, window, None)?;
+    let span = span_of(day_of(today)?, window, None);
     let (gathered, burnt, fuelled) = (
         gather.gather_records()?,
         burn.burn_records()?,
@@ -133,7 +128,7 @@ pub fn hydrate_chart(
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
-    day_of(today)?;
+    let today = day_of(today)?;
     let (gathered, burnt, fuelled, hydrated) = (
         gather.gather_records()?,
         burn.burn_records()?,
@@ -141,7 +136,7 @@ pub fn hydrate_chart(
         hydrate.hydrate_records()?,
     );
     let began = began_on(hydrated.targets.iter().map(|(from, _)| *from), &gathered);
-    let span = span_of(today, window, began)?;
+    let span = span_of(today, window, began);
     let days = days_within(hydrated.drinkings.iter().map(|(_, drunk)| drunk.day), span);
     let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
     Ok(BandChart {
@@ -166,7 +161,7 @@ pub fn burn_chart(
     today: &str,
     window: Window,
 ) -> Result<BurnChart, Failure> {
-    let span = span_of(today, window, None)?;
+    let span = span_of(day_of(today)?, window, None);
     let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
     let days = days_within(burnt.workouts.iter().map(|(_, done)| done.day), span);
     let burns: Vec<Burn> = days
