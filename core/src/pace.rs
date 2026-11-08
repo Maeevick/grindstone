@@ -29,6 +29,7 @@ pub struct Pace {
     pub judgement: Judgement,
     pub safe_loss_kg: f64,
     pub safe_loss_by: SafeLoss,
+    /// The weigh-ins of the window the pace reads.
     pub weigh_ins: usize,
 }
 
@@ -170,7 +171,10 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
         judgement,
         safe_loss_kg,
         safe_loss_by,
-        weigh_ins: 0,
+        weigh_ins: days
+            .iter()
+            .filter(|measured| (first..=day).contains(&measured.day))
+            .count(),
     })
 }
 
