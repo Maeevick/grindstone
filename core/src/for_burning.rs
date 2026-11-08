@@ -6,7 +6,7 @@ use crate::burn_week::{BurnWeek, burn_week_of};
 use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
 use crate::failure::Failure;
-use crate::for_reviewing_progress::{Window, first_day_of};
+use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
@@ -85,8 +85,9 @@ pub fn burn_over_the_window(
 ) -> Result<Option<BurnWeek>, Failure> {
     let today = day(today)?;
     let (gathered, burnt) = (gather.gather_records()?, burn.burn_records()?);
+    let began = began_on(burnt.targets.iter().map(|(from, _)| *from), &gathered);
     let first_workout = burnt.workouts.iter().map(|(_, done)| done.day).min();
-    let Some(first) = first_workout.map(|first| first.max(first_day_of(window, today, None)))
+    let Some(first) = first_workout.map(|first| first.max(first_day_of(window, today, began)))
     else {
         return Ok(None);
     };
