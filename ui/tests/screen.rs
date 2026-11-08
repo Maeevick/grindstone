@@ -844,11 +844,11 @@ async fn the_gap_a_line_tells_adds_up_with_the_figures_it_shows() {
     );
 }
 
-fn the_pace(screen: &Element) -> impl Drop {
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+fn the_pace(screen: &Element, window: Window) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
         view! {
             <section class="card pace">
-                <PaceOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                <PaceOver today="2026-10-10".to_string() window=RwSignal::new(window) />
             </section>
         }
     })
@@ -858,7 +858,7 @@ fn the_pace(screen: &Element) -> impl Drop {
 async fn the_paces_info_opens_a_bubble_telling_how_it_is_read_and_closes_it_again() {
     answering(&format!(r#"{{ "pace_over_the_window": {A_PACE} }}"#));
     let screen = screen();
-    let _mounted = the_pace(&screen);
+    let _mounted = the_pace(&screen, Window::Days30);
     settled().await;
     let bubble = |screen: &Element| screen.query_selector(".pace .info-bubble").ok().flatten();
     let closed = bubble(&screen).is_none();
@@ -890,7 +890,7 @@ async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
                          "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "safe_loss_by": "FatStore" }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_pace(&screen);
+    let _mounted = the_pace(&screen, Window::Days30);
     settled().await;
     text_of(&screen, ".pace p")
 }
@@ -929,7 +929,7 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
                          "judgement": "VeryGood", "safe_loss_kg": 0.48, "safe_loss_by": "FatStore" } }"#,
     );
     let screen = screen();
-    let _mounted = the_pace(&screen);
+    let _mounted = the_pace(&screen, Window::Days30);
     settled().await;
 
     let pace = text_of(&screen, ".pace");
