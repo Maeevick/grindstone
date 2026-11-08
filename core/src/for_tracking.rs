@@ -258,6 +258,36 @@ mod tests {
     }
 
     #[test]
+    fn the_average_over_a_window_counts_from_the_goals_first_day_and_is_none_without_a_weigh_in() {
+        let records = GatherRecordsInMemory::default();
+        crate::for_setting_up_the_profile::set_goals(
+            &records,
+            &crate::for_setting_up_the_profile::GoalsForm {
+                from: "2026-10-08".into(),
+                kept: crate::kept::Kept::Own(crate::for_setting_up_the_profile::TypedGoals {
+                    body_mass_kg: 70.0,
+                    fat_percentage: 10.0,
+                }),
+            },
+        )
+        .expect("goals set");
+        for (date, kg) in [("2026-10-05", 80.0), ("2026-10-09", 79.6)] {
+            log_measurement(&records, date, kg, None).expect("a measurement logs");
+        }
+        let weighed_over = |today| {
+            gather_average_over_the_window(&records, today, Window::Days7)
+                .ok()
+                .flatten()
+                .map(|average| average.weigh_ins)
+        };
+
+        assert_eq!(
+            [weighed_over("2026-10-10"), weighed_over("2026-10-20")],
+            [Some(1), None]
+        );
+    }
+
+    #[test]
     fn the_pace_over_a_window_reads_the_weigh_ins_across_it() {
         let records = GatherRecordsInMemory::default();
         for (date, kg) in [
