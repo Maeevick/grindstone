@@ -53,6 +53,9 @@ pub fn pace_over_the_window(
     window: Window,
 ) -> Result<Option<Pace>, Failure> {
     let today = day_of(today)?;
+    if !window.reads_a_pace() {
+        return Ok(None);
+    }
     Ok(pace_between(
         first_day_of(window, today),
         today,
