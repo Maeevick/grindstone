@@ -161,17 +161,25 @@ import java.io.FileInputStream
 import java.util.Properties
 ```
 
+Below the imports, so that a clone without the keystore still builds, its release APK unsigned:
+
+```kotlin
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+```
+
 Inside `android { }`, before `buildTypes`:
 
 ```kotlin
     signingConfigs {
-        create("release") {
-            val keystoreProperties = Properties()
-            keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["password"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["password"] as String
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["password"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["password"] as String
+            }
         }
     }
 ```
@@ -179,7 +187,9 @@ Inside `android { }`, before `buildTypes`:
 Inside `buildTypes { getByName("release") { } }`:
 
 ```kotlin
-            signingConfig = signingConfigs.getByName("release")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
 ```
 
 ```sh
