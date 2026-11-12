@@ -13,3 +13,11 @@ serde = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["alloc", "serde"] }
 serde_json = "1"
 rusqlite = { version = "0.40", features = ["bundled", "chrono"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
+
+[profile.release.package.grind-ui]
+opt-level = "z"
