@@ -995,7 +995,7 @@ mod tests {
             ),
             (
                 Ok(Some(InForce {
-                    values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
+                    values: 3.0 * 3.5 * 72.0 / 200.0 * (150.0 / 7.0),
                     recommended: true,
                     from: None,
                 })),
@@ -1049,12 +1049,12 @@ mod tests {
                     from: since("2026-10-01"),
                 }),
                 Some(InForce {
-                    values: 3.0 * 72.0 * 150.0 / 7.0 / 60.0,
+                    values: 3.0 * 3.5 * 72.0 / 200.0 * (150.0 / 7.0),
                     recommended: true,
                     from: since("2026-10-10"),
                 }),
                 Some(InForce {
-                    values: 3.0 * 80.0 * 150.0 / 7.0 / 60.0,
+                    values: 3.0 * 3.5 * 80.0 / 200.0 * (150.0 / 7.0),
                     recommended: true,
                     from: since("2026-10-10"),
                 })

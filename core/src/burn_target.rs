@@ -1,16 +1,16 @@
 use chrono::NaiveDate;
 
 use crate::kept::{InForce, Kept, in_force};
+use crate::workout::activity_induced_energy_expenditure_from_compendium;
 
 const MODERATE_MINUTES_A_WEEK: f64 = 150.0;
 const MODERATE_MET: f64 = 4.0;
 const DAYS_A_WEEK: f64 = 7.0;
-const MINUTES_AN_HOUR: f64 = 60.0;
 
 /// The net kcal a day's workouts aim to burn: the target kept from the latest day up to it, its own kcal or
 /// the recommendation. Before any, and wherever the recommendation is kept, the World Health Organization's
 /// 150 minutes a week of moderate activity, spread over the days at 4 METs, less the rest it replaces, on the
-/// body mass in force; without a body mass either, nothing to price a workout on.
+/// body mass in force, priced as a workout is; without a body mass either, nothing to price a workout on.
 ///
 /// Bull F. C. et al. (2020), *World Health Organization 2020 guidelines on physical activity and sedentary
 /// behaviour*, Br J Sports Med 54(24):1451-1462.
@@ -26,7 +26,12 @@ pub fn target_on(
             .max_by_key(|(from, _)| *from),
         || {
             body_mass_kg.map(|kg| {
-                (MODERATE_MET - 1.0) * kg * MODERATE_MINUTES_A_WEEK / DAYS_A_WEEK / MINUTES_AN_HOUR
+                activity_induced_energy_expenditure_from_compendium(
+                    kg,
+                    MODERATE_MET,
+                    MODERATE_MINUTES_A_WEEK / DAYS_A_WEEK,
+                    0.0,
+                )
             })
         },
     )
