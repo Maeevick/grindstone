@@ -49,4 +49,6 @@ For the full license text, visit: https://creativecommons.org/licenses/by-nc-sa/
 
 THIRD-PARTY LICENSES:
 Third-party files keep their own licenses, which this file does not replace:
+- the Rust crates the app is built from, each under its own license, listed with their texts in
+  THIRD_PARTY_LICENSES.md;
 - the Merriweather font in ui/fonts, under the SIL Open Font License 1.1 (ui/fonts/OFL.txt).

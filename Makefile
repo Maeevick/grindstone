@@ -2,7 +2,7 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help dev test check test-ui mutants mutants-all android export-android import-android
+.PHONY: help dev test check notices test-ui mutants mutants-all android export-android import-android
 
 APK := src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 BASE ?= origin/main
@@ -20,11 +20,15 @@ dev: ## run the app on the Mac, reloading on change
 test: ## every Rust test
 	cargo test --workspace
 
-check: ## formatting, lints, tests and no uncovered line outside the wiring and the test support, as before a commit
+check: ## formatting, lints, tests, no uncovered line outside the wiring and the test support, and the dependencies' licences, as before a commit
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo clippy -p grind-ui --target wasm32-unknown-unknown --all-targets -- -D warnings
 	cargo llvm-cov --workspace --ignore-filename-regex '$(WIRING)|$(TEST_SUPPORT)' --fail-uncovered-lines 0 --summary-only
+	cargo deny check licenses
+
+notices: ## write the licences of the crates the APK carries into THIRD_PARTY_LICENSES.md, after a dependency changes
+	cargo about generate about.hbs -o THIRD_PARTY_LICENSES.md
 
 test-ui: ## the screen's tests in a headless Chrome, driven by the ChromeDriver of the installed Chrome rather than the newest
 	driver=$$(scripts/chromedriver-for-installed-chrome) && wasm-pack test --headless --chrome --chromedriver "$$driver" ui
