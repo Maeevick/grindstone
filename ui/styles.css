@@ -367,83 +367,83 @@ hr.divider {
 }
 
 .good {
-    color: #5fd99f;
+	color: #5fd99f;
 }
 
 .low,
 .high {
-    color: #f87171;
+	color: #f87171;
 }
 
 .macros td,
 .workouts td,
 .foods td,
 .exercises td {
-    font-size: 0.9rem;
+	font-size: 0.9rem;
 }
 
 .legend {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-    font-size: 0.8rem;
-    color: #9aa0a6;
+	list-style: none;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.8rem;
+	font-size: 0.8rem;
+	color: #9aa0a6;
 }
 
 .legend li {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
 }
 
 .dot {
-    width: 0.8rem;
-    height: 0.8rem;
-    border-radius: 50%;
-    background: #3a3f47;
+	width: 0.8rem;
+	height: 0.8rem;
+	border-radius: 50%;
+	background: #3a3f47;
 }
 
 .dot.Success {
-    background: #5fd99f;
+	background: #5fd99f;
 }
 
 .dot.Joker {
-    background: #e8b04b;
+	background: #e8b04b;
 }
 
 .dot.Break {
-    background: #f87171;
+	background: #f87171;
 }
 
 .dot.Pending {
-    border: 1px solid #e8b04b;
-    background: transparent;
+	border: 1px solid #e8b04b;
+	background: transparent;
 }
 
 .timeline .one {
-    fill: none;
-    stroke: #e8b04b;
-    stroke-width: 2;
+	fill: none;
+	stroke: #e8b04b;
+	stroke-width: 2;
 }
 
 .timeline .other {
-    fill: none;
-    stroke: #7aa2f7;
-    stroke-width: 2;
+	fill: none;
+	stroke: #7aa2f7;
+	stroke-width: 2;
 }
 
 .figures .one {
-    color: #e8b04b;
+	color: #e8b04b;
 }
 
 .figures .other {
-    color: #7aa2f7;
+	color: #7aa2f7;
 }
 
 .scatter circle {
-    fill: #7aa2f7;
+	fill: #7aa2f7;
 }
 
 .gauge-title {
@@ -453,154 +453,154 @@ hr.divider {
 }
 
 .gauge svg {
-    width: 100%;
-    height: 1.6rem;
+	width: 100%;
+	height: 1.6rem;
 }
 
 .gauge .track {
-    fill: #3a3f47;
+	fill: #3a3f47;
 }
 
 .gauge .band {
-    fill: #5fd99f;
-    opacity: 0.6;
+	fill: #5fd99f;
+	opacity: 0.6;
 }
 
 .gauge .optimal {
-    stroke: #e8b04b;
-    stroke-width: 2;
-    vector-effect: non-scaling-stroke;
+	stroke: #e8b04b;
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
 }
 
 .gauge .amount {
-    fill: #7aa2f7;
+	fill: #7aa2f7;
 }
 
 .gauge-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: #9aa0a6;
+	display: flex;
+	justify-content: space-between;
+	font-size: 0.8rem;
+	color: #9aa0a6;
 }
 
 .gauge-under-ticks {
-    position: relative;
-    height: 1.2rem;
-    font-size: 0.8rem;
+	position: relative;
+	height: 1.2rem;
+	font-size: 0.8rem;
 }
 
 .gauge-under-ticks span {
-    position: absolute;
-    white-space: nowrap;
+	position: absolute;
+	white-space: nowrap;
 }
 
 .gauge-under-ticks .ends-at {
-    display: flex;
-    justify-content: safe flex-end;
+	display: flex;
+	justify-content: safe flex-end;
 }
 
 .chips .pill {
-    font-weight: bold;
+	font-weight: bold;
 }
 
 .plot {
-    position: relative;
-    margin: 0.5rem 3.6rem;
-    height: 180px;
+	position: relative;
+	margin: 0.5rem 3.6rem;
+	height: 180px;
 }
 
 .plot svg {
-    width: 100%;
-    height: 100%;
-    overflow: visible;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
 }
 
 .plot polyline {
-    fill: none;
-    stroke-width: 2;
-    vector-effect: non-scaling-stroke;
+	fill: none;
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
 }
 
 .plot .label {
-    position: absolute;
-    transform: translateY(-50%);
-    font-size: 0.7rem;
-    white-space: nowrap;
+	position: absolute;
+	transform: translateY(-50%);
+	font-size: 0.7rem;
+	white-space: nowrap;
 }
 
 .plot .label.left {
-    right: calc(100% + 0.3rem);
+	right: calc(100% + 0.3rem);
 }
 
 .plot .label.right {
-    left: calc(100% + 0.3rem);
+	left: calc(100% + 0.3rem);
 }
 
 .mass,
 .intake,
 .burnt {
-    stroke: #e8b04b;
-    color: #e8b04b;
+	stroke: #e8b04b;
+	color: #e8b04b;
 }
 
 .lean {
-    stroke: #f1f1f1;
-    color: #f1f1f1;
+	stroke: #f1f1f1;
+	color: #f1f1f1;
 }
 
 .goal,
 .floor {
-    stroke: #5fd99f;
-    color: #5fd99f;
+	stroke: #5fd99f;
+	color: #5fd99f;
 }
 
 .cap {
-    stroke: #f87171;
-    color: #f87171;
+	stroke: #f87171;
+	color: #f87171;
 }
 
 .drunk,
 .minutes {
-    stroke: #7aa2f7;
-    color: #7aa2f7;
+	stroke: #7aa2f7;
+	color: #7aa2f7;
 }
 
 .plot .dashed {
-    stroke-dasharray: 6 4;
+	stroke-dasharray: 6 4;
 }
 
 .swatch {
-    display: inline-block;
-    width: 1.2rem;
-    height: 0;
-    border-top: 2px solid currentColor;
+	display: inline-block;
+	width: 1.2rem;
+	height: 0;
+	border-top: 2px solid currentColor;
 }
 
 .swatch.dashed {
-    border-top-style: dashed;
+	border-top-style: dashed;
 }
 
 .history-table td,
 .history-table th {
-    font-size: 0.8rem;
-    padding: 0.2rem 0.4rem;
+	font-size: 0.8rem;
+	padding: 0.2rem 0.4rem;
 }
 
 .danger {
-    border-color: #f87171;
+	border-color: #f87171;
 }
 
 .danger h2 {
-    color: #f87171;
+	color: #f87171;
 }
 
 .cta.erase {
-    background: #f87171;
+	background: #f87171;
 }
 
 .cta:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+	opacity: 0.4;
+	cursor: not-allowed;
 }
 
 .date {
