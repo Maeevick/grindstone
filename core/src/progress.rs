@@ -22,6 +22,11 @@ fn least_squares_slope_per_day(trend: &[(NaiveDate, f64)]) -> f64 {
     (count * sum_xy - sum_x * sum_y) / (count * sum_xx - sum_x * sum_x)
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the days to go are checked non-negative, and a count past u64::MAX saturates to a day chrono refuses"
+)]
 fn day_the_line_crosses(
     target: f64,
     (latest_day, latest): (NaiveDate, f64),

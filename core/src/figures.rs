@@ -45,7 +45,7 @@ fn parts(figure: Figure) -> (String, &'static str) {
             let unit = match unit {
                 Unit::Gram => " g",
                 Unit::Millilitre => " mL",
-                Unit::Piece if amount == 1.0 => " piece",
+                Unit::Piece if amount.total_cmp(&1.0).is_eq() => " piece",
                 Unit::Piece => " pieces",
             };
             (format!("{amount}"), unit)

@@ -1189,6 +1189,7 @@ mod tests {
                 |row| row.get(0),
             )
             .expect("the tables count");
+        let tables = usize::try_from(tables).expect("a count is never negative");
 
         let copy = database
             .copied(NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"))
@@ -1213,9 +1214,9 @@ mod tests {
                     serde_json::json!("2026-11-04"),
                     serde_json::json!([{ "day": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": null }]),
                     serde_json::json!([{ "effective_from": "2026-10-10", "body_mass_kg": 70.0, "fat_ratio": 0.1, "recommended": 0 }]),
-                    Some(tables as usize)
+                    Some(tables)
                 )),
-                tables as usize,
+                tables,
                 2
             )
         );
