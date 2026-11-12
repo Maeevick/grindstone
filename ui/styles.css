@@ -1,11 +1,3 @@
-@font-face {
-	font-family: 'Merriweather';
-	font-style: italic;
-	font-weight: 400;
-	font-display: swap;
-	src: url('fonts/merriweather-latin-400-italic.woff2') format('woff2');
-}
-
 :root {
 	--bg: #18181b;
 	--card: #1f1f23;
@@ -772,7 +764,7 @@ a.references {
 .quote {
 	margin: 12px 0 4px;
 	color: var(--txt);
-	font: italic 400 0.98rem/1.6 'Merriweather', Georgia, serif;
+	font: italic 400 0.98rem/1.6 serif;
 }
 
 .tip {
