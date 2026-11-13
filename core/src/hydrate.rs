@@ -8,7 +8,7 @@ use crate::burn::Burns;
 use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
-use crate::fuel::{Fuel, fuel_on, fuel_over};
+use crate::fuel::{Fuel, fuel_on};
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 use crate::hydrate_base::default_base_ml;
@@ -77,17 +77,18 @@ pub fn hydrate_on(
     )
 }
 
+/// Each day's drinks, judged against the same day fuelled, the two lists in step.
 pub fn hydrate_over(
     days: &[NaiveDate],
     records: &HydrateRecords,
     gather: &GatherRecords,
     burn: &BurnRecords,
-    fuel: &FuelRecords,
+    fuelled_days: &[Fuel],
 ) -> Vec<Hydrate> {
     let drinks = Drinks::of(records, gather, burn);
     days.iter()
-        .zip(fuel_over(days, gather, burn, fuel))
-        .map(|(day, fuelled)| hydrated(*day, &drinks, &fuelled))
+        .zip(fuelled_days)
+        .map(|(day, fuelled)| hydrated(*day, &drinks, fuelled))
         .collect()
 }
 

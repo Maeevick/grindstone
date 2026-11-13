@@ -142,7 +142,13 @@ pub fn hydrate_chart(
     let began = began_on(hydrated.targets.iter().map(|(from, _)| *from), &gathered);
     let span = span_of(today, window, began);
     let days = days_within(hydrated.drinkings.iter().map(|(_, drunk)| drunk.day), span);
-    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
+    let hydrated_days = hydrate_over(
+        &days,
+        &hydrated,
+        &gathered,
+        &burnt,
+        &fuel_over(&days, &gathered, &burnt, &fuelled),
+    );
     Ok(BandChart {
         amounts: hydrated_days
             .iter()

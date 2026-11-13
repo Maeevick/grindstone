@@ -8,6 +8,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
+use crate::fuel::fuel_over;
 use crate::hydrate::{Hydrate, hydrate_on, hydrate_over};
 use crate::hydrate_week::{HydrateWeek, hydrate_week_of};
 use crate::refusal::Refusal;
@@ -68,12 +69,14 @@ pub fn hydrate_over_the_window(
         today,
         hydrated.drinkings.iter().map(|(_, drunk)| drunk.day),
     );
+    let burnt = burn.burn_records()?;
+    let fuelled_days = fuel_over(&logged, &gathered, &burnt, &fuel.fuel_records()?);
     Ok(hydrate_week_of(&hydrate_over(
         &logged,
         &hydrated,
         &gathered,
-        &burn.burn_records()?,
-        &fuel.fuel_records()?,
+        &burnt,
+        &fuelled_days,
     )))
 }
 

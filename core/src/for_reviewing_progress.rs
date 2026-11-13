@@ -57,7 +57,8 @@ pub fn streak(
         counted_from(hydrated.targets.iter().map(|(from, _)| *from).collect()),
     );
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
-    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
+    let fuelled_days = fuel_over(&days, &gathered, &burnt, &fuelled);
+    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled_days);
     let burns = Burns::of(&burnt, &gathered);
     let weighed_days: BTreeSet<NaiveDate> = gathered
         .measurements
@@ -66,14 +67,14 @@ pub fn streak(
         .collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
-        .zip(fuel_over(&days, &gathered, &burnt, &fuelled))
+        .zip(&fuelled_days)
         .zip(&hydrated_days)
         .map(|((day, fuelled_day), hydrated_day)| {
             (
                 *day,
                 Ticks {
                     weighed: (*day >= weighed_from).then(|| weighed_days.contains(day)),
-                    fuelled: (*day >= fuelled_from).then(|| fuelled_in_band(&fuelled_day)),
+                    fuelled: (*day >= fuelled_from).then(|| fuelled_in_band(fuelled_day)),
                     worked_out: (*day >= worked_out_from).then(|| worked_out(&burns.on(*day))),
                     hydrated: (*day >= hydrated_from).then(|| hydrated_in_band(hydrated_day)),
                 },
