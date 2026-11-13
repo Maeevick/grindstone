@@ -4758,6 +4758,20 @@ async fn the_days_hydrate_shows_its_scale_its_band_and_its_optimal_ticked() {
 }
 
 #[wasm_bindgen_test]
+async fn a_gauges_drawing_is_hidden_from_screen_readers_its_figures_saying_it() {
+    answering(&format!(
+        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DRY_DAY} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-11".to_string()));
+    settled().await;
+
+    let drawings = attributes_of(&screen, ".gauge svg", "aria-hidden");
+    assert_eq!(drawings, ["true"]);
+}
+
+#[wasm_bindgen_test]
 async fn the_history_marks_each_day_with_its_streak_dot_under_headers_holding_the_units() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
