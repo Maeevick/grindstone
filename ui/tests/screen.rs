@@ -5213,6 +5213,24 @@ fn texts_of(screen: &Element, selector: &str) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
+async fn the_chosen_pill_says_it_is_pressed_and_the_others_that_they_are_not() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    clicked(&screen, "button.chip-Fuel");
+    settled().await;
+
+    assert_eq!(
+        attributes_of(&screen, ".tips .chips button.pill", "aria-pressed"),
+        ["false", "true", "false", "false"]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_charts_drawing_is_hidden_from_screen_readers_its_labels_and_tables_saying_it() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
