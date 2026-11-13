@@ -9,6 +9,7 @@ use leptos::task::spawn_local;
 
 use crate::days::Shown;
 use crate::screens::burn::BurnEntries;
+use crate::screens::cells::opening_cell;
 use crate::screens::charts::{
     bare_or_blank, bare_or_dash, burn_cells, fuel_cells, header, hydrate_cells,
 };
@@ -20,7 +21,6 @@ use crate::tauri;
 
 fn gathered_cells(row: GatherRow) -> impl IntoView {
     view! {
-        <td>{row.day.to_string()}</td>
         <td>{bare_or_dash(row.body_mass_kg, Figure::Mass)}</td>
         <td>{bare_or_blank(row.waist_cm, Figure::Length)}</td>
         <td>{bare_or_blank(row.fat_ratio, Figure::Ratio)}</td>
@@ -153,6 +153,7 @@ macro_rules! last_days {
                                                         })
                                                     }
                                                 >
+                                                    {opening_cell(date.to_string(), Signal::derive(opened))}
                                                     {$render(row)}
                                                 </tr>
                                                 {move || opened().then(|| view! { <$entries date=date.to_string() /> })}

@@ -9,6 +9,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
+use crate::screens::cells::opening_cell;
 use crate::screens::header::tick_class;
 use crate::screens::lines;
 use crate::screens::pills::pill_buttons;
@@ -469,7 +470,6 @@ pub(crate) fn bare_or_dash(value: Option<f64>, figure: fn(f64) -> Figure) -> Str
 
 fn gather_cells(row: GatherRow) -> impl IntoView {
     view! {
-            <td>{row.day.to_string()}</td>
             <td>{bare_or_dash(row.body_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.lean_mass_kg, Figure::Mass)}</td>
             <td>{bare_or_blank(row.fat_mass_kg, Figure::Mass)}</td>
@@ -479,7 +479,6 @@ fn gather_cells(row: GatherRow) -> impl IntoView {
 
 pub(crate) fn fuel_cells(row: FuelRow) -> impl IntoView {
     view! {
-            <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Energy(row.eaten.energy_kcal))}</td>
             <td>{bare(Figure::Grams(row.eaten.protein_g))}</td>
             <td>{bare(Figure::Grams(row.eaten.fat_g))}</td>
@@ -491,7 +490,6 @@ pub(crate) fn fuel_cells(row: FuelRow) -> impl IntoView {
 
 pub(crate) fn hydrate_cells(row: HydrateRow) -> impl IntoView {
     view! {
-            <td>{row.day.to_string()}</td>
             <td>{bare(Figure::Volume(row.drunk_ml))}</td>
             <td>{bare(Figure::Ratio(row.water_ratio))}</td>
     }
@@ -499,7 +497,6 @@ pub(crate) fn hydrate_cells(row: HydrateRow) -> impl IntoView {
 
 pub(crate) fn burn_cells(row: BurnRow) -> impl IntoView {
     view! {
-            <td>{row.day.to_string()}</td>
             <td>{bare_or_blank(row.burnt_kcal, Figure::Energy)}</td>
             <td>{bare(Figure::Duration(row.minutes))}</td>
             <td>{bare(Figure::Count(row.reps))}</td>
@@ -530,12 +527,18 @@ fn ticks_of(streaked: StreakDay) -> impl IntoView {
 
 #[component]
 fn HistoryRow(
+    day: String,
     streaked: Option<StreakDay>,
     chosen: bool,
     columns: usize,
     children: Children,
 ) -> impl IntoView {
     let open = RwSignal::new(false);
+    let day_cell = if streaked.is_some() {
+        opening_cell(day, open.into()).into_any()
+    } else {
+        view! { <td>{day}</td> }.into_any()
+    };
     view! {
         <tr
             class:streaked=streaked.is_some()
@@ -546,6 +549,7 @@ fn HistoryRow(
                 }
             }
         >
+            {day_cell}
             {children()}
             {streak_cell(streaked.map(|day| day.status))}
         </tr>
@@ -604,7 +608,7 @@ macro_rules! history {
                                             .copied();
                                         let chosen = row.day.to_string() == chosen;
                                         view! {
-                                            <HistoryRow streaked=streaked chosen=chosen columns=columns>
+                                            <HistoryRow day=row.day.to_string() streaked=streaked chosen=chosen columns=columns>
                                                 {$render(row)}
                                             </HistoryRow>
                                         }

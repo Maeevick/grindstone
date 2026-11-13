@@ -62,3 +62,15 @@ pub fn week_table(logged_days: usize, rows: Vec<WeekRow>, with_goals: bool) -> i
         </table>
     }
 }
+
+/// A row's first cell, a button that opens the row and says whether it is open; a tap anywhere on the row does
+/// the same, the button's click reaching the row.
+pub fn opening_cell(label: String, open: Signal<bool>) -> impl IntoView {
+    view! {
+        <td>
+            <button class="opens" type="button" aria-expanded=move || open.get().to_string()>
+                {label}
+            </button>
+        </td>
+    }
+}
