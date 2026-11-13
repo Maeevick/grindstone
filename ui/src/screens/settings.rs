@@ -26,10 +26,10 @@ fn VaultsCopy() -> impl IntoView {
     let restore = move |_| {
         spawn_local(async move {
             said.set(Some(match tauri::restore_a_copy().await {
-                Ok(counted) => {
+                Ok(restored) => {
                     confirmed.set(String::new());
                     recorded.told();
-                    lines::restored(counted)
+                    lines::restored(restored)
                 }
                 Err(failure) => lines::failure(&failure),
             }));

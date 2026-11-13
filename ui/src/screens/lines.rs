@@ -3,7 +3,7 @@ use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown, typed_back};
 use grind_core::food::{Nutrients, Unit};
-use grind_core::for_copying_records::Counted;
+use grind_core::for_copying_records::{Counted, Restored};
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::Habit;
@@ -505,12 +505,19 @@ pub fn copied(copy: Counted) -> String {
 pub const RESTORE_WARNING: &str = "Restoring replaces every record on this phone with the copy pushed by \
     make import-android BACKUP=exports/<file>.json. There is no undo: copy the records first.";
 
-pub fn restored(copy: Counted) -> String {
-    format!(
+pub fn restored(copy: Restored) -> String {
+    let brought_back = format!(
         "Restored {} from {}.",
-        counted(copy.records, "record", "records"),
-        counted(copy.tables, "table", "tables")
-    )
+        counted(copy.counted.records, "record", "records"),
+        counted(copy.counted.tables, "table", "tables")
+    );
+    match copy.left_behind {
+        None => brought_back,
+        Some(path) => format!(
+            "{brought_back} An error occurred: the copy could not be deleted. You can clean it up by hand \
+             in {path}, as I do with the boxes in my cave."
+        ),
+    }
 }
 
 pub const ERASE_WARNING: &str = "Erasing removes every record on this device: measurements, profile, goals, \

@@ -13,7 +13,7 @@ use grind_core::for_cataloguing::{FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
     BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
-use grind_core::for_copying_records::Counted;
+use grind_core::for_copying_records::{Counted, Restored};
 use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_reviewing_progress::Window;
@@ -389,7 +389,7 @@ pub async fn keep_a_copy(today: &str) -> Result<Counted, Failure> {
     call("keep_a_copy", Today { today }, broken).await
 }
 
-pub async fn restore_a_copy() -> Result<Counted, Failure> {
+pub async fn restore_a_copy() -> Result<Restored, Failure> {
     call("restore_a_copy", Nothing {}, broken).await
 }
 
