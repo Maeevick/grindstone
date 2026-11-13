@@ -1,6 +1,6 @@
 # Getting started
 
-Run and test Grindstone on the Mac. Built and tested on macOS (Apple silicon) with Rust 1.99.0, Trunk 0.21.14, Tauri CLI 2.12.1 and cargo-llvm-cov 0.8.5.
+Run and test Grindstone on a Mac or on Linux. Built and tested on macOS (Apple silicon) with Rust 1.99.0, Trunk 0.21.14, Tauri CLI 2.12.1 and cargo-llvm-cov 0.8.5; the gates also run on Ubuntu 24.04 in CI.
 
 ## Install once
 
@@ -21,6 +21,17 @@ cargo install wasm-pack --locked        # make test-ui: it fetches the matching 
 ```
 
 `make test-ui` needs Google Chrome. It fetches, once per Chrome major version, the ChromeDriver matching the installed Chrome from Chrome for Testing into `~/Library/Caches/grindstone`, since the newest driver refuses a Chrome that has not updated yet.
+
+### On Linux
+
+The same, after the libraries Tauri builds against. On Ubuntu 24.04 (CI installs the last four, its runner already holding the first two):
+
+```sh
+sudo apt-get update
+sudo apt-get install --yes build-essential curl libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+`make test-ui` looks for `google-chrome` or `google-chrome-stable` on the `PATH`, and keeps its ChromeDriver under `${XDG_CACHE_HOME:-~/.cache}/grindstone`. CI runs `make check` and `make test-ui` there; `make dev` has only been run on a Mac.
 
 ## Run
 
@@ -54,6 +65,12 @@ make android   # the phone over USB, once the Android toolchain is in place
 
 ```
 ~/Library/Application Support/com.maeevick.grindstone/grindstone.sqlite
+```
+
+and on Linux, in Tauri's data folder for the app:
+
+```
+~/.local/share/com.maeevick.grindstone/grindstone.sqlite
 ```
 
 To start from empty, quit the app and delete that file.

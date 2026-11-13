@@ -109,7 +109,7 @@ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-andro
 ## 3. Code
 
 ```sh
-git clone git@github.com:Maeevick/grindstone.git
+git clone https://github.com/Maeevick/grindstone.git
 ```
 
 ## 4. Check
