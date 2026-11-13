@@ -4280,6 +4280,37 @@ const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on
     { "exercise": "Burpee", "met": 8.0, "reps": null, "minutes": 1.0, "load_kg": 5.0 } ] }"#;
 
 #[wasm_bindgen_test]
+async fn a_kept_circuit_opens_from_a_button_on_its_name_that_says_whether_it_is_open() {
+    answering(&format!(
+        r#"{{ "exercises": {BURPEES_AND_PUSH_UPS}, "circuits": [{MORNING_RUST}],
+             "priced_circuits": [{{ "circuit": {MORNING_RUST}, "burnt_per_set_kcal": 12.3 }}] }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_burn_shelf(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Circuits");
+    settled().await;
+    let opener = "table.circuits tr.circuit td:first-child button.opens";
+    let closed_at_first = attributes_of(&screen, opener, "aria-expanded");
+
+    clicked(&screen, opener);
+    settled().await;
+
+    assert_eq!(
+        (
+            closed_at_first,
+            attributes_of(&screen, opener, "aria-expanded"),
+            text_of(&screen, opener)
+        ),
+        (
+            vec!["false".to_string()],
+            vec!["true".to_string()],
+            "Morning rust".to_string()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_kept_circuit_shows_its_price_a_set_and_its_steps_on_a_click_on_the_shelf() {
     answering(&format!(
         r#"{{ "exercises": {BURPEES_AND_PUSH_UPS}, "circuits": [{MORNING_RUST}],
