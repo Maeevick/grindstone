@@ -1,8 +1,10 @@
+use std::collections::BTreeMap;
+
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::body::body_on;
-use crate::burn::{Burns, body_mass_in_force_on};
+use crate::burn::Burns;
 use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
@@ -12,7 +14,7 @@ use crate::gather_records::GatherRecords;
 use crate::hydrate_base::default_base_ml;
 use crate::hydrate_records::HydrateRecords;
 use crate::kept::{InForce, Kept, in_force};
-use crate::ledger::ledger;
+use crate::ledger::{Day, ledger};
 use crate::verdict::{Verdict, verdict_of};
 use crate::version::{dated_version_in_force_on, version_in_force_on};
 
@@ -70,9 +72,7 @@ pub fn hydrate_on(
 ) -> Hydrate {
     hydrated(
         day,
-        records,
-        gather,
-        &Burns::of(burn, gather),
+        &Drinks::of(records, gather, burn),
         &fuel_on(day, gather, burn, fuel),
     )
 }
@@ -84,11 +84,46 @@ pub fn hydrate_over(
     burn: &BurnRecords,
     fuel: &FuelRecords,
 ) -> Vec<Hydrate> {
-    let burns = Burns::of(burn, gather);
+    let drinks = Drinks::of(records, gather, burn);
     days.iter()
         .zip(fuel_over(days, gather, burn, fuel))
-        .map(|(day, fuelled)| hydrated(*day, records, gather, &burns, &fuelled))
+        .map(|(day, fuelled)| hydrated(*day, &drinks, &fuelled))
         .collect()
+}
+
+/// A history's drinks read day after day: grouped by day, beside the ledger and the burn they are judged
+/// against, gathered once rather than for each day.
+struct Drinks<'records> {
+    records: &'records HydrateRecords,
+    gather: &'records GatherRecords,
+    burns: Burns<'records>,
+    ledger: Vec<Day>,
+    drinkings: BTreeMap<NaiveDate, Vec<(i64, Drinking)>>,
+}
+
+impl<'records> Drinks<'records> {
+    fn of(
+        records: &'records HydrateRecords,
+        gather: &'records GatherRecords,
+        burn: &'records BurnRecords,
+    ) -> Self {
+        Drinks {
+            records,
+            gather,
+            burns: Burns::of(burn, gather),
+            ledger: ledger(&gather.measurements, &gather.profiles),
+            drinkings: records
+                .drinkings
+                .iter()
+                .fold(BTreeMap::new(), |mut by_day, (id, drunk)| {
+                    by_day
+                        .entry(drunk.day)
+                        .or_insert_with(Vec::new)
+                        .push((*id, drunk.clone()));
+                    by_day
+                }),
+        }
+    }
 }
 
 fn lean_kg_on(day: NaiveDate, gather: &GatherRecords) -> Option<f64> {
@@ -150,28 +185,21 @@ pub(crate) fn water_target_in_force(
 ///   water turnover associated with environmental and lifestyle factors*, Science 378(6622):909-915.
 /// - Water lost per kcal spent, 0.84 to 1.46 mL: Westerterp K. R., Plasqui G., Goris A. H. C. (2005),
 ///   *Water loss as a function of energy intake, physical activity and season*, Br J Nutr 93(2):199-203.
-fn hydrated(
-    day: NaiveDate,
-    records: &HydrateRecords,
-    gather: &GatherRecords,
-    burns: &Burns,
-    fuelled: &Fuel,
-) -> Hydrate {
-    let drinkings: Vec<(i64, Drinking)> = records
-        .drinkings
-        .iter()
-        .filter(|(_, drunk)| drunk.day == day)
-        .cloned()
-        .collect();
+fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
+    let Drinks {
+        records, gather, ..
+    } = drinks;
+    let drinkings = drinks.drinkings.get(&day).cloned().unwrap_or_default();
     let drunk_ml: f64 = drinkings.iter().map(|(_, drunk)| drunk.volume_ml).sum();
-    let burnt_kcal = burns.on(day).burnt_kcal.unwrap_or(0.0);
+    let burn = drinks.burns.on(day);
+    let burnt_kcal = burn.burnt_kcal.unwrap_or(0.0);
     let own_base_ml = version_in_force_on(&records.targets, day)
         .and_then(Kept::own)
         .copied();
-    let weighed_kg = body_mass_in_force_on(day, &gather.measurements);
+    let weighed_kg = burn.body_mass_kg;
     let (target_ml, floor_ml) = match (
         own_base_ml,
-        lean_kg_on(day, gather),
+        body_on(day, &drinks.ledger, &gather.profiles).map(|body| body.lean_kg),
         fuelled.band,
         weighed_kg,
     ) {
