@@ -12,6 +12,7 @@ grind-core = { path = "core" }
 grind-sqlite = { path = "adapters/sqlite" }
 serde = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["alloc", "serde"] }
+num-traits = { version = "0.2", default-features = false }
 serde_json = "1"
 rusqlite = { version = "0.40", features = ["bundled", "chrono"] }
 

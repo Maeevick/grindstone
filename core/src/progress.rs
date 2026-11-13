@@ -1,4 +1,5 @@
 use chrono::{Days, NaiveDate};
+use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -22,20 +23,16 @@ fn least_squares_slope_per_day(trend: &[(NaiveDate, f64)]) -> f64 {
     (count * sum_xy - sum_x * sum_y) / (count * sum_xx - sum_x * sum_x)
 }
 
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-    reason = "the days to go are checked non-negative, and a count past u64::MAX saturates to a day chrono refuses"
-)]
 fn day_the_line_crosses(
     target: f64,
     (latest_day, latest): (NaiveDate, f64),
     per_day: f64,
 ) -> Option<NaiveDate> {
     let days_to_go = (target - latest) / per_day;
-    (per_day != 0.0 && days_to_go >= 0.0)
-        .then(|| latest_day.checked_add_days(Days::new(days_to_go.ceil() as u64)))
+    (days_to_go >= 0.0)
+        .then(|| days_to_go.ceil().to_u64())
         .flatten()
+        .and_then(|days| latest_day.checked_add_days(Days::new(days)))
 }
 
 pub fn progress_towards(target: Option<f64>, trend: &[(NaiveDate, f64)]) -> Option<Progress> {
