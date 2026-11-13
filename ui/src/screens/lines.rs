@@ -1359,6 +1359,22 @@ mod tests {
     }
 
     #[test]
+    fn a_circuit_logged_counts_its_sets() {
+        let said = [
+            circuit_logged("Kettlebell trio", 1),
+            circuit_logged("Kettlebell trio", 3),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "Fire in the hole! Kettlebell trio, 1 set, filed in the ledger.",
+                "Fire in the hole! Kettlebell trio, 3 sets, filed in the ledger.",
+            ]
+        );
+    }
+
+    #[test]
     fn a_mass_to_reach_tells_the_band_around_its_aim() {
         let said = aim_line("Body mass", 71.24, Aim::Reach(70.0), true);
 
