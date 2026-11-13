@@ -13,6 +13,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::screens::cells::opening_cell;
 use crate::screens::charts::bare_or_dash;
 use crate::screens::circuits::how_a_step_goes;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
@@ -128,7 +129,7 @@ fn CircuitEntry(
     let steps: Vec<String> = workouts.iter().map(logged_step).collect();
     view! {
         <tr class="entry circuit" on:click=move |_| open.update(|open| *open = !*open)>
-            <td>{name}</td>
+            {opening_cell(name, open.into())}
             <td>{bare_or_dash(burnt, Figure::Energy)}</td>
             <td>{bare(Figure::Duration(minutes))}</td>
             <td>{bare_or_dash(reps, Figure::Count)}</td>
