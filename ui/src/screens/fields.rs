@@ -70,11 +70,18 @@ pub fn Chooser(
     typed: RwSignal<String>,
 ) -> impl IntoView {
     let open = RwSignal::new(false);
+    let field = format!("{name}-chooser");
+    let list = format!("{name}-choices");
     view! {
         <div class="field grow2 chooser">
-            <span>{label}</span>
+            <label for=field.clone()>{label}</label>
             <input
+                id=field
                 name=name
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls=list.clone()
+                aria-expanded=move || open.get().to_string()
                 autocomplete="off"
                 placeholder="Select me"
                 prop:value=move || typed.get()
@@ -86,7 +93,7 @@ pub fn Chooser(
                 on:blur=move |_| open.set(false)
             />
             <Show when=move || open.get()>
-                <ul class="choices" role="listbox">
+                <ul class="choices" role="listbox" id=list.clone()>
                     {move || {
                         let offered = options.get();
                         let names: Vec<String> =
