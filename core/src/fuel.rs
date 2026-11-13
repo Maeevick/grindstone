@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::aims::{Aims, aims_on};
 use crate::body::{Body, body_on};
-use crate::burn::burn_on;
+use crate::burn::Burns;
 use crate::burn_records::BurnRecords;
 use crate::food::{Nutrients, summed};
 use crate::fuel_records::{FuelRecords, FuelTargets};
@@ -317,7 +317,7 @@ struct Ledgers<'records> {
     days: Vec<Day>,
     intakes: BTreeMap<NaiveDate, Vec<(i64, Intake)>>,
     gather: &'records GatherRecords,
-    burn: &'records BurnRecords,
+    burns: Burns<'records>,
     fuel: &'records FuelRecords,
 }
 
@@ -334,7 +334,7 @@ impl Ledgers<'_> {
         let banded = in_force.map(|(body, aims)| {
             let targets = fuel_targets_in_force(day, &self.fuel.targets, &self.gather.profiles)
                 .map_or_else(FuelTargets::default, |targets| targets.values);
-            let burnt = burn_on(day, self.burn, self.gather);
+            let burnt = self.burns.on(day);
             let (band, budget) = band_for(
                 &body,
                 &aims,
@@ -377,7 +377,7 @@ impl<'records> Ledgers<'records> {
                     by_day
                 }),
             gather,
-            burn,
+            burns: Burns::of(burn, gather),
             fuel,
         }
     }

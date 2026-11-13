@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::body::body_on;
-use crate::burn::{body_mass_in_force_on, burn_on};
+use crate::burn::{Burns, body_mass_in_force_on};
 use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
@@ -72,7 +72,7 @@ pub fn hydrate_on(
         day,
         records,
         gather,
-        burn,
+        &Burns::of(burn, gather),
         &fuel_on(day, gather, burn, fuel),
     )
 }
@@ -84,9 +84,10 @@ pub fn hydrate_over(
     burn: &BurnRecords,
     fuel: &FuelRecords,
 ) -> Vec<Hydrate> {
+    let burns = Burns::of(burn, gather);
     days.iter()
         .zip(fuel_over(days, gather, burn, fuel))
-        .map(|(day, fuelled)| hydrated(*day, records, gather, burn, &fuelled))
+        .map(|(day, fuelled)| hydrated(*day, records, gather, &burns, &fuelled))
         .collect()
 }
 
@@ -153,7 +154,7 @@ fn hydrated(
     day: NaiveDate,
     records: &HydrateRecords,
     gather: &GatherRecords,
-    burn: &BurnRecords,
+    burns: &Burns,
     fuelled: &Fuel,
 ) -> Hydrate {
     let drinkings: Vec<(i64, Drinking)> = records
@@ -163,7 +164,7 @@ fn hydrated(
         .cloned()
         .collect();
     let drunk_ml: f64 = drinkings.iter().map(|(_, drunk)| drunk.volume_ml).sum();
-    let burnt_kcal = burn_on(day, burn, gather).burnt_kcal.unwrap_or(0.0);
+    let burnt_kcal = burns.on(day).burnt_kcal.unwrap_or(0.0);
     let own_base_ml = version_in_force_on(&records.targets, day)
         .and_then(Kept::own)
         .copied();

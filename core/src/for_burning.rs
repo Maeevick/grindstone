@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::burn::{Burn, burn_on};
+use crate::burn::{Burn, Burns, burn_on};
 use crate::burn_week::{BurnWeek, burn_week_of};
 use crate::circuit::{Circuit, StepForm};
 use crate::exercise::Exercise;
@@ -91,10 +91,11 @@ pub fn burn_over_the_window(
     else {
         return Ok(None);
     };
+    let burns = Burns::of(&burnt, &gathered);
     let days: Vec<Burn> = the_days_between(first, today)
         .into_iter()
         .filter(|day| *day < today)
-        .map(|day| burn_on(day, &burnt, &gathered))
+        .map(|day| burns.on(day))
         .collect();
     Ok(burn_week_of(&days).map(|mut week| {
         week.exercises.truncate(BIGGEST_BURNERS);

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
@@ -56,40 +58,92 @@ pub(crate) fn usual_day_in_force(
 }
 
 pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) -> Burn {
-    let body_mass_kg = body_mass_in_force_on(day, &gather.measurements);
-    let workouts: Vec<BurntWorkout> = records
-        .workouts
-        .iter()
-        .filter(|(_, done)| done.day == day)
-        .map(|(id, done)| BurntWorkout {
-            id: *id,
-            workout: done.clone(),
-            burnt_kcal: body_mass_kg.map(|kg| burnt_by(done, kg)),
-        })
-        .collect();
-    let burnt_kcal = workouts
-        .iter()
-        .map(|done| done.burnt_kcal)
-        .sum::<Option<f64>>();
-    let target_kcal = target_on(day, &records.targets, body_mass_kg).map(|target| target.values);
-    let own_day = records
-        .days_off_the_clock
-        .iter()
-        .find(|(kept_on, _)| *kept_on == day)
-        .map(|(_, volitional)| *volitional);
-    Burn {
-        day,
-        burnt_kcal,
-        workouts,
-        off_the_clock: own_day.or_else(|| {
-            usual_day_in_force(day, &records.usual_days, &gather.profiles).map(|usual| usual.values)
-        }),
-        off_the_clock_is_usual: own_day.is_none(),
-        body_mass_kg,
-        target_kcal,
-        verdict: burnt_kcal
-            .zip(target_kcal)
-            .map(|(burnt, target)| verdict_of(burnt, target, f64::INFINITY)),
+    Burns::of(records, gather).on(day)
+}
+
+/// A history's burn read day after day: its workouts grouped by day and its body masses in day order, gathered
+/// once rather than for each day.
+pub(crate) struct Burns<'records> {
+    records: &'records BurnRecords,
+    gather: &'records GatherRecords,
+    workouts: BTreeMap<NaiveDate, Vec<(i64, &'records Workout)>>,
+    masses: Vec<(NaiveDate, f64)>,
+}
+
+impl<'records> Burns<'records> {
+    pub(crate) fn of(records: &'records BurnRecords, gather: &'records GatherRecords) -> Self {
+        let mut masses: Vec<(NaiveDate, f64)> = gather
+            .measurements
+            .iter()
+            .map(|measured| (measured.day, measured.body_mass_kg))
+            .collect();
+        masses.sort_by_key(|(day, _)| *day);
+        Burns {
+            records,
+            gather,
+            workouts: records
+                .workouts
+                .iter()
+                .fold(BTreeMap::new(), |mut by_day, (id, done)| {
+                    by_day
+                        .entry(done.day)
+                        .or_insert_with(Vec::new)
+                        .push((*id, done));
+                    by_day
+                }),
+            masses,
+        }
+    }
+
+    /// The latest body mass up to the day, the earliest before any.
+    fn body_mass_on(&self, day: NaiveDate) -> Option<f64> {
+        let up_to = self.masses.partition_point(|(weighed, _)| *weighed <= day);
+        up_to
+            .checked_sub(1)
+            .map_or(self.masses.first(), |latest| self.masses.get(latest))
+            .map(|(_, kg)| *kg)
+    }
+
+    pub(crate) fn on(&self, day: NaiveDate) -> Burn {
+        let body_mass_kg = self.body_mass_on(day);
+        let workouts: Vec<BurntWorkout> = self
+            .workouts
+            .get(&day)
+            .into_iter()
+            .flatten()
+            .map(|(id, done)| BurntWorkout {
+                id: *id,
+                workout: (*done).clone(),
+                burnt_kcal: body_mass_kg.map(|kg| burnt_by(done, kg)),
+            })
+            .collect();
+        let burnt_kcal = workouts
+            .iter()
+            .map(|done| done.burnt_kcal)
+            .sum::<Option<f64>>();
+        let target_kcal =
+            target_on(day, &self.records.targets, body_mass_kg).map(|target| target.values);
+        let own_day = self
+            .records
+            .days_off_the_clock
+            .iter()
+            .find(|(kept_on, _)| *kept_on == day)
+            .map(|(_, volitional)| *volitional);
+        Burn {
+            day,
+            burnt_kcal,
+            workouts,
+            off_the_clock: own_day.or_else(|| {
+                usual_day_in_force(day, &self.records.usual_days, &self.gather.profiles)
+                    .map(|usual| usual.values)
+            }),
+            off_the_clock_is_usual: own_day.is_none(),
+            body_mass_kg,
+            target_kcal,
+            verdict: burnt_kcal
+                .zip(target_kcal)
+                .map(|(burnt, target)| verdict_of(burnt, target, f64::INFINITY)),
+        }
     }
 }
 

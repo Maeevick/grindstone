@@ -4,7 +4,7 @@ use chrono::{Months, NaiveDate};
 use serde::{Deserialize, Serialize};
 
 use crate::aims::aims_on;
-use crate::burn::{Burn, burn_on};
+use crate::burn::{Burn, Burns};
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
 use crate::failure::Failure;
@@ -170,10 +170,8 @@ pub fn burn_chart(
     let began = began_on(burnt.targets.iter().map(|(from, _)| *from), &gathered);
     let span = span_of(today, window, began);
     let days = days_within(burnt.workouts.iter().map(|(_, done)| done.day), span);
-    let burns: Vec<Burn> = days
-        .iter()
-        .map(|day| burn_on(*day, &burnt, &gathered))
-        .collect();
+    let by_day = Burns::of(&burnt, &gathered);
+    let burns: Vec<Burn> = days.iter().map(|day| by_day.on(*day)).collect();
     Ok(BurnChart {
         burnt: burns
             .iter()
@@ -379,12 +377,13 @@ pub fn burn_month(
         picked,
         burnt.workouts.iter().map(|(_, done)| done.day),
     )?;
+    let burns = Burns::of(&burnt, &gathered);
     Ok(Month {
         month: month.into(),
         rows: days
             .iter()
             .map(|day| {
-                let of_the_day = burn_on(*day, &burnt, &gathered);
+                let of_the_day = burns.on(*day);
                 BurnRow {
                     day: *day,
                     burnt_kcal: of_the_day.burnt_kcal,
@@ -408,6 +407,7 @@ pub fn burn_month(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::burn::burn_on;
     use crate::for_burning::{WorkoutForm, log_workout};
     use crate::for_cataloguing::{FoodForm, add_drink, add_exercise, add_food};
     use crate::for_fuelling::{IntakeForm, log_intake};

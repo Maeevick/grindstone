@@ -1,8 +1,9 @@
+use std::collections::BTreeSet;
+
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use crate::burn::burn_on;
-use crate::burn_records::BurnRecords;
+use crate::burn::{Burn, Burns};
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
@@ -57,6 +58,12 @@ pub fn streak(
     );
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled);
+    let burns = Burns::of(&burnt, &gathered);
+    let weighed_days: BTreeSet<NaiveDate> = gathered
+        .measurements
+        .iter()
+        .map(|measured| measured.day)
+        .collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days
         .iter()
         .zip(fuel_over(&days, &gathered, &burnt, &fuelled))
@@ -65,15 +72,9 @@ pub fn streak(
             (
                 *day,
                 Ticks {
-                    weighed: (*day >= weighed_from).then(|| {
-                        gathered
-                            .measurements
-                            .iter()
-                            .any(|measured| measured.day == *day)
-                    }),
+                    weighed: (*day >= weighed_from).then(|| weighed_days.contains(day)),
                     fuelled: (*day >= fuelled_from).then(|| fuelled_in_band(&fuelled_day)),
-                    worked_out: (*day >= worked_out_from)
-                        .then(|| worked_out(*day, &burnt, &gathered)),
+                    worked_out: (*day >= worked_out_from).then(|| worked_out(&burns.on(*day))),
                     hydrated: (*day >= hydrated_from).then(|| hydrated_in_band(hydrated_day)),
                 },
             )
@@ -101,8 +102,7 @@ fn hydrated_in_band(hydrated: &Hydrate) -> bool {
 
 /// A day's workouts reach its burn target as both are shown; before any weigh-in prices them, a single
 /// workout will do.
-fn worked_out(day: NaiveDate, burnt: &BurnRecords, gathered: &GatherRecords) -> bool {
-    let burn = burn_on(day, burnt, gathered);
+fn worked_out(burn: &Burn) -> bool {
     !burn.workouts.is_empty()
         && burn
             .verdict
