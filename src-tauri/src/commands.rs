@@ -906,6 +906,35 @@ mod tests {
     }
 
     #[test]
+    fn a_restored_copy_the_phone_will_not_delete_is_named_to_be_deleted_by_hand() {
+        use std::os::unix::fs::PermissionsExt;
+        let folder =
+            std::env::temp_dir().join(format!("grind-tauri-locked-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).expect("a folder is made");
+        let copy = folder.join("grindstone-import.json");
+        let (_phone, kept_from) = launched_with(Files {
+            copy: copy.clone(),
+            ..Files::nowhere()
+        });
+        invoke(&kept_from, "keep_a_copy", json!({ "today": "2026-11-04" })).expect("a copy kept");
+        std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o555))
+            .expect("the folder is locked");
+        let (_app, screen) = launched_with(Files {
+            restore: copy.clone(),
+            ..Files::nowhere()
+        });
+
+        let answer = invoke(&screen, "restore_a_copy", json!({}));
+
+        let _ = std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o755));
+        let _ = std::fs::remove_dir_all(&folder);
+        assert_eq!(
+            answer.map(|restored| restored["left_behind"].clone()),
+            Ok(json!(copy.display().to_string()))
+        );
+    }
+
+    #[test]
     fn a_refused_copy_stays_where_it_was_pushed() {
         let copy =
             std::env::temp_dir().join(format!("grind-tauri-refused-{}.json", std::process::id()));
