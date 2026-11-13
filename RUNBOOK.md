@@ -285,7 +285,7 @@ In the app, open the Profile, scroll to its settings, then **Copy the records**.
 make export-android
 ```
 
-The copy lands in `exports/`, stamped with the time it was pulled, and stays out of git: it is personal data. Pull it straight away: uninstalling the app wipes its Documents folder.
+The copy lands in `exports/`, stamped with the time it was pulled, and stays out of git: it is personal data. Once pulled, it is deleted from the phone, where any app with storage access could read it in plain text. Pull it straight away: uninstalling the app wipes its Documents folder.
 
 To restore a copy, the phone plugged in:
 
@@ -293,7 +293,7 @@ To restore a copy, the phone plugged in:
 make import-android BACKUP=exports/<file>.json
 ```
 
-Then, in the same card, type `RESTORE` and tap **Restore the copy**. Every record on the phone is replaced by the copy's, all at once or not at all, and the app tells how many records and tables came back. A copy of another schema version is refused, both versions named, and nothing changes. There is no undo: copy the records first.
+Then, in the same card, type `RESTORE` and tap **Restore the copy**. Every record on the phone is replaced by the copy's, all at once or not at all, and the app tells how many records and tables came back. Once restored, the pushed copy is deleted from the phone. A copy of another schema version is refused, both versions named, and nothing changes: the copy stays on the phone, to be replaced. There is no undo: copy the records first.
 
 ## Update
 

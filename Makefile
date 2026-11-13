@@ -45,9 +45,10 @@ android: ## build the release APK and install it on the phone plugged over USB, 
 	cargo tauri android build --apk --target aarch64
 	adb install -r $(APK)
 
-export-android: ## bring the copy made in Settings from the phone over USB into exports/, stamped with its time
+export-android: ## bring the copy made in Settings from the phone over USB into exports/, stamped with its time, then delete it from the phone
 	mkdir -p exports
 	adb pull $(COPY_ON_THE_PHONE) exports/grindstone-export-$$(date +%Y-%m-%d-%H%M%S).json
+	adb shell rm $(COPY_ON_THE_PHONE)
 
 import-android: ## push a copy from exports/ to the phone over USB, for Settings to restore: make import-android BACKUP=exports/<file>.json
 	@test -f "$(BACKUP)" || { echo "usage: make import-android BACKUP=exports/<file>.json"; exit 1; }
