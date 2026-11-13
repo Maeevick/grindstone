@@ -4866,6 +4866,31 @@ async fn a_drink_added_from_the_hydrate_shelfs_form_card_joins_its_list_its_kind
 }
 
 #[wasm_bindgen_test]
+async fn a_refusal_is_announced_at_once_in_a_line_a_screen_reader_listens_to_before_it_is_said() {
+    answering(r#"{ "drinks": [] }"#);
+    let screen = screen();
+    let _mounted = the_hydrate_shelf(&screen);
+    settled().await;
+    let listening = attributes_of(&screen, "form.drink p.bad", "role");
+
+    typed_into(&screen, "drink_name", "Tea");
+    typed_into(&screen, "drink_serving", "a cup");
+    found::<HtmlFormElement>(&screen, "form.drink")
+        .request_submit()
+        .expect("the drink is offered");
+    settled().await;
+
+    assert_eq!(
+        (
+            listening,
+            texts_in_order(&screen, "form.drink p.bad[role=alert]").len()
+        ),
+        (vec!["alert".to_string()], 1)
+    );
+    assert!(!text_of(&screen, "form.drink p.bad").is_empty());
+}
+
+#[wasm_bindgen_test]
 async fn removing_a_drink_takes_it_off_the_hydrate_shelf() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "remove_drink": [{{ "name": "Tea", "volume_ml": 200.0, "kind": "Other" }}] }}"#
