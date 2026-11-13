@@ -905,6 +905,26 @@ mod tests {
     }
 
     #[test]
+    fn a_refused_copy_stays_where_it_was_pushed() {
+        let copy =
+            std::env::temp_dir().join(format!("grind-tauri-refused-{}.json", std::process::id()));
+        std::fs::write(&copy, "not a copy").expect("a file is pushed");
+        let (_app, screen) = launched_with(Files {
+            restore: copy.clone(),
+            ..Files::nowhere()
+        });
+
+        let answer = invoke(&screen, "restore_a_copy", json!({}));
+
+        let left = copy.exists();
+        let _ = std::fs::remove_file(&copy);
+        assert_eq!(
+            (answer, left),
+            (Err(json!({ "Refused": "NotACopy" })), true)
+        );
+    }
+
+    #[test]
     fn restoring_with_no_copy_pushed_is_refused() {
         let (_app, screen) = launched();
 
