@@ -565,14 +565,14 @@ mod tests {
     }
 
     #[test]
-    fn four_weigh_ins_in_the_week_are_enough_for_a_pace() {
+    fn four_weigh_ins_on_four_days_running_give_no_pace_a_days_swing_could_fake() {
         let weighed = a_man_weighed(80.0, -0.05);
-        let four_in_the_week = GatherRecords {
+        let four_days_running = GatherRecords {
             measurements: weighed.measurements[17..].to_vec(),
             ..weighed
         };
 
-        assert!(pace_on(day("2026-10-10"), &four_in_the_week).is_some());
+        assert_eq!(pace_on(day("2026-10-10"), &four_days_running), None);
     }
 
     #[test]
