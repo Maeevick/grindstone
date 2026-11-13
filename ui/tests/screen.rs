@@ -4846,6 +4846,34 @@ async fn the_history_marks_each_day_with_its_streak_dot_under_headers_holding_th
 }
 
 #[wasm_bindgen_test]
+async fn each_streak_dot_wears_its_own_mark_and_names_its_status_the_legends_left_to_its_words() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
+                {{ "day": "2026-10-10", "body_mass_kg": 80.0, "lean_mass_kg": 70.7, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }},
+                {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".history tbody .dot"),
+            attributes_of(&screen, ".history tbody .dot", "aria-label"),
+            texts_in_order(&screen, ".history .legend .dot"),
+            attributes_of(&screen, ".history .legend .dot", "aria-hidden")
+        ),
+        (
+            vec![String::new(), "★".into()],
+            vec!["under way".to_string(), "a joker".into()],
+            vec!["✓".to_string(), "★".into(), "✗".into(), String::new()],
+            vec!["true".to_string(); 4]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_history_shows_today_in_gold() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
