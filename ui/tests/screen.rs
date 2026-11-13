@@ -5372,6 +5372,30 @@ async fn the_vaults_copy_tells_how_many_records_it_copied_and_how_to_bring_them_
     );
 }
 
+#[wasm_bindgen_test]
+async fn what_a_screen_says_once_done_is_announced_where_a_screen_reader_listens_before_it_is_said()
+{
+    answering(r#"{ "keep_a_copy": { "tables": 18, "records": 2431 } }"#);
+    let screen = screen();
+    let _mounted = the_settings(&screen);
+    settled().await;
+    let listening = attributes_of(&screen, "section#copy p.said", "role");
+
+    found::<web_sys::HtmlElement>(&screen, "section#copy button.copy").click();
+    settled().await;
+
+    assert_eq!(
+        (
+            listening,
+            texts_in_order(&screen, "section#copy p.said[role=status]")
+        ),
+        (
+            vec!["status".to_string()],
+            vec!["Copied 2431 records from 18 tables. Run make export-android now.".to_string()]
+        )
+    );
+}
+
 fn the_settings(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
