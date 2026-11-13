@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use chrono::{Days, NaiveDate};
 use serde::{Deserialize, Serialize};
 
@@ -313,6 +315,7 @@ pub(crate) fn fuel_targets_in_force(
 
 struct Ledgers<'records> {
     days: Vec<Day>,
+    intakes: BTreeMap<NaiveDate, Vec<(i64, Intake)>>,
     gather: &'records GatherRecords,
     burn: &'records BurnRecords,
     fuel: &'records FuelRecords,
@@ -320,12 +323,7 @@ struct Ledgers<'records> {
 
 impl Ledgers<'_> {
     fn intakes_on(&self, day: NaiveDate) -> Vec<(i64, Intake)> {
-        self.fuel
-            .intakes
-            .iter()
-            .filter(|(_, eaten)| eaten.day == day)
-            .cloned()
-            .collect()
+        self.intakes.get(&day).cloned().unwrap_or_default()
     }
 
     fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)], more: Nutrients) -> Fuel {
@@ -368,6 +366,16 @@ impl<'records> Ledgers<'records> {
     ) -> Self {
         Ledgers {
             days: ledger(&gather.measurements, &gather.profiles),
+            intakes: fuel
+                .intakes
+                .iter()
+                .fold(BTreeMap::new(), |mut by_day, (id, eaten)| {
+                    by_day
+                        .entry(eaten.day)
+                        .or_insert_with(Vec::new)
+                        .push((*id, eaten.clone()));
+                    by_day
+                }),
             gather,
             burn,
             fuel,
@@ -375,15 +383,7 @@ impl<'records> Ledgers<'records> {
     }
 
     fn gaps(&self) -> Vec<(NaiveDate, f64)> {
-        let mut logged: Vec<NaiveDate> = self
-            .fuel
-            .intakes
-            .iter()
-            .map(|(_, eaten)| eaten.day)
-            .collect();
-        logged.sort();
-        logged.dedup();
-        logged.iter().fold(Vec::new(), |mut gaps, logged| {
+        self.intakes.keys().fold(Vec::new(), |mut gaps, logged| {
             let fuelled = self.fuel_on(*logged, &gaps, Nutrients::default());
             if let Some(band) = fuelled.band {
                 gaps.push((*logged, band.maintenance_kcal - fuelled.eaten.energy_kcal));
