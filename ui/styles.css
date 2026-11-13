@@ -3,6 +3,7 @@
 	--card: #1f1f23;
 	--inset: #121214;
 	--line: #2e2e33;
+	--field: #6e6e75;
 	--txt: #e4e4e7;
 	--mut: #8e8e96;
 	--acc: #e8b04b;
@@ -144,7 +145,7 @@ input {
 	height: 44px;
 	padding: 0 10px;
 	background: var(--inset);
-	border: 1px solid var(--line);
+	border: 1px solid var(--field);
 	border-radius: 8px;
 	color: var(--txt);
 	font: 1rem var(--mono);
@@ -263,7 +264,7 @@ select {
 	height: 44px;
 	padding: 0 10px;
 	background: var(--inset);
-	border: 1px solid var(--line);
+	border: 1px solid var(--field);
 	border-radius: 8px;
 	color: var(--txt);
 	font: 1rem var(--mono);
@@ -811,7 +812,7 @@ textarea {
 	width: 100%;
 	padding: 8px 10px;
 	background: var(--inset);
-	border: 1px solid var(--line);
+	border: 1px solid var(--field);
 	border-radius: 8px;
 	color: var(--txt);
 	font: 0.95rem var(--mono);
