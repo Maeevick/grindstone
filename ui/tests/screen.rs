@@ -4109,6 +4109,24 @@ async fn todays_tiles_mark_each_tick_beside_its_colour_and_say_it_to_screen_read
 }
 
 #[wasm_bindgen_test]
+async fn a_link_or_button_reached_by_the_keyboard_wears_a_gold_ring() {
+    answering(A_HOME);
+    let screen = screen();
+    let _worn = Worn::the_stylesheet();
+
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    assert_eq!(
+        [
+            ring_of(&found(&screen, "header.top a.person")),
+            ring_of(&found(&screen, "button.chip-Fuel"))
+        ],
+        ["solid rgb(232, 176, 75)", "solid rgb(232, 176, 75)"]
+    );
+}
+
+#[wasm_bindgen_test]
 async fn home_holds_the_streak_alone_in_its_card() {
     answering(A_HOME);
     let screen = screen();
