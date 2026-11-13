@@ -3979,6 +3979,31 @@ async fn todays_tiles_show_each_figure_green_or_red_by_its_tick_and_open_its_tab
 }
 
 #[wasm_bindgen_test]
+async fn todays_tiles_mark_each_tick_beside_its_colour_and_say_it_to_screen_readers() {
+    answering(A_HOME);
+    let screen = screen();
+
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".today .tile .mark"),
+            attributes_of(&screen, ".today .tile .mark", "aria-label")
+        ),
+        (
+            vec!["✓".to_string(), "✗".into(), "✓".into(), "✗".into()],
+            vec![
+                "held".to_string(),
+                "missed".into(),
+                "held".into(),
+                "missed".into()
+            ]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn home_holds_the_streak_alone_in_its_card() {
     answering(A_HOME);
     let screen = screen();
