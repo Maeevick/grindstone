@@ -37,9 +37,9 @@ pub struct Recommendations {
 ///   water as Hydrate recommends it before the burn.
 /// - The usual day: sitting 8 hours at most, past which the least active die sooner, Ekelund U.
 ///   et al. (2016), *Lancet* 388(10051):1302–1310; standing 2 hours, the first step of
-///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps a day past
-///   which the risk of dying stops falling, 8000 under 60 and 6000 from 60, Paluch A. E. et al.
-///   (2022), *Lancet Public Health* 7(3):e219–e228, at about 0.75 m a step.
+///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps of a day with no
+///   exercise in it, the workouts logged counting the rest: "< 2,500 steps/day ('basal activity')",
+///   Tudor-Locke C. et al. (2011), *Int J Behav Nutr Phys Act* 8:79, at about 0.75 m a step.
 /// - The burn target: WHO's 150 minutes a week of moderate activity on the body weighed, Bull F. C. et al.
 ///   (2020), *Br J Sports Med* 54(24):1451–1462; none before a weigh-in, when any workout holds the tick.
 pub fn recommended(
@@ -60,7 +60,7 @@ pub fn recommended(
         usual_day: Volitional {
             sitting_min: SITTING_MIN,
             standing_min: STANDING_MIN,
-            moving_km: to_the_tenth(steps_a_day(age) * METRES_A_STEP / 1000.0),
+            moving_km: to_the_tenth(BASAL_STEPS * METRES_A_STEP / 1000.0),
         },
         burn_target_kcal: target_on(day, &[], body_mass_kg).map(|target| target.values),
         fuel_floors_g_per_kg: FuelTargets::default(),
@@ -74,10 +74,7 @@ const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
 const SITTING_MIN: f64 = 480.0;
 const STANDING_MIN: f64 = 120.0;
 const METRES_A_STEP: f64 = 0.75;
-
-fn steps_a_day(age: u32) -> f64 {
-    if age < 60 { 8000.0 } else { 6000.0 }
-}
+const BASAL_STEPS: f64 = 2500.0;
 
 fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
     match (gender, age) {
@@ -175,20 +172,6 @@ mod tests {
                 standing_min: 120.0,
                 moving_km: 1.9
             }
-        );
-    }
-
-    #[test]
-    fn the_steps_fall_to_6000_on_the_sixtieth_birthday() {
-        let moving_on = |date| {
-            recommended(&born("1966-10-11", Gender::Male, 180.0), day(date), None)
-                .usual_day
-                .moving_km
-        };
-
-        assert_eq!(
-            (moving_on("2026-10-10"), moving_on("2026-10-11")),
-            (6.0, 4.5)
         );
     }
 

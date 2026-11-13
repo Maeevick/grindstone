@@ -1661,7 +1661,7 @@ mod tests {
 
         assert_eq!(
             advised["usual_day"],
-            json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 })
+            json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 1.9 })
         );
     }
 }

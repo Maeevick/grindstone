@@ -432,7 +432,7 @@ mod tests {
                 Some(Volitional {
                     sitting_min: 480.0,
                     standing_min: 120.0,
-                    moving_km: 6.0,
+                    moving_km: 1.9,
                 }),
                 true
             ))

@@ -485,8 +485,8 @@ pub const USUAL_DAY_HOW: &str = "Outside workouts: the minutes you usually sit a
     empty to follow it.";
 
 pub const USUAL_DAY_WHY: &str = "Recommended: sitting 8 hours at most, past which the least active die sooner \
-    (Ekelund 2016); standing 2 hours (Buckley 2015); moving the steps past which the risk of dying stops falling, \
-    8000 a day under 60 and 6000 from 60 (Paluch 2022), at about 0.75 m a step.";
+    (Ekelund 2016); standing 2 hours (Buckley 2015); moving 2500 steps, the most of basal activity (Tudor-Locke \
+    2011), at about 0.75 m a step: the workouts you log count the rest.";
 
 pub const UNREADABLE: &str =
     "That is no number I can read. Digits, with a point or a comma, please.";

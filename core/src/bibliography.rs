@@ -196,12 +196,12 @@ pub const REFERENCES: [Reference; 33] = [
     },
     Reference {
         topic: Topic::Activity,
-        authors: "Paluch A. E., Bajpai S., Bassett D. R., et al.",
-        year: 2022,
-        title: "Daily steps and all-cause mortality: a meta-analysis of 15 international cohorts",
-        published_in: "The Lancet Public Health 7(3):e219-e228",
-        page: Some("https://pubmed.ncbi.nlm.nih.gov/35247352/"),
-        used_for: "The usual day's steps: 8000 a day under 60 and 6000 from 60, past which the risk of dying stops falling",
+        authors: "Tudor-Locke C., Craig C. L., Brown W. J., et al.",
+        year: 2011,
+        title: "How many steps/day are enough? for adults",
+        published_in: "International Journal of Behavioral Nutrition and Physical Activity 8:79",
+        page: Some("https://pmc.ncbi.nlm.nih.gov/articles/PMC3197470/"),
+        used_for: "The usual day's steps: 2500, the most of basal activity, the workouts logged counting the rest",
     },
     Reference {
         topic: Topic::Activity,
@@ -392,7 +392,7 @@ mod tests {
                 2016,
             ),
             ("Buckley J. P., Hedge A., Yates T., et al.", 2015),
-            ("Paluch A. E., Bajpai S., Bassett D. R., et al.", 2022),
+            ("Tudor-Locke C., Craig C. L., Brown W. J., et al.", 2011),
         ] {
             assert!(cited(Topic::Activity).contains(&source), "{source:?}");
         }

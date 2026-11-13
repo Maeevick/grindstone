@@ -588,7 +588,7 @@ mod tests {
     }
 
     #[test]
-    fn a_usual_day_never_kept_follows_the_recommendation_for_the_age_none_without_a_profile() {
+    fn a_usual_day_never_kept_follows_the_recommendation_none_without_a_profile() {
         let burn = crate::testing::BurnRecordsInMemory::default();
 
         assert_eq!(
@@ -596,13 +596,12 @@ mod tests {
                 usual_day_on(&born("1985-04-12"), &burn, "2026-10-10"),
                 usual_day_on(&GatherRecordsInMemory::default(), &burn, "2026-10-10")
             ),
-            (Ok(Some(the_recommended_usual_day(6.0))), Ok(None))
+            (Ok(Some(the_recommended_usual_day(1.9))), Ok(None))
         );
     }
 
     #[test]
-    fn the_usual_days_recommendation_kept_from_a_day_follows_the_age_own_values_holding_before_it()
-    {
+    fn the_usual_days_recommendation_kept_from_a_day_holds_from_it_own_values_holding_before_it() {
         let (gather, burn) = (
             born("1966-10-15"),
             crate::testing::BurnRecordsInMemory::default(),
@@ -634,11 +633,11 @@ mod tests {
                 }),
                 Some(InForce {
                     from: since("2026-10-10"),
-                    ..the_recommended_usual_day(6.0)
+                    ..the_recommended_usual_day(1.9)
                 }),
                 Some(InForce {
                     from: since("2026-10-10"),
-                    ..the_recommended_usual_day(4.5)
+                    ..the_recommended_usual_day(1.9)
                 })
             ]
         );
