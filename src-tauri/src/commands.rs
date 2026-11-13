@@ -16,7 +16,7 @@ use grind_core::for_cataloguing::{self, FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
     self, BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
-use grind_core::for_copying_records::Counted;
+use grind_core::for_copying_records::{Counted, Restored};
 use grind_core::for_fuelling::{self, IntakeForm, PlateForm};
 use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_keeping_a_copy;
@@ -174,12 +174,15 @@ pub fn keep_a_copy(
 pub fn restore_a_copy(
     records: State<Records>,
     file: State<RestoreFile>,
-) -> Result<Counted, Failure> {
+) -> Result<Restored, Failure> {
     let copy =
         std::fs::read_to_string(&file.0).map_err(|_| Failure::Refused(Refusal::NoCopyPushed))?;
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_keeping_a_copy::restore_a_copy(&*records, &copy).inspect(|_| {
-        let _ = std::fs::remove_file(&file.0);
+    for_keeping_a_copy::restore_a_copy(&*records, &copy).map(|counted| Restored {
+        counted,
+        left_behind: std::fs::remove_file(&file.0)
+            .err()
+            .map(|_| file.0.display().to_string()),
     })
 }
 

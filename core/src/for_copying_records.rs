@@ -17,6 +17,15 @@ pub struct Counted {
     pub records: usize,
 }
 
+/// What a restore brought back, and where the pushed copy stays when the phone would not delete it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Restored {
+    #[serde(flatten)]
+    pub counted: Counted,
+    #[serde(default)]
+    pub left_behind: Option<String>,
+}
+
 /// Why a copy could not be restored: not a copy at all, a copy of another schema, or a broken store.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Unrestorable {
