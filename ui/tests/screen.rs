@@ -95,6 +95,38 @@ export function box_left_of(element) {
 export function box_right_of(element) {
     return element.getBoundingClientRect().right;
 }
+function luminance_of(colour) {
+    const [r, g, b] = colour.match(/[0-9.]+/g).slice(0, 3).map((channel) => {
+        const c = Number(channel) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function background_behind(element) {
+    for (let at = element.parentElement; at; at = at.parentElement) {
+        const background = getComputedStyle(at).backgroundColor;
+        if (background !== 'rgba(0, 0, 0, 0)' && background !== 'transparent') { return background; }
+    }
+    return getComputedStyle(document.body).backgroundColor;
+}
+export function border_contrast_of(element) {
+    const [one, other] = [getComputedStyle(element).borderTopColor, background_behind(element)].map(luminance_of);
+    return (Math.max(one, other) + 0.05) / (Math.min(one, other) + 0.05);
+}
+export function box_width_of(element) {
+    return element.getBoundingClientRect().width;
+}
+export function box_height_of(element) {
+    return element.getBoundingClientRect().height;
+}
+export function ring_of(element) {
+    element.focus();
+    const style = getComputedStyle(element);
+    return `${style.outlineStyle} ${style.outlineColor}`;
+}
+export function font_px_of(element) {
+    return parseFloat(getComputedStyle(element).fontSize);
+}
 export function text_align_of(element) {
     return getComputedStyle(element).textAlign;
 }
@@ -116,6 +148,13 @@ extern "C" {
     fn wear_the_stylesheet(css: &str);
     fn drop_the_stylesheet();
     fn text_align_of(element: &Element) -> String;
+    /// How far a field's border stands out from what lies behind the field, as WCAG's contrast ratio.
+    fn border_contrast_of(element: &Element) -> f64;
+    fn box_width_of(element: &Element) -> f64;
+    fn box_height_of(element: &Element) -> f64;
+    /// The outline an element wears once focused, its style then its colour.
+    fn ring_of(element: &Element) -> String;
+    fn font_px_of(element: &Element) -> f64;
     /// Where an element's text starts and ends on the page, however it overflows its box.
     fn left_of(element: &Element) -> f64;
     fn right_of(element: &Element) -> f64;
@@ -205,6 +244,41 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_to_restoring_
             "Restore a copy".to_string()
         )
     );
+}
+
+fn every(screen: &Element, selector: &str) -> Vec<Element> {
+    let found = screen.query_selector_all(selector).expect(selector);
+    (0..found.length())
+        .filter_map(|at| found.item(at))
+        .map(JsCast::unchecked_into)
+        .collect()
+}
+
+#[wasm_bindgen_test]
+async fn every_field_stands_out_from_its_card_at_least_three_to_one() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null, "fuel_targets_on": null,
+             "burn_target_on": null }"#,
+    );
+    let screen = screen();
+    let _worn = Worn::the_stylesheet();
+
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let faint: Vec<(String, f64)> = every(&screen, "input:not([type=hidden]), select, textarea")
+        .iter()
+        .map(|field| (field.outer_html(), border_contrast_of(field)))
+        .filter(|(_, contrast)| *contrast < 3.0)
+        .collect();
+    assert!(!every(&screen, "input").is_empty());
+    assert_eq!(faint, []);
 }
 
 #[wasm_bindgen_test]
