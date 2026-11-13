@@ -1,6 +1,34 @@
 #![cfg(target_arch = "wasm32")]
 
+use chrono::NaiveDate;
+use grind_core::burn::Burn;
+use grind_core::burn_week::BurnWeek;
+use grind_core::circuit::Circuit;
+use grind_core::drink::Drink;
+use grind_core::exercise::Exercise;
+use grind_core::failure::Failure;
+use grind_core::food::Food;
+use grind_core::for_cataloguing::PricedCircuit;
+use grind_core::for_charting::{
+    BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
+};
+use grind_core::for_copying_records::{Counted, Restored};
 use grind_core::for_reviewing_progress::Window;
+use grind_core::for_tracking::GatherWeek;
+use grind_core::fuel::Fuel;
+use grind_core::fuel_records::FuelTargets;
+use grind_core::fuel_week::FuelWeek;
+use grind_core::gather_average::GatherAverage;
+use grind_core::goals::Goals;
+use grind_core::hydrate::Hydrate;
+use grind_core::hydrate_week::HydrateWeek;
+use grind_core::kept::InForce;
+use grind_core::meal::Meal;
+use grind_core::pace::Pace;
+use grind_core::profile::Profile;
+use grind_core::recommendations::Recommendations;
+use grind_core::streak::Streak;
+use grind_core::volitional::Volitional;
 use grind_ui::app::App;
 use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
@@ -168,6 +196,7 @@ extern "C" {
 }
 
 fn answering(answers: &str) {
+    checked(answers);
     answer_commands_with(&js_sys::JSON::parse(answers).expect("answers in JSON"));
 }
 
@@ -175,10 +204,139 @@ fn answering(answers: &str) {
 fn answering_all(parts: &[&str]) {
     let all = js_sys::Object::new();
     for part in parts {
+        checked(part);
         let answers = js_sys::JSON::parse(part).expect("answers in JSON");
         js_sys::Object::assign(&all, &answers.unchecked_into());
     }
     answer_commands_with(&all);
+}
+
+/// Whether a stubbed answer is one the core could give: read into the type its command returns, then written
+/// back, every field the stub holds must come back as it was, so a renamed, misspelt or misshapen field fails
+/// rather than drifting silently.
+fn the_core_gives(command: &str, answer: &serde_json::Value) -> Result<(), String> {
+    if let Some(thrown) = answer.get("__throws") {
+        return read_back::<Failure>(thrown);
+    }
+    if let Some(serde_json::Value::Object(by)) = answer.get("__by").map(|_| answer) {
+        return by
+            .iter()
+            .filter(|(key, _)| key.as_str() != "__by")
+            .try_for_each(|(_, answer)| the_core_gives(command, answer));
+    }
+    match command {
+        "gather_week" => read_back::<GatherWeek>(answer),
+        "log_measurement" => read_back::<GatherWeek>(answer),
+        "remove_measurement" => read_back::<GatherWeek>(answer),
+        "profile_on" => read_back::<Option<(NaiveDate, Profile)>>(answer),
+        "set_profile" => read_back::<Profile>(answer),
+        "goals_on" => read_back::<Option<InForce<Goals>>>(answer),
+        "set_goals" => read_back::<Option<InForce<Goals>>>(answer),
+        "burn_day" => read_back::<Burn>(answer),
+        "log_workout" => read_back::<Burn>(answer),
+        "remove_workout" => read_back::<Burn>(answer),
+        "remove_workouts" => read_back::<Burn>(answer),
+        "set_day_off_the_clock" => read_back::<Burn>(answer),
+        "exercises" => read_back::<Vec<Exercise>>(answer),
+        "add_exercise" => read_back::<Vec<Exercise>>(answer),
+        "remove_exercise" => read_back::<Vec<Exercise>>(answer),
+        "set_usual_day" => read_back::<Option<InForce<Volitional>>>(answer),
+        "usual_day_on" => read_back::<Option<InForce<Volitional>>>(answer),
+        "set_burn_target" => read_back::<Option<InForce<f64>>>(answer),
+        "burn_target_on" => read_back::<Option<InForce<f64>>>(answer),
+        "fuel_day" => read_back::<Fuel>(answer),
+        "fuel_day_with" => read_back::<Fuel>(answer),
+        "log_intake" => read_back::<Fuel>(answer),
+        "log_plate" => read_back::<Fuel>(answer),
+        "remove_intake" => read_back::<Fuel>(answer),
+        "foods" => read_back::<Vec<Food>>(answer),
+        "add_food" => read_back::<Vec<Food>>(answer),
+        "remove_food" => read_back::<Vec<Food>>(answer),
+        "set_fuel_targets" => read_back::<Option<InForce<FuelTargets>>>(answer),
+        "fuel_targets_on" => read_back::<Option<InForce<FuelTargets>>>(answer),
+        "meals" => read_back::<Vec<Meal>>(answer),
+        "cook_meal" => read_back::<Vec<Meal>>(answer),
+        "remove_meal" => read_back::<Vec<Meal>>(answer),
+        "streak" => read_back::<Streak>(answer),
+        "gather_chart" => read_back::<GatherChart>(answer),
+        "fuel_chart" => read_back::<BandChart>(answer),
+        "hydrate_chart" => read_back::<BandChart>(answer),
+        "burn_chart" => read_back::<BurnChart>(answer),
+        "gather_month" => read_back::<Month<GatherRow>>(answer),
+        "fuel_month" => read_back::<Month<FuelRow>>(answer),
+        "hydrate_month" => read_back::<Month<HydrateRow>>(answer),
+        "burn_month" => read_back::<Month<BurnRow>>(answer),
+        "pace_over_the_window" => read_back::<Option<Pace>>(answer),
+        "gather_average_over_the_window" => read_back::<Option<GatherAverage>>(answer),
+        "fuel_over_the_window" => read_back::<Option<FuelWeek>>(answer),
+        "hydrate_over_the_window" => read_back::<Option<HydrateWeek>>(answer),
+        "burn_over_the_window" => read_back::<Option<BurnWeek>>(answer),
+        "erase_everything" => read_back::<()>(answer),
+        "recommended_on" => read_back::<Recommendations>(answer),
+        "plugin:opener|open_url" => read_back::<()>(answer),
+        "keep_a_copy" => read_back::<Counted>(answer),
+        "restore_a_copy" => read_back::<Restored>(answer),
+        "circuits" => read_back::<Vec<Circuit>>(answer),
+        "priced_circuits" => read_back::<Vec<PricedCircuit>>(answer),
+        "craft_circuit" => read_back::<Vec<Circuit>>(answer),
+        "remove_circuit" => read_back::<Vec<Circuit>>(answer),
+        "log_session" => read_back::<Burn>(answer),
+        "log_circuit" => read_back::<Burn>(answer),
+        "hydrate_day" => read_back::<Hydrate>(answer),
+        "log_drink" => read_back::<Hydrate>(answer),
+        "remove_drinking" => read_back::<Hydrate>(answer),
+        "drinks" => read_back::<Vec<Drink>>(answer),
+        "add_drink" => read_back::<Vec<Drink>>(answer),
+        "remove_drink" => read_back::<Vec<Drink>>(answer),
+        "set_hydrate_target" => read_back::<Option<InForce<f64>>>(answer),
+        "hydrate_target_on" => read_back::<Option<InForce<f64>>>(answer),
+        unknown => Err(format!("no command {unknown} in the core")),
+    }
+}
+
+fn read_back<Answer: serde::de::DeserializeOwned + serde::Serialize>(
+    answer: &serde_json::Value,
+) -> Result<(), String> {
+    let typed: Answer =
+        serde_json::from_value(answer.clone()).map_err(|error| error.to_string())?;
+    let back = serde_json::to_value(&typed).map_err(|error| error.to_string())?;
+    held_in(answer, &back, "")
+}
+
+/// Every field of the stub found in the core's answer with the same value, the core free to add its defaults.
+fn held_in(stub: &serde_json::Value, core: &serde_json::Value, at: &str) -> Result<(), String> {
+    use serde_json::Value;
+    match (stub, core) {
+        (Value::Object(stub), Value::Object(core)) => stub.iter().try_for_each(|(key, value)| {
+            core.get(key)
+                .ok_or_else(|| format!("{at}.{key} is no field of the core's"))
+                .and_then(|found| held_in(value, found, &format!("{at}.{key}")))
+        }),
+        (Value::Array(stub), Value::Array(core)) if stub.len() == core.len() => stub
+            .iter()
+            .zip(core)
+            .enumerate()
+            .try_for_each(|(index, (one, other))| held_in(one, other, &format!("{at}[{index}]"))),
+        (Value::Number(stub), Value::Number(core))
+            if stub
+                .as_f64()
+                .zip(core.as_f64())
+                .is_some_and(|(one, other)| (one - other).abs() < 1e-9) =>
+        {
+            Ok(())
+        }
+        (stub, core) if stub == core => Ok(()),
+        (stub, core) => Err(format!("{at}: the stub's {stub} reads back as {core}")),
+    }
+}
+
+fn checked(answers: &str) {
+    let answers: serde_json::Value = serde_json::from_str(answers).expect("answers in JSON");
+    for (command, answer) in answers.as_object().into_iter().flatten() {
+        if let Err(why) = the_core_gives(command, answer) {
+            panic!("the stub for {command} is no answer of the core's: {why}");
+        }
+    }
 }
 
 fn attributes_of(screen: &Element, selector: &str, attribute: &str) -> Vec<String> {
@@ -5612,7 +5770,7 @@ async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
 
 #[wasm_bindgen_test]
 async fn a_figure_that_is_no_number_is_caught_on_the_screen_before_reaching_the_app() {
-    answering(r#"{ "recent_days": [] }"#);
+    answering("{}");
     let screen = screen();
     let _mounted = the_gather_tab(&screen);
     settled().await;
@@ -5774,7 +5932,6 @@ async fn the_danger_zone_erases_everything_once_erase_is_typed() {
 
 const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg": 70.308,
     "healthy_fat_ratio": [0.11, 0.22], "goal_fat_ratio": 0.165,
-    "fuel": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8 },
     "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "burn_target_kcal": 77.14 , "fuel_floors_g_per_kg": { "protein_g_per_kg": 0.83, "fat_g_per_kg": 0.68, "fibre_g_per_kg": 0.33, "carbs_g_per_kg": 1.63 }, "water_ml": 2480.0 }"#;
 
 #[wasm_bindgen_test]
