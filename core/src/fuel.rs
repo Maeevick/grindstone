@@ -111,7 +111,9 @@ const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
 const CARBS_FLOOR_G: f64 = 130.0;
-const LEAST_PROTEIN_G_PER_KG: f64 = 0.83;
+/// "break point=1.62 (1.03, 2.20) g/kg/day": Morton R. W. et al. (2018), Br J Sports Med 52(6):376–384, past which
+/// "protein intakes at amounts greater than ~1.6 g/kg/day do not further contribute RET-induced gains in FFM".
+const LEAST_PROTEIN_G_PER_KG: f64 = 1.6;
 const LEAST_PROTEIN_SHARE: f64 = 0.10;
 const MOST_PROTEIN_SHARE: f64 = 0.35;
 const LEAST_FAT_SHARE: f64 = 0.20;
@@ -259,8 +261,8 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
 /// past it; the ceilings, shares of the band's cap, the most the day may hold; the goal, the target painted per
 /// kilo of body mass, the floor until one is.
 ///
-/// - Protein at least 0.83 g per kilo of body mass, the WHO/FAO/UNU safe level (2007), and 10% of the energy, at
-///   most 35%, the Institute of Medicine's 10 to 35% (2005).
+/// - Protein at least 1.6 g per kilo of body mass, where Morton et al. (2018) find the gains in lean mass from
+///   training level off, and 10% of the energy, at most 35%, the Institute of Medicine's 10 to 35% (2005).
 /// - Fat at least 20% and at most 35% of the energy, EFSA's reference range (2010).
 /// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
 ///   2 kcal a gram; no ceiling, none being set.
@@ -1215,7 +1217,7 @@ mod tests {
             let energy = fuelled.eaten.energy_kcal.max(band.floor_kcal);
             let expected = [
                 (
-                    (0.83 * 80.0f64).max(0.1 * energy / 4.0),
+                    (1.6 * 80.0f64).max(0.1 * energy / 4.0),
                     Some(0.35 * band.cap_kcal / 4.0),
                 ),
                 (0.2 * energy / 9.0, Some(0.35 * band.cap_kcal / 9.0)),
@@ -1241,9 +1243,9 @@ mod tests {
         );
     }
     #[test]
-    fn protein_asks_for_a_tenth_of_the_energy_when_that_is_more_than_083_g_a_kilo() {
+    fn protein_asks_for_a_tenth_of_the_energy_when_that_is_more_than_1_6_g_a_kilo() {
         let mut fuel = FuelRecords::default();
-        for _ in 0..2 {
+        for _ in 0..3 {
             eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
         }
 
@@ -1313,7 +1315,7 @@ mod tests {
         let fuelled = fuel_on("2026-10-10", &records, &a_desk_job(), &aiming());
 
         let floor = |fuelled: &Fuel| fuelled.macros.map(|macros| macros.protein.floor_g);
-        assert!(floor(&fuelled).is_some_and(|grams| about(grams, 0.83 * 80.0)));
+        assert!(floor(&fuelled).is_some_and(|grams| about(grams, 1.6 * 80.0)));
     }
 
     #[test]

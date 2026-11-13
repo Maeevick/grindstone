@@ -245,7 +245,7 @@ pub const REFERENCES: [Reference; 33] = [
         year: 2018,
         title: "A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults",
         published_in: "British Journal of Sports Medicine 52(6):376-384",
-        page: Some("https://pubmed.ncbi.nlm.nih.gov/28698222/"),
+        page: Some("https://pmc.ncbi.nlm.nih.gov/articles/PMC5867436/"),
         used_for: "Protein of 1.6 g per kilo, where the gains in lean mass from training level off",
     },
     Reference {

@@ -463,7 +463,7 @@ pub const FUEL_TARGETS_HOW: &str = "Your targets, in grams a day per kilo of bod
     health floor, today's shown in grey.";
 
 pub const FUEL_TARGETS_WHY: &str = "Healthy, whatever they are, on the day's energy (what is eaten, never less than \
-    the band's floor) and the band's cap: protein from 0.83 g per kg of body mass and 10% of the energy to 35% of the \
+    the band's floor) and the band's cap: protein from 1.6 g per kg of body mass and 10% of the energy to 35% of the \
     cap, fat from 20% to 35%, fibre from 14 g per 1000 kcal, carbs from 130 g. A target beyond them is yours to set; \
     if you are not sure, ask a doctor or a coach first.";
 
