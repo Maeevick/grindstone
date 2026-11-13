@@ -60,7 +60,7 @@ pub fn Gauge(
     let placed = gauge_of(amount, (floor, optimal, cap), ghost, 360.0);
     view! {
         <div class="gauge">
-            <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+            <svg viewBox="0 0 360 24" preserveAspectRatio="none" aria-hidden="true">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.band_from y="9" width=placed.band_to - placed.band_from height="6" />
                 <line class="optimal" x1=placed.optimal_at x2=placed.optimal_at y1="4" y2="20" />
@@ -80,7 +80,7 @@ pub fn AimGauge(label: &'static str, amount: f64, aim: Aim, recommended: bool) -
     view! {
         <div class="gauge aim-gauge">
             <p class="gauge-title">{lines::aim_line(label, amount, aim, recommended)}</p>
-            <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+            <svg viewBox="0 0 360 24" preserveAspectRatio="none" aria-hidden="true">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.band_from y="9" width=placed.band_to - placed.band_from height="6" />
                 <line class="optimal" x1=placed.aim_at x2=placed.aim_at y1="4" y2="20" />
@@ -96,7 +96,7 @@ pub fn BurnGauge(burnt: f64, target: f64, ghost: Option<f64>) -> impl IntoView {
     let placed = burn_gauge_of(burnt, target, ghost, 360.0);
     view! {
         <div class="gauge burn-gauge">
-            <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+            <svg viewBox="0 0 360 24" preserveAspectRatio="none" aria-hidden="true">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <rect class="band" x=placed.band_from y="9" width=360.0 - placed.band_from height="6" />
                 <line class="optimal" x1=placed.target_at x2=placed.target_at y1="4" y2="20" />
@@ -130,7 +130,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
     );
     view! {
         <div class="gauge fuel-gauge">
-            <svg viewBox="0 0 360 24" preserveAspectRatio="none">
+            <svg viewBox="0 0 360 24" preserveAspectRatio="none" aria-hidden="true">
                 <rect class="track" x="0" y="9" width="360" height="6" />
                 <line class="alpert-zone" x1=placed.floor_at x2=placed.goal_at y1="12" y2="12" />
                 <rect class="band" x=placed.goal_at y="9" width=placed.cap_at - placed.goal_at height="6" />
