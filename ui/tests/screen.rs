@@ -3305,6 +3305,36 @@ const PASTA_IN_CREAM: &str = r#"{ "name": "Pasta in cream", "description": "Boil
     "totals": { "energy_kcal": 960.0, "protein_g": 16.0, "carbs_g": 76.0, "fat_g": 61.5, "fibre_g": 3.0 } }"#;
 
 #[wasm_bindgen_test]
+async fn a_kept_meal_opens_from_a_button_on_its_name_that_says_whether_it_is_open() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [{PASTA_IN_CREAM}] }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_shelf(&screen);
+    settled().await;
+    clicked(&screen, "button.shelf-Meals");
+    settled().await;
+    let opener = "table.meals tr.meal td:first-child button.opens";
+    let closed_at_first = attributes_of(&screen, opener, "aria-expanded");
+
+    clicked(&screen, opener);
+    settled().await;
+
+    assert_eq!(
+        (
+            closed_at_first,
+            attributes_of(&screen, opener, "aria-expanded"),
+            text_of(&screen, opener)
+        ),
+        (
+            vec!["false".to_string()],
+            vec!["true".to_string()],
+            "Pasta in cream".to_string()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_kept_meal_shows_its_description_and_ingredients_on_a_click_on_the_shelf() {
     answering(&format!(
         r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [{PASTA_IN_CREAM}] }}"#
