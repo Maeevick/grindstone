@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn the_usual_day_sits_eight_hours_at_most_stands_two_and_walks_the_steps_that_pay_off_at_its_age()
+    fn the_usual_day_sits_eight_hours_at_most_stands_two_and_walks_no_more_than_basal_activity_at_any_age()
      {
         let usual_day_of = |birthday| {
             recommended(
@@ -165,7 +165,7 @@ mod tests {
             Volitional {
                 sitting_min: 480.0,
                 standing_min: 120.0,
-                moving_km: 6.0
+                moving_km: 1.9
             }
         );
         assert_eq!(
@@ -173,7 +173,7 @@ mod tests {
             Volitional {
                 sitting_min: 480.0,
                 standing_min: 120.0,
-                moving_km: 4.5
+                moving_km: 1.9
             }
         );
     }
