@@ -883,6 +883,27 @@ mod tests {
     }
 
     #[test]
+    fn a_restored_copy_leaves_the_phone_once_restored() {
+        let copy =
+            std::env::temp_dir().join(format!("grind-tauri-restored-{}.json", std::process::id()));
+        let (_phone, kept_from) = launched_with(Files {
+            copy: copy.clone(),
+            ..Files::nowhere()
+        });
+        invoke(&kept_from, "keep_a_copy", json!({ "today": "2026-11-04" })).expect("a copy kept");
+        let (_app, screen) = launched_with(Files {
+            restore: copy.clone(),
+            ..Files::nowhere()
+        });
+
+        let answer = invoke(&screen, "restore_a_copy", json!({}));
+
+        let left = copy.exists();
+        let _ = std::fs::remove_file(&copy);
+        assert_eq!((answer.is_ok(), left), (true, false));
+    }
+
+    #[test]
     fn restoring_with_no_copy_pushed_is_refused() {
         let (_app, screen) = launched();
 
