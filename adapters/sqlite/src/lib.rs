@@ -994,8 +994,23 @@ impl ForCopyingRecords for Sqlite {
                 store,
             });
         }
+        if !fits_the_schema(&self.0, &copy.tables).map_err(unrestorable)? {
+            return Err(Unrestorable::NotACopy);
+        }
         restore(&self.0, &copy.tables).map_err(unrestorable)
     }
+}
+
+/// Whether every table the copy names is one of the store's.
+fn fits_the_schema(
+    connection: &Connection,
+    tables: &std::collections::BTreeMap<String, Rows>,
+) -> rusqlite::Result<bool> {
+    let names = connection
+        .prepare(EVERY_TABLE)?
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<std::collections::BTreeSet<_>>>()?;
+    Ok(tables.keys().all(|name| names.contains(name)))
 }
 
 fn unrestorable(error: rusqlite::Error) -> Unrestorable {
