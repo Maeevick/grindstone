@@ -5125,6 +5125,29 @@ async fn the_vaults_copy_restores_once_restore_is_typed_and_tells_what_it_brough
 }
 
 #[wasm_bindgen_test]
+async fn a_restored_copy_the_phone_would_not_delete_is_named_to_be_cleaned_up_by_hand() {
+    answering(
+        r#"{ "restore_a_copy": { "tables": 18, "records": 3332, "left_behind": "/storage/emulated/0/Android/data/com.maeevick.grindstone/files/Documents/grindstone-import.json" } }"#,
+    );
+    let screen = screen();
+    let _mounted = the_settings(&screen);
+    settled().await;
+
+    typed_into(&screen, "confirm_restore", "RESTORE");
+    settled().await;
+    found::<web_sys::HtmlElement>(&screen, "section#copy button.restore").click();
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, "section#copy p.said"),
+        "Restored 3332 records from 18 tables. An error occurred: the copy could not be deleted. You \
+         can clean it up by hand in \
+         /storage/emulated/0/Android/data/com.maeevick.grindstone/files/Documents/grindstone-import.json, \
+         as I do with the boxes in my cave."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn a_copy_of_another_version_is_refused_in_plain_words() {
     answering(
         r#"{ "restore_a_copy": { "__throws": { "Refused": { "AnotherSchema": { "copy": 25, "store": 26 } } } } }"#,
