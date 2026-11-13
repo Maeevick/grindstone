@@ -6,6 +6,7 @@ use grind_core::workout::activity_induced_energy_expenditure_from_compendium;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::screens::cells::opening_cell;
 use crate::screens::{Recorded, lines};
 use crate::tauri;
 
@@ -63,6 +64,8 @@ fn PricedRow(
     let removed = named.clone();
     let shown_name = named.clone();
     let crafted = priced.circuit.clone();
+    let opened_name = named.clone();
+    let is_open = Signal::derive(move || opened.get().as_deref() == Some(opened_name.as_str()));
     view! {
         <tr
             class="circuit"
@@ -72,7 +75,7 @@ fn PricedRow(
                 })
             }
         >
-            <td>{named.clone()}</td>
+            {opening_cell(named.clone(), is_open)}
             <td>
                 {priced
                     .burnt_per_set_kcal
