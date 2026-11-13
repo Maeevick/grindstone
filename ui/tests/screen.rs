@@ -4980,6 +4980,19 @@ fn texts_of(screen: &Element, selector: &str) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
+async fn a_charts_drawing_is_hidden_from_screen_readers_its_labels_and_tables_saying_it() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(attributes_of(&screen, ".tips svg", "aria-hidden"), ["true"]);
+}
+
+#[wasm_bindgen_test]
 async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
