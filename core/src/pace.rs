@@ -192,8 +192,9 @@ mod tests {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
     }
 
+    /// The pace over the fortnight up to the day.
     fn pace_on(day: NaiveDate, gathered: &GatherRecords) -> Option<Pace> {
-        pace_between(day - Days::new(6), day, gathered)
+        pace_between(day - Days::new(13), day, gathered)
     }
 
     fn a_man_weighed(from_kg: f64, kg_a_day: f64) -> GatherRecords {
@@ -519,7 +520,7 @@ mod tests {
             ..a_man_weighed(80.0, 0.0)
         };
 
-        let pace = pace_on(day("2026-10-19"), &gathered).expect("a pace");
+        let pace = pace_between(day("2026-10-13"), day("2026-10-19"), &gathered).expect("a pace");
 
         assert!((pace.body_mass.by - -0.257).abs() < 1e-3);
     }
