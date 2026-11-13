@@ -156,6 +156,13 @@ input:focus {
 	outline-offset: 1px;
 }
 
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+	outline: 2px solid var(--acc);
+	outline-offset: 2px;
+}
+
 .cta {
 	width: 100%;
 	height: 46px;
