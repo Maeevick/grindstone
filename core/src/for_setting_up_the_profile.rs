@@ -539,12 +539,12 @@ mod tests {
         }
     }
 
-    fn the_recommended_usual_day(moving_km: f64) -> InForce<Volitional> {
+    fn the_recommended_usual_day() -> InForce<Volitional> {
         InForce {
             values: Volitional {
                 sitting_min: 480.0,
                 standing_min: 120.0,
-                moving_km,
+                moving_km: 1.9,
             },
             recommended: true,
             from: None,
@@ -596,7 +596,7 @@ mod tests {
                 usual_day_on(&born("1985-04-12"), &burn, "2026-10-10"),
                 usual_day_on(&GatherRecordsInMemory::default(), &burn, "2026-10-10")
             ),
-            (Ok(Some(the_recommended_usual_day(1.9))), Ok(None))
+            (Ok(Some(the_recommended_usual_day())), Ok(None))
         );
     }
 
@@ -633,11 +633,11 @@ mod tests {
                 }),
                 Some(InForce {
                     from: since("2026-10-10"),
-                    ..the_recommended_usual_day(1.9)
+                    ..the_recommended_usual_day()
                 }),
                 Some(InForce {
                     from: since("2026-10-10"),
-                    ..the_recommended_usual_day(1.9)
+                    ..the_recommended_usual_day()
                 })
             ]
         );
