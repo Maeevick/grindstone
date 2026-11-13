@@ -308,7 +308,7 @@ pub fn Plot(plotted: Option<Plotted>) -> impl IntoView {
             let grid: Vec<f64> = plotted.ticks.iter().map(|tick| tick.at).collect();
             view! {
                 <div class="plot">
-                    <svg viewBox="0 0 360 180" preserveAspectRatio="none">
+                    <svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-hidden="true">
                         {grid
                             .into_iter()
                             .map(|y| view! { <line class="grid" x1="0" x2="360" y1=y y2=y /> })
