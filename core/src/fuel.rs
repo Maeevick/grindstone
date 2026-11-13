@@ -225,14 +225,12 @@ fn mean(gaps: &[f64]) -> Option<f64> {
     (!gaps.is_empty()).then(|| gaps.iter().sum::<f64>() / gaps.len() as f64)
 }
 
+/// The trailing deficit and the weeks spent in it before a day, read from the gaps in the order they were logged.
 fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
     let between = |nearest: u64, furthest: u64| -> Vec<f64> {
-        gaps.iter()
-            .filter(|(logged, _)| {
-                (day - Days::new(furthest)..=day - Days::new(nearest)).contains(logged)
-            })
-            .map(|(_, gap)| *gap)
-            .collect()
+        let from = gaps.partition_point(|(logged, _)| *logged < day - Days::new(furthest));
+        let to = gaps.partition_point(|(logged, _)| *logged <= day - Days::new(nearest));
+        gaps[from..to].iter().map(|(_, gap)| *gap).collect()
     };
     let weeks_in_deficit = (0..DAYS_OF_ADAPTATION / 7)
         .take_while(|week| mean(&between(1 + 7 * week, 7 + 7 * week)).is_some_and(|gap| gap > 0.0))
