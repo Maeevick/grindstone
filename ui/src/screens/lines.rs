@@ -824,3 +824,1037 @@ pub fn pace_said(pace: &Pace) -> String {
 pub fn quoted(line: &str) -> String {
     format!("“{line}”")
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::NaiveDate;
+    use grind_core::fuel::Band;
+    use grind_core::tendency::{Change, Heading};
+    use grind_core::week::Averaged;
+
+    use super::*;
+
+    fn day(date: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    fn burn(burnt_kcal: Option<f64>, target_kcal: Option<f64>, verdict: Option<Verdict>) -> Burn {
+        Burn {
+            day: day("2026-11-14"),
+            workouts: vec![],
+            burnt_kcal,
+            off_the_clock: None,
+            off_the_clock_is_usual: false,
+            body_mass_kg: Some(72.0),
+            target_kcal,
+            verdict,
+        }
+    }
+
+    fn averaged(per_day: f64, floor: f64, ceiling: Option<f64>, goal: Option<f64>) -> Averaged {
+        Averaged {
+            per_day,
+            floor,
+            ceiling,
+            goal,
+            in_band: 0,
+        }
+    }
+
+    /// A week whose energy sits in its band and every macro on its goal, or on its floor without one.
+    fn a_week_on_its_goals() -> FuelWeek {
+        FuelWeek {
+            logged_days: 6,
+            energy: averaged(2000.0, 1800.0, Some(2400.0), Some(1900.0)),
+            protein: averaged(130.0, 60.0, None, Some(130.0)),
+            fat: averaged(70.0, 50.0, None, Some(70.0)),
+            fibre: averaged(30.0, 25.0, None, None),
+            carbs: averaged(250.0, 130.0, None, None),
+        }
+    }
+
+    fn hydrate_week(drunk_ml: f64, water_percent: f64) -> HydrateWeek {
+        HydrateWeek {
+            logged_days: 6,
+            drunk: averaged(drunk_ml, 2000.0, Some(3500.0), None),
+            water: averaged(water_percent, 80.0, Some(100.0), None),
+        }
+    }
+
+    fn pace(judgement: Judgement, by: f64) -> Pace {
+        Pace {
+            body_mass: Change {
+                by,
+                heading: Heading::Toward,
+            },
+            lean_mass: None,
+            fat_mass: None,
+            fat_ratio: None,
+            judgement,
+            safe_loss_kg: 0.8456,
+            safe_loss_by: SafeLoss::FatStore,
+            weigh_ins: 7,
+        }
+    }
+
+    fn losing_too_fast_by(safe_loss_by: SafeLoss, lean_by: Option<f64>) -> Pace {
+        Pace {
+            lean_mass: lean_by.map(|by| Change {
+                by,
+                heading: if by < 0.0 {
+                    Heading::Away
+                } else {
+                    Heading::Toward
+                },
+            }),
+            safe_loss_by,
+            ..pace(Judgement::LosingTooFast, -1.234)
+        }
+    }
+
+    #[test]
+    fn a_choice_kept_tells_the_day_it_is_kept_from() {
+        let from = "2026-11-14";
+
+        let said = [
+            profile_kept(from),
+            goals_kept(from),
+            burn_target_kept(from),
+            usual_day_kept(from),
+            fuel_targets_kept(from),
+            recommendation_kept(from),
+            water_target_kept(from),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "Filed. This profile is kept from 2026-11-14.",
+                "Noted in the margin, in very small letters: these goals are kept from 2026-11-14.",
+                "Filed: the day's burn target is kept from 2026-11-14.",
+                "Filed: the usual day off the clock is kept from 2026-11-14.",
+                "Filed: these targets are kept from 2026-11-14, and every band is recalculated from that day.",
+                "Filed: the recommendation is followed from 2026-11-14, as your body changes.",
+                "Filed: this water target is kept from 2026-11-14, each kcal burnt adding a millilitre.",
+            ]
+        );
+    }
+
+    #[test]
+    fn what_joins_the_catalog_or_waits_for_its_day_is_said_by_its_name() {
+        let said = [
+            added("Skyr"),
+            kept_for_later("Chili sin carne"),
+            circuit_kept_for_later("Kettlebell trio"),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "Skyr joins the catalog.",
+                "Chili sin carne waits in the food catalog, per 100 g cooked, for the day you eat it.",
+                "Kettlebell trio waits in the lab, crafted, for the day you run it.",
+            ]
+        );
+    }
+
+    #[test]
+    fn workouts_short_of_the_burn_target_tell_what_is_left_to_reach_it() {
+        let short = burn(Some(312.4), Some(400.0), Some(Verdict::Low));
+
+        let said = burnt(&short);
+
+        assert_eq!(
+            said,
+            "312 kcal burnt in workouts, 88 kcal to reach the 400 kcal target."
+        );
+    }
+
+    #[test]
+    fn workouts_at_or_past_the_burn_target_tell_how_far_past_it() {
+        let reached = burn(Some(450.0), Some(400.0), Some(Verdict::InBand));
+        let passed = burn(Some(612.0), Some(400.0), Some(Verdict::High));
+
+        let said = [burnt(&reached), burnt(&passed)];
+
+        assert_eq!(
+            said,
+            [
+                "450 kcal burnt in workouts, 50 kcal past the 400 kcal target.",
+                "612 kcal burnt in workouts, 212 kcal past the 400 kcal target.",
+            ]
+        );
+    }
+
+    #[test]
+    fn workouts_without_a_burn_target_tell_their_burn_alone() {
+        let untargeted = burn(Some(312.4), None, None);
+
+        let said = burnt(&untargeted);
+
+        assert_eq!(said, "312 kcal burnt in workouts.");
+    }
+
+    #[test]
+    fn workouts_without_a_weigh_in_ask_for_one_first() {
+        let unpriced = burn(None, Some(400.0), None);
+
+        let said = burnt(&unpriced);
+
+        assert_eq!(
+            said,
+            "Weigh in first: I price a workout on the body that did it, not on a stand-in."
+        );
+    }
+
+    #[test]
+    fn the_day_off_the_clock_says_whether_it_is_the_usual_one_or_the_days_own() {
+        let usual = Burn {
+            off_the_clock_is_usual: true,
+            ..burn(None, None, None)
+        };
+        let own = burn(None, None, None);
+
+        let said = [off_the_clock(&usual), off_the_clock(&own)];
+
+        assert_eq!(
+            said,
+            [
+                "The usual day off the clock, as set in Profile. Change it for this day only:",
+                "This day's own day off the clock:",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_body_refused_is_said_by_what_it_lacks() {
+        let refused = [
+            Refusal::NotADate,
+            Refusal::NotAMass,
+            Refusal::NotAWaist,
+            Refusal::NotAHeight,
+            Refusal::NotANeck,
+            Refusal::NotAHip,
+            Refusal::NotARatio,
+            Refusal::NotAProfile,
+        ];
+
+        let said = refused.map(|refusal| failure(&Failure::Refused(refusal)));
+
+        assert_eq!(
+            said,
+            [
+                "That date does not exist. I have checked every calendar in the library.",
+                "A body of nothing at all? I file many things, but not ghosts.",
+                "A waist above nothing, please.",
+                "A height above nothing, please.",
+                "A neck above nothing, please.",
+                "Her Navy formula reads the hip: a hip above nothing, please.",
+                "A fat target between 0 and 100%, the goblin way or any other.",
+                "Recommendations need the rusty you first: birthday, gender and height.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_workout_refused_is_said_by_what_it_lacks() {
+        let refused = [
+            Refusal::NotAName,
+            Refusal::NotAMet,
+            Refusal::NotADuration,
+            Refusal::NotACount,
+            Refusal::NotALoad,
+            Refusal::NotADistance,
+            Refusal::NotAnExercise,
+            Refusal::NotASingleStep,
+            Refusal::NotACircuit,
+            Refusal::NotAnEnergy,
+        ];
+
+        let said = refused.map(|refusal| failure(&Failure::Refused(refusal)));
+
+        assert_eq!(
+            said,
+            [
+                "Even the lab names its explosions. A name, please.",
+                "A MET above nothing: resting already counts as one.",
+                "Some minutes above nothing, please.",
+                "At least one set, rusty one.",
+                "A load in kilos, a band counting below zero.",
+                "Minutes and kilometres of nothing or more, and no more minutes than a day holds.",
+                "That exercise is not in the catalog yet. I checked twice.",
+                "A circuit needs one step at least. Even my experiments have one: the bang.",
+                "That circuit is not in the lab. Craft it first, at the bottom of Burn.",
+                "That is no amount of sweat I can file: kilocalories, from nothing up.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_food_or_a_drink_refused_is_said_by_what_it_lacks() {
+        let refused = [
+            Refusal::NotAPortion,
+            Refusal::NotANutrient,
+            Refusal::NotAQuantity,
+            Refusal::NotAFood,
+            Refusal::NotAVolume,
+            Refusal::NotADrink,
+            Refusal::NotACookingRatio,
+            Refusal::NotWeighed,
+        ];
+
+        let said = refused.map(|refusal| failure(&Failure::Refused(refusal)));
+
+        assert_eq!(
+            said,
+            [
+                "A portion above nothing: per 100 g, per 250 mL or per piece.",
+                "Energy and macros of nothing or more. Negative protein is a lab experiment.",
+                "A quantity above nothing, please.",
+                "That food is not in the catalog yet. Add it there first.",
+                "Some millilitres above nothing, please. An empty cup files as nothing at all.",
+                "That drink is not in the catalog yet. I searched every shelf, twice.",
+                "A cooking ratio above nothing, please: 2.5 for pasta that drinks its water, 0.66 for cream \
+                 that boils down, 1 for what keeps its mass.",
+                "That ingredient is counted in pieces, and the lab cooks by mass: add it in grams or \
+                 millilitres for now.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_copy_refused_says_why_nothing_changed() {
+        let refused = [
+            Refusal::NotACopy,
+            Refusal::NoCopyPushed,
+            Refusal::AnotherSchema { copy: 3, store: 5 },
+        ];
+
+        let said = refused.map(|refusal| failure(&Failure::Refused(refusal)));
+
+        assert_eq!(
+            said,
+            [
+                "That file is no copy of mine: I only restore what Copy the records wrote. Nothing changed.",
+                "No copy waits on the phone yet: plug it in and run make import-android \
+                 BACKUP=exports/<file>.json first.",
+                "That copy holds version 3 of the records, and this phone keeps version 5. I restore \
+                 only a copy of the same version: nothing changed.",
+            ]
+        );
+    }
+
+    #[test]
+    fn something_broken_is_said_with_its_reason() {
+        let broken = Failure::Broken("the disk is full".into());
+
+        let said = failure(&broken);
+
+        assert_eq!(
+            said,
+            "Something broke: the disk is full. [A distant explosion.] The lab calls it data."
+        );
+    }
+
+    #[test]
+    fn the_energy_eaten_is_said_against_its_band_when_one_is_priced() {
+        let fuel = |band| Fuel {
+            day: day("2026-11-14"),
+            intakes: vec![],
+            eaten: Nutrients {
+                energy_kcal: 1834.6,
+                ..Nutrients::default()
+            },
+            band,
+            energy: None,
+            macros: None,
+            budget: None,
+        };
+        let band = Band {
+            minimum_kcal_per_kg_of_lean_mass: 22.0,
+            minimum_kcal: 1300.0,
+            floor_kcal: 1800.0,
+            cap_kcal: 2300.4,
+            goal_kcal: 1950.0,
+            maintenance_kcal: 2500.0,
+        };
+
+        let said = [energy_line(&fuel(Some(band))), energy_line(&fuel(None))];
+
+        assert_eq!(
+            said,
+            [
+                "1835 kcal eaten, the band runs from 1800 to 2300 kcal.",
+                "1835 kcal eaten.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_verdict_is_classed_low_good_or_high() {
+        let verdicts = [Verdict::Low, Verdict::InBand, Verdict::High];
+
+        let classes = verdicts.map(verdict_class);
+
+        assert_eq!(classes, ["low", "good", "high"]);
+    }
+
+    #[test]
+    fn a_portions_figures_read_energy_then_protein_fat_fibre_and_carbs() {
+        let skyr = Nutrients {
+            energy_kcal: 512.3,
+            protein_g: 31.6,
+            carbs_g: 54.4,
+            fat_g: 18.2,
+            fibre_g: 7.5,
+        };
+
+        let said = figures_of(&skyr);
+
+        assert_eq!(said, "512 kcal · P 32 g · F 18 g · Fib 8 g · C 54 g");
+    }
+
+    #[test]
+    fn a_cooked_ingredient_reads_raw_times_its_ratio_into_its_cooked_mass() {
+        let penne = Ingredient {
+            food: "Penne".into(),
+            unit: Unit::Gram,
+            quantity: 80.0,
+            cooked_per_raw: 2.5,
+            nutrients: Nutrients::default(),
+        };
+
+        let said = cooked_ingredient(&penne);
+
+        assert_eq!(said, "80 g Penne × 2.5 → 200 g");
+    }
+
+    #[test]
+    fn a_streak_counts_its_days_none_said_as_no_streak_yet() {
+        let said = [
+            streak_count(0),
+            streak_count(1),
+            streak_count(12),
+            longest_streak(1),
+            longest_streak(30),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "No streak yet",
+                "1 day",
+                "12 days",
+                "(longest: 1 day)",
+                "(longest: 30 days)",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_streak_at_risk_warns_today_must_be_complete() {
+        let streak = |at_risk| Streak {
+            days: 12,
+            longest: 30,
+            at_risk,
+            history: vec![],
+        };
+
+        let said = [streak_remark(&streak(true)), streak_remark(&streak(false))];
+
+        assert_eq!(
+            said,
+            [
+                "Yesterday was a joker: today must be complete, or the streak goes back to the archive.",
+                "The streak is there to build habits, not to flatter.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_tick_is_marked_and_said_held_missed_or_left_out() {
+        let ticks = [Some(true), Some(false), None];
+
+        let marked = ticks.map(tick_mark);
+        let said = ticks.map(|held| tick_said("Weighed", held));
+
+        assert_eq!(marked, ["✓", "✗", "–"]);
+        assert_eq!(said, ["Weighed held", "Weighed missed", "Weighed left out"]);
+    }
+
+    #[test]
+    fn a_streak_day_is_said_by_its_status() {
+        let statuses = [
+            Status::Success,
+            Status::Joker,
+            Status::Break,
+            Status::Pending,
+        ];
+
+        let said = statuses.map(status_word);
+
+        assert_eq!(said, ["every tick", "a joker", "a break", "under way"]);
+    }
+
+    #[test]
+    fn the_day_previewed_names_what_is_about_to_be_burnt() {
+        let about_to_burn = [
+            AboutToBurn::Workout,
+            AboutToBurn::Session,
+            AboutToBurn::SessionAndWorkout,
+        ];
+
+        let said = about_to_burn.map(|what| with_what_is_about_to_be_burnt(what, 254.6));
+
+        assert_eq!(
+            said,
+            [
+                "With the workout: 255 kcal.",
+                "With the session: 255 kcal.",
+                "With the session and the workout: 255 kcal.",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_day_previewed_with_a_drink_tells_its_volume() {
+        let said = with_the_drink(330.0);
+
+        assert_eq!(said, "With the drink: 330 mL.");
+    }
+
+    #[test]
+    fn the_day_previewed_names_what_is_about_to_be_eaten_and_what_digesting_it_spends() {
+        let about_to_eat = [
+            AboutToEat::Food,
+            AboutToEat::Plate,
+            AboutToEat::PlateAndFood,
+        ];
+
+        let said =
+            about_to_eat.map(|what| with_what_is_about_to_be_eaten(what, 2140.0, Some(214.3)));
+
+        assert_eq!(
+            said,
+            [
+                "With the food: 2140 kcal, 214 of them spent digesting it.",
+                "With the plate: 2140 kcal, 214 of them spent digesting it.",
+                "With the plate and the food: 2140 kcal, 214 of them spent digesting them.",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_day_previewed_without_a_body_to_digest_tells_the_energy_alone() {
+        let said = with_what_is_about_to_be_eaten(AboutToEat::Food, 2140.0, None);
+
+        assert_eq!(said, "With the food: 2140 kcal.");
+    }
+
+    #[test]
+    fn a_circuit_set_is_priced_in_kilocalories() {
+        let said = a_set(37.6);
+
+        assert_eq!(said, "38 kcal a set");
+    }
+
+    #[test]
+    fn a_mass_to_reach_tells_the_band_around_its_aim() {
+        let said = aim_line("Body mass", 71.24, Aim::Reach(70.0), true);
+
+        assert_eq!(
+            said,
+            "Body mass: 71.2 kg, the band runs from 69.3 to 70.7 kg."
+        );
+    }
+
+    #[test]
+    fn a_mass_under_its_floor_tells_how_far_it_is_to_reach() {
+        let healthy = aim_line("Lean mass", 52.36, Aim::Floor(55.0), true);
+        let goal = aim_line("Lean mass", 52.36, Aim::Floor(55.0), false);
+
+        assert_eq!(
+            [healthy, goal],
+            [
+                "Lean mass: 52.4 kg, 2.6 kg to reach the healthy 55.0 kg.",
+                "Lean mass: 52.4 kg, 2.6 kg to reach the 55.0 kg goal.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_mass_on_or_above_its_floor_tells_how_far_above_it_stands() {
+        let on = aim_line("Lean mass", 55.0, Aim::Floor(55.0), false);
+        let above = aim_line("Lean mass", 57.0, Aim::Floor(55.0), true);
+
+        assert_eq!(
+            [on, above],
+            [
+                "Lean mass: 55.0 kg, 0.0 kg above the 55.0 kg goal.",
+                "Lean mass: 57.0 kg, 2.0 kg above the healthy 55.0 kg.",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_day_drunk_is_said_against_its_band() {
+        let hydrate = Hydrate {
+            day: day("2026-11-14"),
+            drinkings: vec![],
+            drunk_ml: 1840.4,
+            target_ml: 2500.0,
+            floor_ml: 2000.0,
+            cap_ml: 3500.0,
+            verdict: Verdict::Low,
+        };
+
+        let said = drunk_line(&hydrate);
+
+        assert_eq!(said, "1840 mL drunk, the band runs from 2000 to 3500 mL.");
+    }
+
+    #[test]
+    fn a_month_is_named_in_full_with_its_year_and_left_as_typed_when_unreadable() {
+        let said = [
+            month_name("2026-10"),
+            month_name("Brumaire"),
+            load_the_rest_of("2026-10"),
+            load_the_month("2026-09"),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "October 2026",
+                "Brumaire",
+                "Load the rest of October 2026",
+                "Load September 2026",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_copy_counts_its_records_and_tables() {
+        let many = Counted {
+            tables: 9,
+            records: 1234,
+        };
+        let one = Counted {
+            tables: 1,
+            records: 1,
+        };
+
+        let said = [copied(many), copied(one), restored(many), restored(one)];
+
+        assert_eq!(
+            said,
+            [
+                "Copied 1234 records from 9 tables. Run make export-android now.",
+                "Copied 1 record from 1 table. Run make export-android now.",
+                "Restored 1234 records from 9 tables.",
+                "Restored 1 record from 1 table.",
+            ]
+        );
+    }
+
+    #[test]
+    fn what_a_card_held_before_is_recalled() {
+        let said = before("72.0 kg and 15.0%");
+
+        assert_eq!(said, "Before: 72.0 kg and 15.0%.");
+    }
+
+    #[test]
+    fn a_profile_held_reads_its_birthday_gender_and_tapes_the_hip_only_when_taken() {
+        let his = Profile {
+            birthday: day("1985-04-12"),
+            gender: Gender::Male,
+            height_cm: 178.0,
+            neck_cm: 38.5,
+            hip_cm: None,
+        };
+        let hers = Profile {
+            birthday: day("1990-07-03"),
+            gender: Gender::Female,
+            height_cm: 165.0,
+            neck_cm: 32.0,
+            hip_cm: Some(98.2),
+        };
+
+        let said = [profile_held(&his), profile_held(&hers)];
+
+        assert_eq!(
+            said,
+            [
+                "born 1985-04-12, male, 178.0 cm tall, neck 38.5 cm",
+                "born 1990-07-03, female, 165.0 cm tall, neck 32.0 cm, hip 98.2 cm",
+            ]
+        );
+    }
+
+    #[test]
+    fn goals_held_read_the_mass_and_the_fat() {
+        let goals = Goals {
+            body_mass_kg: 72.0,
+            fat_ratio: 0.15,
+        };
+
+        let said = goals_held(&goals);
+
+        assert_eq!(said, "72.0 kg and 15.0%");
+    }
+
+    #[test]
+    fn fuel_targets_held_read_only_the_macros_targeted() {
+        let none = FuelTargets {
+            protein_g_per_kg: None,
+            fat_g_per_kg: None,
+            fibre_g_per_kg: None,
+            carbs_g_per_kg: None,
+        };
+        let some = FuelTargets {
+            protein_g_per_kg: Some(1.6),
+            fibre_g_per_kg: Some(0.35),
+            ..none
+        };
+        let all = FuelTargets {
+            protein_g_per_kg: Some(2.0),
+            fat_g_per_kg: Some(0.8),
+            fibre_g_per_kg: Some(0.4),
+            carbs_g_per_kg: Some(3.0),
+        };
+
+        let said = [
+            fuel_targets_held(&none),
+            fuel_targets_held(&some),
+            fuel_targets_held(&all),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "no target",
+                "protein 1.6 g/kg, fibre 0.35 g/kg",
+                "protein 2 g/kg, fat 0.8 g/kg, fibre 0.4 g/kg, carbs 3 g/kg",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_water_or_burn_target_held_reads_its_figure() {
+        let said = [water_target_held(&2500.0), burn_target_held(&350.4)];
+
+        assert_eq!(said, ["2500 mL", "350 kcal"]);
+    }
+
+    #[test]
+    fn a_usual_day_held_reads_sitting_standing_and_moving() {
+        let usual = Volitional {
+            sitting_min: 480.0,
+            standing_min: 120.0,
+            moving_km: 6.0,
+        };
+
+        let said = usual_day_held(&usual);
+
+        assert_eq!(said, "480 min sitting, 120 min standing, 6 km moving");
+    }
+
+    #[test]
+    fn the_healthy_ranges_read_the_mass_and_the_fat_at_the_height_and_age() {
+        let advised = Recommendations {
+            healthy_mass_kg: (58.6, 78.9),
+            goal_mass_kg: 70.0,
+            healthy_fat_ratio: (0.08, 0.19),
+            goal_fat_ratio: 0.15,
+            usual_day: Volitional {
+                sitting_min: 480.0,
+                standing_min: 120.0,
+                moving_km: 6.0,
+            },
+            burn_target_kcal: None,
+            fuel_floors_g_per_kg: FuelTargets {
+                protein_g_per_kg: None,
+                fat_g_per_kg: None,
+                fibre_g_per_kg: None,
+                carbs_g_per_kg: None,
+            },
+            water_ml: None,
+        };
+
+        let said = healthy_ranges(&advised);
+
+        assert_eq!(
+            said,
+            "Healthy at your height and age: 58.6 kg to 78.9 kg (a body mass index of 18.5 to 24.9) and 8.0% \
+             to 19.0% body fat. A goal beyond them is yours to set; if you are not sure, ask a doctor or a coach \
+             first. I only have a quill, and it has never seen a patient."
+        );
+    }
+
+    #[test]
+    fn a_reference_topic_is_named() {
+        let topics = [
+            Topic::BodyComposition,
+            Topic::HealthyRanges,
+            Topic::Energy,
+            Topic::Activity,
+            Topic::Macronutrients,
+            Topic::Water,
+        ];
+
+        let named = topics.map(topic_name);
+
+        assert_eq!(
+            named,
+            [
+                "Body composition",
+                "Healthy ranges",
+                "Energy",
+                "Activity",
+                "Macronutrients",
+                "Water",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_windows_average_tells_the_days_it_reads_today_left_out() {
+        let said = [
+            over_logged_days(1),
+            over_logged_days(5),
+            over_active_days(1, 1),
+            over_active_days(3, 6),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "Average over 1 logged day, today left out.",
+                "Average over 5 logged days, today left out.",
+                "Average over 1 day, 1 active, today left out.",
+                "Average over 6 days, 3 active, today left out.",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_pace_and_the_weeks_average_tell_the_weigh_ins_they_read() {
+        let said = [
+            paced_over(1),
+            paced_over(5),
+            averaged_over(1),
+            averaged_over(4),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "Pace: the slope of the 7-day average over 1 weigh-in.",
+                "Pace: the slope of the 7-day average over 5 weigh-ins.",
+                "Average over 1 weigh-in, today included.",
+                "Average over 4 weigh-ins, today included.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_week_on_its_goals_says_so_and_one_without_goals_says_its_energy_sits_in_its_band() {
+        let on_its_goals = a_week_on_its_goals();
+        let without_goals = FuelWeek {
+            protein: averaged(130.0, 60.0, None, None),
+            fat: averaged(70.0, 50.0, None, None),
+            ..on_its_goals
+        };
+
+        let said = [
+            fuel_week_said(&on_its_goals),
+            fuel_week_said(&without_goals),
+        ];
+
+        assert_eq!(
+            said,
+            [
+                "Every average sits on its goal. I checked twice, which for me counts as restraint.",
+                "The energy sits in its band.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_week_short_of_its_goals_says_each_gap_furthest_first_the_first_a_day() {
+        let short = FuelWeek {
+            energy: averaged(1650.0, 1800.0, Some(2400.0), Some(1900.0)),
+            protein: averaged(90.0, 60.0, None, Some(130.0)),
+            fibre: averaged(20.0, 30.0, None, None),
+            ..a_week_on_its_goals()
+        };
+
+        let said = fuel_week_said(&short);
+
+        assert_eq!(
+            said,
+            "Short on fibre (-10 g a day), protein (-40 g) and energy (-150 kcal). A little more every day and \
+             the gap closes on its own; I only have to watch, my favourite kind of work."
+        );
+    }
+
+    #[test]
+    fn a_week_over_its_goals_says_each_gap_with_its_sign() {
+        let over = FuelWeek {
+            energy: averaged(2600.0, 1800.0, Some(2400.0), Some(1900.0)),
+            fat: averaged(95.0, 50.0, None, Some(70.0)),
+            ..a_week_on_its_goals()
+        };
+
+        let said = fuel_week_said(&over);
+
+        assert_eq!(
+            said,
+            "Over on fat (+25 g a day) and energy (+200 kcal). A few swaps sand that down; no need to grind the \
+             whole stone."
+        );
+    }
+
+    #[test]
+    fn a_week_short_on_one_and_over_on_another_says_both_and_offers_a_trade() {
+        let both = FuelWeek {
+            protein: averaged(90.0, 60.0, None, Some(130.0)),
+            carbs: averaged(310.0, 130.0, None, Some(250.0)),
+            ..a_week_on_its_goals()
+        };
+
+        let said = fuel_week_said(&both);
+
+        assert_eq!(
+            said,
+            "Short on protein (-40 g a day), over on carbs (+60 g). Trade a little of the one for the other: \
+             the energy barely moves, the days do."
+        );
+    }
+
+    #[test]
+    fn a_week_short_of_drinks_tells_the_gap_a_day_and_asks_for_more_water() {
+        let short = hydrate_week(1650.0, 60.0);
+
+        let said = hydrate_week_said(&short);
+
+        assert_eq!(
+            said,
+            "Short of the band by 350 mL a day. A glass more by mid-afternoon closes it; I measured, twice. \
+             A little more water than the others would do."
+        );
+    }
+
+    #[test]
+    fn a_week_past_its_drinks_band_tells_the_gap_a_day() {
+        let past = hydrate_week(3900.0, 92.0);
+
+        let said = hydrate_week_said(&past);
+
+        assert_eq!(
+            said,
+            "Past the band by 400 mL a day. Kidneys clear about a litre an hour, so nothing grave; a glass less \
+             will do. Keep going: water is the best one."
+        );
+    }
+
+    #[test]
+    fn a_week_of_drinks_in_its_band_is_praised_by_the_kidneys() {
+        let in_band = hydrate_week(2600.0, 100.0);
+
+        let said = hydrate_week_said(&in_band);
+
+        assert_eq!(
+            said,
+            "A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high \
+             praise. Keep going: water is the best one."
+        );
+    }
+
+    #[test]
+    fn a_pace_in_or_short_of_the_safe_lane_is_said_plainly() {
+        let judged = [
+            pace(Judgement::Holding, 0.02),
+            pace(Judgement::VeryGood, -0.54),
+            pace(Judgement::Good, -0.21),
+            pace(Judgement::Stable, 0.03),
+            pace(Judgement::WrongWay, 0.31),
+            pace(Judgement::GainingTooFast, 0.72),
+        ];
+
+        let said = judged.map(|judged| pace_said(&judged));
+
+        assert_eq!(
+            said,
+            [
+                "Holding the line at the aim. Steady is the hardest pace there is: keep it.",
+                "-0.5 kg a week, inside the safe lane. Keep the pace: the grindstone likes a steady hand.",
+                "The right way, slower than the lane allows. Slow still sharpens.",
+                "Steady this week. Plateaus are where scales go to think; give it another week.",
+                "The week drifted from the aim. One week is a data point, not a verdict.",
+                "Gaining faster than muscle can follow: past half a percent a week, the rest is stored. Trim \
+                 the surplus a little.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_pace_losing_lean_mass_past_what_the_fat_can_spare_is_said_with_both_figures_and_its_limit()
+    {
+        let leaving = losing_too_fast_by(SafeLoss::FatStore, Some(-0.312));
+
+        let said = pace_said(&leaving);
+
+        assert_eq!(
+            said,
+            "-1.23 kg a week, past the 0.85 kg your fat can spare: your lean mass is going too (-0.31 kg a \
+             week). Ease the deficit towards the top of your band, keep protein high, keep lifting. Steel \
+             ground too hot loses its temper; so do goblins, I have the burnt eyebrows to prove it."
+        );
+    }
+
+    #[test]
+    fn a_pace_losing_too_fast_while_the_lean_mass_holds_is_past_the_fat_store_on_paper() {
+        let holding = losing_too_fast_by(SafeLoss::FatStore, Some(0.05));
+
+        let said = pace_said(&holding);
+
+        assert_eq!(
+            said,
+            "-1.23 kg a week, past the 0.85 kg your fat can spare on paper, though your lean mass holds so \
+             far. Ease the deficit a little and watch the next weigh-ins. The paper is mine, so it is right \
+             about 97.3% of the time."
+        );
+    }
+
+    #[test]
+    fn a_pace_losing_too_fast_without_a_tape_names_the_limit_it_passes() {
+        let by_the_mass_share = losing_too_fast_by(SafeLoss::MassShare, None);
+        let by_a_kilo = Pace {
+            safe_loss_kg: 1.0,
+            ..losing_too_fast_by(SafeLoss::AKilo, None)
+        };
+
+        let said = [pace_said(&by_the_mass_share), pace_said(&by_a_kilo)];
+
+        assert_eq!(
+            said,
+            [
+                "-1.23 kg a week, past the 0.85 kg that 1% of your body mass allows. Ease the deficit a little \
+                 and watch the next weigh-ins. Without a tape round the waist I cannot tell what is leaving, \
+                 and I squint badly.",
+                "-1.23 kg a week, past the 1.00 kg the guidelines allow. Ease the deficit a little and watch \
+                 the next weigh-ins. Without a tape round the waist I cannot tell what is leaving, and I \
+                 squint badly.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_tip_is_said_between_quotation_marks() {
+        let said = quoted("Patience is half the hunt.");
+
+        assert_eq!(said, "“Patience is half the hunt.”");
+    }
+}
