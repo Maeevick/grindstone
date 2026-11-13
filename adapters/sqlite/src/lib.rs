@@ -1347,6 +1347,19 @@ mod tests {
     }
 
     #[test]
+    fn a_copy_naming_a_column_its_table_lacks_is_refused_and_leaves_the_records_as_they_were() {
+        let restored = restoring_spoilt(|copy| {
+            copy.replacen(
+                "\"body_mass_kg\": 80.0",
+                "\"body_mass_kg\": 80.0, \"secret\": 1",
+                1,
+            )
+        });
+
+        assert_eq!(restored, (Err(Unrestorable::NotACopy), true));
+    }
+
+    #[test]
     fn a_text_that_is_not_a_copy_is_refused() {
         let store = a_store_with_a_day(20);
 
