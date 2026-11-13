@@ -1001,7 +1001,7 @@ impl ForCopyingRecords for Sqlite {
     }
 }
 
-/// Whether every table the copy names is one of the store's.
+/// Whether every table the copy names is one of the store's, and every column its rows name one of that table's.
 fn fits_the_schema(
     connection: &Connection,
     tables: &std::collections::BTreeMap<String, Rows>,
@@ -1010,7 +1010,20 @@ fn fits_the_schema(
         .prepare(EVERY_TABLE)?
         .query_map([], |row| row.get::<_, String>(0))?
         .collect::<rusqlite::Result<std::collections::BTreeSet<_>>>()?;
-    Ok(tables.keys().all(|name| names.contains(name)))
+    let mut columns_of = connection.prepare("select name from pragma_table_info(?1)")?;
+    for (name, rows) in tables {
+        let columns = columns_of
+            .query_map([name], |row| row.get::<_, String>(0))?
+            .collect::<rusqlite::Result<std::collections::BTreeSet<_>>>()?;
+        let fits = names.contains(name)
+            && rows
+                .iter()
+                .all(|row| row.keys().all(|column| columns.contains(column)));
+        if !fits {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn unrestorable(error: rusqlite::Error) -> Unrestorable {
