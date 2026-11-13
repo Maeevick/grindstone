@@ -8,6 +8,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::screens::cells::nutrient_cells;
+use crate::screens::cells::opening_cell;
 use crate::screens::circuits::CircuitsList;
 use crate::screens::entries::{
     ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
@@ -274,6 +275,10 @@ fn MealsList(meals: RwSignal<Vec<Meal>>, said: RwSignal<Option<String>>) -> impl
                                     let toggled = named.clone();
                                     let shown_name = named.clone();
                                     let detailed = meal.clone();
+                                    let opened_name = named.clone();
+                                    let is_open = Signal::derive(move || {
+                                        opened.get().as_deref() == Some(opened_name.as_str())
+                                    });
                                     view! {
                                         <tr
                                             class="meal"
@@ -284,7 +289,7 @@ fn MealsList(meals: RwSignal<Vec<Meal>>, said: RwSignal<Option<String>>) -> impl
                                                 })
                                             }
                                         >
-                                            <td>{meal.name.clone()}</td>
+                                            {opening_cell(meal.name.clone(), is_open)}
                                             {figure_cells(&food_of(&meal))}
                                             {remove_button(move || remove(named.clone()))}
                                         </tr>
