@@ -14,7 +14,7 @@ use crate::screens::entries::{
 };
 use crate::screens::hydrate::{DrinksList, NewDrink};
 use crate::screens::pills::pill_buttons;
-use crate::screens::said::said_line;
+use crate::screens::said::{refused_line, said_line};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -58,7 +58,7 @@ fn NewExercise(exercises: RwSignal<Vec<Exercise>>, done: Callback<String>) -> im
             <button class="cta" type="submit">
                 "Add to the catalog"
             </button>
-            {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+            {refused_line(said)}
         </form>
     }
 }
@@ -144,7 +144,7 @@ fn NewFood(foods: RwSignal<Vec<Food>>, done: Callback<String>) -> impl IntoView 
             <button class="cta" type="submit">
                 "Add to the catalog"
             </button>
-            {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+            {refused_line(said)}
         </form>
     }
 }

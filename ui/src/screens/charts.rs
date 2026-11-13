@@ -12,6 +12,7 @@ use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
 use crate::screens::header::tick_class;
 use crate::screens::lines;
 use crate::screens::pills::pill_buttons;
+use crate::screens::said::refused_line;
 use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use crate::tauri;
 
@@ -618,7 +619,7 @@ macro_rules! history {
                         .is_empty()
                         .then(|| view! { <p class="empty">{lines::NOTHING_THIS_MONTH}</p> })
                 }}
-                {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+                {refused_line(said)}
                 {move || {
                     let earlier = months.get().last().and_then(|month| month.earlier.clone());
                     view! { <LoadMore earlier=earlier load=load /> }

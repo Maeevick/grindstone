@@ -14,6 +14,7 @@ use crate::screens::charts::{
 };
 use crate::screens::fuel::FuelEntries;
 use crate::screens::hydrate::HydrateEntries;
+use crate::screens::said::refused_line;
 use crate::screens::{Recorded, lines};
 use crate::tauri;
 
@@ -163,7 +164,7 @@ macro_rules! last_days {
                         </table>
                     </div>
                     {move || rows().is_empty().then(|| view! { <p class="empty">{lines::NOTHING_THESE_DAYS}</p> })}
-                    {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+                    {refused_line(said)}
                     {move || {
                         more()
                             .map(|(further, label)| {

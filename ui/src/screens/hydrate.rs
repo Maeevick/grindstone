@@ -17,6 +17,7 @@ use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::gauge::Gauge;
 use crate::screens::last_days::{HydrateLastDays, entries_failed, entries_said};
 use crate::screens::profile::{Advised, ProfileCard, holding, keep_and_show, shown_in_force};
+use crate::screens::said::refused_line;
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -296,7 +297,7 @@ pub fn HydrateDay(day: RwSignal<String>) -> impl IntoView {
                 <button class="cta" type="submit">
                     {move || if creating.get() { "Add and log" } else { "Hydrate" }}
                 </button>
-                {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+                {refused_line(said)}
             </form>
         </section>
         {move || {
@@ -386,7 +387,7 @@ pub fn NewDrink(drinks: RwSignal<Vec<Drink>>, done: Callback<String>) -> impl In
             <button class="cta" type="submit">
                 "Add to the catalog"
             </button>
-            {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+            {refused_line(said)}
         </form>
     }
 }

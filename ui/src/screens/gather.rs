@@ -6,6 +6,7 @@ use leptos::task::spawn_local;
 use crate::screens::fields::FigureField;
 use crate::screens::gauge::AimGauge;
 use crate::screens::last_days::GatherLastDays;
+use crate::screens::said::refused_line;
 use crate::screens::tab::DayCard;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -98,7 +99,7 @@ fn GatherDay(day: RwSignal<String>) -> impl IntoView {
                             }
                         })
                 }}
-                {move || said.get().map(|line| view! { <p class="bad">{line}</p> })}
+                {refused_line(said)}
             </form>
         </section>
         {move || {
