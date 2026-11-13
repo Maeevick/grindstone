@@ -2960,6 +2960,42 @@ async fn a_removal_cross_offers_a_finger_at_least_24_px_square() {
 }
 
 #[wasm_bindgen_test]
+async fn every_table_header_reads_at_least_11_px() {
+    answering(&format!(
+        r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY},
+            "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }} }}"#,
+        fuelled_on("2026-10-10", 108.0)
+    ));
+    let screen = screen();
+    let _worn = Worn::the_stylesheet();
+
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        provide_context(Recorded::default());
+        let day = RwSignal::new("2026-10-10".to_string());
+        view! {
+            <Router>
+                <FuelDay day=day />
+                <FuelLastDays day=day />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let small: Vec<(String, f64)> = every(&screen, "th")
+        .iter()
+        .map(|header| {
+            (
+                header.text_content().unwrap_or_default(),
+                font_px_of(header),
+            )
+        })
+        .filter(|(_, px)| *px < 11.0)
+        .collect();
+    assert!(!every(&screen, "th").is_empty());
+    assert_eq!(small, []);
+}
+
+#[wasm_bindgen_test]
 async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
     answering(&format!(
         r#"{{ "foods": [], "meals": [], "fuel_day": {A_FUELLED_DAY},
