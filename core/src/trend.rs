@@ -4,21 +4,18 @@ fn mean(values: &[f64]) -> f64 {
     values.iter().sum::<f64>() / values.len() as f64
 }
 
-fn is_in_the_week_ending(day: NaiveDate, reading_day: NaiveDate) -> bool {
-    reading_day <= day && reading_day + Days::new(6) >= day
-}
-
+/// Each reading's day with the mean of the readings in the week ending on it, that day and the six before.
 pub fn seven_day_trend(readings: &[(NaiveDate, f64)]) -> Vec<(NaiveDate, f64)> {
-    let mut days: Vec<NaiveDate> = readings.iter().map(|(day, _)| *day).collect();
-    days.sort();
-    days.into_iter()
-        .map(|day| {
-            let the_weeks_readings: Vec<f64> = readings
-                .iter()
-                .filter(|(reading_day, _)| is_in_the_week_ending(day, *reading_day))
-                .map(|(_, value)| *value)
-                .collect();
-            (day, mean(&the_weeks_readings))
+    let mut in_order = readings.to_vec();
+    in_order.sort_by_key(|(day, _)| *day);
+    in_order
+        .iter()
+        .map(|(day, _)| {
+            let from = in_order.partition_point(|(read_on, _)| *read_on + Days::new(6) < *day);
+            let to = in_order.partition_point(|(read_on, _)| read_on <= day);
+            let the_weeks_readings: Vec<f64> =
+                in_order[from..to].iter().map(|(_, value)| *value).collect();
+            (*day, mean(&the_weeks_readings))
         })
         .collect()
 }
