@@ -1,75 +1,85 @@
 # Grindstone
 
-A personal tracker for body mass, food and training, carried on an Android phone and usable offline, outdoors.
+*"Sharpen this rusty you!"*
 
-## Why
+A personal tracker for body mass, food, drinks and training, on an Android phone and offline. Rust from the screen to the storage: Tauri 2, Leptos compiled to WebAssembly, SQLite, and a hexagonal core held by strict gates.
 
-- The tracker must work where training happens: outdoors, on the phone, with or without a network.
-- The data belongs on the device: SQLite, no account, no server for now.
-- Two earlier attempts taught what to avoid. The Sycamore draft (`../grindstone_draft`) kept its data in the browser's storage. The SvelteKit spike (`../grind-svelte`) became too large before reaching the phone.
-- This spike puts a usable app on the phone first, then grows one real need at a time.
+[![CI](https://github.com/Maeevick/grindstone/actions/workflows/ci.yml/badge.svg)](https://github.com/Maeevick/grindstone/actions/workflows/ci.yml)
+![Code: MIT](https://img.shields.io/badge/code-MIT-e8b04b)
+![Content: CC BY-NC-SA 4.0](https://img.shields.io/badge/content-CC%20BY--NC--SA%204.0-e8b04b)
 
-## What
+<p>
+  <img src="docs/screenshots/home.png" alt="Home: today's four tiles, the streak, the unwanted tips and the history" width="200" />
+  <img src="docs/screenshots/fuel.png" alt="Fuel: the log form, the energy band and the four macros, the last days" width="200" />
+  <img src="docs/screenshots/hydrate.png" alt="Hydrate: the log form, the water band, the last days" width="200" />
+  <img src="docs/screenshots/burn.png" alt="Burn: the log form, the burn target, the last days" width="200" />
+</p>
 
-Version 0.1, the full scope, on five tabs under an icon bar (🏠 Home, ⚖️ Gather, ⚡ Fuel, 💧 Hydrate, 🔥 Burn).
+The screenshots show fictional records.
 
-- **Every screen** wears a header: the logo, the name and the tagline, leading Home, a person opening the Profile at the right, then today in four tiles, ⚖️ the body mass weighed, ⚡ the energy eaten, 💧 the millilitres drunk, 🔥 the energy burnt, each green when its streak tick holds and red when it does not, each opening its tab. The tiles read again after every change to the records and every move between screens.
-- **Every table** puts its figures on the right, its names and dates on the left.
-- **Home:** a welcome until a profile exists, pointing to the profile and to restoring a copy. After that:
-  - the streak:
-    - four ticks a day, each counted from its card's oldest version (the weigh-in from the goals, Fuel from the fuel targets, Hydrate from the water aim, Burn from the burn target; the profile's first day for a card never kept), a day before it leaving that tick out: a weigh-in; Fuel, meaning the day's energy inside its band and each of the four macros inside its own; Hydrate inside its band with four fifths of the drinks water at least; Burn, meaning the day's workouts reach its burn target, any workout before a first weigh-in prices them. A tracker without a log fails its tick; all four always count, from the first record;
-    - each tick held to its gauge's band as shown, with no grace: what the gauges show green is what the streak counts;
-    - a joker for a day one tick short between two full ones, and an unfinished today that never breaks it;
-    - one card: its count in gold beside its longest run, and a remark;
-  - the unwanted tips: a chart behind four chips (Gather, Fuel, Hydrate, Burn) over 7 days by default, 30, 90 or ∞: Gather's body mass and lean mass on one axis, each with its goal dashed; Burn with its target as a green dashed line; round ticks over thin grid lines, the x axis dated from the oldest day to the newest, the current values and a legend;
-  - under the chart, the chosen chip's figures over its window, a line telling what they read ("Average over 6 logged days, today left out."), then its tip in italics between quotation marks; every window starts no earlier than its card's first version (the goals, the fuel targets, the water aim, the burn target; the profile's first day without one), as the streak counts them:
-    - **Gather:** on 7 days each measure's average over the window's weigh-ins, today included (a weigh-in is whole once made); from 30 days on the pace, the weekly change of the body mass, lean mass, fat mass and fat ratio (the slope of the 7-day average across the window, read per week, from 8 weigh-ins in it, or at least 4 spread over a fortnight; a day's weight swings about 0.5 kg with water and salt, so a week's slope is mostly that swing), each figure, never its name, green towards the goal, red away, steady under 0.15% a week or when the figure shown rounds to nothing (the lean mass's goal being a floor: rising is green wherever it stands, falling plain above the floor and red once at or under it), and one verdict on the body mass, health first, said as a tip in italics between quotation marks: losing faster than the safe lane (the least of 1% of the body mass, 1 kg, and what the fat can spare in a week, at Alpert's 290 kJ per kilo of fat a day), is a warning, said with both figures to the hundredth and the limit that set it, lean mass named only when the tape sees it leave; then very good, good, stable, the wrong way; at the goal within 1%.
-    - **Fuel:** the average over the window's logged days, today left out until it is over, the energy and each macro a day against the average of their bands, coloured by it, then their goals (the energy's, its Goal tick; a macro's, its target painted, its floor without one), with the days that stood in their bands; then a tip naming what runs short and what runs over, furthest first: the energy against its band, each macro more than a tenth off its goal, a floor standing in only ever short.
-    - **Hydrate:** the average over the window's logged days, today left out until it is over, the drinks a day against the average band, coloured by it, with the days that stood in theirs, then each day's share of water against four fifths, as the tick; then a tip on how far it runs short or over, and a word on the water.
-    - **Burn:** the sum-up over the window's finished days, today left out until it is over, as Fuel's and Hydrate's: its days and its active ones, then a day's burn against a day's target, both on average over every day of the window, green once it reaches it, with the days that reached theirs; then its three biggest burners, the most burnt first, with their times and their minutes, reps and kcal in all, a time's average beneath, a circuit's steps counted with their exercise.
-  - each chip's history, month by month, its units in the headers and each day's streak dot, today in gold even with nothing logged, a tap on a day showing its four ticks;
-- **Each tab** runs the same way: "Pick the day" (today when the tab opens, shown as yyyy-mm-dd), the log form, its title on the left and, on its right, "open the grimoire 📚" on one line (but on Gather, which has no grimoire), where the day stands, then the last days.
-  - **Previews:** what is about to be logged shows on the day before it is: the food chosen or typed, at its quantity or a portion, with the plate in progress (Fuel), the drink chosen at its volume or a serving (Hydrate), the workout chosen with the session in progress (Burn), as a dashed ghost on the gauge and a line, "With the food: 1096 kcal, 22 of them spent digesting it.", "With the drink: 4410 mL.", "With the workout: 485 kcal.". On Fuel the core prices the day as it would stand once they are eaten, so the band itself moves with their digestion, drawn dashed with its maintenance, and the macros' gaps are weighed against the goals of that day.
-  - **Search or create:** every chooser starts on "Select me" and narrows from three letters typed, starting matches first, then those containing them, ignoring case and accents. Fuel's offers its meals (💪) before its foods (🥦), Burn's its circuits (🔄) before its exercises (💪), Hydrate's its water (💧) before its other drinks (☕), each group in alphabetical order. A name nothing matches turns the form into "New {name}", with the fields of a new entry and an optional description, and "Add and log" adds it to the catalog and logs it in one tap.
-  - **The last days:** the week up to the tab's day, the day in gold, at zero when nothing is logged on it (a dash for a mass not weighed); "load more" takes them back to the first of the month, then a month at a time, the months without records skipped. Fuel's read kcal, Prot, Fat, Fib, Carbs, then Qty (g), the grams and millilitres eaten (pieces left out); Burn's the burn, duration and reps. A tap on a day opens its entries under its row, one day at a time, the picked day open from the start, a tap on the open day closing it: one row each, in white: Fuel's foods and meals by name with their figures and quantity, a tap on a meal opening its description and ingredients in a block as in the grimoire; Hydrate's drinks with their volume; Burn's workouts and circuit runs newest first, a run summing its steps and a tap opening them in a block, then volitional and spontaneous (the time off the clock and the fidgeting) in grey; × removes an entry, a whole run for a circuit, its day's row and the band reading the records again.
-  - **The grimoire:** the tab's catalog on a page of its own, the tab's icon still lit: a card titled by the tab, "Add to the catalog" adding without logging (or changing an entry by adding it again under its name), then "Your grimoire", its lists with each entry's description under its name.
-- **Gather:** mass and waist, filled with the day's record when there is one, the body mass marked required when there is not, and the day's weigh-in removed from the same card.
-  - Where you stand: the body mass and the lean mass each on a line, its goal labelled under its tick ("Goal 70.0"), the band already told above it, each titled with where it stands (the body mass with its band, the lean mass with how far it is to reach its goal or above it), the goal ticked, the day in blue, the body mass green within 1% of its goal (where the pace says it stands at it), the lean mass green from its goal up, its goal being a floor; the goals in force, else WHO's recommendations (a body mass index of 21.7, Gallagher's healthy fat). The lean-mass goal is the goal mass less its goal fat.
-- **Fuel:** intakes from the catalog, one portion when no quantity is typed, the energy and macros to be recorded previewed under the fields.
-  - The plate: "Add to the plate" puts foods aside, each with its cooking ratio (the cooked mass over the raw one, 1 when left empty), the plate adding up what each brings and drawn as a ghost on the energy band and the macros. "Log the plate" logs one intake per ingredient, all or none; "Keep as a meal" cooks it, per 100 g cooked, then logs the portion eaten, the whole plate when left empty, nothing for 0. The plate waits while the app runs.
-  - Where the day stands: what was eaten and where the band runs, coloured by its verdict, then the energy on a gauge, the minimum (25 kcal per kilo of lean mass for a man, 30 for a woman, plus the burn) in red, maintenance (the day's budget plus its burn, digestion priced on what is eaten: the band starts the day without either and rises with each intake as with each workout) as a gold tick labelled under it, what was eaten in blue, and the band in green, past days included: from maintenance less what the whole fat mass can spare (Alpert's 290 kJ per kilo a day), to maintenance and a twentieth (the small surplus of a gain, after Helms 2023), or with a goal mass above today's, to maintenance and half a percent of the body mass a week (Iraki 2019's upper gain, at 7700 kcal a kilo), never narrower than a tenth of maintenance. The band runs dashed from Alpert's floor to the Goal tick, solid from it to the cap. Its labels on two rows, a tick's label under it and an edge's ending at it, keeping to the gauge: EA25 or EA30 (red) and Goal (gold), then Alpert (green, left out when the floor is the minimum) and Maintenance (gold). The Goal tick stands where the goals in force would start it: maintenance less what the fat left to lose above the goals' can spare (2.5% under maintenance at the goal: the band from maintenance to a twentieth above, widened to its narrowest tenth around its middle), or with a gain to aim for, Helms's small surplus, a twentieth above maintenance. The carbs' floor and ceiling follow the band. Hydrate's floor and the deficit that wears the spontaneous activity down read maintenance, not the band.
-  - Under the gauge, the four macros: Min, Cur, Max, Goal, the gap from the goal (Cur − Goal) and the share of the energy, with a total. Min and Max are health bounds, so they stand from the first meal on and hold the tick: the Mins are shares of the energy eaten, never less than the band's floor, the least the day must hold; the Maxes, shares of the band's cap. Protein from the larger of 1.6 g per kg of body mass (Morton et al. 2018, where the gains in lean mass from training level off) and 10% of the energy, to 35% of the cap (the IOM); fat from 20% to 35% (EFSA); fibre from 14 g per 1000 kcal (the IOM's adequate intake), no maximum being set; carbs from 130 g (the IOM), the energy's cap telling what is too much. The Goal is the target painted in Profile per kg of body mass, the Min until one is.
-  - The grimoire lists foods or meals, a click on a meal showing its description and ingredients.
-- **Hydrate:** drinks in millilitres, one serving when none are typed.
-  - Where the day stands: what was drunk and where the band runs, coloured by its verdict as Fuel's, then a scale from nothing to a tenth past the max, as Fuel's, labelled Opt. under its tick, then the day's water and other drinks in a table, the water's share green from four fifths, food bringing a tenth of the water. The optimal is 90% of what the lean mass turns over in a day (7% of its 73.2% of water) plus 1.25 mL per kcal burnt, the min 90% of a millilitre per kcal the day spends (its budget and burn) and never above the optimal, the max a fifth above the optimal; before any lean mass is known, EFSA's base plus a millilitre per kcal burnt, 20% either side. Past the max, a word on the litre an hour kidneys clear.
-  - The grimoire lists drinks, water or other.
-- **Burn:** two pills, a workout or the day off the clock (sitting, standing, moving). The workout's chooser holds exercises and circuits alike: an exercise's blank fields log a minute, one rep, one set and no load; a circuit asks its sets alone. What either will burn on the day's body mass is previewed under the fields.
-  - The session: "Add to the session" puts exercises aside as steps (minutes, reps, load), a circuit bringing its own, priced a set at the day's body mass, run as many sets as the session, drawn as a ghost on the burn band. "Log the session" logs a workout per step, all or none; "Keep as a circuit" crafts it, then runs it by the session's sets, one when left empty, none for 0. The session waits while the app runs.
-  - Where the day stands: what the workouts burnt and how far it is to reach the target or past it, then the burn on a line from nothing to 200 kcal, stretched past the target, the burn or its ghost, the target ticked, green from it on.
-  - The grimoire lists exercises or circuits, a click on a circuit showing its description and steps.
-- **Profile:**
-  - six cards, each read top to bottom: its title, a note on how to fill it, its fields, a note on what the recommendation rests on closed by a link to the scientific references (cited in full with their public pages), its save button (Keep this profile, Engrave these goals, Paint these targets, Store this aim, Fire this ambition, Keep this usual day), then "Forget it 🔄", which follows the recommendation at once; no date is asked: a card saves on today, a second save the same day amending it; the first profile starts every card not yet kept on its day with the recommendation;
-  - the rusty you behind the numbers (birthday, gender, height, neck, and the hip, open to a woman only, nothing to forget), goals (body mass and fat), fuel targets (protein, fat, fibre and carbs in g per kg of body mass, an empty one aiming at its health floor), a water target a day before the burn, the day's burn target and the usual day off the clock;
-  - a field shows only your own figure; empty, it shows the recommendation in grey: the goals' WHO normal body mass index and Gallagher's healthy fat, today's floor of each macro per kg of body mass as the Fuel table reads it, the water (nine tenths of what the lean mass turns over in a day, 35 mL per kg of body mass before a lean mass, EFSA's base before a weigh-in), WHO's 150 minutes a week of moderate activity priced on the body weighed (any workout holding the tick before a weigh-in), and a usual day of 8 hours sitting at most (Ekelund), 2 standing (Buckley) and 2500 steps, the most of basal activity (Tudor-Locke), the workouts logged counting the rest; a card saved empty follows the recommendation, and a figure typed alone in the goals or the usual day keeps the others' placeholders;
-  - each confirmation recalls what the card held before ("Before: 68.0 kg and 12.0%."), so a slip can be typed back; then the disclaimer;
-  - past a divider, the settings close the screen: the vault's copy, every record written as JSON to the app's Documents folder for `make export-android` to bring to the Mac over USB, and restored from a copy `make import-android` pushes back, once `RESTORE` is typed, all of it or nothing, refused from another schema version, and a danger zone that erases everything.
+## Health notice
 
-Next, together: daily challenges, statistics with a real meaning, Health Connect steps, posture analysis.
+- Grindstone is not a medical device and gives no medical advice. Its recommendations are made for an average healthy adult, from published sources, as a place to start rather than a prescription. Check them, adjust them, and ask a doctor when in doubt.
+- Do not use it if you are under 18, pregnant or breastfeeding, have or had an eating disorder, or live with kidney disease or any condition that changes what you should eat or drink, without your doctor's advice.
+- Content note: it counts calories, weighs and tracks every day. If that feeds worry rather than curiosity, stop, and talk to someone you trust.
 
-## How
+## What it does
+
+- 🏠 **Home:** today's four ticks, the streak, the unwanted tips over 7, 30 or 90 days or everything, and the history.
+- ⚖️ **Gather:** weigh-ins and waist, the lean and fat masses they give, and the pace towards your goals within a safe lane.
+- ⚡ **Fuel:** foods, meals and plates from your own catalog, an energy band from a floor to a cap, and the four macros.
+- 💧 **Hydrate:** drinks against a water band drawn from your lean mass.
+- 🔥 **Burn:** workouts and circuits priced in kcal, and the day off the clock.
+- 👤 **Profile:** your body, goals and targets, each with a sourced recommendation, and a copy of every record to keep on the Mac.
+
+Every figure, and the source behind it, is in [docs/FEATURES.md](docs/FEATURES.md).
+
+## How it is built
+
+```mermaid
+flowchart LR
+    ui["ui<br/>Leptos, WebAssembly"] -- "Tauri commands" --> shell["src-tauri<br/>commands, configurator"]
+    shell -- "driving ports" --> core["core<br/>the rules, no IO, no clock"]
+    core -- "driven ports" --> sqlite["adapters/sqlite<br/>rusqlite, SQLite bundled"]
+```
 
 | Part | Technology | Role |
 | --- | --- | --- |
 | `ui` | Leptos 0.8, client-side, compiled to WebAssembly by Trunk | the screen |
 | `src-tauri` | Tauri 2 | the app shell on Android, and on the Mac under `make dev`: its commands and the configurator that wires everything at start |
 | `core` | plain Rust | the application: its rules, what it offers (driving ports) and what it needs (driven ports) |
-| `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage port |
+| `adapters/sqlite` | rusqlite, SQLite bundled | the storage, behind the core's storage ports |
 
-The screen calls the app's commands through Tauri. Each command hands over to one of the core's driving ports (`for_tracking`, `for_fuelling`, `for_hydrating`, `for_burning`, `for_cataloguing`, `for_setting_up_the_profile`, `for_reviewing_progress`, `for_charting`, `for_importing`), which store through the SQLite adapter in the app's data folder.
+Each command hands over to one of the core's driving ports: `for_tracking`, `for_fuelling`, `for_hydrating`, `for_burning`, `for_cataloguing`, `for_setting_up_the_profile`, `for_reviewing_progress`, `for_charting`, `for_keeping_a_copy`, `for_starting_over`.
+
+Nothing lands unless the gates pass:
+
+- `make check`: formatting, Clippy on native and WebAssembly with warnings as errors, every test, no uncovered line outside the wiring, and the dependencies' licences;
+- `make test-ui`: the screen in a headless Chrome, every command answered by a stub read back through the core's own types;
+- `make mutants`: mutation testing of the core, so the tests are shown to bite.
+
+## Get it
+
+There is no release to download yet: build it from source.
+
+- [GETTING_STARTED.md](GETTING_STARTED.md): run and test it on a Mac or on Linux.
+- [RUNBOOK.md](RUNBOOK.md): from nothing to the app installed on an Android phone.
+
+## Why
+
+- The tracker must work where training happens: outdoors, on the phone, with or without a network.
+- The records belong on the device: SQLite, no account, no server.
+- Two earlier attempts taught what to avoid: a Sycamore draft kept its records in the browser's storage, and a SvelteKit spike grew too large before reaching the phone.
+- So this one put a usable app on the phone first, then grew one real need at a time.
+
+## Licence
+
+The code is under the MIT licence, and the creative content (texts, lore, artwork) under CC BY-NC-SA 4.0: see [LICENSE](LICENSE). The notices of the dependencies the APK carries are in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 ## Documents
 
 | Document | Use it to |
 | --- | --- |
+| [docs/FEATURES.md](docs/FEATURES.md) | read every screen and every figure, with its source |
 | [GETTING_STARTED.md](GETTING_STARTED.md) | run and test the app locally |
 | [RUNBOOK.md](RUNBOOK.md) | go from nothing to the app installed on the phone, toolchain and USB connection included, and update it |
