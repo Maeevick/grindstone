@@ -70,8 +70,60 @@ pub fn Chooser(
     typed: RwSignal<String>,
 ) -> impl IntoView {
     let open = RwSignal::new(false);
+    let active = RwSignal::new(None::<usize>);
     let field = format!("{name}-chooser");
     let list = format!("{name}-choices");
+    let option_id = move |at: usize| format!("{name}-option-{at}");
+    let offered = Signal::derive(move || {
+        let offered = options.get();
+        let names: Vec<String> = offered.iter().map(|choice| choice.name.clone()).collect();
+        matching(&names, &typed.get())
+            .into_iter()
+            .map(|option| {
+                let shown = offered
+                    .iter()
+                    .find(|choice| choice.name == option)
+                    .map_or_else(|| option.clone(), Choice::shown);
+                (option, shown)
+            })
+            .collect::<Vec<(String, String)>>()
+    });
+    let pick = move |option: String| {
+        typed.set(option);
+        open.set(false);
+        active.set(None);
+    };
+    let keyed = move |event: leptos::ev::KeyboardEvent| {
+        let count = offered.with_untracked(Vec::len);
+        match event.key().as_str() {
+            "ArrowDown" => {
+                event.prevent_default();
+                open.set(true);
+                if count > 0 {
+                    active.update(|at| *at = Some(at.map_or(0, |at| (at + 1).min(count - 1))));
+                }
+            }
+            "ArrowUp" => {
+                event.prevent_default();
+                active.update(|at| *at = at.map(|at| at.saturating_sub(1)));
+            }
+            "Enter" => {
+                let chosen = active
+                    .get_untracked()
+                    .filter(|_| open.get_untracked())
+                    .and_then(|at| offered.with_untracked(|offered| offered.get(at).cloned()));
+                if let Some((option, _)) = chosen {
+                    event.prevent_default();
+                    pick(option);
+                }
+            }
+            "Escape" => {
+                open.set(false);
+                active.set(None);
+            }
+            _ => {}
+        }
+    };
     view! {
         <div class="field grow2 chooser">
             <label for=field.clone()>{label}</label>
@@ -82,36 +134,38 @@ pub fn Chooser(
                 aria-autocomplete="list"
                 aria-controls=list.clone()
                 aria-expanded=move || open.get().to_string()
+                aria-activedescendant=move || active.get().filter(|_| open.get()).map(option_id)
                 autocomplete="off"
                 placeholder="Select me"
                 prop:value=move || typed.get()
                 on:input=move |event| {
                     typed.set(event_target_value(&event));
                     open.set(true);
+                    active.set(None);
                 }
+                on:keydown=keyed
                 on:focus=move |_| open.set(true)
-                on:blur=move |_| open.set(false)
+                on:blur=move |_| {
+                    open.set(false);
+                    active.set(None);
+                }
             />
             <Show when=move || open.get()>
                 <ul class="choices" role="listbox" id=list.clone()>
                     {move || {
-                        let offered = options.get();
-                        let names: Vec<String> =
-                            offered.iter().map(|choice| choice.name.clone()).collect();
-                        matching(&names, &typed.get())
+                        offered
+                            .get()
                             .into_iter()
-                            .map(|option| {
-                                let shown = offered
-                                    .iter()
-                                    .find(|choice| choice.name == option)
-                                    .map_or_else(|| option.clone(), Choice::shown);
+                            .enumerate()
+                            .map(|(at, (option, shown))| {
                                 view! {
                                     <li
+                                        id=option_id(at)
                                         role="option"
+                                        aria-selected=move || (active.get() == Some(at)).to_string()
                                         on:mousedown=move |event| {
                                             event.prevent_default();
-                                            typed.set(option.clone());
-                                            open.set(false);
+                                            pick(option.clone());
                                         }
                                     >
                                         {shown}
