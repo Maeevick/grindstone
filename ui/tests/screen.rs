@@ -2154,6 +2154,44 @@ async fn the_food_chooser_offers_meals_then_foods_each_in_alphabetical_order_beh
 }
 
 #[wasm_bindgen_test]
+async fn the_chooser_is_named_by_its_label_and_says_when_its_choices_are_open() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [{PASTA_IN_CREAM}], "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    let field: HtmlInputElement = found(&screen, "input[name=food]");
+    let closed = (
+        field.get_attribute("role"),
+        field.get_attribute("aria-expanded"),
+    );
+
+    focused(&screen, "food");
+    settled().await;
+
+    let named = field
+        .labels()
+        .and_then(|labels| labels.item(0))
+        .and_then(|label| label.text_content());
+    let list = field.get_attribute("aria-controls").unwrap_or_default();
+    assert_eq!(
+        (
+            named,
+            closed,
+            field.get_attribute("aria-expanded"),
+            attributes_of(&screen, &format!("ul#{list}"), "role")
+        ),
+        (
+            Some("Food".to_string()),
+            (Some("combobox".to_string()), Some("false".to_string())),
+            Some("true".to_string()),
+            vec!["listbox".to_string()]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_exercise_chooser_offers_circuits_then_exercises_each_in_alphabetical_order_behind_its_icon()
  {
     answering(&format!(
