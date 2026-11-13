@@ -3,8 +3,19 @@ use leptos::prelude::*;
 use leptos_router::components::A;
 use leptos_router::hooks::use_location;
 
-use crate::screens::{Recorded, today};
+use crate::screens::{Recorded, lines, today};
 use crate::tauri;
+
+/// A tick's mark and its word, so it never rests on colour alone.
+fn tick_mark(held: Option<bool>) -> Option<(&'static str, &'static str)> {
+    held.map(|held| {
+        if held {
+            ("✓", lines::HELD)
+        } else {
+            ("✗", lines::MISSED)
+        }
+    })
+}
 
 pub(crate) fn tick_class(held: Option<bool>) -> &'static str {
     match held {
@@ -28,6 +39,10 @@ fn Tile(
             <span class="icon">{icon}</span>
             <span class="big">{move || figure.get()}</span>
             <span class="unit">{unit}</span>
+            {move || {
+                tick_mark(held.get())
+                    .map(|(mark, word)| view! { <span class="mark" role="img" aria-label=word>{mark}</span> })
+            }}
         </A>
     }
 }

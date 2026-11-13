@@ -934,6 +934,7 @@ textarea:focus {
 }
 
 .tile {
+	position: relative;
 	color: inherit;
 	text-decoration: none;
 	display: flex;
@@ -960,11 +961,20 @@ textarea:focus {
 	color: var(--mut);
 }
 
-.tile.good .big {
+.tile .mark {
+	position: absolute;
+	top: 4px;
+	right: 6px;
+	font-size: 0.72rem;
+}
+
+.tile.good .big,
+.tile.good .mark {
 	color: var(--ok);
 }
 
-.tile.bad .big {
+.tile.bad .big,
+.tile.bad .mark {
 	color: var(--bad);
 }
 

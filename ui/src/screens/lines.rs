@@ -533,6 +533,10 @@ pub const RECOMMENDATIONS_DISCLAIMER: &str = "Recommendations for health, made f
 
 pub const THE_RECOMMENDATION: &str = "the recommendation";
 
+pub const HELD: &str = "held";
+
+pub const MISSED: &str = "missed";
+
 /// What a card held before a choice was kept, recalled so a slip can be typed back.
 pub fn before(held: &str) -> String {
     format!("Before: {held}.")
