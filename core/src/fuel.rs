@@ -1317,6 +1317,19 @@ mod tests {
     }
 
     #[test]
+    fn protein_holds_at_least_1_6_g_a_kilo_where_the_gains_in_lean_mass_from_training_level_off() {
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        );
+
+        let floor = fuelled.macros.map(|macros| macros.protein.floor_g);
+        assert!(floor.is_some_and(|grams| about(grams, 1.6 * 80.0)));
+    }
+
+    #[test]
     fn a_macros_gap_is_what_was_eaten_beyond_its_goal() {
         let short = MacroRow {
             eaten_g: 120.0,
