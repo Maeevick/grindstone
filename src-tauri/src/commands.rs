@@ -177,9 +177,10 @@ pub fn restore_a_copy(
 ) -> Result<Counted, Failure> {
     let copy =
         std::fs::read_to_string(&file.0).map_err(|_| Failure::Refused(Refusal::NoCopyPushed))?;
-    let _ = std::fs::remove_file(&file.0);
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_keeping_a_copy::restore_a_copy(&*records, &copy)
+    for_keeping_a_copy::restore_a_copy(&*records, &copy).inspect(|_| {
+        let _ = std::fs::remove_file(&file.0);
+    })
 }
 
 #[tauri::command(rename_all = "snake_case")]
