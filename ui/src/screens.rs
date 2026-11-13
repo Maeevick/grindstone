@@ -13,6 +13,7 @@ pub mod home;
 pub mod hydrate;
 pub mod last_days;
 pub mod lines;
+mod pills;
 pub mod plate;
 pub mod profile;
 pub mod references;

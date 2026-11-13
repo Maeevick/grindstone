@@ -13,6 +13,7 @@ use crate::screens::entries::{
     ExerciseFields, ExerciseFigures, FoodFields, FoodFigures, NameField, name_cell,
 };
 use crate::screens::hydrate::{DrinksList, NewDrink};
+use crate::screens::pills::pill_buttons;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
@@ -311,21 +312,7 @@ enum Listed {
 fn shelf_pills(chosen: RwSignal<Listed>, shelves: [(Listed, &'static str); 2]) -> impl IntoView {
     view! {
         <div class="pills">
-            {shelves
-                .into_iter()
-                .map(|(named, label)| {
-                    view! {
-                        <button
-                            type="button"
-                            class=format!("pill shelf-{named:?}")
-                            class:chosen=move || chosen.get() == named
-                            on:click=move |_| chosen.set(named)
-                        >
-                            {label}
-                        </button>
-                    }
-                })
-                .collect_view()}
+            {pill_buttons("shelf", shelves, chosen)}
         </div>
     }
 }

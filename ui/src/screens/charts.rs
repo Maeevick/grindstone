@@ -11,6 +11,7 @@ use leptos::task::spawn_local;
 use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
 use crate::screens::header::tick_class;
 use crate::screens::lines;
+use crate::screens::pills::pill_buttons;
 use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use crate::tauri;
 
@@ -695,38 +696,10 @@ pub fn Charts(today: String) -> impl IntoView {
         <section class="card tips">
             <h2>"The unwanted tips"</h2>
             <div class="pills chips">
-                {CHIPS
-                    .into_iter()
-                    .map(|(named, label)| {
-                        view! {
-                            <button
-                                type="button"
-                                class=format!("pill chip-{named:?}")
-                                class:chosen=move || chip.get() == named
-                                on:click=move |_| chip.set(named)
-                            >
-                                {label}
-                            </button>
-                        }
-                    })
-                    .collect_view()}
+                {pill_buttons("chip", CHIPS, chip)}
             </div>
             <div class="pills">
-                {WINDOWS
-                    .into_iter()
-                    .map(|(named, label)| {
-                        view! {
-                            <button
-                                type="button"
-                                class=format!("pill window-{named:?}")
-                                class:chosen=move || window.get() == named
-                                on:click=move |_| window.set(named)
-                            >
-                                {label}
-                            </button>
-                        }
-                    })
-                    .collect_view()}
+                {pill_buttons("window", WINDOWS, window)}
             </div>
             {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
             {move || match chip.get() {

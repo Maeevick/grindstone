@@ -20,6 +20,7 @@ use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::{BurnLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToBurn;
+use crate::screens::pills::pill_buttons;
 use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
@@ -500,21 +501,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         <section class="card">
             <FormTitle title="Burn" grimoire="/burn/grimoire" />
             <div class="pills">
-                {LOGGINGS
-                    .into_iter()
-                    .map(|(named, label)| {
-                        view! {
-                            <button
-                                type="button"
-                                class=format!("pill burn-{named:?}")
-                                class:chosen=move || logging.get() == named
-                                on:click=move |_| logging.set(named)
-                            >
-                                {label}
-                            </button>
-                        }
-                    })
-                    .collect_view()}
+                {pill_buttons("burn", LOGGINGS, logging)}
             </div>
             {move || match logging.get() {
                 Logging::Workout => {
