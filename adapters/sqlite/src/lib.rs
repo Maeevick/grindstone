@@ -1308,6 +1308,29 @@ mod tests {
         );
     }
 
+    fn restoring_spoilt(spoil: impl Fn(&str) -> String) -> (Result<Counted, Unrestorable>, bool) {
+        let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
+        let before = the_copy_of(&other);
+        let spoilt = spoil(&the_copy_of(&copied));
+
+        let restored = other.restored(&spoilt);
+
+        (restored, the_copy_of(&other) == before)
+    }
+
+    #[test]
+    fn a_copy_naming_a_table_the_schema_lacks_is_refused_and_leaves_the_records_as_they_were() {
+        let restored = restoring_spoilt(|copy| {
+            copy.replacen(
+                "\"goals\": [",
+                "\"secrets\": [{ \"day\": 1 }], \"goals\": [",
+                1,
+            )
+        });
+
+        assert_eq!(restored, (Err(Unrestorable::NotACopy), true));
+    }
+
     #[test]
     fn a_text_that_is_not_a_copy_is_refused() {
         let store = a_store_with_a_day(20);
