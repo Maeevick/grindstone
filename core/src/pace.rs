@@ -55,7 +55,12 @@ impl Pace {
     }
 }
 
+/// The weigh-ins a pace reads: at least 4, and spread over a fortnight unless there are 8 of them, so a day's swing
+/// of the scale, about 0.5 kg with water and salt, cannot fake a slope from a few weigh-ins close together. A design
+/// choice, not a published figure.
 const FEWEST_WEIGH_INS: usize = 4;
+const WEIGH_INS_ENOUGH_ANYWHERE: usize = 8;
+const FEWEST_DAYS_SPANNED: i64 = 14;
 /// How finely a mass and a ratio are shown, so a change that shows as nothing holds steady.
 const A_TENTH_OF_A_KILO: f64 = 0.1;
 const A_TENTH_OF_A_PERCENT: f64 = 0.001;
@@ -90,15 +95,27 @@ fn safe_loss_of(body_mass_kg: f64, fat_kg: Option<f64>) -> (f64, SafeLoss) {
     .unwrap_or((spared, SafeLoss::FatStore))
 }
 
+/// Whether weigh-ins are enough for a slope: 8 of them, or at least 4 spread over a fortnight.
+fn reads_a_slope(weighed: &[NaiveDate]) -> bool {
+    let spanned = weighed
+        .iter()
+        .min()
+        .zip(weighed.iter().max())
+        .map_or(0, |(first, last)| (*last - *first).num_days() + 1);
+    weighed.len() >= WEIGH_INS_ENOUGH_ANYWHERE
+        || (weighed.len() >= FEWEST_WEIGH_INS && spanned >= FEWEST_DAYS_SPANNED)
+}
+
 /// The slope, per week, of the seven-day average of a measure from a first day to the last, as Home's chart
 /// reads it over its window, with the latest of those averages.
 fn weekly(first: NaiveDate, day: NaiveDate, readings: &[(NaiveDate, f64)]) -> Option<(f64, f64)> {
     let in_the_week = |read: NaiveDate| (first..=day).contains(&read);
-    let weighed_in_the_week = readings
+    let weighed_in_the_week: Vec<NaiveDate> = readings
         .iter()
-        .filter(|(read, _)| in_the_week(*read))
-        .count();
-    if weighed_in_the_week < FEWEST_WEIGH_INS {
+        .map(|(read, _)| *read)
+        .filter(|read| in_the_week(*read))
+        .collect();
+    if !reads_a_slope(&weighed_in_the_week) {
         return None;
     }
     let up_to_the_day: Vec<(NaiveDate, f64)> = readings
@@ -502,7 +519,7 @@ mod tests {
     }
 
     #[test]
-    fn the_weeks_pace_reads_the_slope_of_the_seven_day_average_over_its_seven_days() {
+    fn the_fortnights_pace_reads_the_slope_of_the_seven_day_average_over_its_fourteen_days() {
         let weighed = [
             71.4, 71.0, 71.1, 71.2, 71.4, 71.4, 70.9, 71.5, 71.0, 71.7, 71.7, 71.4, 71.5, 71.7,
             72.4, 72.4, 72.1, 72.2, 72.0,
@@ -520,9 +537,9 @@ mod tests {
             ..a_man_weighed(80.0, 0.0)
         };
 
-        let pace = pace_between(day("2026-10-13"), day("2026-10-19"), &gathered).expect("a pace");
+        let pace = pace_on(day("2026-10-19"), &gathered).expect("a pace");
 
-        assert!((pace.body_mass.by - -0.257).abs() < 1e-3);
+        assert!((pace.body_mass.by - -0.542).abs() < 1e-3);
     }
 
     fn a_pace_with(lean_mass: Option<Change>) -> Pace {
