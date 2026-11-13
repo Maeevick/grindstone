@@ -29,7 +29,8 @@ wasm_bindgen_test_configure!(run_in_browser);
 #[wasm_bindgen(inline_js = "
 export function answer_commands_with(answers) {
     window.__asked = {};
-    window.__TAURI__ = { core: { invoke: async (command, args) => {
+    window.__in_flight = 0;
+    const answered = (command, args) => {
         window.__asked[command] = JSON.stringify(args);
         if (!(command in answers)) { throw { Broken: `no answer for ${command}` }; }
         const answer = answers[command];
@@ -40,13 +41,31 @@ export function answer_commands_with(answers) {
             return answer[args[answer.__by]];
         }
         return answer;
+    };
+    window.__TAURI__ = { core: { invoke: async (command, args) => {
+        window.__in_flight += 1;
+        try {
+            return answered(command, args);
+        } finally {
+            setTimeout(() => { window.__in_flight = Math.max(0, window.__in_flight - 1); }, 0);
+        }
     } } };
+}
+export function settle() {
+    return new Promise((resolve, reject) => {
+        const began = Date.now();
+        let quiet = 0;
+        const look = () => {
+            quiet = (window.__in_flight || 0) === 0 ? quiet + 1 : 0;
+            if (quiet >= 2) { resolve(); return; }
+            if (Date.now() - began > 2000) { reject(new Error('the screen never settled')); return; }
+            setTimeout(look, 0);
+        };
+        setTimeout(look, 0);
+    });
 }
 export function asked(command) {
     return window.__asked[command] || '';
-}
-export function a_moment() {
-    return new Promise((resolve) => setTimeout(resolve, 0));
 }
 export function back_home() {
     window.history.replaceState(null, '', '/');
@@ -87,7 +106,9 @@ export function went_to(path) {
 extern "C" {
     fn answer_commands_with(answers: &JsValue);
     fn asked(command: &str) -> String;
-    fn a_moment() -> js_sys::Promise;
+    /// Resolves once no command has been in flight for two ticks running, the screen having drawn their answers;
+    /// fails after two seconds.
+    fn settle() -> js_sys::Promise;
     fn back_home();
     /// Moves to another tab through the history: a click on a tab is cancelled by the link
     /// handlers the routers of earlier tests leave behind.
@@ -163,7 +184,7 @@ fn the_app(screen: &Element) -> impl Drop {
 }
 
 async fn settled() {
-    JsFuture::from(a_moment()).await.expect("a moment passes");
+    JsFuture::from(settle()).await.expect("the screen settles");
 }
 
 #[wasm_bindgen_test]
