@@ -19,6 +19,7 @@ where
                     type="button"
                     class=format!("pill {prefix}-{named:?}")
                     class:chosen=move || chosen.get() == named
+                    aria-pressed=move || (chosen.get() == named).to_string()
                     on:click=move |_| chosen.set(named)
                 >
                     {label}
