@@ -18,6 +18,7 @@ use crate::screens::gauge::FuelGauge;
 use crate::screens::last_days::{FuelLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToEat;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
+use crate::screens::said::said_line;
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -470,7 +471,7 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
                     .get()
                     .then(|| view! { <Plate plate=plate day=day shown_fuel=shown_fuel said=said /> })
             }}
-            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            {said_line(said)}
         </section>
         {move || {
             fuel.get()

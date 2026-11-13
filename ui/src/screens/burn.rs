@@ -21,6 +21,7 @@ use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::{BurnLastDays, entries_failed, entries_said};
 use crate::screens::lines::AboutToBurn;
 use crate::screens::pills::pill_buttons;
+use crate::screens::said::said_line;
 use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, lines, today};
@@ -648,7 +649,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                         .into_any()
                 }
             }}
-            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            {said_line(said)}
         </section>
         {move || {
             burn.get()

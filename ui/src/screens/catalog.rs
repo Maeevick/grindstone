@@ -14,12 +14,13 @@ use crate::screens::entries::{
 };
 use crate::screens::hydrate::{DrinksList, NewDrink};
 use crate::screens::pills::pill_buttons;
+use crate::screens::said::said_line;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 
 fn said_on_the_shelf(said: RwSignal<Option<String>>) -> impl IntoView {
-    move || said.get().map(|line| view! { <p class="said">{line}</p> })
+    said_line(said)
 }
 
 #[component]

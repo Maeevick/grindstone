@@ -18,6 +18,7 @@ use leptos::task::spawn_local;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateTargetCard;
 use crate::screens::references::ReferencesLink;
+use crate::screens::said::said_line;
 use crate::screens::settings::Settings;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
@@ -84,7 +85,7 @@ pub fn ProfileCard(
                             </button>
                         }
                     })}
-                {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+                {said_line(said)}
             </form>
         </section>
     }

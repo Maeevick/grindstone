@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::screens::said::said_line;
 use crate::screens::{Recorded, lines, today};
 use crate::tauri;
 
@@ -68,7 +69,7 @@ fn VaultsCopy() -> impl IntoView {
             >
                 "Restore the copy"
             </button>
-            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            {said_line(said)}
         </section>
     }
 }
@@ -113,7 +114,7 @@ fn DangerZone() -> impl IntoView {
             >
                 "Erase everything"
             </button>
-            {move || said.get().map(|line| view! { <p class="said">{line}</p> })}
+            {said_line(said)}
         </section>
     }
 }
