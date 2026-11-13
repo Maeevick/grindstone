@@ -5097,6 +5097,37 @@ async fn each_streak_dot_wears_its_own_mark_and_names_its_status_the_legends_lef
 }
 
 #[wasm_bindgen_test]
+async fn a_streaked_day_opens_its_ticks_from_its_date_a_day_never_streaked_having_none_to_open() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
+                {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }},
+                {{ "day": "2026-10-01", "body_mass_kg": 81.0, "lean_mass_kg": 71.0, "fat_mass_kg": 10.0, "fat_ratio": 0.123 }} ] }} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    clicked(&screen, ".history tbody tr button.opens");
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".history tbody button.opens"),
+            attributes_of(&screen, ".history tbody button.opens", "aria-expanded"),
+            texts_in_order(&screen, ".history tbody td:first-child")
+                .into_iter()
+                .filter(|day| day.starts_with("2026"))
+                .collect::<Vec<_>>()
+        ),
+        (
+            vec!["2026-10-09".to_string()],
+            vec!["true".to_string()],
+            vec!["2026-10-09".to_string(), "2026-10-01".into()]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_history_shows_today_in_gold() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
