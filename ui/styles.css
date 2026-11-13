@@ -391,10 +391,15 @@ hr.divider {
 }
 
 .dot {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	width: 0.8rem;
 	height: 0.8rem;
 	border-radius: 50%;
 	background: #3a3f47;
+	color: var(--inset);
+	font: 700 0.55rem/1 system-ui, sans-serif;
 }
 
 .dot.Success {
@@ -829,7 +834,7 @@ textarea:focus {
 }
 
 .history-table .dot {
-	display: inline-block;
+	display: inline-flex;
 }
 
 .history-table tr.streaked {

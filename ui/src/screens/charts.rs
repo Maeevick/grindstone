@@ -418,13 +418,25 @@ fn LoadMore(earlier: Option<String>, load: Callback<String>) -> impl IntoView {
     })
 }
 
+/// A status's mark inside its dot, so it never rests on colour alone; under way keeps its hollow ring.
+fn status_mark(status: Status) -> &'static str {
+    match status {
+        Status::Success => "✓",
+        Status::Joker => "★",
+        Status::Break => "✗",
+        Status::Pending => "",
+    }
+}
+
 fn streak_cell(status: Option<Status>) -> impl IntoView {
     view! {
         <td>
             {status
                 .map(|status| {
                     view! {
-                        <span class=format!("dot {status:?}") title=lines::status_word(status)></span>
+                        <span class=format!("dot {status:?}") role="img" aria-label=lines::status_word(status)>
+                            {status_mark(status)}
+                        </span>
                     }
                 })}
         </td>
@@ -743,18 +755,15 @@ pub fn Charts(today: String) -> impl IntoView {
                 }
             }}
             <ul class="legend">
-                {[
-                    (Status::Success, "every tick"),
-                    (Status::Joker, "a joker"),
-                    (Status::Break, "a break"),
-                    (Status::Pending, "under way"),
-                ]
+                {[Status::Success, Status::Joker, Status::Break, Status::Pending]
                     .into_iter()
-                    .map(|(status, meaning)| {
+                    .map(|status| {
                         view! {
                             <li>
-                                <span class=format!("dot {status:?}")></span>
-                                {meaning}
+                                <span class=format!("dot {status:?}") aria-hidden="true">
+                                    {status_mark(status)}
+                                </span>
+                                {lines::status_word(status)}
                             </li>
                         }
                     })
