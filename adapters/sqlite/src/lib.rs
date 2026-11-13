@@ -997,7 +997,22 @@ impl ForCopyingRecords for Sqlite {
         if !fits_the_schema(&self.0, &copy.tables).map_err(unrestorable)? {
             return Err(Unrestorable::NotACopy);
         }
-        restore(&self.0, &copy.tables).map_err(unrestorable)
+        let restoring = self.0.unchecked_transaction().map_err(unrestorable)?;
+        let counted = replace_every_table(&restoring, &copy.tables).map_err(unrestorable)?;
+        self.reads_back().map_err(|_| Unrestorable::NotACopy)?;
+        restoring.commit().map_err(unrestorable)?;
+        Ok(counted)
+    }
+}
+
+impl Sqlite {
+    /// Whether every record reads back into the domain, as the screens will read it.
+    fn reads_back(&self) -> Result<(), Broken> {
+        self.gather_records()?;
+        self.fuel_records()?;
+        self.hydrate_records()?;
+        self.burn_records()?;
+        Ok(())
     }
 }
 
@@ -1039,11 +1054,10 @@ struct Copied {
     tables: std::collections::BTreeMap<String, Rows>,
 }
 
-fn restore(
-    connection: &Connection,
+fn replace_every_table(
+    restoring: &Connection,
     tables: &std::collections::BTreeMap<String, Rows>,
 ) -> rusqlite::Result<Counted> {
-    let restoring = connection.unchecked_transaction()?;
     let names = restoring
         .prepare(EVERY_TABLE)?
         .query_map([], |row| row.get::<_, String>(0))?
@@ -1067,7 +1081,6 @@ fn restore(
             records += 1;
         }
     }
-    restoring.commit()?;
     Ok(Counted {
         tables: tables.len(),
         records,
