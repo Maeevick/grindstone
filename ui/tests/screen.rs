@@ -127,6 +127,9 @@ export function ring_of(element) {
 export function font_px_of(element) {
     return parseFloat(getComputedStyle(element).fontSize);
 }
+export function key_pressed(element, key) {
+    return element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+}
 export function text_align_of(element) {
     return getComputedStyle(element).textAlign;
 }
@@ -148,6 +151,8 @@ extern "C" {
     fn wear_the_stylesheet(css: &str);
     fn drop_the_stylesheet();
     fn text_align_of(element: &Element) -> String;
+    /// Presses a key on an element, telling whether the screen let it through rather than taking it.
+    fn key_pressed(element: &Element, key: &str) -> bool;
     /// How far a field's border stands out from what lies behind the field, as WCAG's contrast ratio.
     fn border_contrast_of(element: &Element) -> f64;
     fn box_width_of(element: &Element) -> f64;
@@ -2187,6 +2192,59 @@ async fn the_chooser_is_named_by_its_label_and_says_when_its_choices_are_open() 
             (Some("combobox".to_string()), Some("false".to_string())),
             Some("true".to_string()),
             vec!["listbox".to_string()]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
+async fn the_choosers_keys_walk_its_choices_enter_picks_one_and_escape_closes_them() {
+    answering(&format!(
+        r#"{{ "foods": {PASTA_AND_CREAM}, "meals": [{PASTA_IN_CREAM}], "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+    let field: Element = found(&screen, "input[name=food]");
+    focused(&screen, "food");
+    settled().await;
+
+    for key in ["ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp"] {
+        key_pressed(&field, key);
+        settled().await;
+    }
+    let active = field
+        .get_attribute("aria-activedescendant")
+        .unwrap_or_default();
+    let walked_to = (
+        text_of(&screen, &format!("li#{active}")),
+        attributes_of(&screen, "ul.choices li", "aria-selected"),
+    );
+    let enter_let_through = key_pressed(&field, "Enter");
+    settled().await;
+    let picked = (
+        value_of(&screen, "food"),
+        field.get_attribute("aria-expanded"),
+    );
+    focused(&screen, "food");
+    settled().await;
+    key_pressed(&field, "Escape");
+    settled().await;
+
+    assert_eq!(
+        (
+            walked_to,
+            enter_let_through,
+            picked,
+            field.get_attribute("aria-expanded")
+        ),
+        (
+            (
+                "🥦 Crème fraîche".to_string(),
+                vec!["false".to_string(), "true".into(), "false".into()]
+            ),
+            false,
+            ("Crème fraîche".to_string(), Some("false".to_string())),
+            Some("false".to_string())
         )
     );
 }
