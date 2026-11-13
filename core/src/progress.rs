@@ -120,6 +120,13 @@ mod tests {
     }
 
     #[test]
+    fn a_target_the_trend_left_behind_less_than_a_day_ago_reaches_none() {
+        let progress = progress_towards(Some(79.03), &losing_half_a_kilo_a_week());
+
+        assert_eq!(progress.map(|progress| progress.reached_on), Some(None));
+    }
+
+    #[test]
     fn a_single_point_gives_no_progress() {
         assert_eq!(
             progress_towards(Some(78.0), &[(day("2026-09-15"), 79.0)]),
