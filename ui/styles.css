@@ -294,6 +294,8 @@ hr.divider {
 }
 
 .remove {
+	min-width: 24px;
+	min-height: 24px;
 	background: none;
 	border: 0;
 	color: var(--mut);
