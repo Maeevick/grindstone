@@ -2842,6 +2842,31 @@ fn burns_last_days_of_morning_rust(screen: &Element) -> impl Drop {
 }
 
 #[wasm_bindgen_test]
+async fn a_circuit_run_opens_from_a_button_on_its_name_that_says_whether_it_is_open() {
+    let screen = screen();
+    let _mounted = burns_last_days_of_morning_rust(&screen);
+    settled().await;
+    let opener = ".last-days tr.entry.circuit td:first-child button.opens";
+    let closed_at_first = attributes_of(&screen, opener, "aria-expanded");
+
+    clicked(&screen, opener);
+    settled().await;
+
+    assert_eq!(
+        (
+            closed_at_first,
+            attributes_of(&screen, opener, "aria-expanded"),
+            text_of(&screen, opener)
+        ),
+        (
+            vec!["false".to_string()],
+            vec!["true".to_string()],
+            "Morning rust".to_string()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_on_a_tap() {
     let screen = screen();
     let _mounted = burns_last_days_of_morning_rust(&screen);
