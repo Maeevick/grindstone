@@ -593,6 +593,20 @@ mod tests {
     }
 
     #[test]
+    fn four_weigh_ins_from_the_first_day_of_the_fortnight_to_its_last_read_a_pace() {
+        let weighed = a_man_weighed(80.0, -0.05);
+        let spread_over_the_fortnight = GatherRecords {
+            measurements: [7, 11, 16, 20]
+                .iter()
+                .map(|at| weighed.measurements[*at])
+                .collect(),
+            ..weighed
+        };
+
+        assert!(pace_on(day("2026-10-10"), &spread_over_the_fortnight).is_some());
+    }
+
+    #[test]
     fn fewer_than_four_weigh_ins_in_the_week_give_no_pace() {
         let weighed = a_man_weighed(80.0, -0.05);
         let three_weigh_ins = GatherRecords {
