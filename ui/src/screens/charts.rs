@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use grind_core::figures::{Figure, bare, shown};
+use grind_core::figures::{Figure, bare};
 use grind_core::for_charting::{
     BandChart, BurnChart, BurnRow, FuelRow, GatherChart, GatherRow, HydrateRow, Month,
 };
@@ -8,7 +8,10 @@ use grind_core::streak::{Status, StreakDay};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
-use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
+use crate::chart::{
+    HEIGHT, Label, WIDTH, axis_of, clear_of, days_along, labelled, level, line_of, spread_out,
+    ticks_on,
+};
 use crate::lines;
 use crate::screens::cells::opening_cell;
 use crate::screens::header::tick_class;
@@ -16,10 +19,6 @@ use crate::screens::pills::pill_buttons;
 use crate::screens::said::refused_line;
 use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use crate::tauri;
-
-pub const WIDTH: f64 = 360.0;
-pub const HEIGHT: f64 = 180.0;
-const LABEL_GAP: f64 = 16.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Chip {
@@ -51,13 +50,6 @@ pub struct Line {
     pub class: &'static str,
 }
 
-#[derive(Clone)]
-pub struct Label {
-    at: f64,
-    text: String,
-    class: &'static str,
-}
-
 #[derive(Clone, Default)]
 pub struct Plotted {
     pub lines: Vec<Line>,
@@ -76,58 +68,8 @@ pub fn span_of<'a>(
     Some((first, last))
 }
 
-fn level(value: f64, scale: (f64, f64)) -> String {
-    let y = height_of(value, scale, HEIGHT);
-    format!("0,{y:.1} {WIDTH},{y:.1}")
-}
-
 fn current(points: &[(NaiveDate, f64)]) -> Option<f64> {
     points.last().map(|(_, value)| *value)
-}
-
-fn labelled(
-    value: Option<f64>,
-    scale: (f64, f64),
-    figure: fn(f64) -> Figure,
-    class: &'static str,
-) -> Option<Label> {
-    value.map(|value| Label {
-        at: height_of(value, scale, HEIGHT),
-        text: shown(figure(value)),
-        class,
-    })
-}
-
-pub fn ticks_on(axis: Axis, figure: impl Fn(f64) -> Figure, class: &'static str) -> Vec<Label> {
-    axis.ticks()
-        .into_iter()
-        .map(|value| Label {
-            at: height_of(value, axis.scale(), HEIGHT),
-            text: bare(figure(value)),
-            class,
-        })
-        .collect()
-}
-
-fn spread_out(labels: Vec<Label>) -> Vec<Label> {
-    let heights: Vec<f64> = labels.iter().map(|label| label.at).collect();
-    labels
-        .into_iter()
-        .zip(spread(&heights, LABEL_GAP, HEIGHT))
-        .map(|(label, at)| Label { at, ..label })
-        .collect()
-}
-
-/// The ticks a series' own label leaves room for: the label says more than the tick it covers.
-fn clear_of(ticks: Vec<Label>, labels: &[Label]) -> Vec<Label> {
-    ticks
-        .into_iter()
-        .filter(|tick| {
-            labels
-                .iter()
-                .all(|label| (label.at - tick.at).abs() >= LABEL_GAP)
-        })
-        .collect()
 }
 
 /// Both masses on one axis, as both are kilograms, each with its goal.
@@ -748,104 +690,5 @@ pub fn Charts(today: String) -> impl IntoView {
                     .collect_view()}
             </ul>
         </section>
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn label(at: f64, text: &str, class: &'static str) -> Label {
-        Label {
-            at,
-            text: text.into(),
-            class,
-        }
-    }
-
-    fn read(labels: &[Label]) -> Vec<(f64, &str, &str)> {
-        labels
-            .iter()
-            .map(|label| (label.at, label.text.as_str(), label.class))
-            .collect()
-    }
-
-    #[test]
-    fn a_goal_level_runs_across_the_width_at_its_height() {
-        let goal = level(70.0, (60.0, 80.0));
-
-        assert_eq!(goal, "0,90.0 360,90.0");
-    }
-
-    #[test]
-    fn a_value_is_labelled_in_full_at_its_height_and_nothing_without_one() {
-        let mass = labelled(Some(70.0), (60.0, 80.0), Figure::Mass, "mass");
-        let none = labelled(None, (60.0, 80.0), Figure::Mass, "mass");
-
-        assert_eq!(read(&Vec::from_iter(mass)), [(90.0, "70.0 kg", "mass")]);
-        assert!(none.is_none());
-    }
-
-    #[test]
-    fn an_axis_ticks_its_bare_numbers_at_their_heights() {
-        let axis = Axis {
-            lowest: 60.0,
-            highest: 80.0,
-            step: 10.0,
-        };
-
-        let ticks = ticks_on(axis, Figure::Mass, "");
-
-        assert_eq!(
-            read(&ticks),
-            [(180.0, "60.0", ""), (90.0, "70.0", ""), (0.0, "80.0", "")]
-        );
-    }
-
-    #[test]
-    fn labels_too_close_are_spread_apart_keeping_what_they_read() {
-        let labels = vec![
-            label(100.0, "72.4 kg", "mass"),
-            label(95.0, "58.1 kg", "lean"),
-            label(178.0, "55.0 kg", "goal"),
-        ];
-
-        let spread = spread_out(labels);
-
-        assert_eq!(
-            read(&spread),
-            [
-                (111.0, "72.4 kg", "mass"),
-                (95.0, "58.1 kg", "lean"),
-                (178.0, "55.0 kg", "goal"),
-            ]
-        );
-    }
-
-    #[test]
-    fn a_tick_a_label_would_cover_is_left_out_and_one_a_gap_away_kept() {
-        let ticks = vec![
-            label(0.0, "80.0", ""),
-            label(45.0, "75.0", ""),
-            label(90.0, "70.0", ""),
-            label(135.0, "65.0", ""),
-            label(180.0, "60.0", ""),
-        ];
-        let goals = [
-            label(61.0, "73.2 kg", "goal"),
-            label(125.0, "66.1 kg", "lean"),
-        ];
-
-        let cleared = clear_of(ticks, &goals);
-
-        assert_eq!(
-            read(&cleared),
-            [
-                (0.0, "80.0", ""),
-                (45.0, "75.0", ""),
-                (90.0, "70.0", ""),
-                (180.0, "60.0", ""),
-            ]
-        );
     }
 }

@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use grind_core::figures::{Figure, bare, shown};
 use grind_core::heading::Aim;
 use grind_core::judgement::AT_THE_AIM_SHARE;
 
@@ -278,6 +279,66 @@ pub fn spread(heights: &[f64], gap: f64, height: f64) -> Vec<f64> {
         placed_at[pair[0]] = placed_at[pair[0]].min(placed_at[pair[1]] - gap);
     }
     placed_at
+}
+
+pub const WIDTH: f64 = 360.0;
+pub const HEIGHT: f64 = 180.0;
+pub const LABEL_GAP: f64 = 16.0;
+#[derive(Clone)]
+pub struct Label {
+    pub at: f64,
+    pub text: String,
+    pub class: &'static str,
+}
+
+pub fn level(value: f64, scale: (f64, f64)) -> String {
+    let y = height_of(value, scale, HEIGHT);
+    format!("0,{y:.1} {WIDTH},{y:.1}")
+}
+
+pub fn labelled(
+    value: Option<f64>,
+    scale: (f64, f64),
+    figure: fn(f64) -> Figure,
+    class: &'static str,
+) -> Option<Label> {
+    value.map(|value| Label {
+        at: height_of(value, scale, HEIGHT),
+        text: shown(figure(value)),
+        class,
+    })
+}
+
+pub fn ticks_on(axis: Axis, figure: impl Fn(f64) -> Figure, class: &'static str) -> Vec<Label> {
+    axis.ticks()
+        .into_iter()
+        .map(|value| Label {
+            at: height_of(value, axis.scale(), HEIGHT),
+            text: bare(figure(value)),
+            class,
+        })
+        .collect()
+}
+
+pub fn spread_out(labels: Vec<Label>) -> Vec<Label> {
+    let heights: Vec<f64> = labels.iter().map(|label| label.at).collect();
+    labels
+        .into_iter()
+        .zip(spread(&heights, LABEL_GAP, HEIGHT))
+        .map(|(label, at)| Label { at, ..label })
+        .collect()
+}
+
+/// The ticks a series' own label leaves room for: the label says more than the tick it covers.
+pub fn clear_of(ticks: Vec<Label>, labels: &[Label]) -> Vec<Label> {
+    ticks
+        .into_iter()
+        .filter(|tick| {
+            labels
+                .iter()
+                .all(|label| (label.at - tick.at).abs() >= LABEL_GAP)
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -609,6 +670,105 @@ mod tests {
                 .collect::<Vec<_>>(),
             [
                 "10-04", "10-05", "10-06", "10-07", "10-08", "10-09", "10-10"
+            ]
+        );
+    }
+}
+
+#[cfg(test)]
+mod label_tests {
+    use super::*;
+
+    fn label(at: f64, text: &str, class: &'static str) -> Label {
+        Label {
+            at,
+            text: text.into(),
+            class,
+        }
+    }
+
+    fn read(labels: &[Label]) -> Vec<(f64, &str, &str)> {
+        labels
+            .iter()
+            .map(|label| (label.at, label.text.as_str(), label.class))
+            .collect()
+    }
+
+    #[test]
+    fn a_goal_level_runs_across_the_width_at_its_height() {
+        let goal = level(70.0, (60.0, 80.0));
+
+        assert_eq!(goal, "0,90.0 360,90.0");
+    }
+
+    #[test]
+    fn a_value_is_labelled_in_full_at_its_height_and_nothing_without_one() {
+        let mass = labelled(Some(70.0), (60.0, 80.0), Figure::Mass, "mass");
+        let none = labelled(None, (60.0, 80.0), Figure::Mass, "mass");
+
+        assert_eq!(read(&Vec::from_iter(mass)), [(90.0, "70.0 kg", "mass")]);
+        assert!(none.is_none());
+    }
+
+    #[test]
+    fn an_axis_ticks_its_bare_numbers_at_their_heights() {
+        let axis = Axis {
+            lowest: 60.0,
+            highest: 80.0,
+            step: 10.0,
+        };
+
+        let ticks = ticks_on(axis, Figure::Mass, "");
+
+        assert_eq!(
+            read(&ticks),
+            [(180.0, "60.0", ""), (90.0, "70.0", ""), (0.0, "80.0", "")]
+        );
+    }
+
+    #[test]
+    fn labels_too_close_are_spread_apart_keeping_what_they_read() {
+        let labels = vec![
+            label(100.0, "72.4 kg", "mass"),
+            label(95.0, "58.1 kg", "lean"),
+            label(178.0, "55.0 kg", "goal"),
+        ];
+
+        let spread = spread_out(labels);
+
+        assert_eq!(
+            read(&spread),
+            [
+                (111.0, "72.4 kg", "mass"),
+                (95.0, "58.1 kg", "lean"),
+                (178.0, "55.0 kg", "goal"),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_tick_a_label_would_cover_is_left_out_and_one_a_gap_away_kept() {
+        let ticks = vec![
+            label(0.0, "80.0", ""),
+            label(45.0, "75.0", ""),
+            label(90.0, "70.0", ""),
+            label(135.0, "65.0", ""),
+            label(180.0, "60.0", ""),
+        ];
+        let goals = [
+            label(61.0, "73.2 kg", "goal"),
+            label(125.0, "66.1 kg", "lean"),
+        ];
+
+        let cleared = clear_of(ticks, &goals);
+
+        assert_eq!(
+            read(&cleared),
+            [
+                (0.0, "80.0", ""),
+                (45.0, "75.0", ""),
+                (90.0, "70.0", ""),
+                (180.0, "60.0", ""),
             ]
         );
     }
