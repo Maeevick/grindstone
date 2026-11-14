@@ -171,8 +171,8 @@ pub fn failure(failure: &Failure) -> String {
                 .into()
         }
         Failure::Refused(Refusal::AnotherSchema { copy, store }) => format!(
-            "That copy holds version {copy} of the records, and this phone keeps version {store}. I restore \
-             only a copy of the same version: nothing changed."
+            "That copy holds version {copy} of the records, newer than this phone's version {store}: install \
+             the app that wrote it first. Nothing changed."
         ),
         Failure::Refused(Refusal::NotWeighed) => {
             "That ingredient is counted in pieces, and the lab cooks by mass: add it in grams or \
@@ -1128,7 +1128,7 @@ mod tests {
         let refused = [
             Refusal::NotACopy,
             Refusal::NoCopyPushed,
-            Refusal::AnotherSchema { copy: 3, store: 5 },
+            Refusal::AnotherSchema { copy: 6, store: 5 },
         ];
 
         let said = refused.map(|refusal| failure(&Failure::Refused(refusal)));
@@ -1139,8 +1139,8 @@ mod tests {
                 "That file is no copy of mine: I only restore what Copy the records wrote. Nothing changed.",
                 "No copy waits on the phone yet: plug it in and run make import-android \
                  BACKUP=exports/<file>.json first.",
-                "That copy holds version 3 of the records, and this phone keeps version 5. I restore \
-                 only a copy of the same version: nothing changed.",
+                "That copy holds version 6 of the records, newer than this phone's version 5: install \
+                 the app that wrote it first. Nothing changed.",
             ]
         );
     }

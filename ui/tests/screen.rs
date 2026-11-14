@@ -5887,7 +5887,7 @@ async fn a_restored_copy_the_phone_would_not_delete_is_named_to_be_cleaned_up_by
 #[wasm_bindgen_test]
 async fn a_copy_of_another_version_is_refused_in_plain_words() {
     answering(
-        r#"{ "restore_a_copy": { "__throws": { "Refused": { "AnotherSchema": { "copy": 25, "store": 26 } } } } }"#,
+        r#"{ "restore_a_copy": { "__throws": { "Refused": { "AnotherSchema": { "copy": 28, "store": 27 } } } } }"#,
     );
     let screen = screen();
     let _mounted = the_settings(&screen);
@@ -5900,8 +5900,8 @@ async fn a_copy_of_another_version_is_refused_in_plain_words() {
 
     assert_eq!(
         text_of(&screen, "section#copy p.said"),
-        "That copy holds version 25 of the records, and this phone keeps version 26. I restore only a \
-         copy of the same version: nothing changed."
+        "That copy holds version 28 of the records, newer than this phone's version 27: install the app \
+         that wrote it first. Nothing changed."
     );
 }
 

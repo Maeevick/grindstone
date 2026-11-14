@@ -182,9 +182,14 @@ fn migrated(connection: Connection) -> Result<Sqlite, Broken> {
 }
 
 fn migrate(connection: &Connection) -> rusqlite::Result<()> {
+    migrate_up_to(connection, i64::MAX)
+}
+
+/// Runs the migrations not applied yet, up to the version given and no further.
+fn migrate_up_to(connection: &Connection, last: i64) -> rusqlite::Result<()> {
     let applied: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
     for (version, migration) in (1_i64..).zip(MIGRATIONS) {
-        if version > applied {
+        if version > applied && version <= last {
             connection.execute_batch(migration)?;
             connection.pragma_update(None, "user_version", version)?;
         }
@@ -988,17 +993,22 @@ impl ForCopyingRecords for Sqlite {
             .0
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .map_err(unrestorable)?;
-        if copy.schema_version != store {
+        if copy.schema_version > store {
             return Err(Unrestorable::AnotherSchema {
                 copy: copy.schema_version,
                 store,
             });
         }
-        if !fits_the_schema(&self.0, &copy.tables).map_err(unrestorable)? {
+        let tables = if copy.schema_version < store {
+            brought_up_to_date(copy.schema_version, &copy.tables)?
+        } else {
+            copy.tables
+        };
+        if !fits_the_schema(&self.0, &tables).map_err(unrestorable)? {
             return Err(Unrestorable::NotACopy);
         }
         let restoring = self.0.unchecked_transaction().map_err(unrestorable)?;
-        let counted = replace_every_table(&restoring, &copy.tables).map_err(unrestorable)?;
+        let counted = replace_every_table(&restoring, &tables).map_err(unrestorable)?;
         self.reads_back().map_err(|_| Unrestorable::NotACopy)?;
         restoring.commit().map_err(unrestorable)?;
         Ok(counted)
@@ -1042,6 +1052,19 @@ fn fits_the_schema(
         }
     }
     Ok(true)
+}
+
+/// An older copy's tables as this schema holds them: written into a store at the copy's version, which every
+/// migration since then brings up to this one, the way the app's own records were brought.
+fn brought_up_to_date(
+    version: i64,
+    tables: &std::collections::BTreeMap<String, Rows>,
+) -> Result<std::collections::BTreeMap<String, Rows>, Unrestorable> {
+    let older = Connection::open_in_memory().map_err(unrestorable)?;
+    migrate_up_to(&older, version).map_err(unrestorable)?;
+    replace_every_table(&older, tables).map_err(unrestorable)?;
+    migrate(&older).map_err(unrestorable)?;
+    tables_of(&older).map_err(unrestorable)
 }
 
 fn unrestorable(error: rusqlite::Error) -> Unrestorable {
@@ -1107,23 +1130,8 @@ const EVERY_TABLE: &str = "select name from sqlite_master where type = 'table' a
 fn copy_of(connection: &Connection, on: NaiveDate) -> rusqlite::Result<RecordsCopy> {
     let schema_version: i64 =
         connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
-    let names = connection
-        .prepare(EVERY_TABLE)?
-        .query_map([], |row| row.get::<_, String>(0))?
-        .collect::<rusqlite::Result<Vec<_>>>()?;
-    let mut tables = serde_json::Map::new();
-    for name in names {
-        let rows = rows_of(connection, &name)?;
-        tables.insert(name, serde_json::Value::Array(rows));
-    }
-    let (counted, records) = (
-        tables.len(),
-        tables
-            .values()
-            .filter_map(serde_json::Value::as_array)
-            .map(Vec::len)
-            .sum(),
-    );
+    let tables = tables_of(connection)?;
+    let (counted, records) = (tables.len(), tables.values().map(Vec::len).sum());
     let copy = serde_json::json!({
         "schema_version": schema_version,
         "exported_on": on.to_string(),
@@ -1138,7 +1146,22 @@ fn copy_of(connection: &Connection, on: NaiveDate) -> rusqlite::Result<RecordsCo
     })
 }
 
-fn rows_of(connection: &Connection, table: &str) -> rusqlite::Result<Vec<serde_json::Value>> {
+/// Every table of the store and its rows, column by column, in the order they were written.
+fn tables_of(
+    connection: &Connection,
+) -> rusqlite::Result<std::collections::BTreeMap<String, Rows>> {
+    connection
+        .prepare(EVERY_TABLE)?
+        .query_map([], |row| row.get::<_, String>(0))?
+        .map(|name| {
+            let name = name?;
+            let rows = rows_of(connection, &name)?;
+            Ok((name, rows))
+        })
+        .collect()
+}
+
+fn rows_of(connection: &Connection, table: &str) -> rusqlite::Result<Rows> {
     let mut statement = connection.prepare(&format!("select * from \"{table}\" order by rowid"))?;
     let columns: Vec<String> = statement
         .column_names()
@@ -1152,7 +1175,6 @@ fn rows_of(connection: &Connection, table: &str) -> rusqlite::Result<Vec<serde_j
                 .enumerate()
                 .map(|(at, column)| Ok((column.clone(), json_of(row.get_ref(at)?))))
                 .collect::<rusqlite::Result<serde_json::Map<_, _>>>()
-                .map(serde_json::Value::Object)
         })?
         .collect()
 }

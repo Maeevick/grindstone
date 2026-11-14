@@ -293,7 +293,7 @@ To restore a copy, the phone plugged in:
 make import-android BACKUP=exports/<file>.json
 ```
 
-Then, in the same card, type `RESTORE` and tap **Restore the copy**. Every record on the phone is replaced by the copy's, all at once or not at all, and the app tells how many records and tables came back. Once restored, the pushed copy is deleted from the phone. A copy of another schema version is refused, both versions named, and nothing changes: the copy stays on the phone, to be replaced. There is no undo: copy the records first.
+Then, in the same card, type `RESTORE` and tap **Restore the copy**. Every record on the phone is replaced by the copy's, all at once or not at all, and the app tells how many records and tables came back. Once restored, the pushed copy is deleted from the phone. A copy kept by an older app is brought up to this one's schema on the way in, as the app's own records were. A copy from a newer app is refused, both versions named, and nothing changes: the copy stays on the phone, to be replaced. There is no undo: copy the records first.
 
 ## Update
 
