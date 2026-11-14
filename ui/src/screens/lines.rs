@@ -1460,7 +1460,17 @@ mod tests {
             records: 1,
         };
 
-        let said = [copied(many), copied(one), restored(many), restored(one)];
+        let kept = |counted| Restored {
+            counted,
+            left_behind: None,
+        };
+
+        let said = [
+            copied(many),
+            copied(one),
+            restored(kept(many)),
+            restored(kept(one)),
+        ];
 
         assert_eq!(
             said,
@@ -1470,6 +1480,25 @@ mod tests {
                 "Restored 1234 records from 9 tables.",
                 "Restored 1 record from 1 table.",
             ]
+        );
+    }
+
+    #[test]
+    fn a_restored_copy_the_phone_kept_names_where_to_clean_it_up() {
+        let left = Restored {
+            counted: Counted {
+                tables: 9,
+                records: 1234,
+            },
+            left_behind: Some("/storage/emulated/0/Documents/grindstone-copy.json".into()),
+        };
+
+        let said = restored(left);
+
+        assert_eq!(
+            said,
+            "Restored 1234 records from 9 tables. An error occurred: the copy could not be deleted. You can clean \
+             it up by hand in /storage/emulated/0/Documents/grindstone-copy.json, as I do with the boxes in my cave."
         );
     }
 
