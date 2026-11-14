@@ -1,8 +1,9 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
+use crate::lines;
 use crate::screens::charts::Charts;
-use crate::screens::{lines, today};
+use crate::screens::today;
 use crate::tauri;
 
 #[component]

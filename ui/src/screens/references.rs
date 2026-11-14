@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
 
-use crate::screens::lines;
+use crate::lines;
 use crate::tauri;
 
 pub fn anchor_of(topic: Topic) -> &'static str {

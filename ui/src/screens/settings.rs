@@ -1,8 +1,9 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
 use crate::screens::said::said_line;
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 
 #[component]

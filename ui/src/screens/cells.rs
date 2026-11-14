@@ -3,7 +3,7 @@ use grind_core::food::Nutrients;
 use grind_core::week::Averaged;
 use leptos::prelude::*;
 
-use crate::screens::lines;
+use crate::lines;
 
 /// Energy and macros in the order the food tables head them: kcal, protein, fat, fibre, carbs.
 pub fn nutrient_cells(nutrients: Nutrients) -> impl IntoView {

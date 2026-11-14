@@ -7,9 +7,10 @@ use grind_core::for_cataloguing::CircuitForm;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
+use crate::screens::Recorded;
 use crate::screens::circuits::{asked_step, step_kcal};
 use crate::screens::fields::FigureField;
-use crate::screens::{Recorded, lines};
 use crate::tauri;
 use crate::typed::count_typed;
 

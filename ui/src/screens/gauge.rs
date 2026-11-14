@@ -4,7 +4,7 @@ use grind_core::heading::Aim;
 use leptos::prelude::*;
 
 use crate::chart::{aim_gauge_of, burn_gauge_of, energy_gauge_of, gauge_of};
-use crate::screens::lines;
+use crate::lines;
 
 /// Where a label stands against its place on the line: under a tick, anchored at the share of itself its tick
 /// takes of the line; or ending at the left edge of a zone, sliding over the edge rather than out of the gauge

@@ -6,8 +6,9 @@ use grind_core::workout::activity_induced_energy_expenditure_from_compendium;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
+use crate::screens::Recorded;
 use crate::screens::cells::opening_cell;
-use crate::screens::{Recorded, lines};
 use crate::tauri;
 
 pub(crate) fn how_a_step_goes(reps: Option<u32>, minutes: f64, load_kg: f64) -> String {

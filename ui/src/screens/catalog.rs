@@ -7,6 +7,7 @@ use grind_core::meal::{Meal, food_of};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::cells::opening_cell;
 use crate::screens::circuits::CircuitsList;
@@ -16,7 +17,7 @@ use crate::screens::entries::{
 use crate::screens::hydrate::{DrinksList, NewDrink};
 use crate::screens::pills::pill_buttons;
 use crate::screens::said::{refused_line, said_line};
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 

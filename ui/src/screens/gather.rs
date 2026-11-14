@@ -3,12 +3,13 @@ use grind_core::for_tracking::GatherWeek;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
 use crate::screens::fields::FigureField;
 use crate::screens::gauge::AimGauge;
 use crate::screens::last_days::GatherLastDays;
 use crate::screens::said::refused_line;
 use crate::screens::tab::DayCard;
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 

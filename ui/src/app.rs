@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{A, Route, Router, Routes};
 use leptos_router::path;
 
+use crate::lines;
 use crate::screens::Recorded;
 use crate::screens::burn::BurnTab;
 use crate::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
@@ -10,7 +11,6 @@ use crate::screens::gather::GatherTab;
 use crate::screens::header::Header;
 use crate::screens::home::Home;
 use crate::screens::hydrate::HydrateTab;
-use crate::screens::lines;
 use crate::screens::plate::PlateInProgress;
 use crate::screens::profile::ProfileScreen;
 use crate::screens::references::ReferencesScreen;

@@ -9,6 +9,8 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::lines;
+use crate::lines::AboutToEat;
 use crate::screens::catalog::MealDetails;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::charts::bare_or_dash;
@@ -16,11 +18,10 @@ use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
 use crate::screens::last_days::{FuelLastDays, entries_failed, entries_said};
-use crate::screens::lines::AboutToEat;
 use crate::screens::plate::{InThePot, Plate, PlateInProgress};
 use crate::screens::said::said_line;
 use crate::screens::tab::{DayCard, FormTitle};
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 

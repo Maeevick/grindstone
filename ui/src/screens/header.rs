@@ -3,7 +3,8 @@ use leptos::prelude::*;
 use leptos_router::components::A;
 use leptos_router::hooks::use_location;
 
-use crate::screens::{Recorded, lines, today};
+use crate::lines;
+use crate::screens::{Recorded, today};
 use crate::tauri;
 
 /// A tick's mark and its word, so it never rests on colour alone.

@@ -13,6 +13,8 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::lines;
+use crate::lines::AboutToBurn;
 use crate::screens::cells::opening_cell;
 use crate::screens::charts::bare_or_dash;
 use crate::screens::circuits::how_a_step_goes;
@@ -20,12 +22,11 @@ use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::{BurnLastDays, entries_failed, entries_said};
-use crate::screens::lines::AboutToBurn;
 use crate::screens::pills::pill_buttons;
 use crate::screens::said::said_line;
 use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, FormTitle};
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
 

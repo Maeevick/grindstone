@@ -7,9 +7,10 @@ use grind_core::meal::MASS_KEPT;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
+use crate::screens::Recorded;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::fields::FigureField;
-use crate::screens::{Recorded, lines};
 use crate::tauri;
 use crate::typed::figures_typed;
 

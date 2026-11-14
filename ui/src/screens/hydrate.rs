@@ -12,6 +12,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
+use crate::lines;
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::gauge::Gauge;
@@ -19,7 +20,7 @@ use crate::screens::last_days::{HydrateLastDays, entries_failed, entries_said};
 use crate::screens::profile::{Advised, ProfileCard, holding, keep_and_show, shown_in_force};
 use crate::screens::said::refused_line;
 use crate::screens::tab::{DayCard, FormTitle};
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 

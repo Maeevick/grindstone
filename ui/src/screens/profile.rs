@@ -15,12 +15,13 @@ use grind_core::volitional::Volitional;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
+use crate::lines;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateTargetCard;
 use crate::screens::references::ReferencesLink;
 use crate::screens::said::said_line;
 use crate::screens::settings::Settings;
-use crate::screens::{Recorded, lines, today};
+use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::figures_typed;
 

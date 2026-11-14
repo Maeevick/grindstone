@@ -9,9 +9,9 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::chart::{Axis, axis_of, days_along, height_of, line_of, spread};
+use crate::lines;
 use crate::screens::cells::opening_cell;
 use crate::screens::header::tick_class;
-use crate::screens::lines;
 use crate::screens::pills::pill_buttons;
 use crate::screens::said::refused_line;
 use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};

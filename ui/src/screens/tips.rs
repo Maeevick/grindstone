@@ -7,9 +7,9 @@ use grind_core::pace::Pace;
 use grind_core::tendency::{Change, Heading};
 use leptos::prelude::*;
 
+use crate::lines;
 use crate::screens::cells::week_table;
 use crate::screens::charts::bare_or_dash;
-use crate::screens::lines;
 use crate::tauri;
 
 fn pace_line(
