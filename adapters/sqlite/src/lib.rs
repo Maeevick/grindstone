@@ -993,6 +993,9 @@ impl ForCopyingRecords for Sqlite {
             .0
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .map_err(unrestorable)?;
+        if copy.schema_version < 1 {
+            return Err(Unrestorable::NotACopy);
+        }
         if copy.schema_version > store {
             return Err(Unrestorable::AnotherSchema {
                 copy: copy.schema_version,
