@@ -8,6 +8,7 @@ use grind_core::for_burning::{
     OffTheClockForm, WorkoutForm,
 };
 use grind_core::nutrition::Budget;
+use grind_core::volitional::Volitional;
 use grind_core::workout::{burnt_by, workout};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -230,9 +231,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let reps = RwSignal::new(String::new());
     let sets = RwSignal::new(String::new());
     let load = RwSignal::new(String::new());
-    let sitting = RwSignal::new(String::new());
-    let standing = RwSignal::new(String::new());
-    let moving = RwSignal::new(String::new());
+    let off_the_clock = OffTheClockTyped::default();
     let logging = RwSignal::new(Logging::Workout);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
@@ -257,9 +256,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     });
     let shown_burn = Callback::new(move |answer: Burn| {
         if let Some(off) = answer.off_the_clock {
-            sitting.set(off.sitting_min.to_string());
-            standing.set(off.standing_min.to_string());
-            moving.set(off.moving_km.to_string());
+            off_the_clock.shown(off);
         }
         burn.set(Some(answer));
     });
@@ -322,13 +319,13 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         (false, Some(kcal)) => Some((AboutToBurn::Workout, kcal)),
         (false, None) => None,
     });
-    let budget_of = move |date: String| {
+    let budget_of = Callback::new(move |date: String| {
         spawn_local(async move {
             if let Ok(fuel) = tauri::fuel_day(&date).await {
                 budget.set(fuel.budget);
             }
         });
-    };
+    });
     Effect::new(move |_| {
         recorded.heard();
         spawn_local(async move {
@@ -344,7 +341,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     Effect::new(move |_| {
         recorded.heard();
         let date = day.get();
-        budget_of(date.clone());
+        budget_of.run(date.clone());
         spawn_local(async move {
             match tauri::burn_day(&date).await {
                 Ok(answer) => shown_burn.run(answer),
@@ -471,34 +468,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let log = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         served(on_the_session.get_untracked());
-    };
-    let keep_off_the_clock = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        let date = day.get_untracked();
-        let Some([sitting_min, standing_min, moving_km]) = figures_typed([
-            &sitting.get_untracked(),
-            &standing.get_untracked(),
-            &moving.get_untracked(),
-        ]) else {
-            said.set(Some(lines::UNREADABLE.into()));
-            return;
-        };
-        let form = OffTheClockForm {
-            sitting_min: sitting_min.unwrap_or(0.0),
-            standing_min: standing_min.unwrap_or(0.0),
-            moving_km: moving_km.unwrap_or(0.0),
-        };
-        spawn_local(async move {
-            match tauri::set_day_off_the_clock(&date, &form).await {
-                Ok(answer) => {
-                    shown_burn.run(answer);
-                    budget_of(date);
-                    said.set(Some(lines::DAY_OFF_THE_CLOCK_KEPT.into()));
-                    recorded.told();
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
     };
     view! {
         <section class="card">
@@ -633,26 +602,102 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                 }
                 Logging::OffTheClock => {
                     view! {
-                        {move || {
-                            burn.get()
-                                .map(|answer| view! { <p class="hint">{lines::off_the_clock(&answer)}</p> })
-                        }}
-                        <form class="off-the-clock" on:submit=keep_off_the_clock>
-                            <div class="row">
-                                <FigureField label="Sitting (min)" name="sitting" value=sitting />
-                                <FigureField label="Standing (min)" name="standing" value=standing />
-                                <FigureField label="Moving (km)" name="moving" value=moving />
-                            </div>
-                            <button class="cta" type="submit">
-                                "Keep for this day"
-                            </button>
-                        </form>
+                        <OffTheClockLog
+                            day=day
+                            burn=burn
+                            typed=off_the_clock
+                            said=said
+                            shown_burn=shown_burn
+                            budget_of=budget_of
+                        />
                     }
                         .into_any()
                 }
             }}
             {said_line(said)}
         </section>
+        <BurnStands burn=burn about_to_burn=about_to_burn />
+    }
+}
+
+/// The day off the clock as typed: minutes sitting and standing, kilometres moving.
+#[derive(Clone, Copy, Default)]
+struct OffTheClockTyped {
+    sitting: RwSignal<String>,
+    standing: RwSignal<String>,
+    moving: RwSignal<String>,
+}
+
+impl OffTheClockTyped {
+    fn shown(self, off: Volitional) {
+        self.sitting.set(off.sitting_min.to_string());
+        self.standing.set(off.standing_min.to_string());
+        self.moving.set(off.moving_km.to_string());
+    }
+}
+
+#[component]
+fn OffTheClockLog(
+    day: RwSignal<String>,
+    burn: RwSignal<Option<Burn>>,
+    typed: OffTheClockTyped,
+    said: RwSignal<Option<String>>,
+    shown_burn: Callback<Burn>,
+    budget_of: Callback<String>,
+) -> impl IntoView {
+    let recorded = Recorded::here();
+    let keep_off_the_clock = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let date = day.get_untracked();
+        let Some([sitting_min, standing_min, moving_km]) = figures_typed([
+            &typed.sitting.get_untracked(),
+            &typed.standing.get_untracked(),
+            &typed.moving.get_untracked(),
+        ]) else {
+            said.set(Some(lines::UNREADABLE.into()));
+            return;
+        };
+        let form = OffTheClockForm {
+            sitting_min: sitting_min.unwrap_or(0.0),
+            standing_min: standing_min.unwrap_or(0.0),
+            moving_km: moving_km.unwrap_or(0.0),
+        };
+        spawn_local(async move {
+            match tauri::set_day_off_the_clock(&date, &form).await {
+                Ok(answer) => {
+                    shown_burn.run(answer);
+                    budget_of.run(date);
+                    said.set(Some(lines::DAY_OFF_THE_CLOCK_KEPT.into()));
+                    recorded.told();
+                }
+                Err(failure) => said.set(Some(lines::failure(&failure))),
+            }
+        });
+    };
+    view! {
+        {move || {
+            burn.get()
+                .map(|answer| view! { <p class="hint">{lines::off_the_clock(&answer)}</p> })
+        }}
+        <form class="off-the-clock" on:submit=keep_off_the_clock>
+            <div class="row">
+                <FigureField label="Sitting (min)" name="sitting" value=typed.sitting />
+                <FigureField label="Standing (min)" name="standing" value=typed.standing />
+                <FigureField label="Moving (km)" name="moving" value=typed.moving />
+            </div>
+            <button class="cta" type="submit">
+                "Keep for this day"
+            </button>
+        </form>
+    }
+}
+
+#[component]
+fn BurnStands(
+    burn: RwSignal<Option<Burn>>,
+    about_to_burn: Signal<Option<(AboutToBurn, f64)>>,
+) -> impl IntoView {
+    view! {
         {move || {
             burn.get()
                 .map(|answer| {
