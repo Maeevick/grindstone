@@ -137,7 +137,7 @@ mod tests {
     }
 
     #[test]
-    fn a_mans_budget_adds_up_his_resting_organ_digestion_and_non_exercise_burns() {
+    fn a_mans_budget_adds_up_his_resting_digestion_and_non_exercise_burns_the_organs_inside_the_resting_rate() {
         let intake = Intake {
             energy: 2500.0,
             macros: Macro {
@@ -151,7 +151,7 @@ mod tests {
         assert!(about(
             daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake)
                 .kcal(),
-            1774.0 * 0.9685 + 102.5 + 275.75 + 431.52
+            1774.0 * 0.9685 + 275.75 + 431.52
         ));
     }
 
