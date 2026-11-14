@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn a_day_aims_for_the_drinks_share_of_the_water_its_lean_mass_turns_over_and_of_a_millilitre_and_a_quarter_per_kcal_burnt()
+    fn a_day_aims_for_the_drinks_share_of_the_water_yamadas_equation_turns_over_for_its_lean_mass_and_age_and_of_a_millilitre_and_a_quarter_per_kcal_burnt()
      {
         let gather = a_man_measured_with_his_waist();
 
@@ -355,9 +355,14 @@ mod tests {
             &FuelRecords::default(),
         );
 
+        let (lean_kg, age) = (lean_mass_kg_of(&gather), 41.0);
+        let turned_over_ml = 861.9 * 1.75 + 37.34 * lean_kg + 4.288 * 50.0 - 0.3625 * age * age
+            + 29.42 * age
+            + 1.937 * 10.0 * 10.0
+            - 23.15 * 10.0
+            - 984.8;
         let drinks_share = 0.85 * 0.8;
-        let optimal_ml =
-            drinks_share * (lean_mass_kg_of(&gather) * 0.732 * 0.099 * 1000.0 + 1.25 * 252.0);
+        let optimal_ml = drinks_share * (turned_over_ml + 1.25 * 252.0);
         assert!(about(hydrate.target_ml, optimal_ml));
         assert!(about(hydrate.cap_ml, 1.2 * optimal_ml));
     }
