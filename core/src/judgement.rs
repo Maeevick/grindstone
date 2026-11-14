@@ -27,8 +27,7 @@ pub struct Week {
 }
 
 /// Health first: a loss past the safe loss is dangerous whatever the aim; the healthy ranges are the profile's word.
-/// Towards a higher aim, a quarter to half a percent of the body mass a week builds more than it stores:
-/// Iraki J. et al. (2019), *Nutrition recommendations for bodybuilders in the off-season*, Sports 7(7):154.
+/// Towards a higher aim, a quarter to half a percent of the body mass a week builds more than it stores [7].
 pub fn judgement_of(week: &Week) -> Judgement {
     let losing = week.per_week < -STABLE_SHARE_A_WEEK * week.body_mass_kg;
     let gaining = week.per_week > STABLE_SHARE_A_WEEK * week.body_mass_kg;

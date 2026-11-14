@@ -38,8 +38,8 @@ impl Aims {
 }
 
 /// The goals in force on a day: those kept from the latest day up to it (the earliest before any), their own
-/// or the healthy weight and fat recommended for the profile in force (WHO's body mass index, Gallagher's
-/// fat); never kept, the recommendation; nothing without a profile to recommend for.
+/// or the healthy weight and fat recommended for the profile in force (WHO's body mass index [3], Gallagher's
+/// fat [4]); never kept, the recommendation; nothing without a profile to recommend for.
 pub(crate) fn goals_in_force(day: NaiveDate, gathered: &GatherRecords) -> Option<InForce<Goals>> {
     in_force(dated_version_in_force_on(&gathered.goals, day), || {
         version_in_force_on(&gathered.profiles, day).map(|profile| {

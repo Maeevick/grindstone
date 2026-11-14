@@ -27,21 +27,18 @@ pub struct Recommendations {
 
 /// The recommendations for a profile on a day.
 ///
-/// - Healthy mass: the World Health Organization's normal body mass index, 18.5 to 24.9,
-///   at the profile's height; the goal sits at its middle, 21.7.
-///   WHO (2000), *Obesity: preventing and managing the global epidemic*, Technical Report Series 894.
-/// - Healthy fat: the percentage body fat predicted at a BMI of 18.5 and 25 for the age and gender,
-///   Gallagher D. et al. (2000), *Am J Clin Nutr* 72(3):694–701, table 4; the goal sits at its middle.
+/// - Healthy mass: the World Health Organization's normal body mass index, 18.5 to 24.9, at the profile's height
+///   [3]; the goal sits at its middle, 21.7.
+/// - Healthy fat: the percentage body fat predicted at a BMI of 18.5 and 25 for the age and gender, table 4 of
+///   [4]; the goal sits at its middle.
 /// - Each macro's floor and the water a day, read on the day's records rather than the profile alone, come with
 ///   the recommendations from `recommended_on`: the floors as the Fuel band asks them, per kilo of body mass, and the
 ///   water as Hydrate recommends it before the burn.
-/// - The usual day: sitting 8 hours at most, past which the least active die sooner, Ekelund U.
-///   et al. (2016), *Lancet* 388(10051):1302–1310; standing 2 hours, the first step of
-///   Buckley J. P. et al. (2015), *Br J Sports Med* 49(21):1357–1362; and the steps of a day with no
-///   exercise in it, the workouts logged counting the rest: "< 2,500 steps/day ('basal activity')",
-///   Tudor-Locke C. et al. (2011), *Int J Behav Nutr Phys Act* 8:79, at about 0.75 m a step.
-/// - The burn target: WHO's 150 minutes a week of moderate activity on the body weighed, Bull F. C. et al.
-///   (2020), *Br J Sports Med* 54(24):1451–1462; none before a weigh-in, when any workout holds the tick.
+/// - The usual day: sitting 8 hours at most, past which the least active die sooner [19]; standing 2 hours, the
+///   first step towards 4 [18]; and the steps of a day with no exercise in it, the workouts logged counting the
+///   rest: "< 2,500 steps/day ('basal activity')" [17], at about 0.75 m a step.
+/// - The burn target: WHO's 150 minutes a week of moderate activity on the body weighed [20]; none before a
+///   weigh-in, when any workout holds the tick.
 pub fn recommended(
     profile: &Profile,
     day: NaiveDate,

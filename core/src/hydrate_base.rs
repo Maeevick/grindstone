@@ -10,10 +10,7 @@ fn adequate_intake_of_total_water_ml(gender: Option<Gender>) -> f64 {
 }
 
 /// The drinks a day takes before any lean mass is known: four fifths of EFSA's adequate intake of
-/// total water, 2.5 L for men and 2.0 L for women, food bringing the rest.
-///
-/// EFSA Panel on Dietetic Products, Nutrition and Allergies (2010), *Scientific Opinion on Dietary
-/// Reference Values for water*, EFSA Journal 8(3):1459.
+/// total water, 2.5 L for men and 2.0 L for women, food bringing the rest [28].
 pub fn default_base_ml(gender: Option<Gender>) -> f64 {
     adequate_intake_of_total_water_ml(gender) * DRINKS_PERCENT_OF_TOTAL_WATER / 100.0
 }

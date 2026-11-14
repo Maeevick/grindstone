@@ -111,7 +111,7 @@ const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
 const CARBS_FLOOR_G: f64 = 130.0;
-/// "break point=1.62 (1.03, 2.20) g/kg/day": Morton R. W. et al. (2018), Br J Sports Med 52(6):376–384, past which
+/// "break point=1.62 (1.03, 2.20) g/kg/day" [22], past which
 /// "protein intakes at amounts greater than ~1.6 g/kg/day do not further contribute RET-induced gains in FFM".
 const LEAST_PROTEIN_G_PER_KG: f64 = 1.6;
 const LEAST_PROTEIN_SHARE: f64 = 0.10;
@@ -124,8 +124,8 @@ const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
 const NARROWEST_BAND_SHARE: f64 = 0.1;
-/// A small surplus for a gain, a twentieth of the maintenance: Helms E. R. et al. (2023), Sports Med Open 9:102,
-/// a 5% surplus building as much lean mass as 15% for less fat.
+/// A small surplus for a gain, a twentieth of the maintenance, a 5% surplus building as much lean mass as 15% for
+/// less fat [15].
 const SURPLUS_SHARE: f64 = 0.05;
 
 fn added_up(intakes: &[(i64, Intake)]) -> Nutrients {
@@ -153,10 +153,8 @@ fn digested(eaten: Nutrients) -> Eaten {
 /// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
 /// minimum per kilo of lean mass plus the burn.
 ///
-/// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day: Alpert S. S. (2005),
-///   *A limit on the energy transfer rate from the human fat store in hypophagia*, J Theor Biol 233(1):1-13.
-/// - The minimum per kilo of lean mass: Loucks A. B., Kiens B., Wright H. H. (2011),
-///   *Energy availability in athletes*, J Sports Sci 29(sup1):S7-S15.
+/// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day [13].
+/// - The minimum per kilo of lean mass [14].
 fn band_for(
     body: &Body,
     aims: &Aims,
@@ -261,12 +259,12 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
 /// past it; the ceilings, shares of the band's cap, the most the day may hold; the goal, the target painted per
 /// kilo of body mass, the floor until one is.
 ///
-/// - Protein at least 1.6 g per kilo of body mass, where Morton et al. (2018) find the gains in lean mass from
-///   training level off, and 10% of the energy, at most 35%, the Institute of Medicine's 10 to 35% (2005).
-/// - Fat at least 20% and at most 35% of the energy, EFSA's reference range (2010).
-/// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake (2005), 2.8% of the energy at
+/// - Protein at least 1.6 g per kilo of body mass, where the gains in lean mass from training level off [22], and
+///   10% of the energy, at most 35%, the Institute of Medicine's 10 to 35% [27].
+/// - Fat at least 20% and at most 35% of the energy, EFSA's reference range [23].
+/// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake [27], 2.8% of the energy at
 ///   2 kcal a gram; no ceiling, none being set.
-/// - Carbohydrates at least 130 g, the Institute of Medicine's (2005); no ceiling, the energy's cap telling what
+/// - Carbohydrates at least 130 g, the Institute of Medicine's [27]; no ceiling, the energy's cap telling what
 ///   is too much.
 fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -> Macros {
     let at_least = eaten.energy_kcal.max(band.floor_kcal);

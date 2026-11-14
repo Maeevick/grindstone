@@ -39,12 +39,9 @@ impl Budget {
 
 /// The day's energy budget before the burn: basal rate, digestion and the day off the clock.
 ///
-/// - Basal rate from lean mass (Katch-McArdle), the organs' cost inside it: McArdle W. D., Katch F. I.,
-///   Katch V. L. (2015), *Exercise physiology: nutrition, energy, and human performance*, 8th edition.
-/// - Digestion priced on the grams eaten: Calcagno M. et al. (2019), *The thermic effect of food: a review*,
-///   J Am Coll Nutr 38(6):547-551.
-/// - The day off the clock (sitting, standing, moving, fidgeting): Levine J. A. (2002),
-///   *Non-exercise activity thermogenesis (NEAT)*, Best Pract Res Clin Endocrinol Metab 16(4):679-702.
+/// - Basal rate from lean mass (Katch-McArdle), the organs' cost inside it [10].
+/// - Digestion priced on the grams eaten [11].
+/// - The day off the clock (sitting, standing, moving, fidgeting) [12].
 pub fn daily_energy_budget(
     age: u32,
     ffm: f64,
