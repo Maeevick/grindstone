@@ -64,7 +64,6 @@ const BODY_WATER_TURNED_OVER_A_DAY: f64 = 0.099;
 /// and what the lungs and skin take up bringing the rest.
 const TURNOVER_TAKEN_IN: f64 = 0.85;
 const ML_PER_KCAL_BURNT_AT_BEST: f64 = 1.25;
-const SHARE_LEFT_TO_DRINKS: f64 = 0.9;
 const ML_PER_L: f64 = 1000.0;
 
 pub fn hydrate_on(
@@ -186,8 +185,8 @@ pub(crate) fn water_target_in_force(
 /// The day's drinks against its band. A water target of one's own is a base: it plus a millilitre per kcal
 /// burnt, the band a fifth either side. Otherwise, once a lean mass is known, the target is the drinks' share
 /// (the 85% of the turnover taken in, four fifths of it drunk, EFSA's share) of the water that mass turns over in
-/// a day plus 1.25 mL per kcal burnt, and the floor nine tenths of a millilitre per kcal the day spends (its budget
-/// and burn) but never above the target; before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth
+/// a day plus 1.25 mL per kcal burnt, and the floor the same share of a millilitre per kcal the day spends (its
+/// budget and burn) but never above the target; before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth
 /// under it.
 ///
 /// - Lean mass is 73.2% water: Wang Z. et al. (1999), *Hydration of fat-free body mass: new
@@ -223,7 +222,7 @@ fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
         (None, Some(lean_kg), Some(band), _) => {
             let target_ml =
                 drinks_share() * (turned_over_ml(lean_kg) + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
-            let floor_ml = SHARE_LEFT_TO_DRINKS * band.maintenance_kcal * ML_PER_KCAL_SPENT;
+            let floor_ml = drinks_share() * band.maintenance_kcal * ML_PER_KCAL_SPENT;
             (target_ml, floor_ml.min(target_ml))
         }
         (None, None, _, Some(body_mass_kg)) => {
