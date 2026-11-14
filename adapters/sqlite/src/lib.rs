@@ -1308,25 +1308,71 @@ mod tests {
     }
 
     #[test]
-    fn a_copy_of_another_schema_version_is_refused_and_leaves_the_records_as_they_were() {
+    fn a_copy_of_a_newer_schema_version_is_refused_and_leaves_the_records_as_they_were() {
         let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
         let before = the_copy_of(&other);
-        let older = the_copy_of(&copied).replacen(
+        let newer = the_copy_of(&copied).replacen(
             &format!("\"schema_version\": {}", MIGRATIONS.len()),
-            "\"schema_version\": 25",
+            &format!("\"schema_version\": {}", MIGRATIONS.len() + 1),
             1,
         );
 
-        let restored = other.restored(&older);
+        let restored = other.restored(&newer);
 
         assert_eq!(
             (restored, the_copy_of(&other)),
             (
                 Err(Unrestorable::AnotherSchema {
-                    copy: 25,
+                    copy: MIGRATIONS.len() as i64 + 1,
                     store: MIGRATIONS.len() as i64
                 }),
                 before
+            )
+        );
+    }
+
+    /// A copy kept by an older app: its records written at an older version of the schema.
+    fn a_copy_kept_at_version(version: usize, day: &str, body_mass_kg: f64) -> String {
+        let older = Connection::open_in_memory().expect("an in-memory database opens");
+        for (at, migration) in (1_i64..).zip(&MIGRATIONS[..version]) {
+            older.execute_batch(migration).expect("a migration runs");
+            older
+                .pragma_update(None, "user_version", at)
+                .expect("the version moves on");
+        }
+        older
+            .execute(
+                "insert into measurements (day, body_mass_kg) values (?1, ?2)",
+                rusqlite::params![day, body_mass_kg],
+            )
+            .expect("a measurement writes");
+        copy_of(
+            &older,
+            NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"),
+        )
+        .expect("a copy")
+        .text
+    }
+
+    #[test]
+    fn a_copy_kept_by_an_older_app_is_brought_up_to_this_schema_and_restored() {
+        let other = a_store_with_a_day(20);
+        let older = a_copy_kept_at_version(MIGRATIONS.len() - 2, "2026-10-10", 81.5);
+
+        let restored = other.restored(&older);
+
+        assert_eq!(
+            (
+                restored.map(|counted| counted.records),
+                other.gather_records().map(|records| records.measurements)
+            ),
+            (
+                Ok(1),
+                Ok(vec![Measurement {
+                    day: NaiveDate::from_ymd_opt(2026, 10, 10).expect("a real day"),
+                    body_mass_kg: 81.5,
+                    waist_cm: None,
+                }])
             )
         );
     }
