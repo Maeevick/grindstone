@@ -474,6 +474,17 @@ pub fn FuelDay(day: RwSignal<String>) -> impl IntoView {
             }}
             {said_line(said)}
         </section>
+        <FuelStands fuel=fuel about_to_eat=about_to_eat previewed=previewed />
+    }
+}
+
+#[component]
+fn FuelStands(
+    fuel: RwSignal<Option<Fuel>>,
+    about_to_eat: Memo<Option<(AboutToEat, Nutrients)>>,
+    previewed: LocalResource<Option<(AboutToEat, Fuel)>>,
+) -> impl IntoView {
+    view! {
         {move || {
             fuel.get()
                 .map(|answer| {
