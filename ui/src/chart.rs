@@ -673,6 +673,51 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn a_span_of_exactly_a_week_is_dated_at_its_quarters_not_every_day() {
+        let first = NaiveDate::from_ymd_opt(2026, 11, 1).expect("a real day");
+
+        let days = days_along((first, first + chrono::Days::new(7)), 360.0);
+
+        assert_eq!(days.len(), 5);
+    }
+
+    #[test]
+    fn a_span_of_exactly_a_year_is_still_dated_in_days() {
+        let first = NaiveDate::from_ymd_opt(2025, 1, 1).expect("a real day");
+
+        let days = days_along((first, first + chrono::Days::new(365)), 360.0);
+
+        assert_eq!(days.first().map(|(_, day)| day.as_str()), Some("01-01"));
+    }
+
+    #[test]
+    fn a_burn_past_the_default_scale_stretches_it_a_fifth_past_the_larger_rounded_up_to_50() {
+        let gauge = burn_gauge_of(250.0, 100.0, None, 360.0);
+
+        assert!(
+            (gauge.target_at - 120.0).abs() < 1e-9,
+            "{}",
+            gauge.target_at
+        );
+    }
+
+    #[test]
+    fn a_band_narrower_than_a_tenth_of_its_top_keeps_a_tenth_of_the_top_for_its_margins() {
+        let gauge = energy_gauge_of(
+            2050.0,
+            (2000.0, 2020.0, 2040.0, 2060.0, 2100.0),
+            None,
+            360.0,
+        );
+
+        assert!(
+            (gauge.minimum_at - 21.0 / 142.0 * 360.0).abs() < 1e-9,
+            "{}",
+            gauge.minimum_at
+        );
+    }
 }
 
 #[cfg(test)]
