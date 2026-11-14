@@ -1427,6 +1427,21 @@ mod tests {
     }
 
     #[test]
+    fn a_copy_claiming_a_version_before_the_first_schema_is_refused_and_leaves_the_records_as_they_were()
+     {
+        let other = a_store_with_a_day(20);
+        let before = the_copy_of(&other);
+
+        let restored =
+            other.restored(r#"{ "schema_version": 0, "exported_on": "2026-11-04", "tables": {} }"#);
+
+        assert_eq!(
+            (restored, the_copy_of(&other)),
+            (Err(Unrestorable::NotACopy), before)
+        );
+    }
+
+    #[test]
     fn a_restore_failing_half_way_leaves_the_records_as_they_were() {
         let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
         let before = the_copy_of(&other);
