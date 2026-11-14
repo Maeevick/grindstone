@@ -1,4 +1,3 @@
-use grind_core::bibliography::Topic;
 use grind_core::burn::Burn;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown, typed_back};
@@ -629,22 +628,6 @@ pub fn healthy_ranges(advised: &Recommendations) -> String {
         shown(Figure::Ratio(leanest)),
         shown(Figure::Ratio(fattest))
     )
-}
-
-pub const REFERENCES_INTRO: &str = "The studies and guidelines behind Grindstone's figures, as a bibliography. \
-    Each public page shows the abstract; reading a study in full may cost money, the reference itself never should.";
-
-pub const READING: &str = "“shhhhh! I’m reading...”";
-
-pub fn topic_name(topic: Topic) -> &'static str {
-    match topic {
-        Topic::BodyComposition => "Body composition",
-        Topic::HealthyRanges => "Healthy ranges",
-        Topic::Energy => "Energy",
-        Topic::Activity => "Activity",
-        Topic::Macronutrients => "Macronutrients",
-        Topic::Water => "Water",
-    }
 }
 
 pub const NO_WEEK_YET: &str = "No finished day of the window is logged yet. I only average what is over: it spares me the rubbing out.";
@@ -1635,32 +1618,6 @@ mod tests {
             "Healthy at your height and age: 58.6 kg to 78.9 kg (a body mass index of 18.5 to 24.9) and 8.0% \
              to 19.0% body fat. A goal beyond them is yours to set; if you are not sure, ask a doctor or a coach \
              first. I only have a quill, and it has never seen a patient."
-        );
-    }
-
-    #[test]
-    fn a_reference_topic_is_named() {
-        let topics = [
-            Topic::BodyComposition,
-            Topic::HealthyRanges,
-            Topic::Energy,
-            Topic::Activity,
-            Topic::Macronutrients,
-            Topic::Water,
-        ];
-
-        let named = topics.map(topic_name);
-
-        assert_eq!(
-            named,
-            [
-                "Body composition",
-                "Healthy ranges",
-                "Energy",
-                "Activity",
-                "Macronutrients",
-                "Water",
-            ]
         );
     }
 

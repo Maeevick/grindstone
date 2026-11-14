@@ -376,15 +376,6 @@ pub async fn recommended_on(date: &str) -> Result<Recommendations, Failure> {
     call("recommended_on", OnDay { date }, broken).await
 }
 
-#[derive(Serialize)]
-struct Opening<'a> {
-    url: &'a str,
-}
-
-pub async fn open_page(url: &str) -> Result<(), Failure> {
-    call("plugin:opener|open_url", Opening { url }, broken).await
-}
-
 pub async fn keep_a_copy(today: &str) -> Result<Counted, Failure> {
     call("keep_a_copy", Today { today }, broken).await
 }

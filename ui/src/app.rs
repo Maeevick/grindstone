@@ -13,7 +13,6 @@ use crate::screens::home::Home;
 use crate::screens::hydrate::HydrateTab;
 use crate::screens::plate::PlateInProgress;
 use crate::screens::profile::ProfileScreen;
-use crate::screens::references::ReferencesScreen;
 use crate::screens::session::SessionInProgress;
 
 #[component]
@@ -35,7 +34,6 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/burn") view=BurnTab />
                     <Route path=path!("/burn/grimoire") view=BurnShelf />
                     <Route path=path!("/profile") view=ProfileScreen />
-                    <Route path=path!("/references") view=ReferencesScreen />
                 </Routes>
             </main>
             <nav class="tabs">

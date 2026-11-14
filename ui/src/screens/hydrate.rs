@@ -1,4 +1,3 @@
-use grind_core::bibliography::Topic;
 use grind_core::drink::{Drink, DrinkKind};
 use grind_core::drinking::Drinking;
 use grind_core::failure::Failure;
@@ -455,7 +454,6 @@ pub fn HydrateTargetCard() -> impl IntoView {
             form="water-target"
             how=lines::WATER_HOW
             why=lines::WATER_WHY.to_string()
-            topic=Topic::Water
             save="Store this aim"
             forget=forget
             said=said

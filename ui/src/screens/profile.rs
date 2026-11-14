@@ -1,6 +1,5 @@
 use std::future::Future;
 
-use grind_core::bibliography::Topic;
 use grind_core::failure::Failure;
 use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
@@ -18,7 +17,6 @@ use leptos::task::spawn_local;
 use crate::lines;
 use crate::screens::fields::{DateField, FigureField};
 use crate::screens::hydrate::HydrateTargetCard;
-use crate::screens::references::ReferencesLink;
 use crate::screens::said::said_line;
 use crate::screens::settings::Settings;
 use crate::screens::{Recorded, today};
@@ -53,15 +51,14 @@ fn own<T>(in_force: InForce<T>) -> Option<T> {
     (!in_force.recommended).then_some(in_force.values)
 }
 
-/// A Profile card: its title, how to fill it, its fields, why its recommendation stands with the references
-/// behind it, then its buttons and what was said.
+/// A Profile card: its title, how to fill it, its fields, why its recommendation stands, then its buttons and what
+/// was said.
 #[component]
 pub fn ProfileCard(
     title: &'static str,
     form: &'static str,
     how: &'static str,
     #[prop(into)] why: Signal<String>,
-    topic: Topic,
     save: &'static str,
     #[prop(optional)] forget: Option<Callback<()>>,
     said: RwSignal<Option<String>>,
@@ -74,7 +71,7 @@ pub fn ProfileCard(
             <p class="hint how">{how}</p>
             <form class=form on:submit=move |event| on_submit.run(event)>
                 {children()}
-                <p class="hint why">{move || why.get()} " " <ReferencesLink topic=topic /></p>
+                <p class="hint why">{move || why.get()}</p>
                 <button class="cta" type="submit">
                     {save}
                 </button>
@@ -237,7 +234,6 @@ fn GoalsCard() -> impl IntoView {
             why=Signal::derive(move || {
                 advised.0.get().as_ref().map(lines::healthy_ranges).unwrap_or_default()
             })
-            topic=Topic::HealthyRanges
             save="Engrave these goals"
             forget=forget
             said=said
@@ -330,7 +326,6 @@ fn UsualDayCard() -> impl IntoView {
             form="usual-day"
             how=lines::USUAL_DAY_HOW
             why=lines::USUAL_DAY_WHY.to_string()
-            topic=Topic::Activity
             save="Keep this usual day"
             forget=recommend
             said=said
@@ -419,7 +414,6 @@ fn BurnTargetCard() -> impl IntoView {
             form="burn-target"
             how=lines::BURN_TARGET_HOW
             why=why
-            topic=Topic::Activity
             save="Fire this ambition"
             forget=forget
             said=said
@@ -506,7 +500,6 @@ fn FuelTargetsCard() -> impl IntoView {
             form="fuel-targets"
             how=lines::FUEL_TARGETS_HOW
             why=lines::FUEL_TARGETS_WHY.to_string()
-            topic=Topic::Macronutrients
             save="Paint these targets"
             forget=forget
             said=said
@@ -619,7 +612,6 @@ pub fn ProfileScreen() -> impl IntoView {
             form="profile"
             how=lines::PROFILE_HOW
             why=lines::PROFILE_WHY.to_string()
-            topic=Topic::BodyComposition
             save="Keep this profile"
             said=said
             on_submit=Callback::new(save)

@@ -41,7 +41,6 @@ use grind_ui::screens::hydrate::HydrateDay;
 use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays, GatherLastDays, HydrateLastDays};
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
-use grind_ui::screens::references::ReferencesScreen;
 use grind_ui::screens::settings::Settings;
 use grind_ui::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use leptos::prelude::*;
@@ -273,7 +272,6 @@ fn the_core_gives(command: &str, answer: &serde_json::Value) -> Result<(), Strin
         "burn_over_the_window" => read_back::<Option<BurnWeek>>(answer),
         "erase_everything" => read_back::<()>(answer),
         "recommended_on" => read_back::<Recommendations>(answer),
-        "plugin:opener|open_url" => read_back::<()>(answer),
         "keep_a_copy" => read_back::<Counted>(answer),
         "restore_a_copy" => read_back::<Restored>(answer),
         "circuits" => read_back::<Vec<Circuit>>(answer),
@@ -630,17 +628,11 @@ async fn each_profile_card_reads_title_note_fields_note_then_its_buttons_and_non
         ]
     );
     assert_eq!(
-        (
-            screen
-                .query_selector_all(".profile-card input[type=date]:not([name=birthday])")
-                .map(|found| found.length())
-                .unwrap_or_default(),
-            screen
-                .query_selector_all(".profile-card p.why a.references")
-                .map(|found| found.length())
-                .unwrap_or_default()
-        ),
-        (0, 6)
+        screen
+            .query_selector_all(".profile-card input[type=date]:not([name=birthday])")
+            .map(|found| found.length())
+            .unwrap_or_default(),
+        0
     );
     found::<Element>(&screen, ".disclaimer + hr.divider");
 }
@@ -4388,7 +4380,7 @@ async fn every_screen_wears_the_header_its_person_opening_the_profile_and_todays
     settled().await;
 
     let mut worn = Vec::new();
-    for page in ["/", "/burn", "/profile", "/references"] {
+    for page in ["/", "/burn", "/profile"] {
         went_to(page);
         settled().await;
         worn.push((
@@ -6197,68 +6189,6 @@ async fn before_any_weigh_in_the_burn_target_card_says_a_single_workout_holds_th
     assert!(card.contains("a single workout holds the tick"), "{card}");
 }
 
-#[wasm_bindgen_test]
-async fn the_scientific_references_cite_each_source_under_its_topic_with_its_public_page() {
-    answering(r#"{ "plugin:opener|open_url": null }"#);
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <ReferencesScreen />
-            </Router>
-        }
-    });
-    settled().await;
-
-    let topics = screen
-        .query_selector_all("section.topic")
-        .map(|found| found.length())
-        .unwrap_or_default();
-    let pages = screen
-        .query_selector_all("ol.bibliography a.page")
-        .map(|found| found.length())
-        .unwrap_or_default();
-    let ranges: Element = found(&screen, "section#healthy-ranges");
-    let cited = ranges.text_content().unwrap_or_default();
-    assert_eq!((topics, pages), (6, 30));
-    assert!(
-        cited.contains("Gallagher D.")
-            && cited.contains("American Journal of Clinical Nutrition 72(3):694-701"),
-        "{cited}"
-    );
-}
-
-#[wasm_bindgen_test]
-async fn each_profile_card_points_to_its_scientific_references() {
-    answering(
-        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
-             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
-    );
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <ProfileScreen />
-            </Router>
-        }
-    });
-    settled().await;
-
-    let pointed: Vec<String> = ["healthy-ranges", "macronutrients", "water", "activity"]
-        .into_iter()
-        .filter(|topic| {
-            screen
-                .query_selector(&format!("a.references[href='/references#{topic}']"))
-                .ok()
-                .flatten()
-                .is_some()
-        })
-        .map(String::from)
-        .collect();
-    assert_eq!(pointed.len(), 4, "{pointed:?}");
-    assert!(screen.query_selector("ul.sources").ok().flatten().is_none());
-}
-
 fn naming_the_cast(said: &str) -> Vec<&'static str> {
     ["Veil", "Trix", "Grimble"]
         .into_iter()
@@ -6276,8 +6206,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
         r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": {{ "values": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }}, "recommended": false }},
              "foods": [], "meals": [], "exercises": [], "circuits": [], "priced_circuits": [],
-             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET},
-             "plugin:opener|open_url": null }}"#
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
     ));
     let mut said = Vec::new();
 
@@ -6314,16 +6243,8 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
             </Router>
         }
     });
-    let references = screen();
-    let _references = leptos::mount::mount_to(references.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <ReferencesScreen />
-            </Router>
-        }
-    });
     settled().await;
-    said.extend([&profile, &references].map(spoken_on));
+    said.push(spoken_on(&profile));
 
     let named: Vec<Vec<&str>> = said.iter().map(|text| naming_the_cast(text)).collect();
     assert!(named.iter().all(Vec::is_empty), "{named:?}");
@@ -6331,25 +6252,5 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
         texts_of(&profile, "h2").contains(&"How to feed the forge".to_string()),
         "{:?}",
         texts_of(&profile, "h2")
-    );
-}
-
-#[wasm_bindgen_test]
-async fn a_quote_stands_on_its_own_line_in_curly_marks() {
-    answering(r#"{ "plugin:opener|open_url": null }"#);
-    let references = screen();
-    let _references = leptos::mount::mount_to(references.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <ReferencesScreen />
-            </Router>
-        }
-    });
-    settled().await;
-
-    assert_eq!(text_of(&references, "p.quote"), "“shhhhh! I’m reading...”");
-    assert!(
-        !spoken_on(&references).contains('"'),
-        "a straight quotation mark is left"
     );
 }

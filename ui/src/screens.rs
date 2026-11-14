@@ -15,7 +15,6 @@ pub mod last_days;
 mod pills;
 pub mod plate;
 pub mod profile;
-pub mod references;
 mod said;
 pub mod session;
 pub mod settings;

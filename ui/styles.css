@@ -772,29 +772,9 @@ input:disabled {
 	opacity: 0.35;
 }
 
-a.references {
-	display: block;
-	margin-top: 10px;
-	text-align: center;
-	color: var(--acc);
-	font-size: 0.8rem;
-}
-
-.why a.references {
-	display: inline;
-	margin: 0;
-	font-size: inherit;
-}
-
 .disclaimer {
 	margin: 12px 4px 0;
 	font-size: 0.78rem;
-}
-
-.quote {
-	margin: 12px 0 4px;
-	color: var(--txt);
-	font: italic 400 0.98rem/1.6 serif;
 }
 
 .tip {
