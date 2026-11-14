@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Offline, enforced: a release build gets no socket, so no record can leave through the network, whatever a
+         library compiled in might try. The page and the commands are answered inside the app by the WebView's
+         request interception, which needs none. Debug builds keep it from main, for the dev server. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+</manifest>
