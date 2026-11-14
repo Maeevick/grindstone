@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn a_day_floors_at_ninety_percent_of_a_millilitre_per_kcal_of_its_budget_and_burn() {
+    fn a_day_floors_at_the_drinks_share_of_a_millilitre_per_kcal_of_its_budget_and_burn() {
         let gather = a_man_measured_with_his_waist();
         let burn = walked_an_hour("2026-10-10");
         let fuel = FuelRecords::default();
@@ -381,7 +381,7 @@ mod tests {
             .band
             .map(|band| band.maintenance_kcal)
             .expect("a band for a measured body");
-        assert!(about(hydrate.floor_ml, 0.9 * spent_kcal));
+        assert!(about(hydrate.floor_ml, 0.85 * 0.8 * spent_kcal));
     }
 
     #[test]
