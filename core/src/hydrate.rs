@@ -332,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn a_day_aims_for_ninety_percent_of_its_lean_mass_water_turnover_and_a_millilitre_and_a_quarter_per_kcal_burnt()
+    fn a_day_aims_for_the_drinks_share_of_the_water_its_lean_mass_turns_over_and_of_a_millilitre_and_a_quarter_per_kcal_burnt()
      {
         let gather = a_man_measured_with_his_waist();
 
@@ -344,7 +344,9 @@ mod tests {
             &FuelRecords::default(),
         );
 
-        let optimal_ml = 0.9 * (lean_mass_kg_of(&gather) * 0.732 * 0.07 * 1000.0 + 1.25 * 252.0);
+        let drinks_share = 0.85 * 0.8;
+        let optimal_ml =
+            drinks_share * (lean_mass_kg_of(&gather) * 0.732 * 0.099 * 1000.0 + 1.25 * 252.0);
         assert!(about(hydrate.target_ml, optimal_ml));
         assert!(about(hydrate.cap_ml, 1.2 * optimal_ml));
     }
