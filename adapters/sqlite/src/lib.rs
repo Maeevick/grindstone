@@ -1360,8 +1360,8 @@ mod tests {
         );
     }
 
-    /// A copy kept by an older app: its records written at an older version of the schema.
-    fn a_copy_kept_at_version(version: usize, day: &str, body_mass_kg: f64) -> String {
+    /// A store as an older app left it, at an older version of the schema.
+    fn a_store_at_version(version: usize) -> Connection {
         let older = Connection::open_in_memory().expect("an in-memory database opens");
         for (at, migration) in (1_i64..).zip(&MIGRATIONS[..version]) {
             older.execute_batch(migration).expect("a migration runs");
@@ -1369,6 +1369,12 @@ mod tests {
                 .pragma_update(None, "user_version", at)
                 .expect("the version moves on");
         }
+        older
+    }
+
+    /// A copy kept by an older app: its records written at an older version of the schema.
+    fn a_copy_kept_at_version(version: usize, day: &str, body_mass_kg: f64) -> String {
+        let older = a_store_at_version(version);
         older
             .execute(
                 "insert into measurements (day, body_mass_kg) values (?1, ?2)",
@@ -1426,6 +1432,27 @@ mod tests {
         assert_eq!(
             (restored, the_copy_of(&other)),
             (Err(Unrestorable::NotACopy), before)
+        );
+    }
+
+    #[test]
+    fn a_copy_kept_at_the_very_first_schema_is_brought_up_to_this_one_too() {
+        let other = a_store_with_a_day(20);
+        let first = copy_of(
+            &a_store_at_version(1),
+            NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"),
+        )
+        .expect("a copy")
+        .text;
+
+        let restored = other.restored(&first);
+
+        assert_eq!(
+            (
+                restored.map(|counted| counted.records),
+                other.gather_records().map(|records| records.measurements)
+            ),
+            (Ok(0), Ok(vec![]))
         );
     }
 
