@@ -1054,14 +1054,18 @@ fn fits_the_schema(
     Ok(true)
 }
 
-/// An older copy's tables as this schema holds them: written into a store at the copy's version, which every
-/// migration since then brings up to this one, the way the app's own records were brought.
+/// An older copy's tables as this schema holds them: written into a store at the copy's version, once they fit
+/// that version's schema whole, then brought up to this one by every migration since, the way the app's own
+/// records were brought.
 fn brought_up_to_date(
     version: i64,
     tables: &std::collections::BTreeMap<String, Rows>,
 ) -> Result<std::collections::BTreeMap<String, Rows>, Unrestorable> {
     let older = Connection::open_in_memory().map_err(unrestorable)?;
     migrate_up_to(&older, version).map_err(unrestorable)?;
+    if !fits_the_schema(&older, tables).map_err(unrestorable)? {
+        return Err(Unrestorable::NotACopy);
+    }
     replace_every_table(&older, tables).map_err(unrestorable)?;
     migrate(&older).map_err(unrestorable)?;
     tables_of(&older).map_err(unrestorable)
