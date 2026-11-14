@@ -1936,7 +1936,7 @@ const A_FUELLED_DAY_WITH_ITS_BUDGET: &str = r#"{ "day": "2026-10-10", "intakes":
     "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 },
     "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2650.2 },
     "energy": "Low", "macros": null,
-    "budget": { "resting_kcal": 1718.1, "organs_kcal": 102.5, "digestion_kcal": 275.8,
+    "budget": { "resting_kcal": 1718.1, "digestion_kcal": 275.8,
                 "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 } }"#;
 
 const THREE_FOODS: &str = r#"[
@@ -3688,7 +3688,7 @@ fn a_fuelled_day_of(
             "band": {{ "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5,
                        "floor_kcal": {floor}, "cap_kcal": {cap}, "goal_kcal": {floor}, "maintenance_kcal": {maintenance} }},
             "energy": "Low", "macros": null,
-            "budget": {{ "resting_kcal": 1718.1, "organs_kcal": 102.5, "digestion_kcal": {digestion_kcal},
+            "budget": {{ "resting_kcal": 1718.1, "digestion_kcal": {digestion_kcal},
                          "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 }} }}"#
     )
 }

@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 33] = [
+pub const REFERENCES: [Reference; 32] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -130,15 +130,6 @@ pub const REFERENCES: [Reference; 33] = [
         published_in: "Wolters Kluwer Health",
         page: None,
         used_for: "The basal rate from lean mass (Katch-McArdle)",
-    },
-    Reference {
-        topic: Topic::Energy,
-        authors: "Elia M.",
-        year: 1992,
-        title: "Organ and tissue contribution to metabolic rate",
-        published_in: "In Kinney J. M., Tucker H. N. (eds), Energy metabolism: tissue determinants and cellular corollaries, Raven Press, 61-79",
-        page: None,
-        used_for: "What the organs cost, per kilo of lean and fat mass",
     },
     Reference {
         topic: Topic::Energy,

@@ -26,7 +26,6 @@ pub struct Intake {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Budget {
     pub resting_kcal: f64,
-    pub organs_kcal: f64,
     pub digestion_kcal: f64,
     pub spontaneous_kcal: f64,
     pub volitional_kcal: f64,
@@ -34,20 +33,14 @@ pub struct Budget {
 
 impl Budget {
     pub fn kcal(&self) -> f64 {
-        self.resting_kcal
-            + self.organs_kcal
-            + self.digestion_kcal
-            + self.spontaneous_kcal
-            + self.volitional_kcal
+        self.resting_kcal + self.digestion_kcal + self.spontaneous_kcal + self.volitional_kcal
     }
 }
 
-/// The day's energy budget before the burn: basal rate, organs, digestion and the day off the clock.
+/// The day's energy budget before the burn: basal rate, digestion and the day off the clock.
 ///
-/// - Basal rate from lean mass (Katch-McArdle): McArdle W. D., Katch F. I., Katch V. L. (2015),
-///   *Exercise physiology: nutrition, energy, and human performance*, 8th edition.
-/// - Organs per kilo of lean and fat mass: Elia M. (1992), *Organ and tissue contribution to metabolic rate*,
-///   in Kinney J. M., Tucker H. N. (eds), *Energy metabolism: tissue determinants and cellular corollaries*.
+/// - Basal rate from lean mass (Katch-McArdle), the organs' cost inside it: McArdle W. D., Katch F. I.,
+///   Katch V. L. (2015), *Exercise physiology: nutrition, energy, and human performance*, 8th edition.
 /// - Digestion priced on the grams eaten: Calcagno M. et al. (2019), *The thermic effect of food: a review*,
 ///   J Am Coll Nutr 38(6):547-551.
 /// - The day off the clock (sitting, standing, moving, fidgeting): Levine J. A. (2002),
@@ -70,7 +63,6 @@ pub fn daily_energy_budget(
     let neat = neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit);
     Budget {
         resting_kcal: bmr_by_katch_and_mcardle(age, ffm),
-        organs_kcal: organ_overhead_by_elia(age, ffm, fm),
         digestion_kcal: tef_by_calcagno_et_al(age, protein, fat, fib, carb),
         spontaneous_kcal: neat.spontaneous,
         volitional_kcal: neat.volitional,
@@ -79,11 +71,6 @@ pub fn daily_energy_budget(
 
 fn bmr_by_katch_and_mcardle(age: u32, ffm: f64) -> f64 {
     (370.0 + 21.6 * ffm.max(0.0)) * (1.0 - 0.0015 * f64::from(age.saturating_sub(20))).max(0.0)
-}
-
-fn organ_overhead_by_elia(age: u32, ffm: f64, fm: f64) -> f64 {
-    (1.5 * ffm.max(0.0) + 0.5 * fm.max(0.0))
-        * (1.0 - 0.0025 * f64::from(age.saturating_sub(55))).max(0.0)
 }
 
 fn tef_by_calcagno_et_al(age: u32, protein: f64, fat: f64, fib: f64, carb: f64) -> f64 {
@@ -137,7 +124,8 @@ mod tests {
     }
 
     #[test]
-    fn a_mans_budget_adds_up_his_resting_digestion_and_non_exercise_burns_the_organs_inside_the_resting_rate() {
+    fn a_mans_budget_adds_up_his_resting_digestion_and_non_exercise_burns_the_organs_inside_the_resting_rate()
+     {
         let intake = Intake {
             energy: 2500.0,
             macros: Macro {
@@ -179,28 +167,6 @@ mod tests {
     #[test]
     fn a_mistyped_age_stops_the_basal_rate_at_nothing_rather_than_below() {
         assert!(about(bmr_by_katch_and_mcardle(4100, 65.0), 0.0));
-    }
-
-    #[test]
-    fn up_to_fifty_five_the_organs_cost_one_and_a_half_kcal_per_lean_kilo_and_half_a_kcal_per_fat_kilo()
-     {
-        assert!(about(organ_overhead_by_elia(41, 65.0, 10.0), 102.5));
-        assert!(about(organ_overhead_by_elia(55, 65.0, 10.0), 102.5));
-    }
-
-    #[test]
-    fn every_year_past_fifty_five_takes_a_quarter_of_a_percent_off_the_organs() {
-        assert!(about(organ_overhead_by_elia(65, 65.0, 10.0), 102.5 * 0.975));
-    }
-
-    #[test]
-    fn a_composition_below_nothing_costs_the_organs_nothing() {
-        assert!(about(organ_overhead_by_elia(41, -65.0, -10.0), 0.0));
-    }
-
-    #[test]
-    fn a_mistyped_age_stops_the_organs_at_nothing_rather_than_below() {
-        assert!(about(organ_overhead_by_elia(4100, 65.0, 10.0), 0.0));
     }
 
     #[test]
@@ -394,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn the_budget_tells_apart_its_resting_organ_digestion_spontaneous_and_volitional_parts() {
+    fn the_budget_tells_apart_its_resting_digestion_spontaneous_and_volitional_parts() {
         let intake = Intake {
             energy: 2500.0,
             macros: Macro {
@@ -409,7 +375,6 @@ mod tests {
             daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake);
 
         assert!(about(budget.resting_kcal, 1774.0 * 0.9685));
-        assert!(about(budget.organs_kcal, 102.5));
         assert!(about(budget.digestion_kcal, 275.75));
         assert!(about(budget.spontaneous_kcal, 234.0));
         assert!(about(budget.volitional_kcal, 431.52 - 234.0));
