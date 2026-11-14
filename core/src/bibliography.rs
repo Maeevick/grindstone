@@ -309,7 +309,7 @@ pub const REFERENCES: [Reference; 32] = [
         title: "Variation in human water turnover associated with environmental and lifestyle factors",
         published_in: "Science 378(6622):909-915",
         page: Some("https://doi.org/10.1126/science.abm8668"),
-        used_for: "The day's target: about 7% of the body's water turned over a day, nine tenths of it from drinks",
+        used_for: "The day's target: 9.9% of the body's water turned over a day, 85% of it taken in, four fifths of that drunk",
     },
     Reference {
         topic: Topic::Water,

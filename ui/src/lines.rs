@@ -470,8 +470,8 @@ pub const FUEL_TARGETS_WHY: &str = "Healthy, whatever they are, on the day's ene
 pub const WATER_HOW: &str = "Your water a day, in mL, before the burn: the day's band adds what your workouts \
     sweat out. Leave it empty to follow the recommendation, shown in grey.";
 
-pub const WATER_WHY: &str = "Recommended: once the tapes read a lean mass, nine tenths of the water it turns over \
-    in a day, food bringing the rest; weighed without one, 35 mL per kilo of body mass; before a weigh-in, EFSA's \
+pub const WATER_WHY: &str = "Recommended: once the tapes read a lean mass, 68% of the water it turns over in a \
+    day, 9.9% of its water: 85% of the turnover is taken in, four fifths of that drunk; weighed without one, 35 mL per kilo of body mass; before a weigh-in, EFSA's \
     2.5 L a day for a man and 2 L for a woman, four fifths of it drunk.";
 
 pub const BURN_TARGET_HOW: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. Leave it \

@@ -1,6 +1,6 @@
 use crate::gender::Gender;
 
-const DRINKS_PERCENT_OF_TOTAL_WATER: f64 = 80.0;
+pub(crate) const DRINKS_PERCENT_OF_TOTAL_WATER: f64 = 80.0;
 
 fn adequate_intake_of_total_water_ml(gender: Option<Gender>) -> f64 {
     match gender {

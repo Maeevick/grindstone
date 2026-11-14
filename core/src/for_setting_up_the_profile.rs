@@ -815,7 +815,7 @@ mod tests {
         .and_then(|measured| measured.composition)
         .map(|split| split.lean_mass_kg)
         .expect("a lean mass");
-        0.9 * (lean_kg * 0.732 * 0.07 * 1000.0)
+        0.85 * 0.8 * (lean_kg * 0.732 * 0.099 * 1000.0)
     }
 
     fn following(actual: Option<InForce<f64>>, recommended_ml: f64) -> bool {
