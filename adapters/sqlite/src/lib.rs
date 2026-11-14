@@ -1400,6 +1400,29 @@ mod tests {
     }
 
     #[test]
+    fn a_copy_kept_by_an_older_app_missing_one_of_its_tables_is_refused_and_leaves_the_records_as_they_were()
+     {
+        let other = a_store_with_a_day(20);
+        let before = the_copy_of(&other);
+        let mut older: serde_json::Value = serde_json::from_str(&a_copy_kept_at_version(
+            MIGRATIONS.len() - 2,
+            "2026-10-10",
+            81.5,
+        ))
+        .expect("a copy");
+        older["tables"]
+            .as_object_mut()
+            .map(|tables| tables.remove("goals"));
+
+        let restored = other.restored(&older.to_string());
+
+        assert_eq!(
+            (restored, the_copy_of(&other)),
+            (Err(Unrestorable::NotACopy), before)
+        );
+    }
+
+    #[test]
     fn a_restore_failing_half_way_leaves_the_records_as_they_were() {
         let (copied, other) = (a_store_with_a_day(10), a_store_with_a_day(20));
         let before = the_copy_of(&other);
