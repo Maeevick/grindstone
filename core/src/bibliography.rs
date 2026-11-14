@@ -40,7 +40,7 @@ pub fn references_about(topic: Topic) -> Vec<Reference> {
         .collect()
 }
 
-pub const REFERENCES: [Reference; 32] = [
+pub const REFERENCES: [Reference; 31] = [
     Reference {
         topic: Topic::BodyComposition,
         authors: "Hodgdon J. A., Beckett M. B.",
@@ -295,21 +295,12 @@ pub const REFERENCES: [Reference; 32] = [
     },
     Reference {
         topic: Topic::Water,
-        authors: "Wang Z., Deurenberg P., Wang W., et al.",
-        year: 1999,
-        title: "Hydration of fat-free body mass: new physiological modeling approach",
-        published_in: "American Journal of Physiology, Endocrinology and Metabolism 276(6):E995-E1003",
-        page: Some("https://doi.org/10.1152/ajpendo.1999.276.6.E995"),
-        used_for: "Lean mass holding 73.2% water, the water a body turns over being drawn from it",
-    },
-    Reference {
-        topic: Topic::Water,
         authors: "Yamada Y., Zhang X., Henderson M. E. T., et al.",
         year: 2022,
         title: "Variation in human water turnover associated with environmental and lifestyle factors",
         published_in: "Science 378(6622):909-915",
         page: Some("https://doi.org/10.1126/science.abm8668"),
-        used_for: "The day's target: 9.9% of the body's water turned over a day, 85% of it taken in, four fifths of that drunk",
+        used_for: "The day's target: the water turned over a day for a lean mass and an age, at the paper's reference climate, 85% of it taken in, four fifths of that drunk",
     },
     Reference {
         topic: Topic::Water,
@@ -345,7 +336,7 @@ mod tests {
             .map(|topic| references_about(*topic).len())
             .sum();
 
-        assert_eq!(water.len(), 5);
+        assert_eq!(water.len(), 4);
         assert!(
             water
                 .iter()
@@ -397,7 +388,6 @@ mod tests {
             .collect();
 
         for source in [
-            ("Wang Z., Deurenberg P., Wang W., et al.", 1999),
             ("Yamada Y., Zhang X., Henderson M. E. T., et al.", 2022),
             ("Westerterp K. R., Plasqui G., Goris A. H. C.", 2005),
             ("Joo M. A., Kim E. Y.", 2013),

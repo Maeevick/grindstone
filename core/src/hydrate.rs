@@ -57,14 +57,10 @@ const ML_PER_KCAL_SPENT: f64 = 1.0;
 /// kilo a day for adults; not an EFSA figure.
 const ML_A_KILO_OF_BODY_MASS: f64 = 35.0;
 const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
-const WATER_SHARE_OF_LEAN_MASS: f64 = 0.732;
-/// "decreased with age to 9.9 ± 3.0% per day in adults aged 18 to 40 years" (Yamada et al. 2022).
-const BODY_WATER_TURNED_OVER_A_DAY: f64 = 0.099;
 /// "daily water intake from liquids and foods is equivalent to ~85% of WT" (Yamada et al. 2022), metabolic water
 /// and what the lungs and skin take up bringing the rest.
 const TURNOVER_TAKEN_IN: f64 = 0.85;
 const ML_PER_KCAL_BURNT_AT_BEST: f64 = 1.25;
-const ML_PER_L: f64 = 1000.0;
 
 pub fn hydrate_on(
     day: NaiveDate,
@@ -130,13 +126,13 @@ impl<'records> Drinks<'records> {
     }
 }
 
-fn lean_kg_on(day: NaiveDate, gather: &GatherRecords) -> Option<f64> {
+fn turned_over_on(day: NaiveDate, gather: &GatherRecords) -> Option<f64> {
     body_on(
         day,
         &ledger(&gather.measurements, &gather.profiles),
         &gather.profiles,
     )
-    .map(|body| body.lean_kg)
+    .map(|body| turned_over_ml(body.lean_kg, body.age))
 }
 
 /// The share of the water a body turns over that it drinks: what it takes in, less what food brings.
@@ -144,8 +140,20 @@ fn drinks_share() -> f64 {
     TURNOVER_TAKEN_IN * DRINKS_PERCENT_OF_TOTAL_WATER / 100.0
 }
 
-fn turned_over_ml(lean_kg: f64) -> f64 {
-    lean_kg * WATER_SHARE_OF_LEAN_MASS * BODY_WATER_TURNED_OVER_A_DAY * ML_PER_L
+/// The water a body turns over in a day, by Yamada et al. (2022)'s equation for a known body composition: "WT mL/d
+/// = 861.9 × PAL + 37.34 × Fat‐freemass kg + 4.288 × Humidity % + 699.7 × Athletestatus + 105.0 × HDI + 0.5140 ×
+/// Altitude(m) − 0.3625 × Age^2 + 29.42 × Age(y) + 1.937 × Temperature^2 – 23.15 × Temperature °C – 984.8 [eq.2]",
+/// everything but the lean mass and the age taken at the paper's reference case, "not athletic and exhibits a PAL of
+/// 1.75, and who lives in a high HDI country at 0 m altitude where mean air temperature is 10°C and relative humidity
+/// is 50%", "HDI is 0 for high HDI countries": the athlete, HDI and altitude terms come to nothing.
+fn turned_over_ml(lean_kg: f64, age: u32) -> f64 {
+    let age = f64::from(age);
+    let (pal, humidity_percent, temperature_c) = (1.75, 50.0, 10.0);
+    861.9 * pal + 37.34 * lean_kg + 4.288 * humidity_percent - 0.3625 * age * age
+        + 29.42 * age
+        + 1.937 * temperature_c * temperature_c
+        - 23.15 * temperature_c
+        - 984.8
 }
 
 /// The water a day recommended before the burn: once a lean mass is known, the drinks' share of the water it turns over;
@@ -155,8 +163,8 @@ pub(crate) fn recommended_water_ml(
     gather: &GatherRecords,
     body_mass_kg: Option<f64>,
 ) -> f64 {
-    match (lean_kg_on(day, gather), body_mass_kg) {
-        (Some(lean_kg), _) => drinks_share() * turned_over_ml(lean_kg),
+    match (turned_over_on(day, gather), body_mass_kg) {
+        (Some(turned_over_ml), _) => drinks_share() * turned_over_ml,
         (None, Some(kg)) => ML_A_KILO_OF_BODY_MASS * kg,
         (None, None) => default_base_ml(
             version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
@@ -173,8 +181,8 @@ pub(crate) fn water_target_in_force(
     gather: &GatherRecords,
 ) -> Option<InForce<f64>> {
     in_force(dated_version_in_force_on(&records.targets, day), || {
-        Some(match lean_kg_on(day, gather) {
-            Some(lean_kg) => drinks_share() * turned_over_ml(lean_kg),
+        Some(match turned_over_on(day, gather) {
+            Some(turned_over_ml) => drinks_share() * turned_over_ml,
             None => default_base_ml(
                 version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
             ),
@@ -184,15 +192,14 @@ pub(crate) fn water_target_in_force(
 
 /// The day's drinks against its band. A water target of one's own is a base: it plus a millilitre per kcal
 /// burnt, the band a fifth either side. Otherwise, once a lean mass is known, the target is the drinks' share
-/// (the 85% of the turnover taken in, four fifths of it drunk, EFSA's share) of the water that mass turns over in
-/// a day plus 1.25 mL per kcal burnt, and the floor the same share of a millilitre per kcal the day spends (its
+/// (the 85% of the turnover taken in, four fifths of it drunk, EFSA's share) of the water Yamada's equation turns
+/// over in a day for that lean mass and age plus 1.25 mL per kcal burnt, and the floor the same share of a millilitre per kcal the day spends (its
 /// budget and burn) but never above the target; before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth
 /// under it.
 ///
-/// - Lean mass is 73.2% water: Wang Z. et al. (1999), *Hydration of fat-free body mass: new
-///   physiological modeling approach*, Am J Physiol Endocrinol Metab 276(6):E995-E1003.
-/// - 9.9% of the body's water turned over a day, 85% of it taken in: Yamada Y. et al. (2022), *Variation in
-///   human water turnover associated with environmental and lifestyle factors*, Science 378(6622):909-915.
+/// - The water turned over a day for a lean mass and an age, 85% of it taken in: Yamada Y. et al. (2022),
+///   *Variation in human water turnover associated with environmental and lifestyle factors*, Science
+///   378(6622):909-915.
 /// - Four fifths of the water taken in drunk: EFSA (2010), *Scientific Opinion on Dietary Reference Values for
 ///   water*, EFSA Journal 8(3):1459.
 /// - Water lost per kcal spent, 0.84 to 1.46 mL: Westerterp K. R., Plasqui G., Goris A. H. C. (2005),
@@ -211,7 +218,8 @@ fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
     let weighed_kg = burn.body_mass_kg;
     let (target_ml, floor_ml) = match (
         own_base_ml,
-        body_on(day, &drinks.ledger, &gather.profiles).map(|body| body.lean_kg),
+        body_on(day, &drinks.ledger, &gather.profiles)
+            .map(|body| turned_over_ml(body.lean_kg, body.age)),
         fuelled.band,
         weighed_kg,
     ) {
@@ -219,9 +227,9 @@ fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
             let target_ml = base_ml + burnt_kcal * ML_PER_KCAL_SPENT;
             (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
         }
-        (None, Some(lean_kg), Some(band), _) => {
+        (None, Some(turned_over_ml), Some(band), _) => {
             let target_ml =
-                drinks_share() * (turned_over_ml(lean_kg) + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
+                drinks_share() * (turned_over_ml + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
             let floor_ml = drinks_share() * band.maintenance_kcal * ML_PER_KCAL_SPENT;
             (target_ml, floor_ml.min(target_ml))
         }
