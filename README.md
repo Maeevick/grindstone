@@ -32,7 +32,7 @@ The screenshots show fictional records.
 - 🔥 **Burn:** workouts and circuits priced in kcal, and the day off the clock.
 - 👤 **Profile:** your body, goals and targets, each with a sourced recommendation, and a copy of every record to keep on the Mac.
 
-Every figure, and the source behind it, is in [docs/FEATURES.md](docs/FEATURES.md).
+Every figure is in [docs/FEATURES.md](docs/FEATURES.md), and the sources behind them, numbered, in [BIBLIOGRAPHY.md](BIBLIOGRAPHY.md).
 
 ## How it is built
 
@@ -81,5 +81,6 @@ The code is under the MIT licence, and the creative content (texts, lore, artwor
 | Document | Use it to |
 | --- | --- |
 | [docs/FEATURES.md](docs/FEATURES.md) | read every screen and every figure, with its source |
+| [BIBLIOGRAPHY.md](BIBLIOGRAPHY.md) | read the studies and guidelines behind the figures, numbered as the code cites them |
 | [GETTING_STARTED.md](GETTING_STARTED.md) | run and test the app locally |
 | [RUNBOOK.md](RUNBOOK.md) | go from nothing to the app installed on the phone, toolchain and USB connection included, and update it |
