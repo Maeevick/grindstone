@@ -12,7 +12,10 @@
 	"app": {
 		"withGlobalTauri": true,
 		"windows": [{ "title": "Grindstone", "width": 420, "height": 860 }],
-		"security": { "csp": null }
+		"security": {
+			"csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'",
+			"dangerousDisableAssetCspModification": ["style-src"]
+		}
 	},
 	"bundle": {
 		"active": true,
