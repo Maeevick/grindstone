@@ -1373,6 +1373,19 @@ mod tests {
     }
 
     #[test]
+    fn a_copy_missing_one_of_the_stores_tables_is_refused_and_leaves_the_records_as_they_were() {
+        let restored = restoring_spoilt(|copy| {
+            let mut copy: serde_json::Value = serde_json::from_str(copy).expect("a copy");
+            copy["tables"]
+                .as_object_mut()
+                .map(|tables| tables.remove("measurements"));
+            copy.to_string()
+        });
+
+        assert_eq!(restored, (Err(Unrestorable::NotACopy), true));
+    }
+
+    #[test]
     fn a_copy_naming_a_column_its_table_lacks_is_refused_and_leaves_the_records_as_they_were() {
         let restored = restoring_spoilt(|copy| {
             copy.replacen(
