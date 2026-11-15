@@ -175,9 +175,11 @@ pub fn energy_gauge_of(
     ghost: Option<(f64, &Band)>,
     width: f64,
 ) -> EnergyGauge {
-    let top = ghost.map_or(band.cap_kcal, |(_, after)| {
-        band.cap_kcal.max(after.cap_kcal)
-    });
+    let top = ghost
+        .map_or(band.cap_kcal, |(_, after)| {
+            band.cap_kcal.max(after.cap_kcal)
+        })
+        .max(band.goal_kcal);
     let spare = 0.1 * (top - band.minimum_kcal).max(0.1 * top);
     let scale = (band.minimum_kcal - spare, top + spare);
     let at = |kcal| placed(kcal, scale, width);
