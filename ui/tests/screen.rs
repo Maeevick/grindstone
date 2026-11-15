@@ -441,6 +441,34 @@ async fn every_field_stands_out_from_its_card_at_least_three_to_one() {
 }
 
 #[wasm_bindgen_test]
+async fn profile_holds_no_usual_day_card() {
+    answering(
+        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": null, "burn_target_on": null }"#,
+    );
+    let screen = screen();
+
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <ProfileScreen />
+            </Router>
+        }
+    });
+    settled().await;
+
+    let said = screen.text_content().unwrap_or_default().to_lowercase();
+    assert!(
+        screen
+            .query_selector("form.usual-day")
+            .ok()
+            .flatten()
+            .is_none()
+            && !said.contains("usual day"),
+        "{said}"
+    );
+}
+
+#[wasm_bindgen_test]
 async fn each_profile_card_shares_its_rows_between_its_figures() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
@@ -1687,6 +1715,28 @@ async fn an_exercise_nothing_matches_turns_the_workout_form_into_a_new_one_added
 }
 
 #[wasm_bindgen_test]
+async fn burn_logs_workouts_only() {
+    answering(&format!(
+        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
+             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_burn_day(&screen);
+    settled().await;
+
+    let shown = |selector: &str| screen.query_selector(selector).ok().flatten().is_some();
+    assert_eq!(
+        (
+            texts_in_order(&screen, "button.pill"),
+            shown("form.workout"),
+            shown("form.off-the-clock")
+        ),
+        (vec![], true, false)
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_burn_card_offers_a_workout_or_the_day_off_the_clock_on_its_pills() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
@@ -2678,6 +2728,23 @@ async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
 }
 
 #[wasm_bindgen_test]
+async fn fuel_says_its_maintenance_leaves_neat_out() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, ".bands p.hint.neat-left-out"),
+        "Maintenance counts your resting rate, digestion and workouts only. Sitting, standing, walking and \
+         fidgeting are left out on purpose: they only deepen the deficit below the band."
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
@@ -3125,6 +3192,23 @@ async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
             texts_in_order(&screen, ".last-days tr.details.steps li").len()
         ),
         (r#"{"date":"2026-10-10","ids":[1,2]}"#.to_string(), 0)
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_burn_days_details_list_its_workouts_only() {
+    let screen = screen();
+
+    let _mounted = burns_last_days_of_morning_rust(&screen);
+    settled().await;
+    settled().await;
+
+    let said = text_of(&screen, ".last-days");
+    assert!(
+        texts_in_order(&screen, ".last-days tr.entry.neat td").is_empty()
+            && !said.contains("volitional")
+            && !said.contains("spontaneous"),
+        "{said}"
     );
 }
 
