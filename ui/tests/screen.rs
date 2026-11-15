@@ -27,6 +27,7 @@ use grind_core::pace::Pace;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::streak::Streak;
+use grind_core::volitional::Volitional;
 use grind_ui::app::App;
 use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
@@ -233,9 +234,12 @@ fn the_core_gives(command: &str, answer: &serde_json::Value) -> Result<(), Strin
         "log_workout" => read_back::<Burn>(answer),
         "remove_workout" => read_back::<Burn>(answer),
         "remove_workouts" => read_back::<Burn>(answer),
+        "set_day_off_the_clock" => read_back::<Burn>(answer),
         "exercises" => read_back::<Vec<Exercise>>(answer),
         "add_exercise" => read_back::<Vec<Exercise>>(answer),
         "remove_exercise" => read_back::<Vec<Exercise>>(answer),
+        "set_usual_day" => read_back::<Option<InForce<Volitional>>>(answer),
+        "usual_day_on" => read_back::<Option<InForce<Volitional>>>(answer),
         "set_burn_target" => read_back::<Option<InForce<f64>>>(answer),
         "burn_target_on" => read_back::<Option<InForce<f64>>>(answer),
         "fuel_day" => read_back::<Fuel>(answer),
@@ -412,7 +416,7 @@ fn every(screen: &Element, selector: &str) -> Vec<Element> {
 #[wasm_bindgen_test]
 async fn every_field_stands_out_from_its_card_at_least_three_to_one() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": null,
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null, "fuel_targets_on": null,
              "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -437,37 +441,10 @@ async fn every_field_stands_out_from_its_card_at_least_three_to_one() {
 }
 
 #[wasm_bindgen_test]
-async fn profile_holds_no_usual_day_card() {
-    answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": null, "burn_target_on": null }"#,
-    );
-    let screen = screen();
-
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <ProfileScreen />
-            </Router>
-        }
-    });
-    settled().await;
-
-    let said = screen.text_content().unwrap_or_default().to_lowercase();
-    assert!(
-        screen
-            .query_selector("form.usual-day")
-            .ok()
-            .flatten()
-            .is_none()
-            && !said.contains("usual day"),
-        "{said}"
-    );
-}
-
-#[wasm_bindgen_test]
 async fn each_profile_card_shares_its_rows_between_its_figures() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -490,12 +467,17 @@ async fn each_profile_card_shares_its_rows_between_its_figures() {
             vec!["target_fibre", "target_carbs"]
         ]
     );
+    assert_eq!(
+        fields_in_rows(&screen, "form.usual-day"),
+        [vec!["usual_sitting", "usual_standing", "usual_moving"]]
+    );
 }
 
 #[wasm_bindgen_test]
 async fn the_profile_ends_past_a_divider_on_the_settings_the_vaults_copy_then_the_danger_zone() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
              "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -523,9 +505,10 @@ async fn the_profile_ends_past_a_divider_on_the_settings_the_vaults_copy_then_th
 }
 
 #[wasm_bindgen_test]
-async fn the_profile_cards_run_from_the_rusty_you_to_the_aches_the_day_owes() {
+async fn the_profile_asks_the_aches_the_day_owes_before_the_forgotten_bucket_of_sweat() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
              "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -539,14 +522,15 @@ async fn the_profile_cards_run_from_the_rusty_you_to_the_aches_the_day_owes() {
     settled().await;
 
     assert_eq!(
-        texts_in_order(&screen, "h2")[..6],
+        texts_in_order(&screen, "h2")[..7],
         [
             "Profile",
             "The rusty you behind the numbers",
             "Where the grindstone is heading",
             "How to feed the forge",
             "Hydrate the material",
-            "The aches the day owes"
+            "The aches the day owes",
+            "The forgotten bucket of sweat"
         ]
     );
 }
@@ -603,7 +587,8 @@ fn parts_of(card: &Element) -> Vec<String> {
 #[wasm_bindgen_test]
 async fn each_profile_card_reads_title_note_fields_note_then_its_buttons_and_none_asks_a_date() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false } }"#,
     );
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -636,7 +621,8 @@ async fn each_profile_card_reads_title_note_fields_note_then_its_buttons_and_non
             card("Engrave these goals", true),
             card("Paint these targets", true),
             card("Store this aim", true),
-            card("Fire this ambition", true)
+            card("Fire this ambition", true),
+            card("Keep this usual day", true)
         ]
     );
     assert_eq!(
@@ -749,6 +735,7 @@ async fn every_card_saves_on_today() {
         "form.fuel-targets",
         "form.water-target",
         "form.burn-target",
+        "form.usual-day",
     ] {
         found::<HtmlFormElement>(&screen, form)
             .request_submit()
@@ -763,10 +750,11 @@ async fn every_card_saves_on_today() {
             "set_goals",
             "set_fuel_targets",
             "set_hydrate_target",
-            "set_burn_target"
+            "set_burn_target",
+            "set_usual_day"
         ]
         .map(|command| asked(command).contains(&today)),
-        [true; 5]
+        [true; 6]
     );
 }
 
@@ -784,13 +772,23 @@ async fn a_figure_typed_alone_keeps_the_others_placeholders() {
     found::<HtmlFormElement>(&screen, "form.goals")
         .request_submit()
         .expect("the goals are saved");
+    typed_into(&screen, "usual_sitting", "600");
+    found::<HtmlFormElement>(&screen, "form.usual-day")
+        .request_submit()
+        .expect("the usual day is saved");
     settled().await;
 
     assert_eq!(
-        asked("set_goals"),
-        format!(
-            r#"{{"form":{{"from":"{}","kept":{{"Own":{{"body_mass_kg":70,"fat_percentage":16.5}}}}}}}}"#,
-            grind_ui::screens::today()
+        (asked("set_goals"), asked("set_usual_day")),
+        (
+            format!(
+                r#"{{"form":{{"from":"{}","kept":{{"Own":{{"body_mass_kg":70,"fat_percentage":16.5}}}}}}}}"#,
+                grind_ui::screens::today()
+            ),
+            format!(
+                r#"{{"form":{{"from":"{}","kept":{{"Own":{{"sitting_min":600,"standing_min":120,"moving_km":6}}}}}}}}"#,
+                grind_ui::screens::today()
+            )
         )
     );
 }
@@ -1444,7 +1442,8 @@ async fn the_window_pills_redraw_the_chart_over_the_days_they_name() {
     assert_eq!(masses_drawn(&screen), 3);
 }
 
-const AN_EMPTY_BURN: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0 }"#;
+const AN_EMPTY_BURN: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0,
+    "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true }"#;
 
 fn the_burn_day(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -1458,9 +1457,11 @@ fn the_burn_day(screen: &Element) -> impl Drop {
 }
 
 const A_BURN_PRICED_AT_80_KG: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0,
+    "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true,
     "body_mass_kg": 80.0 }"#;
 
 const A_BURN_SHORT_OF_ITS_TARGET: &str = r#"{ "day": "2026-10-10", "workouts": [], "burnt_kcal": 60.0,
+    "off_the_clock": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 }, "off_the_clock_is_usual": true,
     "body_mass_kg": 80.0, "target_kcal": 80.0, "verdict": "Low" }"#;
 
 #[wasm_bindgen_test]
@@ -1612,7 +1613,7 @@ async fn logging_a_workout_moves_the_day_by_what_it_burnt() {
     let before = format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [], "burn_day": {AN_EMPTY_BURN},
              "fuel_day": {A_DAY_NOT_FUELLED_YET},
-             "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0,
+             "log_workout": {{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true,
                  "workouts": [{{ "id": 1, "burnt_kcal": 252.0, "workout": {{ "day": "2026-10-10", "exercise": "Walking",
                      "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null }} }}] }} }}"#
     );
@@ -1624,7 +1625,7 @@ async fn logging_a_workout_moves_the_day_by_what_it_burnt() {
         &before,
         &format!(
             r#"{{ "burn_day": {} }}"#,
-            r#"{ "day": "2026-10-10", "burnt_kcal": 252.0, "workouts": [{ "id": 1, "burnt_kcal": 252.0, "workout": { "day": "2026-10-10", "exercise": "Walking", "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null } }] }"#
+            r#"{ "day": "2026-10-10", "burnt_kcal": 252.0, "off_the_clock": null, "off_the_clock_is_usual": true, "workouts": [{ "id": 1, "burnt_kcal": 252.0, "workout": { "day": "2026-10-10", "exercise": "Walking", "met": 4.0, "minutes": 60.0, "reps": null, "sets": 1, "load_kg": 0.0, "circuit": null } }] }"#
         ),
     ]);
 
@@ -1686,25 +1687,25 @@ async fn an_exercise_nothing_matches_turns_the_workout_form_into_a_new_one_added
 }
 
 #[wasm_bindgen_test]
-async fn burn_logs_workouts_only() {
+async fn the_burn_card_offers_a_workout_or_the_day_off_the_clock_on_its_pills() {
     answering(&format!(
         r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
              "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
     ));
     let screen = screen();
-
     let _mounted = the_burn_day(&screen);
     settled().await;
-
     let shown = |selector: &str| screen.query_selector(selector).ok().flatten().is_some();
-    assert_eq!(
-        (
-            texts_in_order(&screen, "button.pill"),
-            shown("form.workout"),
-            shown("form.off-the-clock")
-        ),
-        (vec![], true, false)
-    );
+    let pills = texts_in_order(&screen, "button.pill");
+    let at_first = shown("form.workout") && !shown("form.off-the-clock");
+
+    clicked(&screen, "button.burn-OffTheClock");
+    settled().await;
+
+    assert_eq!(pills, ["Workout", "Off the clock"]);
+    assert!(at_first);
+    assert!(shown("form.off-the-clock") && !shown("form.workout"));
+    assert_eq!(value_of(&screen, "sitting"), "480");
 }
 
 #[wasm_bindgen_test]
@@ -1933,7 +1934,8 @@ const A_FUELLED_DAY_WITH_ITS_BUDGET: &str = r#"{ "day": "2026-10-10", "intakes":
     "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 },
     "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2650.2 },
     "energy": "Low", "macros": null,
-    "budget": { "resting_kcal": 1718.1, "digestion_kcal": 275.8 } }"#;
+    "budget": { "resting_kcal": 1718.1, "digestion_kcal": 275.8,
+                "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 } }"#;
 
 const THREE_FOODS: &str = r#"[
     { "name": "Ail", "unit": "Gram", "portion": 10.0,
@@ -2676,23 +2678,6 @@ async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
 }
 
 #[wasm_bindgen_test]
-async fn fuel_says_its_maintenance_leaves_neat_out() {
-    answering(&format!(
-        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
-    ));
-    let screen = screen();
-
-    let _mounted = the_fuel_day(&screen);
-    settled().await;
-
-    assert_eq!(
-        text_of(&screen, ".bands p.hint.neat-left-out"),
-        "Maintenance counts your resting rate, digestion and workouts only. Sitting, standing, walking and \
-         fidgeting are left out on purpose: they only deepen the deficit below the band."
-    );
-}
-
-#[wasm_bindgen_test]
 async fn the_energy_gauge_ticks_maintenance_where_it_falls_in_the_band() {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
@@ -3144,19 +3129,34 @@ async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
 }
 
 #[wasm_bindgen_test]
-async fn a_burn_days_details_list_its_workouts_only() {
+async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting_in_grey() {
     let screen = screen();
-
     let _mounted = burns_last_days_of_morning_rust(&screen);
     settled().await;
     settled().await;
 
-    let said = text_of(&screen, ".last-days");
-    assert!(
-        texts_in_order(&screen, ".last-days tr.entry.neat td").is_empty()
-            && !said.contains("volitional")
-            && !said.contains("spontaneous"),
-        "{said}"
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".last-days tr.entry.neat td"),
+            texts_in_order(&screen, ".last-days tr.details").len()
+        ),
+        (
+            [
+                "volitional",
+                "198",
+                "–",
+                "–",
+                "",
+                "spontaneous",
+                "234",
+                "–",
+                "–",
+                ""
+            ]
+            .map(String::from)
+            .to_vec(),
+            0
+        )
     );
 }
 
@@ -3427,7 +3427,8 @@ async fn burns_last_days_go_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
             { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0 }] },
-            "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0 }, "fuel_day": { "day": "2026-10-10", "intakes": [], "band": null,
+            "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null,
+                "off_the_clock_is_usual": true }, "fuel_day": { "day": "2026-10-10", "intakes": [], "band": null,
                 "energy": null, "macros": null,
                 "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } } }"#,
     );
@@ -3640,7 +3641,8 @@ fn a_fuelled_day_of(
             "band": {{ "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5,
                        "floor_kcal": {floor}, "cap_kcal": {cap}, "goal_kcal": {floor}, "maintenance_kcal": {maintenance} }},
             "energy": "Low", "macros": null,
-            "budget": {{ "resting_kcal": 1718.1, "digestion_kcal": {digestion_kcal} }} }}"#
+            "budget": {{ "resting_kcal": 1718.1, "digestion_kcal": {digestion_kcal},
+                         "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 }} }}"#
     )
 }
 
@@ -3940,7 +3942,7 @@ const A_HOME: &str = r#"{ "profile_on": ["2026-03-01", { "birthday": "1985-04-12
                  { "day": "2026-10-10", "status": "Pending", "ticks": { "weighed": true, "fuelled": false, "worked_out": false, "hydrated": true } } ] },
              "fuel_day": { "day": "2026-10-10", "intakes": [], "band": null, "energy": null, "macros": null,
                  "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 } },
-             "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0 },
+             "burn_day": { "day": "2026-10-10", "workouts": [], "burnt_kcal": 0.0, "off_the_clock": null, "off_the_clock_is_usual": true },
              "gather_week": { "day": { "day": "2026-10-10", "body_mass_kg": 71.7, "waist_cm": null, "age": 41, "composition": null },
                  "days": [] } }"#;
 
@@ -4809,8 +4811,8 @@ async fn removing_a_circuit_takes_it_out_of_the_lab() {
     assert_eq!(text_of(&screen, "table.circuits tbody"), "");
 }
 
-const A_DAY_OF_MORNING_RUST: &str = r#"{ "day": "2026-10-10", "burnt_kcal": 120.0,
-    "workouts": [
+const A_DAY_OF_MORNING_RUST: &str = r#"{ "day": "2026-10-10", "burnt_kcal": 120.0, "off_the_clock": null,
+    "off_the_clock_is_usual": true, "workouts": [
     { "id": 1, "burnt_kcal": 40.0, "workout": { "day": "2026-10-10", "exercise": "Push up", "met": 3.8,
         "minutes": 0.5, "reps": 12, "sets": 3, "load_kg": 0.0, "circuit": "Morning rust" } },
     { "id": 2, "burnt_kcal": 80.0, "workout": { "day": "2026-10-10", "exercise": "Burpee", "met": 8.0,
@@ -5880,7 +5882,7 @@ async fn the_danger_zone_erases_everything_once_erase_is_typed() {
 
 const RECOMMENDED: &str = r#"{ "healthy_mass_kg": [59.94, 80.676], "goal_mass_kg": 70.308,
     "healthy_fat_ratio": [0.11, 0.22], "goal_fat_ratio": 0.165,
-    "burn_target_kcal": 77.14 , "fuel_floors_g_per_kg": { "protein_g_per_kg": 0.83, "fat_g_per_kg": 0.68, "fibre_g_per_kg": 0.33, "carbs_g_per_kg": 1.63 }, "water_ml": 2480.0 }"#;
+    "usual_day": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "burn_target_kcal": 77.14 , "fuel_floors_g_per_kg": { "protein_g_per_kg": 0.83, "fat_g_per_kg": 0.68, "fibre_g_per_kg": 0.33, "carbs_g_per_kg": 1.63 }, "water_ml": 2480.0 }"#;
 
 #[wasm_bindgen_test]
 async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_its_targets_from_the_start()
@@ -5888,7 +5890,7 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
     answering(&format!(
         r#"{{ "profile_on": ["2026-03-01", {{ "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }}],
              "goals_on": {{ "values": {{ "body_mass_kg": 68.0, "fat_ratio": 0.1 }}, "recommended": false }}, "fuel_targets_on": null,
-             "recommended_on": {RECOMMENDED} }}"#
+             "usual_day_on": null, "recommended_on": {RECOMMENDED} }}"#
     ));
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
@@ -5913,11 +5915,13 @@ async fn the_goals_card_tells_the_healthy_ranges_for_the_height_and_age_under_it
 const IN_FORCE_ON_EVERY_CARD: &str = r#""profile_on": ["2026-03-01", { "birthday": "1985-04-12", "gender": "Male", "height_cm": 180.0, "neck_cm": 38.5, "hip_cm": null }],
     "goals_on": { "values": { "body_mass_kg": 68.0, "fat_ratio": 0.12 }, "recommended": false, "from": "2026-10-10" },
     "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8 }, "recommended": true, "from": null },
+    "usual_day_on": { "values": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "recommended": true, "from": "2026-09-01" },
     "burn_target_on": { "values": 77.14, "recommended": true, "from": null },
     "hydrate_target_on": { "values": 2800.0, "recommended": false, "from": "2026-10-12" }"#;
 
 const KEPT_AS_RECOMMENDED: &str = r#""set_goals": { "values": { "body_mass_kg": 70.308, "fat_ratio": 0.165 }, "recommended": true },
     "set_fuel_targets": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.8 }, "recommended": true },
+    "set_usual_day": { "values": { "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 6.0 }, "recommended": true },
     "set_burn_target": { "values": 77.14, "recommended": true },
     "set_hydrate_target": { "values": 2600.0, "recommended": true }"#;
 
@@ -5953,7 +5957,10 @@ async fn each_card_shows_its_own_values_and_leaves_the_recommendation_to_its_pla
             "target_fibre",
             "target_carbs",
             "water_target",
-            "burn_target"
+            "burn_target",
+            "usual_sitting",
+            "usual_standing",
+            "usual_moving"
         ]
         .map(shown),
         [
@@ -5964,7 +5971,10 @@ async fn each_card_shows_its_own_values_and_leaves_the_recommendation_to_its_pla
             ("", "0.33"),
             ("", "1.63"),
             ("2800", "2480"),
-            ("", "77.14")
+            ("", "77.14"),
+            ("", "480"),
+            ("", "120"),
+            ("", "6")
         ]
         .map(|(value, placeholder)| (value.to_string(), placeholder.to_string()))
     );
@@ -6049,6 +6059,28 @@ async fn forgetting_a_card_follows_the_recommendation_and_tells_what_was_there_b
 }
 
 #[wasm_bindgen_test]
+async fn forgetting_the_usual_day_follows_the_recommendation_and_empties_its_fields() {
+    answering(&format!(
+        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
+    ));
+    let screen = screen();
+    let _mounted = the_profile_screen(&screen);
+    settled().await;
+    typed_into(&screen, "usual_sitting", "600");
+
+    clicked(&screen, "form.usual-day button.forget");
+    settled().await;
+
+    assert_eq!(
+        (
+            asked("set_usual_day").contains(r#""kept":"Recommended""#),
+            value_of(&screen, "usual_sitting")
+        ),
+        (true, String::new())
+    );
+}
+
+#[wasm_bindgen_test]
 async fn hydrates_card_keeps_a_water_target_of_your_own() {
     answering(&format!(
         r#"{{ {IN_FORCE_ON_EVERY_CARD}, "recommended_on": {RECOMMENDED},
@@ -6097,7 +6129,8 @@ async fn the_burn_target_card_keeps_its_own_kcal() {
 #[wasm_bindgen_test]
 async fn before_any_weigh_in_the_burn_target_card_says_a_single_workout_holds_the_tick() {
     answering(
-        r#"{ "profile_on": null, "goals_on": null, "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
+        r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
              "burn_target_on": null }"#,
     );
     let screen = screen();
@@ -6128,7 +6161,8 @@ fn spoken_on(screen: &Element) -> String {
 #[wasm_bindgen_test]
 async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     answering(&format!(
-        r#"{{ "profile_on": null, "goals_on": null, "fuel_targets_on": {{ "values": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }}, "recommended": false }},
+        r#"{{ "profile_on": null, "goals_on": null, "usual_day_on": null,
+             "fuel_targets_on": {{ "values": {{ "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }}, "recommended": false }},
              "foods": [], "meals": [], "exercises": [], "circuits": [], "priced_circuits": [],
              "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
     ));
@@ -6154,6 +6188,8 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
 
     let burn = screen();
     let _burn = the_burn_day(&burn);
+    settled().await;
+    clicked(&burn, "button.burn-OffTheClock");
     settled().await;
     said.push(spoken_on(&burn));
 

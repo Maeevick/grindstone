@@ -23,6 +23,7 @@ use grind_core::kept::Kept;
 use grind_core::meal::{Ingredient, MASS_KEPT, Meal};
 use grind_core::measurement::Measurement;
 use grind_core::profile::Profile;
+use grind_core::volitional::Volitional;
 use grind_core::workout::Workout;
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, params};
@@ -122,7 +123,6 @@ const MIGRATIONS: &[&str] = &[
      drop table fuel_targets;
      alter table fuel_goals rename to fuel_targets;",
     "drop table switch_over",
-    "drop table days_off_the_clock; drop table usual_days;",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
@@ -410,6 +410,10 @@ impl Sqlite {
 
 const EXERCISES: &str = "select name, met, description from exercises order by name";
 const WORKOUTS: &str = "select id, day, exercise, met, minutes, reps, sets, load_kg, circuit from workouts order by day, id";
+const DAYS_OFF_THE_CLOCK: &str =
+    "select day, sitting_min, standing_min, moving_km from days_off_the_clock order by day";
+const USUAL_DAYS: &str = "select effective_from, sitting_min, standing_min, moving_km, recommended
+     from usual_days order by effective_from";
 const BURN_TARGETS: &str =
     "select effective_from, kcal, recommended from burn_targets order by effective_from";
 
@@ -458,6 +462,17 @@ fn circuit_step_read(row: &rusqlite::Row) -> rusqlite::Result<(String, CircuitSt
     ))
 }
 
+fn volitional_read(row: &rusqlite::Row) -> rusqlite::Result<(NaiveDate, Volitional)> {
+    Ok((
+        row.get(0)?,
+        Volitional {
+            sitting_min: row.get(1)?,
+            standing_min: row.get(2)?,
+            moving_km: row.get(3)?,
+        },
+    ))
+}
+
 impl ForStoringBurnRecords for Sqlite {
     fn save_exercise(&self, exercise: &Exercise) -> Result<(), Broken> {
         self.run(
@@ -492,6 +507,43 @@ impl ForStoringBurnRecords for Sqlite {
         self.run("delete from workouts where id = ?1", params![id])
     }
 
+    fn save_day_off_the_clock(
+        &self,
+        day: NaiveDate,
+        volitional: &Volitional,
+    ) -> Result<(), Broken> {
+        self.run(
+            "insert into days_off_the_clock (day, sitting_min, standing_min, moving_km)
+             values (?1, ?2, ?3, ?4)
+             on conflict (day) do update set sitting_min = excluded.sitting_min,
+                 standing_min = excluded.standing_min, moving_km = excluded.moving_km",
+            params![
+                day,
+                volitional.sitting_min,
+                volitional.standing_min,
+                volitional.moving_km
+            ],
+        )
+    }
+
+    fn save_usual_day(&self, from: NaiveDate, usual: &Kept<Volitional>) -> Result<(), Broken> {
+        let (volitional, recommended) = written(usual, Volitional::default());
+        self.run(
+            "insert into usual_days (effective_from, sitting_min, standing_min, moving_km, recommended)
+             values (?1, ?2, ?3, ?4, ?5)
+             on conflict (effective_from) do update set sitting_min = excluded.sitting_min,
+                 standing_min = excluded.standing_min, moving_km = excluded.moving_km,
+                 recommended = excluded.recommended",
+            params![
+                from,
+                volitional.sitting_min,
+                volitional.standing_min,
+                volitional.moving_km,
+                recommended
+            ],
+        )
+    }
+
     fn save_burn_target(&self, from: NaiveDate, kcal: Kept<f64>) -> Result<(), Broken> {
         let (kcal, recommended) = written(&kcal, 0.0);
         self.run(
@@ -506,7 +558,8 @@ impl ForStoringBurnRecords for Sqlite {
         let replacing = self.0.unchecked_transaction().map_err(broken)?;
         replacing
             .execute_batch(
-                "delete from exercises; delete from workouts; delete from circuit_steps;
+                "delete from exercises; delete from workouts;
+                 delete from days_off_the_clock; delete from usual_days; delete from circuit_steps;
                  delete from circuits; delete from burn_targets;",
             )
             .map_err(broken)?;
@@ -515,6 +568,12 @@ impl ForStoringBurnRecords for Sqlite {
         }
         for (_, workout) in &records.workouts {
             self.save_workout(workout)?;
+        }
+        for (day, volitional) in &records.days_off_the_clock {
+            self.save_day_off_the_clock(*day, volitional)?;
+        }
+        for (from, volitional) in &records.usual_days {
+            self.save_usual_day(*from, volitional)?;
         }
         for circuit in &records.circuits {
             self.circuit_inserted(circuit)?;
@@ -529,6 +588,11 @@ impl ForStoringBurnRecords for Sqlite {
         Ok(BurnRecords {
             exercises: self.rows(EXERCISES, exercise_read)?,
             workouts: self.rows(WORKOUTS, workout_read)?,
+            days_off_the_clock: self.rows(DAYS_OFF_THE_CLOCK, volitional_read)?,
+            usual_days: self.rows(USUAL_DAYS, |row| {
+                let (from, usual) = volitional_read(row)?;
+                Ok((from, kept(row.get(4)?, usual)))
+            })?,
             circuits: self.circuits()?,
             targets: self.rows(BURN_TARGETS, |row| {
                 Ok((row.get(0)?, kept(row.get(2)?, row.get(1)?)))
@@ -1139,7 +1203,6 @@ mod tests {
     const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
     const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
     const BEFORE_THE_RECOMMENDATIONS: usize = 20;
-    const BEFORE_THE_NEAT_LEFT_OUT: usize = 27;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
@@ -1500,55 +1563,6 @@ mod tests {
         );
     }
 
-    /// The tables of the day off the clock a store still holds.
-    fn neat_tables_in(store: &Sqlite) -> i64 {
-        store
-            .0
-            .query_row(
-                "select count(*) from sqlite_master
-                 where type = 'table' and name in ('days_off_the_clock', 'usual_days')",
-                [],
-                |row| row.get(0),
-            )
-            .expect("the tables count")
-    }
-
-    #[test]
-    fn a_store_drops_the_days_off_the_clock_and_the_usual_days() {
-        assert_eq!(neat_tables_in(&database()), 0);
-    }
-
-    #[test]
-    fn an_older_copy_restores_without_them() {
-        let other = a_store_with_a_day(20);
-        let older = a_store_at_version(BEFORE_THE_NEAT_LEFT_OUT);
-        older
-            .execute_batch(
-                "insert into measurements (day, body_mass_kg) values ('2026-10-10', 81.5);
-                 insert into days_off_the_clock (day, sitting_min, standing_min, moving_km)
-                     values ('2026-10-10', 600.0, 60.0, 1.0);
-                 insert into usual_days (effective_from, sitting_min, standing_min, moving_km, recommended)
-                     values ('2026-03-01', 480.0, 120.0, 3.0, 0);",
-            )
-            .expect("records kept before");
-        let copy = copy_of(
-            &older,
-            NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"),
-        )
-        .expect("a copy")
-        .text;
-
-        let restored = other.restored(&copy);
-
-        assert_eq!(
-            (
-                restored.map(|counted| counted.records),
-                neat_tables_in(&other)
-            ),
-            (Ok(1), 0)
-        );
-    }
-
     #[test]
     fn the_switch_over_the_drafts_import_kept_is_dropped() {
         let switch_overs: i64 = database()
@@ -1625,8 +1639,8 @@ mod tests {
     }
 
     #[test]
-    fn a_target_kept_as_the_recommendation_comes_back_kept_so() {
-        honouring_for_storing_burn_records::a_target_kept_as_the_recommendation_comes_back_kept_so(
+    fn a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so() {
+        honouring_for_storing_burn_records::a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so(
             &database(),
         );
     }
@@ -2214,7 +2228,7 @@ mod tests {
     }
 
     #[test]
-    fn the_goals_and_targets_already_on_the_phone_come_back_as_own_values() {
+    fn the_goals_targets_and_usual_days_already_on_the_phone_come_back_as_own_values() {
         let file = std::env::temp_dir().join(format!(
             "grind-sqlite-recommendations-{}.sqlite",
             std::process::id()
@@ -2243,7 +2257,9 @@ mod tests {
         let reopened = Sqlite::open(&file).expect("the database migrates");
         let kept = (
             reopened.gather_records().map(|gathered| gathered.goals),
-            reopened.burn_records().map(|burnt| burnt.targets),
+            reopened
+                .burn_records()
+                .map(|burnt| (burnt.usual_days, burnt.targets)),
             reopened.fuel_records().map(|fuelled| fuelled.targets),
         );
 
@@ -2259,7 +2275,17 @@ mod tests {
                         fat_ratio: 0.1
                     })
                 )]),
-                Ok(vec![(from, Kept::Own(77.0))]),
+                Ok((
+                    vec![(
+                        from,
+                        Kept::Own(Volitional {
+                            sitting_min: 480.0,
+                            standing_min: 120.0,
+                            moving_km: 6.0
+                        })
+                    )],
+                    vec![(from, Kept::Own(77.0))]
+                )),
                 Ok(vec![(
                     from,
                     Kept::Own(FuelTargets {

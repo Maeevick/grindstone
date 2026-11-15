@@ -7,7 +7,7 @@ use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::{Food, Nutrients};
 use grind_core::for_burning::CircuitSessionForm;
-use grind_core::for_burning::{SessionForm, WorkoutForm};
+use grind_core::for_burning::{OffTheClockForm, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
@@ -18,7 +18,7 @@ use grind_core::for_fuelling::{IntakeForm, PlateForm};
 use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_reviewing_progress::Window;
 use grind_core::for_setting_up_the_profile::{
-    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, UsualDayForm,
 };
 use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
@@ -33,6 +33,7 @@ use grind_core::pace::Pace;
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::streak::Streak;
+use grind_core::volitional::Volitional;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use wasm_bindgen::prelude::*;
@@ -133,6 +134,12 @@ struct Removing<'a> {
 }
 
 #[derive(Serialize)]
+struct OnDayWith<'a, Filled> {
+    date: &'a str,
+    form: &'a Filled,
+}
+
+#[derive(Serialize)]
 struct Naming<'a> {
     name: &'a str,
 }
@@ -166,6 +173,10 @@ pub async fn remove_workouts(date: &str, ids: &[i64]) -> Result<Burn, Failure> {
     call("remove_workouts", RemovingSeveral { date, ids }, broken).await
 }
 
+pub async fn set_day_off_the_clock(date: &str, form: &OffTheClockForm) -> Result<Burn, Failure> {
+    call("set_day_off_the_clock", OnDayWith { date, form }, broken).await
+}
+
 pub async fn exercises() -> Result<Vec<Exercise>, Failure> {
     call("exercises", Nothing {}, broken).await
 }
@@ -189,6 +200,14 @@ pub async fn add_exercise(
 
 pub async fn remove_exercise(name: &str) -> Result<Vec<Exercise>, Failure> {
     call("remove_exercise", Naming { name }, broken).await
+}
+
+pub async fn set_usual_day(form: &UsualDayForm) -> Result<Option<InForce<Volitional>>, Failure> {
+    call("set_usual_day", Form { form }, broken).await
+}
+
+pub async fn usual_day_on(date: &str) -> Result<Option<InForce<Volitional>>, Failure> {
+    call("usual_day_on", OnDay { date }, broken).await
 }
 
 pub async fn set_burn_target(form: &BurnTargetForm) -> Result<Option<InForce<f64>>, Failure> {

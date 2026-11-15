@@ -256,8 +256,10 @@ fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
 mod tests {
     use super::*;
     use crate::gender::Gender;
+    use crate::kept::Kept;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
+    use crate::volitional::Volitional;
     use crate::workout::Workout;
 
     fn day(date: &str) -> NaiveDate {
@@ -392,36 +394,24 @@ mod tests {
 
     #[test]
     fn the_floor_never_rises_above_the_optimal() {
-        let protein_g = 2500.0;
-        let eating_absurdly = FuelRecords {
-            intakes: vec![(
-                1,
-                crate::intake::intake(
-                    "2026-10-10",
-                    &crate::food::Food {
-                        name: "Protein".into(),
-                        unit: crate::food::Unit::Piece,
-                        portion: 1.0,
-                        nutrients: crate::food::Nutrients {
-                            energy_kcal: 4.0 * protein_g,
-                            protein_g,
-                            ..crate::food::Nutrients::default()
-                        },
-                        description: String::new(),
-                    },
-                    1.0,
-                )
-                .expect("an intake"),
+        let walking_a_hundred_km_a_day = BurnRecords {
+            usual_days: vec![(
+                day("2026-03-01"),
+                Kept::Own(Volitional {
+                    sitting_min: 480.0,
+                    standing_min: 120.0,
+                    moving_km: 100.0,
+                }),
             )],
-            ..FuelRecords::default()
+            ..BurnRecords::default()
         };
 
         let hydrate = hydrate_on(
             day("2026-10-10"),
             &HydrateRecords::default(),
             &a_man_measured_with_his_waist(),
-            &BurnRecords::default(),
-            &eating_absurdly,
+            &walking_a_hundred_km_a_day,
+            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.floor_ml, hydrate.target_ml));

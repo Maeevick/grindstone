@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::aims::goals_in_force;
-use crate::burn::body_mass_in_force_on;
+use crate::burn::{body_mass_in_force_on, usual_day_in_force};
 use crate::burn_target::target_on;
 use crate::failure::Failure;
 use crate::for_storing_burn_records::ForStoringBurnRecords;
@@ -19,6 +19,7 @@ use crate::profile::{Profile, profile};
 use crate::recommendations::{Recommendations, recommended};
 use crate::refusal::Refusal;
 use crate::version::{dated_version_in_force_on, version_in_force_on};
+use crate::volitional::{Volitional, volitional};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProfileForm {
@@ -62,6 +63,9 @@ pub fn set_profile(
         );
         if gathered.goals.is_empty() {
             records.save_goals(from, &Kept::Recommended)?;
+        }
+        if burnt.usual_days.is_empty() {
+            burn.save_usual_day(from, &Kept::Recommended)?;
         }
         if burnt.targets.is_empty() {
             burn.save_burn_target(from, Kept::Recommended)?;
@@ -120,6 +124,42 @@ pub fn goals_on(
 ) -> Result<Option<InForce<Goals>>, Failure> {
     let day = day(date)?;
     Ok(goals_in_force(day, &records.gather_records()?))
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UsualDayForm {
+    pub from: String,
+    pub kept: Kept<Volitional>,
+}
+
+pub fn set_usual_day(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    form: &UsualDayForm,
+) -> Result<Option<InForce<Volitional>>, Failure> {
+    let from = day(&form.from)?;
+    let kept = match form.kept {
+        Kept::Own(usual) => Kept::Own(
+            volitional(usual.sitting_min, usual.standing_min, usual.moving_km)
+                .map_err(Failure::Refused)?,
+        ),
+        Kept::Recommended => Kept::Recommended,
+    };
+    burn.save_usual_day(from, &kept)?;
+    usual_day_on(gather, burn, &form.from)
+}
+
+pub fn usual_day_on(
+    gather: &impl ForStoringGatherRecords,
+    burn: &impl ForStoringBurnRecords,
+    date: &str,
+) -> Result<Option<InForce<Volitional>>, Failure> {
+    let day = day(date)?;
+    Ok(usual_day_in_force(
+        day,
+        &burn.burn_records()?.usual_days,
+        &gather.gather_records()?.profiles,
+    ))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -484,6 +524,33 @@ mod tests {
         assert_eq!(goals_on(&BrokenGatherRecords, "2026-10-10"), Err(broken));
     }
 
+    fn a_desk_day() -> Volitional {
+        Volitional {
+            sitting_min: 480.0,
+            standing_min: 120.0,
+            moving_km: 3.0,
+        }
+    }
+
+    fn a_desk_day_from(from: &str) -> UsualDayForm {
+        UsualDayForm {
+            from: from.into(),
+            kept: Kept::Own(a_desk_day()),
+        }
+    }
+
+    fn the_recommended_usual_day() -> InForce<Volitional> {
+        InForce {
+            values: Volitional {
+                sitting_min: 480.0,
+                standing_min: 120.0,
+                moving_km: 1.9,
+            },
+            recommended: true,
+            from: None,
+        }
+    }
+
     /// A profile kept with no card started beside it, as records kept before a first profile seeded them.
     fn born(birthday: &str) -> GatherRecordsInMemory {
         let gather = GatherRecordsInMemory::default();
@@ -500,6 +567,106 @@ mod tests {
             )
             .expect("a profile saves");
         gather
+    }
+
+    #[test]
+    fn a_usual_day_set_from_a_date_is_the_one_in_force_from_that_date() {
+        let (gather, burn) = (
+            GatherRecordsInMemory::default(),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
+        set_usual_day(&gather, &burn, &a_desk_day_from("2026-03-01")).expect("a usual day sets");
+
+        assert_eq!(
+            usual_day_on(&gather, &burn, "2026-10-10"),
+            Ok(Some(InForce {
+                values: a_desk_day(),
+                recommended: false,
+                from: since("2026-03-01"),
+            }))
+        );
+    }
+
+    #[test]
+    fn a_usual_day_never_kept_follows_the_recommendation_none_without_a_profile() {
+        let burn = crate::testing::BurnRecordsInMemory::default();
+
+        assert_eq!(
+            (
+                usual_day_on(&born("1985-04-12"), &burn, "2026-10-10"),
+                usual_day_on(&GatherRecordsInMemory::default(), &burn, "2026-10-10")
+            ),
+            (Ok(Some(the_recommended_usual_day())), Ok(None))
+        );
+    }
+
+    #[test]
+    fn the_usual_days_recommendation_kept_from_a_day_holds_from_it_own_values_holding_before_it() {
+        let (gather, burn) = (
+            born("1966-10-15"),
+            crate::testing::BurnRecordsInMemory::default(),
+        );
+        set_usual_day(&gather, &burn, &a_desk_day_from("2026-03-01")).expect("a usual day sets");
+        set_usual_day(
+            &gather,
+            &burn,
+            &UsualDayForm {
+                from: "2026-10-10".into(),
+                kept: Kept::Recommended,
+            },
+        )
+        .expect("the recommendation keeps");
+
+        let in_force = |date| usual_day_on(&gather, &burn, date).ok().flatten();
+
+        assert_eq!(
+            [
+                in_force("2026-10-05"),
+                in_force("2026-10-11"),
+                in_force("2026-10-16")
+            ],
+            [
+                Some(InForce {
+                    values: a_desk_day(),
+                    recommended: false,
+                    from: since("2026-03-01"),
+                }),
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_usual_day()
+                }),
+                Some(InForce {
+                    from: since("2026-10-10"),
+                    ..the_recommended_usual_day()
+                })
+            ]
+        );
+    }
+
+    #[test]
+    fn a_usual_day_with_more_minutes_than_a_day_holds_is_refused() {
+        let gather = GatherRecordsInMemory::default();
+        let refused = set_usual_day(
+            &gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &UsualDayForm {
+                from: "2026-03-01".into(),
+                kept: Kept::Own(Volitional {
+                    sitting_min: 1500.0,
+                    ..a_desk_day()
+                }),
+            },
+        );
+
+        assert_eq!(refused, Err(Failure::Refused(Refusal::NotADistance)));
+        assert_eq!(
+            usual_day_on(
+                &gather,
+                &crate::testing::BurnRecordsInMemory::default(),
+                "2026-02-30"
+            ),
+            Err(Failure::Refused(Refusal::NotADate))
+        );
     }
 
     fn own_targets() -> FuelTargets {
@@ -764,6 +931,7 @@ mod tests {
                 kept_from(fuel_targets_on(&gather, &fuel, "2026-10-20")),
                 kept_from(hydrate_target_on(&gather, &hydrate, "2026-10-20")),
                 kept_from(burn_target_on(&gather, &burn, "2026-10-20")),
+                kept_from(usual_day_on(&gather, &burn, "2026-10-20")),
             ]
         };
         let never_kept = kept_on_the_20th();
@@ -790,11 +958,19 @@ mod tests {
             },
         )
         .expect("the burn target keeps");
+        set_usual_day(&gather, &burn, &a_desk_day_from("2026-10-14")).expect("the usual day keeps");
 
-        assert_eq!(never_kept, [None, None, None, None]);
+        assert_eq!(never_kept, [None, None, None, None, None]);
         assert_eq!(
             kept_on_the_20th(),
-            ["2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13"].map(since)
+            [
+                "2026-10-10",
+                "2026-10-11",
+                "2026-10-12",
+                "2026-10-13",
+                "2026-10-14"
+            ]
+            .map(since)
         );
     }
 
@@ -1111,6 +1287,7 @@ mod tests {
             hydrate.hydrate_records().expect("records"),
         );
         assert_eq!(gathered.goals, vec![(started, Kept::Recommended)]);
+        assert_eq!(burnt.usual_days, vec![(started, Kept::Recommended)]);
         assert_eq!(burnt.targets, vec![(started, Kept::Recommended)]);
         assert_eq!(fuelled.targets, vec![(started, Kept::Recommended)]);
         assert_eq!(hydrated.targets, vec![(started, Kept::Recommended)]);
@@ -1167,6 +1344,8 @@ mod tests {
                 }),
             )
             .expect("goals save");
+        burn.save_usual_day(first, &Kept::Recommended)
+            .expect("a usual day saves");
         burn.save_burn_target(first, Kept::Own(40.0))
             .expect("a burn target saves");
         fuel.save_targets(first, &Kept::Recommended)
@@ -1181,13 +1360,14 @@ mod tests {
         assert_eq!(
             [
                 gather.gather_records().map(|gathered| gathered.goals.len()),
+                burn.burn_records().map(|burnt| burnt.usual_days.len()),
                 burn.burn_records().map(|burnt| burnt.targets.len()),
                 fuel.fuel_records().map(|fuelled| fuelled.targets.len()),
                 hydrate
                     .hydrate_records()
                     .map(|hydrated| hydrated.targets.len())
             ],
-            [Ok(1), Ok(1), Ok(1), Ok(1)]
+            [Ok(1), Ok(1), Ok(1), Ok(1), Ok(1)]
         );
     }
 }

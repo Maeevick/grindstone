@@ -15,6 +15,7 @@ use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::streak::{Status, Streak};
+use grind_core::volitional::Volitional;
 
 pub const WELCOME: &str = "Greetings, rusty one. From today I file your every gram. \
     Shall we begin with your profile, or restore a copy of your records first?";
@@ -67,12 +68,26 @@ pub fn burnt(burn: &Burn) -> String {
     }
 }
 
+pub fn off_the_clock(burn: &Burn) -> &'static str {
+    if burn.off_the_clock_is_usual {
+        "The usual day off the clock, as set in Profile. Change it for this day only:"
+    } else {
+        "This day's own day off the clock:"
+    }
+}
+
 pub const NO_WEIGH_IN_TO_PRICE_A_WORKOUT: &str = "No weigh-in yet, so no kcal to price a workout on: \
     until then, a single workout holds the tick, a kcal will do.";
 
 pub fn burn_target_kept(from: &str) -> String {
     format!("Filed: the day's burn target is kept from {from}.")
 }
+
+pub fn usual_day_kept(from: &str) -> String {
+    format!("Filed: the usual day off the clock is kept from {from}.")
+}
+
+pub const DAY_OFF_THE_CLOCK_KEPT: &str = "Noted for this day only.";
 
 pub fn failure(failure: &Failure) -> String {
     match failure {
@@ -104,6 +119,10 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotACount) => "At least one set, rusty one.".into(),
         Failure::Refused(Refusal::NotALoad) => {
             "A load in kilos, a band counting below zero.".into()
+        }
+        Failure::Refused(Refusal::NotADistance) => {
+            "Minutes and kilometres of nothing or more, and no more minutes than a day holds."
+                .into()
         }
         Failure::Refused(Refusal::NotAPortion) => {
             "A portion above nothing: per 100 g, per 250 mL or per piece.".into()
@@ -444,6 +463,14 @@ pub const BURN_TARGET_HOW: &str = "Net kilocalories a day your workouts aim to b
 pub const BURN_TARGET_WHY: &str =
     "Recommended: WHO's 150 minutes a week of moderate activity, priced on your body.";
 
+pub const USUAL_DAY_HOW: &str = "Outside workouts: the minutes you usually sit and stand, the kilometres you \
+    usually move. It prices the day's NEAT. Type some alone and the others keep their recommendation; leave all \
+    empty to follow it.";
+
+pub const USUAL_DAY_WHY: &str = "Recommended: sitting 8 hours at most, past which the least active die sooner \
+    (Ekelund 2016); standing 2 hours (Buckley 2015); moving 2500 steps, the most of basal activity (Tudor-Locke \
+    2011), at about 0.75 m a step: the workouts you log count the rest.";
+
 pub const UNREADABLE: &str =
     "That is no number I can read. Digits, with a point or a comma, please.";
 
@@ -552,6 +579,15 @@ pub fn burn_target_held(kcal: &f64) -> String {
     shown(Figure::Energy(*kcal))
 }
 
+pub fn usual_day_held(usual: &Volitional) -> String {
+    format!(
+        "{} sitting, {} standing, {} moving",
+        shown(Figure::Duration(usual.sitting_min)),
+        shown(Figure::Duration(usual.standing_min)),
+        shown(Figure::Distance(usual.moving_km))
+    )
+}
+
 pub fn recommendation_kept(from: &str) -> String {
     format!("Filed: the recommendation is followed from {from}, as your body changes.")
 }
@@ -586,10 +622,6 @@ pub fn over_logged_days(days: usize) -> String {
         format!("Average over {days} logged days, today left out.")
     }
 }
-
-/// What maintenance leaves out, said under the energy gauge: NEAT is not priced, the user's choice.
-pub const NEAT_LEFT_OUT: &str = "Maintenance counts your resting rate, digestion and workouts only. Sitting, \
-    standing, walking and fidgeting are left out on purpose: they only deepen the deficit below the band.";
 
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
@@ -628,6 +660,8 @@ mod tests {
             day: day("2026-11-14"),
             workouts: vec![],
             burnt_kcal,
+            off_the_clock: None,
+            off_the_clock_is_usual: false,
             body_mass_kg: Some(72.0),
             target_kcal,
             verdict,
@@ -642,6 +676,7 @@ mod tests {
             profile_kept(from),
             goals_kept(from),
             burn_target_kept(from),
+            usual_day_kept(from),
             fuel_targets_kept(from),
             recommendation_kept(from),
             water_target_kept(from),
@@ -653,6 +688,7 @@ mod tests {
                 "Filed. This profile is kept from 2026-11-14.",
                 "Noted in the margin, in very small letters: these goals are kept from 2026-11-14.",
                 "Filed: the day's burn target is kept from 2026-11-14.",
+                "Filed: the usual day off the clock is kept from 2026-11-14.",
                 "Filed: these targets are kept from 2026-11-14, and every band is recalculated from that day.",
                 "Filed: the recommendation is followed from 2026-11-14, as your body changes.",
                 "Filed: this water target is kept from 2026-11-14, each kcal burnt adding a millilitre.",
@@ -728,6 +764,25 @@ mod tests {
     }
 
     #[test]
+    fn the_day_off_the_clock_says_whether_it_is_the_usual_one_or_the_days_own() {
+        let usual = Burn {
+            off_the_clock_is_usual: true,
+            ..burn(None, None, None)
+        };
+        let own = burn(None, None, None);
+
+        let said = [off_the_clock(&usual), off_the_clock(&own)];
+
+        assert_eq!(
+            said,
+            [
+                "The usual day off the clock, as set in Profile. Change it for this day only:",
+                "This day's own day off the clock:",
+            ]
+        );
+    }
+
+    #[test]
     fn a_body_refused_is_said_by_what_it_lacks() {
         let refused = [
             Refusal::NotADate,
@@ -765,6 +820,7 @@ mod tests {
             Refusal::NotADuration,
             Refusal::NotACount,
             Refusal::NotALoad,
+            Refusal::NotADistance,
             Refusal::NotAnExercise,
             Refusal::NotASingleStep,
             Refusal::NotACircuit,
@@ -781,6 +837,7 @@ mod tests {
                 "Some minutes above nothing, please.",
                 "At least one set, rusty one.",
                 "A load in kilos, a band counting below zero.",
+                "Minutes and kilometres of nothing or more, and no more minutes than a day holds.",
                 "That exercise is not in the catalog yet. I checked twice.",
                 "A circuit needs one step at least. Even my experiments have one: the bang.",
                 "That circuit is not in the lab. Craft it first, at the bottom of Burn.",
@@ -1292,12 +1349,30 @@ mod tests {
     }
 
     #[test]
+    fn a_usual_day_held_reads_sitting_standing_and_moving() {
+        let usual = Volitional {
+            sitting_min: 480.0,
+            standing_min: 120.0,
+            moving_km: 6.0,
+        };
+
+        let said = usual_day_held(&usual);
+
+        assert_eq!(said, "480 min sitting, 120 min standing, 6 km moving");
+    }
+
+    #[test]
     fn the_healthy_ranges_read_the_mass_and_the_fat_at_the_height_and_age() {
         let advised = Recommendations {
             healthy_mass_kg: (58.6, 78.9),
             goal_mass_kg: 70.0,
             healthy_fat_ratio: (0.08, 0.19),
             goal_fat_ratio: 0.15,
+            usual_day: Volitional {
+                sitting_min: 480.0,
+                standing_min: 120.0,
+                moving_km: 6.0,
+            },
             burn_target_kcal: None,
             fuel_floors_g_per_kg: FuelTargets {
                 protein_g_per_kg: None,

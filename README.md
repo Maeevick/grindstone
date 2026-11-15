@@ -29,10 +29,8 @@ The screenshots show fictional records.
 - ⚖️ **Gather:** weigh-ins and waist, the lean and fat masses they give, and the pace a week towards your goals.
 - ⚡ **Fuel:** foods, meals and plates from your own catalog, an energy band from a floor to a cap, and the four macros.
 - 💧 **Hydrate:** drinks against a water band drawn from your lean mass.
-- 🔥 **Burn:** workouts and circuits priced in kcal.
+- 🔥 **Burn:** workouts and circuits priced in kcal, and the day off the clock.
 - 👤 **Profile:** your body, goals and targets, each with a sourced recommendation, and a copy of every record to keep on the Mac.
-
-**NEAT is left out.** Maintenance counts the resting rate, digestion and workouts only. Sitting, standing, walking and fidgeting are left out on purpose: they only deepen the deficit below the band. They may come back once I build a sensor of my own.
 
 Every figure is in [docs/FEATURES.md](docs/FEATURES.md), and the sources behind them, numbered, in [BIBLIOGRAPHY.md](BIBLIOGRAPHY.md).
 

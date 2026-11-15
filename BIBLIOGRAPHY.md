@@ -19,19 +19,19 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
    Used for: The healthy body fat by age and gender (table 4), behind the recommended fat.
 
 5. Helms E. R., Aragon A. A., Fitschen P. J. (2014). *Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation*. Journal of the International Society of Sports Nutrition 11:20. <https://doi.org/10.1186/1550-2783-11-20>
-   Not used at the moment; was: a loss of 0.5 to 1% of the body mass a week, the pace that keeps the muscle.
+   Used for: A loss of 0.5 to 1% of the body mass a week, the pace that keeps the muscle.
 
 6. Garthe I., Raastad T., Refsnes P. E., et al. (2011). *Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes*. International Journal of Sport Nutrition and Exercise Metabolism 21(2):97-104. <https://www.sponet.de/sponet/Record/4020931>
-   Not used at the moment; was: losing 0.7% a week kept more lean mass than 1.4%, why a fast loss was judged dangerous.
+   Used for: Losing 0.7% a week kept more lean mass than 1.4%: why a fast loss is judged dangerous.
 
 7. Iraki J., Fitschen P., Espinar S., et al. (2019). *Nutrition recommendations for bodybuilders in the off-season: a narrative review*. Sports 7(7):154. <https://doi.org/10.3390/sports7070154>
-   Used for: The band's cap with a gain to aim for: half a percent of the body mass a week, the upper rate of a gain that builds more than it stores.
+   Used for: A gain of 0.25 to 0.5% of the body mass a week, more built than stored; its upper rate caps the band with a gain to aim for.
 
 8. National Institute for Health and Care Excellence (2025). *Overweight and obesity management*. NICE guideline NG246. <https://www.nice.org.uk/guidance/ng246>
-   Not used at the moment; was: no more than 0.5 to 1 kg lost a week.
+   Used for: No more than 0.5 to 1 kg lost a week.
 
 9. Wishnofsky M. (1958). *Caloric equivalent of gained or lost weight*. American Journal of Clinical Nutrition 6(5):542-546. <https://doi.org/10.1093/ajcn/6.5.542>
-   Used for: About 7,700 kcal a kilo of fat tissue, to turn the cap's half a percent of the body mass a week into kcal a day.
+   Used for: About 7,700 kcal a kilo of fat tissue, to turn what the fat store can spare into kilos a week.
 
 ## Energy
 
@@ -42,10 +42,10 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
    Used for: Digestion priced on the grams of protein, carbohydrate, fat and fibre eaten.
 
 12. Levine J. A. (2002). *Non-exercise activity thermogenesis (NEAT)*. Best Practice & Research Clinical Endocrinology & Metabolism 16(4):679-702. <https://pubmed.ncbi.nlm.nih.gov/12468415/>
-   Not used at the moment; was: the day off the clock, sitting, standing, moving and fidgeting, now left out of the budget.
+   Used for: The day off the clock: sitting, standing, moving and fidgeting.
 
 13. Alpert S. S. (2005). *A limit on the energy transfer rate from the human fat store in hypophagia*. Journal of Theoretical Biology 233(1):1-13. <https://pubmed.ncbi.nlm.nih.gov/15615615/>
-   Used for: The band's floor, on the fat left to lose above the goal's: what the fat store can spare in a day, 290 kJ (about 69.3 kcal) per kilo.
+   Used for: The band's floor, on the fat left to lose above the goal's, and the safe weekly loss: what the fat store can spare in a day, 290 kJ (about 69.3 kcal) per kilo.
 
 14. Loucks A. B., Kiens B., Wright H. H. (2011). *Energy availability in athletes*. Journal of Sports Sciences 29(sup1):S7-S15. <https://pubmed.ncbi.nlm.nih.gov/21793767/>
    Used for: The band's minimum per kilo of lean mass, plus the burn.
@@ -59,16 +59,16 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
    Used for: The MET of each exercise, burnt above rest.
 
 17. Tudor-Locke C., Craig C. L., Brown W. J., et al. (2011). *How many steps/day are enough? for adults*. International Journal of Behavioral Nutrition and Physical Activity 8:79. <https://pmc.ncbi.nlm.nih.gov/articles/PMC3197470/>
-   Not used at the moment; was: the usual day's steps, 2500, the most of basal activity.
+   Used for: The usual day's steps: 2500, the most of basal activity, the workouts logged counting the rest.
 
 18. Buckley J. P., Hedge A., Yates T., et al. (2015). *The sedentary office: an expert statement on the growing case for change towards better health and productivity*. British Journal of Sports Medicine 49(21):1357-1362. <https://pubmed.ncbi.nlm.nih.gov/26034192/>
-   Not used at the moment; was: the usual day's 2 hours standing, the first step towards 4.
+   Used for: The usual day's 2 hours standing, the first step towards 4.
 
 19. Ekelund U., Steene-Johannessen J., Brown W. J., et al. (2016). *Does physical activity attenuate, or even eliminate, the detrimental association of sitting time with mortality? A harmonised meta-analysis of data from more than 1 million men and women*. The Lancet 388(10051):1302-1310. <https://pubmed.ncbi.nlm.nih.gov/27475271/>
-   Not used at the moment; was: the usual day's 8 hours sitting at most, past which the least active die sooner.
+   Used for: The usual day's 8 hours sitting at most, past which the least active die sooner.
 
 20. Bull F. C., Al-Ansari S. S., Biddle S., et al. (2020). *World Health Organization 2020 guidelines on physical activity and sedentary behaviour*. British Journal of Sports Medicine 54(24):1451-1462. <https://doi.org/10.1136/bjsports-2020-102955>
-   Used for: The burn target, 150 minutes a week of moderate activity priced on the body weighed.
+   Used for: Less sitting and more moving, at any intensity: the direction of the usual day.
 
 ## Macronutrients
 

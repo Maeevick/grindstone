@@ -144,7 +144,9 @@ mod tests {
         use crate::for_burning::{WorkoutForm, log_workout};
         use crate::for_cataloguing::{FoodForm, add_exercise, add_food};
         use crate::for_fuelling::{IntakeForm, log_intake};
-        use crate::for_setting_up_the_profile::{FuelTargetsForm, set_fuel_targets};
+        use crate::for_setting_up_the_profile::{
+            FuelTargetsForm, UsualDayForm, set_fuel_targets, set_usual_day,
+        };
         use crate::streak::Ticks;
         use crate::testing::{BurnRecordsInMemory, FuelRecordsInMemory, HydrateRecordsInMemory};
 
@@ -161,10 +163,10 @@ mod tests {
                 unit: Unit::Piece,
                 portion: 1.0,
                 nutrients: Nutrients {
-                    energy_kcal: 4.0 * 160.0 + 4.0 * 180.0 + 9.0 * 60.0 + 2.0 * fibre_g,
-                    protein_g: 160.0,
-                    carbs_g: 180.0,
-                    fat_g: 60.0,
+                    energy_kcal: 4.0 * 170.0 + 4.0 * 230.0 + 9.0 * 80.0 + 2.0 * fibre_g,
+                    protein_g: 170.0,
+                    carbs_g: 230.0,
+                    fat_g: 80.0,
                     fibre_g,
                 },
                 description: String::new(),
@@ -200,6 +202,19 @@ mod tests {
                 },
             )
             .expect("a profile set");
+            set_usual_day(
+                &records.gather,
+                &records.burn,
+                &UsualDayForm {
+                    from: "2026-03-01".into(),
+                    kept: crate::kept::Kept::Own(crate::volitional::Volitional {
+                        sitting_min: 480.0,
+                        standing_min: 120.0,
+                        moving_km: 3.0,
+                    }),
+                },
+            )
+            .expect("a usual day set");
             set_fuel_targets(
                 &records.gather,
                 &records.fuel,

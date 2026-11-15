@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+use crate::gender::Gender;
+use crate::volitional::Volitional;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Deficit {
+    pub trailing_deficit_kcal: f64,
+    pub weeks_in_deficit: u32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Macro {
     pub protein: f64,
@@ -18,29 +27,42 @@ pub struct Intake {
 pub struct Budget {
     pub resting_kcal: f64,
     pub digestion_kcal: f64,
+    pub spontaneous_kcal: f64,
+    pub volitional_kcal: f64,
 }
 
 impl Budget {
     pub fn kcal(&self) -> f64 {
-        self.resting_kcal + self.digestion_kcal
+        self.resting_kcal + self.digestion_kcal + self.spontaneous_kcal + self.volitional_kcal
     }
 }
 
-/// The day's energy budget before the burn: basal rate and digestion. Sitting, standing, walking and fidgeting
-/// (NEAT) are left out, the user's choice: they only deepen the deficit below the band.
+/// The day's energy budget before the burn: basal rate, digestion and the day off the clock.
 ///
 /// - Basal rate from lean mass (Katch-McArdle), the organs' cost inside it [10].
 /// - Digestion priced on the grams eaten [11].
-pub fn daily_energy_budget(age: u32, ffm: f64, intake: Intake) -> Budget {
+/// - The day off the clock (sitting, standing, moving, fidgeting) [12].
+pub fn daily_energy_budget(
+    age: u32,
+    ffm: f64,
+    fm: f64,
+    gender: Gender,
+    volitional: Volitional,
+    deficit: Deficit,
+    intake: Intake,
+) -> Budget {
     let Macro {
         protein,
         fat,
         fib,
         carb,
     } = intake.macros;
+    let neat = neat_by_mayo_clinic(age, ffm, fm, gender, volitional, deficit);
     Budget {
         resting_kcal: bmr_by_katch_and_mcardle(age, ffm),
         digestion_kcal: tef_by_calcagno_et_al(age, protein, fat, fib, carb),
+        spontaneous_kcal: neat.spontaneous,
+        volitional_kcal: neat.volitional,
     }
 }
 
@@ -53,6 +75,43 @@ fn tef_by_calcagno_et_al(age: u32, protein: f64, fat: f64, fib: f64, carb: f64) 
         * (1.0 - 0.002 * f64::from(age.saturating_sub(50))).max(0.0)
 }
 
+struct Neat {
+    spontaneous: f64,
+    volitional: f64,
+}
+
+fn neat_by_mayo_clinic(
+    age: u32,
+    ffm: f64,
+    fm: f64,
+    gender: Gender,
+    volitional: Volitional,
+    deficit: Deficit,
+) -> Neat {
+    let (ffm, fm) = (ffm.max(0.0), fm.max(0.0));
+    let (male_standing_premium, female_walking_premium) = match gender {
+        Gender::Male => (0.015, 0.0),
+        Gender::Female => (0.0, 0.025),
+    };
+    let worn_down =
+        1.0 - 0.0003 * deficit.trailing_deficit_kcal.max(0.0) * f64::from(deficit.weeks_in_deficit);
+    let spontaneous = 0.0025 * ffm * 1440.0 * worn_down.max(0.55);
+    let sitting = volitional.sitting_min / 60.0 * (0.66 + 0.048 * ffm + 0.006 * fm);
+    let standing = volitional.standing_min
+        * (0.022
+            + 0.0021 * ffm
+            + 0.0004 * fm
+            + male_standing_premium
+            + 0.0006 * f64::from(age.saturating_sub(55)));
+    let walking = (ffm + fm)
+        * volitional.moving_km
+        * (0.485 + female_walking_premium + 0.0035 * f64::from(age.saturating_sub(60)));
+    Neat {
+        spontaneous,
+        volitional: sitting + standing + walking,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,7 +121,8 @@ mod tests {
     }
 
     #[test]
-    fn a_days_budget_is_its_resting_rate_and_digestion_alone() {
+    fn a_mans_budget_adds_up_his_resting_digestion_and_non_exercise_burns_the_organs_inside_the_resting_rate()
+     {
         let intake = Intake {
             energy: 2500.0,
             macros: Macro {
@@ -73,9 +133,11 @@ mod tests {
             },
         };
 
-        let budget = daily_energy_budget(41, 65.0, intake);
-
-        assert!(about(budget.kcal(), 1774.0 * 0.9685 + 275.75));
+        assert!(about(
+            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake)
+                .kcal(),
+            1774.0 * 0.9685 + 275.75 + 431.52
+        ));
     }
 
     #[test]
@@ -140,8 +202,162 @@ mod tests {
         ));
     }
 
+    const NO_DEFICIT: Deficit = Deficit {
+        trailing_deficit_kcal: 0.0,
+        weeks_in_deficit: 0,
+    };
+
+    const A_DESK_DAY: Volitional = Volitional {
+        sitting_min: 480.0,
+        standing_min: 120.0,
+        moving_km: 4.0,
+    };
+
+    const NOTHING_BUT_STANDING: Volitional = Volitional {
+        sitting_min: 0.0,
+        standing_min: 120.0,
+        moving_km: 0.0,
+    };
+
+    const NOTHING_BUT_WALKING: Volitional = Volitional {
+        sitting_min: 0.0,
+        standing_min: 0.0,
+        moving_km: 4.0,
+    };
+
+    const NOTHING_BUT_FIDGETING: Volitional = Volitional {
+        sitting_min: 0.0,
+        standing_min: 0.0,
+        moving_km: 0.0,
+    };
+
+    fn whole(neat: Neat) -> f64 {
+        neat.spontaneous + neat.volitional
+    }
+
+    fn a_mans_neat(age: u32, volitional: Volitional, deficit: Deficit) -> f64 {
+        whole(neat_by_mayo_clinic(
+            age,
+            65.0,
+            10.0,
+            Gender::Male,
+            volitional,
+            deficit,
+        ))
+    }
+
     #[test]
-    fn the_budget_tells_apart_its_resting_and_digestion_parts() {
+    fn eight_hours_sat_two_stood_and_four_kilometres_walked_burn_431_52_kcal_off_the_clock() {
+        assert!(about(a_mans_neat(41, A_DESK_DAY, NO_DEFICIT), 431.52));
+    }
+
+    #[test]
+    fn standing_costs_a_man_more_than_a_woman_of_the_same_build() {
+        let woman = whole(neat_by_mayo_clinic(
+            41,
+            65.0,
+            10.0,
+            Gender::Female,
+            NOTHING_BUT_STANDING,
+            NO_DEFICIT,
+        ));
+
+        assert!(about(
+            a_mans_neat(41, NOTHING_BUT_STANDING, NO_DEFICIT) - woman,
+            1.8
+        ));
+    }
+
+    #[test]
+    fn walking_costs_a_woman_more_than_a_man_of_the_same_mass() {
+        let woman = whole(neat_by_mayo_clinic(
+            41,
+            65.0,
+            10.0,
+            Gender::Female,
+            NOTHING_BUT_WALKING,
+            NO_DEFICIT,
+        ));
+
+        assert!(about(
+            woman - a_mans_neat(41, NOTHING_BUT_WALKING, NO_DEFICIT),
+            7.5
+        ));
+    }
+
+    #[test]
+    fn standing_gets_dearer_past_fifty_five_and_walking_past_sixty() {
+        assert!(about(
+            a_mans_neat(65, NOTHING_BUT_STANDING, NO_DEFICIT)
+                - a_mans_neat(55, NOTHING_BUT_STANDING, NO_DEFICIT),
+            0.72
+        ));
+        assert!(about(
+            a_mans_neat(70, NOTHING_BUT_WALKING, NO_DEFICIT)
+                - a_mans_neat(60, NOTHING_BUT_WALKING, NO_DEFICIT),
+            10.5
+        ));
+    }
+
+    #[test]
+    fn a_deficit_held_for_weeks_wears_spontaneous_activity_down_by_its_depth_times_its_length() {
+        let worn = |trailing_deficit_kcal, weeks_in_deficit| {
+            a_mans_neat(
+                41,
+                NOTHING_BUT_FIDGETING,
+                Deficit {
+                    trailing_deficit_kcal,
+                    weeks_in_deficit,
+                },
+            )
+        };
+
+        assert!(about(worn(400.0, 3), 234.0 * (1.0 - 0.0003 * 1200.0)));
+        assert!(about(worn(400.0, 3), worn(300.0, 4)));
+    }
+
+    #[test]
+    fn spontaneous_activity_wears_down_to_fifty_five_percent_and_no_further() {
+        let worn = Deficit {
+            trailing_deficit_kcal: 441.0,
+            weeks_in_deficit: 40,
+        };
+
+        assert!(about(
+            a_mans_neat(41, NOTHING_BUT_FIDGETING, worn),
+            234.0 * 0.55
+        ));
+    }
+
+    #[test]
+    fn a_surplus_buys_no_extra_spontaneous_activity() {
+        let surplus = Deficit {
+            trailing_deficit_kcal: -441.0,
+            weeks_in_deficit: 4,
+        };
+
+        assert!(about(
+            a_mans_neat(41, NOTHING_BUT_FIDGETING, surplus),
+            234.0
+        ));
+    }
+
+    #[test]
+    fn a_composition_below_nothing_leaves_only_the_postural_intercepts() {
+        let burned = whole(neat_by_mayo_clinic(
+            41,
+            -65.0,
+            -10.0,
+            Gender::Male,
+            A_DESK_DAY,
+            NO_DEFICIT,
+        ));
+
+        assert!(about(burned, 5.28 + 4.44));
+    }
+
+    #[test]
+    fn the_budget_tells_apart_its_resting_digestion_spontaneous_and_volitional_parts() {
         let intake = Intake {
             energy: 2500.0,
             macros: Macro {
@@ -152,9 +368,12 @@ mod tests {
             },
         };
 
-        let budget = daily_energy_budget(41, 65.0, intake);
+        let budget =
+            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake);
 
         assert!(about(budget.resting_kcal, 1774.0 * 0.9685));
         assert!(about(budget.digestion_kcal, 275.75));
+        assert!(about(budget.spontaneous_kcal, 234.0));
+        assert!(about(budget.volitional_kcal, 431.52 - 234.0));
     }
 }

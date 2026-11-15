@@ -517,7 +517,6 @@ fn FuelStands(
                                 }
                                 None => view! { <p class="hint">{lines::NO_BAND}</p> }.into_any(),
                             }}
-                            <p class="hint neat-left-out">{lines::NEAT_LEFT_OUT}</p>
                             {answer
                                 .macros
                                 .map(|macros| {
