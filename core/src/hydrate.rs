@@ -372,6 +372,23 @@ mod tests {
     }
 
     #[test]
+    fn a_day_without_its_own_target_aims_a_fifth_above_efsas_drinks_and_a_millilitre_more_per_kcal_burnt_twenty_percent_either_side()
+     {
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &a_man_measured_with_his_waist(),
+            &walked_an_hour("2026-10-10"),
+            &FuelRecords::default(),
+        );
+
+        let optimal_ml = 2000.0 / 0.8 + 252.0;
+        assert!(about(hydrate.target_ml, optimal_ml));
+        assert!(about(hydrate.floor_ml, 0.8 * optimal_ml));
+        assert!(about(hydrate.cap_ml, 1.2 * optimal_ml));
+    }
+
+    #[test]
     fn a_day_floors_at_the_drinks_share_of_a_millilitre_per_kcal_of_its_budget_and_burn() {
         let gather = a_man_measured_with_his_waist();
         let burn = walked_an_hour("2026-10-10");
