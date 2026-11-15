@@ -35,8 +35,7 @@ const CHIPS: [(Chip, &str); 4] = [
     (Chip::Burn, "Burn"),
 ];
 
-const WINDOWS: [(Window, &str); 4] = [
-    (Window::Days7, "7 days"),
+const WINDOWS: [(Window, &str); 3] = [
     (Window::Days30, "30 days"),
     (Window::Days90, "90 days"),
     (Window::Everything, "∞"),
@@ -626,7 +625,7 @@ history!(
 #[component]
 pub fn Charts(today: String) -> impl IntoView {
     let chip = RwSignal::new(Chip::Gather);
-    let window = RwSignal::new(Window::Days7);
+    let window = RwSignal::new(Window::Days30);
     let today = StoredValue::new(today);
     let streak = LocalResource::new(move || {
         let today = today.get_value();

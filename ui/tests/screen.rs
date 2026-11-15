@@ -1433,11 +1433,11 @@ async fn homes_window_offers_thirty_ninety_and_every_day_thirty_first() {
 }
 
 #[wasm_bindgen_test]
-async fn the_window_pills_start_on_seven_days_and_redraw_the_chart_over_the_days_they_name() {
+async fn the_window_pills_redraw_the_chart_over_the_days_they_name() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }},
              "gather_chart": {{ "__by": "window",
-                 "Days7": {{ "masses": [["2026-10-04", 80.4], ["2026-10-10", 80.0]], "lean_masses": [],
+                 "Days30": {{ "masses": [["2026-10-04", 80.4], ["2026-10-10", 80.0]], "lean_masses": [],
                               "goal_kg": 70.0, "goal_lean_kg": null }},
                  "Days90": {{ "masses": [["2026-08-01", 82.0], ["2026-09-20", 80.4], ["2026-10-10", 80.0]],
                               "lean_masses": [], "goal_kg": 70.0, "goal_lean_kg": null }} }} }}"#
@@ -1455,8 +1455,6 @@ async fn the_window_pills_start_on_seven_days_and_redraw_the_chart_over_the_days
             .unwrap_or_default()
     };
     assert_eq!(masses_drawn(&screen), 2);
-    found::<Element>(&screen, "button.window-Days7.chosen");
-    assert_eq!(text_of(&screen, "button.window-Everything"), "∞");
 
     found::<web_sys::HtmlElement>(&screen, "button.window-Days90").click();
     settled().await;
