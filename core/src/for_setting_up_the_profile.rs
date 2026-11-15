@@ -865,7 +865,8 @@ mod tests {
     }
 
     #[test]
-    fn a_mans_water_target_never_kept_follows_a_fifth_above_efsas_drinks_weighed_taped_or_not() {
+    fn a_mans_water_target_never_kept_stands_where_efsas_drinks_are_a_fifth_under_it_weighed_taped_or_not()
+     {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
         let (unweighed, weighed, taped) =
             (born("1985-04-12"), born("1985-04-12"), born("1985-04-12"));

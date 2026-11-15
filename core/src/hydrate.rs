@@ -8,7 +8,6 @@ use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
 use crate::gather_records::GatherRecords;
-use crate::gender::Gender;
 use crate::hydrate_base::default_base_ml;
 use crate::hydrate_records::HydrateRecords;
 use crate::kept::{InForce, Kept, in_force};
@@ -105,9 +104,11 @@ impl<'records> Drinks<'records> {
     }
 }
 
-/// The water a day recommended before the burn, a fifth above EFSA's drinks for the gender [28], the user's rule.
+/// The water a day recommended before the burn: EFSA's drinks for the gender, four fifths of its adequate intake of
+/// total water [28], are its floor, a fifth under it (the user's rule).
 pub(crate) fn recommended_water_ml(day: NaiveDate, gather: &GatherRecords) -> f64 {
-    recommended_optimal_ml(version_in_force_on(&gather.profiles, day).map(|profile| profile.gender))
+    default_base_ml(version_in_force_on(&gather.profiles, day).map(|profile| profile.gender))
+        / (1.0 - BAND_SHARE_EITHER_SIDE)
 }
 
 /// The water target in force on a day: kept from the latest day up to it (the earliest before any), its own
@@ -120,12 +121,6 @@ pub(crate) fn water_target_in_force(
     in_force(dated_version_in_force_on(&records.targets, day), || {
         Some(recommended_water_ml(day, gather))
     })
-}
-
-/// The optimal a day recommended before the burn: EFSA's drinks, four fifths of its adequate intake of total water
-/// [28], are the floor, the optimal a fifth above them (the user's rule).
-fn recommended_optimal_ml(gender: Option<Gender>) -> f64 {
-    default_base_ml(gender) / (1.0 - BAND_SHARE_EITHER_SIDE)
 }
 
 /// The day's drinks against its band: the optimal, a water target of one's own or the recommended one, plus a
@@ -230,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn a_day_without_its_own_target_aims_a_fifth_above_efsas_drinks_and_a_millilitre_more_per_kcal_burnt_twenty_percent_either_side()
+    fn a_day_without_its_own_target_aims_where_efsas_drinks_stand_a_fifth_under_plus_a_millilitre_per_kcal_burnt_twenty_percent_either_side()
      {
         let hydrate = hydrate_on(
             day("2026-10-10"),
