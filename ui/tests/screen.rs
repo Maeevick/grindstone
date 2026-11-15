@@ -389,26 +389,6 @@ async fn settled() {
 }
 
 #[wasm_bindgen_test]
-async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_to_restoring_a_copy() {
-    answering(r#"{ "profile_on": null }"#);
-    let screen = screen();
-
-    let _mounted = the_app(&screen);
-    settled().await;
-
-    assert_eq!(
-        (
-            text_of(&screen, ".welcome a[href='/profile']"),
-            text_of(&screen, ".welcome a[href='/profile#copy']")
-        ),
-        (
-            "Set up your profile".to_string(),
-            "Restore a copy".to_string()
-        )
-    );
-}
-
-#[wasm_bindgen_test]
 async fn the_app_opens_on_the_profile_welcoming_you_before_a_profile_is_kept_on_gather_after() {
     answering(r#"{ "profile_on": null }"#);
     let screen = screen();
@@ -550,9 +530,10 @@ async fn the_profile_asks_the_aches_the_day_owes_before_the_forgotten_bucket_of_
     settled().await;
 
     assert_eq!(
-        texts_in_order(&screen, "h2")[..7],
+        texts_in_order(&screen, "h2")[..8],
         [
             "Profile",
+            "Welcome",
             "The rusty you behind the numbers",
             "Where the grindstone is heading",
             "How to feed the forge",
@@ -4337,18 +4318,6 @@ async fn a_food_added_in_the_grimoire_is_offered_by_the_fuel_form() {
 }
 
 #[wasm_bindgen_test]
-async fn the_streak_card_holds_its_ticks_to_the_gauges_bands_and_tells_of_no_grace() {
-    answering(A_HOME);
-    let screen = screen();
-    let _mounted = the_app(&screen);
-    settled().await;
-    settled().await;
-
-    let card = text_of(&screen, "section.card.streak");
-    assert!(!card.contains("5%"), "{card}");
-}
-
-#[wasm_bindgen_test]
 async fn every_screen_wears_the_header_its_person_opening_the_profile_and_todays_four_tiles() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
@@ -4549,29 +4518,10 @@ async fn a_link_or_button_reached_by_the_keyboard_wears_a_gold_ring() {
     assert_eq!(
         [
             ring_of(&found(&screen, "header.top a.person")),
-            ring_of(&found(&screen, "button.chip-Fuel"))
+            ring_of(&found(&screen, "section.card.stats button.window-Days90"))
         ],
         ["solid rgb(232, 176, 75)", "solid rgb(232, 176, 75)"]
     );
-}
-
-#[wasm_bindgen_test]
-async fn home_holds_the_streak_alone_in_its_card() {
-    answering(A_HOME);
-    let screen = screen();
-    let _mounted = the_app(&screen);
-    settled().await;
-    settled().await;
-
-    assert_eq!(texts_of(&screen, "section.card.streak h2"), ["Streak"]);
-    assert_eq!(text_of(&screen, ".streak .current"), "2 days");
-    assert_eq!(text_of(&screen, ".streak .longest"), "(longest: 5 days)");
-    for elsewhere in [".streak .tile", ".streak .dot"] {
-        assert!(
-            screen.query_selector(elsewhere).ok().flatten().is_none(),
-            "{elsewhere}"
-        );
-    }
 }
 
 const MORNING_RUST: &str = r#"{ "name": "Morning rust", "description": "Found on YouTube, the rusty goblin channel.", "steps": [

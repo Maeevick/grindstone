@@ -13,6 +13,7 @@ use grind_core::recommendations::Recommendations;
 use grind_core::volitional::Volitional;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
+use leptos_router::components::A;
 
 use crate::lines;
 use crate::screens::fields::{DateField, FigureField};
@@ -537,6 +538,20 @@ fn FuelTargetsCard() -> impl IntoView {
     }
 }
 
+/// The first launch's greeting, before any profile is kept: fill the cards below, or bring a copy back.
+#[component]
+fn Welcome() -> impl IntoView {
+    view! {
+        <section class="card welcome">
+            <h2>"Welcome"</h2>
+            <p>{lines::WELCOME}</p>
+            <A href="/profile#copy" attr:class="cta ghost">
+                "Restore a copy"
+            </A>
+        </section>
+    }
+}
+
 #[component]
 pub fn ProfileScreen() -> impl IntoView {
     let birthday = RwSignal::new(String::new());
@@ -554,8 +569,11 @@ pub fn ProfileScreen() -> impl IntoView {
             advised.0.set(Some(recommended));
         }
     });
+    let first_launch = RwSignal::new(false);
     spawn_local(async move {
-        if let Ok(Some((_, profile))) = tauri::profile_on(&today()).await {
+        let kept = tauri::profile_on(&today()).await;
+        first_launch.set(matches!(kept, Ok(None)));
+        if let Ok(Some((_, profile))) = kept {
             held.set(lines::profile_held(&profile));
             birthday.set(profile.birthday.to_string());
             gender.set(profile.gender);
@@ -607,6 +625,7 @@ pub fn ProfileScreen() -> impl IntoView {
         <header class="screen-top">
             <h2>"Profile"</h2>
         </header>
+        {move || first_launch.get().then(|| view! { <Welcome /> })}
         <ProfileCard
             title="The rusty you behind the numbers"
             form="profile"
