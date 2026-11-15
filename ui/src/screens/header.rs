@@ -86,6 +86,20 @@ fn TodaysTiles() -> impl IntoView {
     view! {
         <div class="today">
             <h2>"Today"</h2>
+            <p class="streak">
+                {move || {
+                    streak
+                        .get()
+                        .and_then(Result::ok)
+                        .map(|streak| {
+                            view! {
+                                <span class="current">{lines::streak_count(streak.days)}</span>
+                                " "
+                                <span class="longest">{lines::longest_streak(streak.longest)}</span>
+                            }
+                        })
+                }}
+            </p>
             <div class="tiles">
                 <Tile
                     href="/gather"

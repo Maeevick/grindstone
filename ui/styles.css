@@ -934,6 +934,18 @@ textarea:focus {
 	font-size: 0.9rem;
 }
 
+.top .streak {
+	margin: 0 0 6px;
+}
+
+.top .streak .current {
+	font-size: 1rem;
+}
+
+.top .streak .longest {
+	font-size: 0.8rem;
+}
+
 .tiles {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
