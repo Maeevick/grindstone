@@ -270,10 +270,12 @@ fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
     }
 }
 
-/// A painted goal stretches the recommended bounds to 5% either side of it, never inside them: the user's rule.
-const GOAL_SHARE_EITHER_SIDE: f64 = 0.05;
+/// A painted goal bounds its macro a fifth either side of it, within the recommendation: the user's rule.
+const GOAL_SHARE_EITHER_SIDE: f64 = 0.20;
 
-/// A macro's row: its recommended bounds, stretched around a painted goal; without one, the floor stands as the goal.
+/// A macro's row: around a painted goal, a fifth either side of it within the recommended bounds, a macro the
+/// recommendation leaves without a ceiling taking the goal's; without one, the recommended bounds, the floor
+/// standing as the goal.
 fn row(
     eaten_g: f64,
     (recommended_floor_g, recommended_ceiling_g): (f64, Option<f64>),
@@ -281,10 +283,10 @@ fn row(
 ) -> MacroRow {
     let (floor_g, ceiling_g) =
         goal_g.map_or((recommended_floor_g, recommended_ceiling_g), |goal_g| {
+            let most_g = (1.0 + GOAL_SHARE_EITHER_SIDE) * goal_g;
             (
-                ((1.0 - GOAL_SHARE_EITHER_SIDE) * goal_g).min(recommended_floor_g),
-                recommended_ceiling_g
-                    .map(|ceiling_g| ((1.0 + GOAL_SHARE_EITHER_SIDE) * goal_g).max(ceiling_g)),
+                ((1.0 - GOAL_SHARE_EITHER_SIDE) * goal_g).max(recommended_floor_g),
+                Some(recommended_ceiling_g.map_or(most_g, |ceiling_g| most_g.min(ceiling_g))),
             )
         });
     MacroRow {
@@ -1510,7 +1512,12 @@ mod tests {
             waist_cm: Some(70.0),
         });
 
-        let fuelled = fuel_on("2026-10-10", &records, &a_desk_job(), &aiming());
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &records,
+            &a_desk_job(),
+            &FuelRecords::default(),
+        );
 
         let floor = |fuelled: &Fuel| fuelled.macros.map(|macros| macros.protein.floor_g);
         assert!(floor(&fuelled).is_some_and(|grams| about(grams, 0.83 * 80.0)));
