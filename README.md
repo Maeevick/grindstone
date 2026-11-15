@@ -9,7 +9,7 @@ A personal tracker for body mass, food, drinks and training, on an Android phone
 ![Content: CC BY-NC-SA 4.0](https://img.shields.io/badge/content-CC%20BY--NC--SA%204.0-e8b04b)
 
 <p>
-  <img src="docs/screenshots/home.png" alt="Home: today's four tiles, the streak, the unwanted tips and the history" width="200" />
+  <img src="docs/screenshots/home.png" alt="Home: today's four tiles, the streak, the unwanted stats and the history" width="200" />
   <img src="docs/screenshots/fuel.png" alt="Fuel: the log form, the energy band and the four macros, the last days" width="200" />
   <img src="docs/screenshots/hydrate.png" alt="Hydrate: the log form, the water band, the last days" width="200" />
   <img src="docs/screenshots/burn.png" alt="Burn: the log form, the burn target, the last days" width="200" />
@@ -25,7 +25,7 @@ The screenshots show fictional records.
 
 ## What it does
 
-- 🏠 **Home:** today's four ticks, the streak, the unwanted tips over 30 or 90 days or everything, and the history.
+- 🏠 **Home:** today's four ticks, the streak, the unwanted stats over 30 or 90 days or everything, and the history.
 - ⚖️ **Gather:** weigh-ins and waist, the lean and fat masses they give, and the pace a week towards your goals.
 - ⚡ **Fuel:** foods, meals and plates from your own catalog, an energy band from a floor to a cap, and the four macros.
 - 💧 **Hydrate:** drinks against a water band drawn from your lean mass.
