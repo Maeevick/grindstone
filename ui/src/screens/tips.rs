@@ -104,7 +104,6 @@ pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                     {pace_line("Fat mass", pace.fat_mass, Figure::Mass)}
                                     {pace_line("Fat %", pace.fat_ratio, Figure::Ratio)}
                                 </ul>
-                                <p class="tip">{lines::quoted(&lines::pace_said(&pace))}</p>
                             }
                                 .into_any()
                         }
@@ -158,7 +157,6 @@ pub fn FuelOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                     ],
                                     true,
                                 )}
-                                <p class="tip">{lines::quoted(&lines::fuel_week_said(&over))}</p>
                             }
                                 .into_any()
                         }
@@ -192,7 +190,6 @@ pub fn HydrateOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                                     ],
                                     false,
                                 )}
-                                <p class="tip">{lines::quoted(&lines::hydrate_week_said(&over))}</p>
                             }
                                 .into_any()
                         }

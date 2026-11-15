@@ -1222,46 +1222,8 @@ async fn home_shows_each_chips_figures_without_a_tip() {
     );
 }
 
-async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
-    answering(&format!(
-        r#"{{ "pace_over_the_window": {{ "body_mass": {{ "by": -0.623, "heading": "Toward" }},
-                         "lean_mass": {lean_mass},
-                         "fat_mass": {{ "by": -0.4, "heading": "Toward" }},
-                         "fat_ratio": {{ "by": -0.005, "heading": "Toward" }},
-                         "judgement": "LosingTooFast", "safe_loss_kg": 0.498, "weigh_ins": 12, "safe_loss_by": "FatStore" }} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_pace(&screen, Window::Days30);
-    settled().await;
-    text_of(&screen, ".pace p.tip")
-}
-
 #[wasm_bindgen_test]
-async fn past_the_safe_loss_the_warning_speaks_of_lean_mass_only_when_the_tape_sees_it_leave() {
-    let leaving = said_of_a_pace_past_the_safe_loss(r#"{ "by": -0.2, "heading": "Away" }"#).await;
-    let holding = said_of_a_pace_past_the_safe_loss(r#"{ "by": 0.24, "heading": "Toward" }"#).await;
-
-    for said in [&leaving, &holding] {
-        assert!(
-            said.starts_with("“-0.62 kg a week, past the 0.50 kg your fat can spare"),
-            "{said}"
-        );
-        assert!(!said.contains("floor"), "{said}");
-    }
-    assert!(
-        leaving.contains("your lean mass is going too (-0.20 kg a week)"),
-        "{leaving}"
-    );
-    assert!(
-        holding.contains("on paper, though your lean mass holds so far")
-            && !holding.contains("going too"),
-        "{holding}"
-    );
-}
-
-#[wasm_bindgen_test]
-async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_judges_the_body_mass_in_a_plain_quoted_tip()
- {
+async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone() {
     answering(
         r#"{ "pace_over_the_window": { "body_mass": { "by": -0.4, "heading": "Toward" },
                          "lean_mass": { "by": -0.1, "heading": "Away" },
@@ -1279,7 +1241,6 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
         assert!(pace.contains(measure), "{measure} in {pace}");
     }
     assert!(pace.contains("-0.4 kg a week"), "{pace}");
-    assert!(pace.contains("inside the safe lane"), "{pace}");
     assert!(attributes_of(&screen, ".pace li", "class").is_empty());
     assert!(attributes_of(&screen, ".pace li > span", "class").is_empty());
     assert_eq!(
@@ -1290,9 +1251,6 @@ async fn the_weeks_pace_breaks_down_each_measure_colouring_its_figure_alone_and_
         attributes_of(&screen, ".pace li span span", "class"),
         ["toward", "away", "toward", "steady"]
     );
-    let tip = text_of(&screen, ".pace p.tip");
-    assert_eq!(attributes_of(&screen, ".pace p", "class"), ["hint", "tip"]);
-    assert!(tip.starts_with('“') && tip.ends_with('”'), "{tip}");
 }
 
 const A_WEEK_NOT_GATHERED_YET: &str = r#"{ "day": null, "days": [] }"#;
@@ -2056,41 +2014,6 @@ async fn the_weeks_average_tells_each_measure_a_day_against_its_band_its_goal_an
 }
 
 #[wasm_bindgen_test]
-async fn the_weeks_tip_names_what_runs_short_then_what_runs_over_furthest_first_between_quotation_marks()
- {
-    answering(&format!(r#"{{ "fuel_over_the_window": {A_FUEL_WEEK} }}"#));
-    let screen = screen();
-    let _mounted = the_fuel_week(&screen);
-    settled().await;
-
-    let tip = text_of(&screen, ".week p.tip");
-
-    assert!(
-        tip.starts_with(
-            "“Short on fibre (-6 g a day) and protein (-19 g), over on fat (+14 g) and carbs (+40 g). "
-        ) && tip.ends_with('”'),
-        "{tip}"
-    );
-}
-
-#[wasm_bindgen_test]
-async fn fuels_tip_invites_to_paint_no_target_the_health_floors_standing_as_goals() {
-    let without_goals = A_FUEL_WEEK
-        .replace(r#""goal": 115.0, "#, "")
-        .replace(r#""goal": 57.0, "#, "")
-        .replace(r#""goal": 25.0, "#, "")
-        .replace(r#""goal": 290.0, "#, "");
-    answering(&format!(r#"{{ "fuel_over_the_window": {without_goals} }}"#));
-    let screen = screen();
-    let _mounted = the_fuel_week(&screen);
-    settled().await;
-
-    let tip = text_of(&screen, ".week p.tip");
-
-    assert!(!tip.contains("Paint your targets"), "{tip}");
-}
-
-#[wasm_bindgen_test]
 async fn a_week_without_a_finished_logged_day_says_there_is_nothing_to_average_yet() {
     answering(r#"{ "fuel_over_the_window": null }"#);
     let screen = screen();
@@ -2115,8 +2038,7 @@ fn the_hydrate_week(screen: &Element) -> impl Drop {
 }
 
 #[wasm_bindgen_test]
-async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_it_and_how_far_it_runs_short()
- {
+async fn hydrates_week_average_tells_a_days_drinks_against_the_band_and_its_days_in_it() {
     answering(
         r#"{ "hydrate_over_the_window": { "logged_days": 6,
             "drunk": { "per_day": 1900.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 },
@@ -2142,15 +2064,10 @@ async fn hydrates_week_average_tells_a_days_drinks_against_the_band_its_days_in_
         text_of(&screen, ".week p.hint"),
         "Average over 6 logged days, today left out."
     );
-    let tip = text_of(&screen, ".week p.tip");
-    assert!(
-        tip.starts_with("“Short of the band by 100 mL a day. ") && tip.ends_with('”'),
-        "{tip}"
-    );
 }
 
 #[wasm_bindgen_test]
-async fn hydrates_tips_add_the_water_share_and_its_word() {
+async fn hydrates_week_average_adds_the_water_share() {
     answering(
         r#"{ "hydrate_over_the_window": { "logged_days": 6,
             "drunk": { "per_day": 2200.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 },
@@ -2164,7 +2081,6 @@ async fn hydrates_tips_add_the_water_share_and_its_word() {
         (
             cells_by_row(&screen, ".week tbody tr").last().cloned(),
             attributes_of(&screen, ".week tbody td:nth-child(2)", "class"),
-            text_of(&screen, ".week p.tip")
         ),
         (
             Some(
@@ -2173,9 +2089,6 @@ async fn hydrates_tips_add_the_water_share_and_its_word() {
                     .to_vec()
             ),
             vec!["good".to_string(), "low".to_string()],
-            "“A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high \
-             praise. A little more water than the others would do.”"
-                .to_string()
         )
     );
 }
@@ -5563,7 +5476,7 @@ const A_PACE: &str = r#"{ "body_mass": { "by": -0.4, "heading": "Toward" },
     "judgement": "VeryGood", "safe_loss_kg": 0.7, "weigh_ins": 12, "safe_loss_by": "MassShare" }"#;
 
 #[wasm_bindgen_test]
-async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_and_tip_over_its_window() {
+async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_over_its_window() {
     answering(&format!(
         r#"{{ "gather_average_over_the_window": {{ "weigh_ins": 5, "body_mass_kg": 71.04,
                  "lean_mass_kg": 61.62, "fat_mass_kg": 9.42, "fat_ratio": 0.1326 }},
