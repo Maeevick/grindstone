@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use chrono::{Days, NaiveDate};
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::aims::{Aims, aims_on};
@@ -14,12 +14,11 @@ use crate::gender::Gender;
 use crate::intake::Intake;
 use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::{Day, ledger};
-use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
+use crate::nutrition::{Budget, Intake as Eaten, Macro, daily_energy_budget};
 use crate::profile::Profile;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
 use crate::version::{dated_version_in_force_on, version_in_force_on};
-use crate::volitional::Volitional;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Band {
@@ -123,7 +122,6 @@ const LEAST_FAT_SHARE: f64 = 0.20;
 const MOST_FAT_SHARE: f64 = 0.35;
 /// 14 g per 1000 kcal at 2 kcal a gram.
 const LEAST_FIBRE_SHARE: f64 = 0.028;
-const DAYS_OF_ADAPTATION: u64 = 28;
 /// The narrowest band, a tenth of the maintenance: five percent either side at the goal, since neither the
 /// maintenance nor a food log is more precise.
 const NARROWEST_BAND_SHARE: f64 = 0.1;
@@ -158,28 +156,13 @@ fn digested(eaten: Nutrients) -> Eaten {
 ///
 /// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day [13].
 /// - The minimum per kilo of lean mass [14].
-fn band_for(
-    body: &Body,
-    aims: &Aims,
-    burnt_kcal: f64,
-    off_the_clock: Volitional,
-    deficit: Deficit,
-    digested: Eaten,
-) -> (Band, Budget) {
+fn band_for(body: &Body, aims: &Aims, burnt_kcal: f64, digested: Eaten) -> (Band, Budget) {
     let minimum_kcal_per_kg_of_lean_mass = match body.gender {
         Gender::Male => 25.0,
         Gender::Female => 30.0,
     };
     let minimum_kcal = minimum_kcal_per_kg_of_lean_mass * body.lean_kg + burnt_kcal;
-    let budget = daily_energy_budget(
-        body.age,
-        body.lean_kg,
-        body.fat_kg,
-        body.gender,
-        off_the_clock,
-        deficit,
-        digested,
-    );
+    let budget = daily_energy_budget(body.age, body.lean_kg, digested);
     let maintenance_kcal = budget.kcal() + burnt_kcal;
     let fat_left_kg = (body.fat_kg - aims.fat_mass_kg()).max(0.0);
     let surplus_kcal = SURPLUS_SHARE * maintenance_kcal;
@@ -224,26 +207,6 @@ fn band_for(
 fn widened((floor_kcal, cap_kcal): (f64, f64), narrowest_kcal: f64) -> (f64, f64) {
     let either_side = (narrowest_kcal - (cap_kcal - floor_kcal)).max(0.0) / 2.0;
     (floor_kcal - either_side, cap_kcal + either_side)
-}
-
-fn mean(gaps: &[f64]) -> Option<f64> {
-    (!gaps.is_empty()).then(|| gaps.iter().sum::<f64>() / gaps.len() as f64)
-}
-
-/// The trailing deficit and the weeks spent in it before a day, read from the gaps in the order they were logged.
-fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
-    let between = |nearest: u64, furthest: u64| -> Vec<f64> {
-        let from = gaps.partition_point(|(logged, _)| *logged < day - Days::new(furthest));
-        let to = gaps.partition_point(|(logged, _)| *logged <= day - Days::new(nearest));
-        gaps[from..to].iter().map(|(_, gap)| *gap).collect()
-    };
-    let weeks_in_deficit = (0..DAYS_OF_ADAPTATION / 7)
-        .take_while(|week| mean(&between(1 + 7 * week, 7 + 7 * week)).is_some_and(|gap| gap > 0.0))
-        .count();
-    Deficit {
-        trailing_deficit_kcal: mean(&between(1, DAYS_OF_ADAPTATION)).unwrap_or(0.0),
-        weeks_in_deficit: weeks_in_deficit as u32,
-    }
 }
 
 fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f64>) -> MacroRow {
@@ -329,7 +292,7 @@ impl Ledgers<'_> {
         self.intakes.get(&day).cloned().unwrap_or_default()
     }
 
-    fn fuel_on(&self, day: NaiveDate, gaps: &[(NaiveDate, f64)], more: Nutrients) -> Fuel {
+    fn fuel_on(&self, day: NaiveDate, more: Nutrients) -> Fuel {
         let intakes = self.intakes_on(day);
         let eaten = summed([added_up(&intakes), more]);
         let in_force =
@@ -342,8 +305,6 @@ impl Ledgers<'_> {
                 &body,
                 &aims,
                 burnt.burnt_kcal.unwrap_or(0.0),
-                burnt.off_the_clock.unwrap_or_default(),
-                deficit_before(day, gaps),
                 digested(eaten),
             );
             (band, macros_for(eaten, &body, band, targets), budget)
@@ -384,16 +345,6 @@ impl<'records> Ledgers<'records> {
             fuel,
         }
     }
-
-    fn gaps(&self) -> Vec<(NaiveDate, f64)> {
-        self.intakes.keys().fold(Vec::new(), |mut gaps, logged| {
-            let fuelled = self.fuel_on(*logged, &gaps, Nutrients::default());
-            if let Some(band) = fuelled.band {
-                gaps.push((*logged, band.maintenance_kcal - fuelled.eaten.energy_kcal));
-            }
-            gaps
-        })
-    }
 }
 
 pub fn fuel_on(
@@ -413,8 +364,7 @@ pub fn fuel_with(
     fuel: &FuelRecords,
     more: Nutrients,
 ) -> Fuel {
-    let ledgers = Ledgers::of(gather, burn, fuel);
-    ledgers.fuel_on(day, &ledgers.gaps(), more)
+    Ledgers::of(gather, burn, fuel).fuel_on(day, more)
 }
 
 pub fn fuel_over(
@@ -424,9 +374,8 @@ pub fn fuel_over(
     fuel: &FuelRecords,
 ) -> Vec<Fuel> {
     let ledgers = Ledgers::of(gather, burn, fuel);
-    let gaps = ledgers.gaps();
     days.iter()
-        .map(|day| ledgers.fuel_on(*day, &gaps, Nutrients::default()))
+        .map(|day| ledgers.fuel_on(*day, Nutrients::default()))
         .collect()
 }
 
@@ -444,12 +393,6 @@ mod tests {
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
     }
-
-    const A_DESK_DAY: Volitional = Volitional {
-        sitting_min: 480.0,
-        standing_min: 120.0,
-        moving_km: 3.0,
-    };
 
     const AIMS: FuelTargets = FuelTargets {
         protein_g_per_kg: Some(2.0),
@@ -485,13 +428,6 @@ mod tests {
                     fat_ratio: 0.1,
                 }),
             )],
-        }
-    }
-
-    fn a_desk_job() -> BurnRecords {
-        BurnRecords {
-            usual_days: vec![(day("2026-03-01"), Kept::Own(A_DESK_DAY))],
-            ..BurnRecords::default()
         }
     }
 
@@ -558,8 +494,8 @@ mod tests {
 
     #[test]
     fn before_anything_is_eaten_maintenance_counts_no_digestion_only_the_budget_and_the_burn() {
-        let (lean_kg, fat_kg) = the_body();
-        let mut burn = a_desk_job();
+        let (lean_kg, _) = the_body();
+        let mut burn = BurnRecords::default();
         let walking = Exercise {
             name: "Walking".into(),
             met: 4.0,
@@ -578,13 +514,6 @@ mod tests {
         let budget = daily_energy_budget(
             41,
             lean_kg,
-            fat_kg,
-            Gender::Male,
-            A_DESK_DAY,
-            Deficit {
-                trailing_deficit_kcal: 0.0,
-                weeks_in_deficit: 0,
-            },
             Eaten {
                 energy: 0.0,
                 macros: Macro {
@@ -604,17 +533,10 @@ mod tests {
     }
 
     /// What a body would spend on a desk day before eating: no digestion yet.
-    fn spent_before_eating_by(lean_kg: f64, fat_kg: f64) -> f64 {
+    fn spent_before_eating_by(lean_kg: f64) -> f64 {
         daily_energy_budget(
             41,
             lean_kg,
-            fat_kg,
-            Gender::Male,
-            A_DESK_DAY,
-            Deficit {
-                trailing_deficit_kcal: 0.0,
-                weeks_in_deficit: 0,
-            },
             Eaten {
                 energy: 0.0,
                 macros: Macro {
@@ -647,7 +569,7 @@ mod tests {
         let band = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &aiming(),
         )
         .band
@@ -659,7 +581,7 @@ mod tests {
     #[test]
     fn a_gain_to_aim_for_caps_the_band_at_half_a_percent_of_the_body_mass_a_week_its_goal_tick_at_a_twentieth()
      {
-        let band = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming())
+        let band = fuel_on("2026-10-10", &gaining(), &BurnRecords::default(), &aiming())
             .band
             .expect("a band");
 
@@ -687,12 +609,12 @@ mod tests {
                 )],
                 ..a_mans_records(HIS_WAIST_CM)
             };
-            fuel_on("2026-10-10", &aiming_at, &a_desk_job(), &aiming())
+            fuel_on("2026-10-10", &aiming_at, &BurnRecords::default(), &aiming())
                 .band
                 .map(|band| band.goal_kcal)
                 .expect("a band")
         };
-        let maintenance = spent_before_eating_by(lean_kg, fat_kg);
+        let maintenance = spent_before_eating_by(lean_kg);
 
         let at_the_goal = band_aiming_at(80.0, fat_kg);
         let a_kilo_of_fat_away = band_aiming_at(79.0, fat_kg - 1.0);
@@ -725,7 +647,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(lean_waist_cm),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &a_big_day(),
         );
 
@@ -757,7 +679,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(waist_cm),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &a_big_day(),
         );
 
@@ -789,7 +711,7 @@ mod tests {
         let band = fuel_on(
             "2026-10-10",
             &a_mans_records(lean_waist_cm),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &a_big_day(),
         )
         .band
@@ -810,7 +732,7 @@ mod tests {
         let before = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &fuel,
         );
         eating(&mut fuel, "2026-10-10", &a_food(400.0, 300.0, 72.0, 28.0));
@@ -818,7 +740,7 @@ mod tests {
         let after = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &fuel,
         );
 
@@ -831,7 +753,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(110.0),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &aiming(),
         );
 
@@ -849,7 +771,12 @@ mod tests {
             ..a_mans_records(HIS_WAIST_CM)
         };
 
-        let fuelled = fuel_on("2026-10-10", &no_profile, &a_desk_job(), &aiming());
+        let fuelled = fuel_on(
+            "2026-10-10",
+            &no_profile,
+            &BurnRecords::default(),
+            &aiming(),
+        );
 
         assert_eq!((fuelled.band, fuelled.energy), (None, None));
     }
@@ -862,7 +789,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &fuel,
         );
 
@@ -889,13 +816,13 @@ mod tests {
         let under = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &light,
         );
         let over = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &heavy,
         );
 
@@ -913,7 +840,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &fuel,
         );
 
@@ -946,7 +873,7 @@ mod tests {
             goals: vec![],
         };
 
-        let mut burn = a_desk_job();
+        let mut burn = BurnRecords::default();
         let walking = Exercise {
             name: "Walking".into(),
             met: 4.0,
@@ -981,216 +908,6 @@ mod tests {
         );
     }
 
-    fn deficit_of(trailing_deficit_kcal: f64, weeks_in_deficit: u32) -> Deficit {
-        Deficit {
-            trailing_deficit_kcal,
-            weeks_in_deficit,
-        }
-    }
-
-    fn maintenance_with(deficit: Deficit) -> f64 {
-        maintenance_eating(deficit, (0.0, 0.0, 0.0, 0.0))
-    }
-
-    fn maintenance_eating(
-        deficit: Deficit,
-        (protein, carb, fat, fib): (f64, f64, f64, f64),
-    ) -> f64 {
-        let (lean_kg, fat_kg) = the_body();
-        daily_energy_budget(
-            41,
-            lean_kg,
-            fat_kg,
-            Gender::Male,
-            A_DESK_DAY,
-            deficit,
-            Eaten {
-                energy: 0.0,
-                macros: Macro {
-                    protein,
-                    fat,
-                    fib,
-                    carb,
-                },
-            },
-        )
-        .kcal()
-    }
-
-    fn gap_on(date: &str, fuel: &FuelRecords) -> f64 {
-        let fuelled = fuel_on(date, &a_mans_records(HIS_WAIST_CM), &a_desk_job(), fuel);
-        maintenance_of(&fuelled) - fuelled.eaten.energy_kcal
-    }
-
-    #[test]
-    fn the_deficit_that_wears_neat_down_counts_from_maintenance_not_the_bands_cap() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-08", &a_food(170.0, 230.0, 80.0, 35.0));
-        eating(&mut fuel, "2026-10-09", &a_food(170.0, 230.0, 80.0, 35.0));
-        let gap_from_maintenance = |date| {
-            let fuelled = fuel_on(date, &gaining(), &a_desk_job(), &fuel);
-            fuelled
-                .band
-                .map(|band| band.maintenance_kcal)
-                .unwrap_or_default()
-                - fuelled.eaten.energy_kcal
-        };
-        let mean_gap =
-            (gap_from_maintenance("2026-10-08") + gap_from_maintenance("2026-10-09")) / 2.0;
-
-        let fuelled = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &fuel);
-
-        assert!(fuelled.band.is_some_and(|band| about(
-            band.maintenance_kcal,
-            maintenance_with(deficit_of(mean_gap, 1))
-        )));
-    }
-
-    #[test]
-    fn two_days_logged_in_the_last_week_wear_the_next_by_their_mean_gap() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-08", &a_food(170.0, 230.0, 80.0, 35.0));
-        eating(&mut fuel, "2026-10-09", &a_food(170.0, 230.0, 80.0, 35.0));
-        let mean_gap = (gap_on("2026-10-08", &fuel) + gap_on("2026-10-09", &fuel)) / 2.0;
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        assert!(about(
-            maintenance_of(&fuelled),
-            maintenance_with(deficit_of(mean_gap, 1))
-        ));
-    }
-
-    #[test]
-    fn a_week_without_a_logged_day_ends_the_run_of_weeks_in_deficit() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-02", &a_food(170.0, 230.0, 80.0, 35.0));
-        eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
-        let gap = gap_on("2026-10-02", &fuel);
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        assert!(about(
-            maintenance_of(&fuelled),
-            maintenance_eating(deficit_of(gap, 0), (170.0, 230.0, 80.0, 35.0))
-        ));
-    }
-
-    #[test]
-    fn no_more_than_four_weeks_count_in_deficit() {
-        let mut fuel = aiming();
-        let days: Vec<String> = (1..=35)
-            .map(|back| (day("2026-10-10") - chrono::Days::new(back)).to_string())
-            .collect();
-        for date in &days {
-            eating(&mut fuel, date, &a_food(170.0, 230.0, 80.0, 35.0));
-        }
-        let last_four_weeks: Vec<f64> = days[..28].iter().map(|date| gap_on(date, &fuel)).collect();
-        let mean_gap = last_four_weeks.iter().sum::<f64>() / 28.0;
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        assert!(about(
-            maintenance_of(&fuelled),
-            maintenance_with(deficit_of(mean_gap, 4))
-        ));
-    }
-
-    fn maintenance_of(fuelled: &Fuel) -> f64 {
-        fuelled
-            .band
-            .map(|band| band.maintenance_kcal)
-            .unwrap_or_default()
-    }
-
-    #[test]
-    fn days_eaten_over_the_cap_do_not_wear_the_spontaneous_activity_down() {
-        let mut feasting = aiming();
-        for date in 1..=28 {
-            eating(
-                &mut feasting,
-                &format!("2026-09-{:02}", date + 2),
-                &a_food(250.0, 600.0, 150.0, 40.0),
-            );
-        }
-
-        let fuelled = fuel_on(
-            "2026-10-01",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &feasting,
-        );
-
-        assert!(about(
-            maintenance_of(&fuelled),
-            maintenance_with(deficit_of(0.0, 0))
-        ));
-    }
-
-    #[test]
-    fn a_single_logged_day_wears_the_next_by_its_gap_over_one_week() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-09", &a_food(150.0, 100.0, 40.0, 20.0));
-        let eve = fuel_on(
-            "2026-10-09",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-        let gap = maintenance_of(&eve) - eve.eaten.energy_kcal;
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        assert!(about(
-            maintenance_of(&fuelled),
-            maintenance_with(deficit_of(gap, 1))
-        ));
-    }
-
-    #[test]
-    fn days_logged_in_two_weeks_wear_the_next_by_their_mean_gap_over_two_weeks() {
-        let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-02", &a_food(150.0, 100.0, 40.0, 20.0));
-        eating(&mut fuel, "2026-10-09", &a_food(120.0, 80.0, 30.0, 10.0));
-        let gap_on = |date: &str| {
-            let fuelled = fuel_on(date, &a_mans_records(HIS_WAIST_CM), &a_desk_job(), &fuel);
-            maintenance_of(&fuelled) - fuelled.eaten.energy_kcal
-        };
-        let mean_gap = (gap_on("2026-10-02") + gap_on("2026-10-09")) / 2.0;
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        assert!(about(
-            maintenance_of(&fuelled),
-            maintenance_with(deficit_of(mean_gap, 2))
-        ));
-    }
-
     #[test]
     fn each_macros_health_bounds_read_the_band_its_floors_on_what_is_eaten_once_past_the_bands_floor()
      {
@@ -1202,7 +919,7 @@ mod tests {
             let fuelled = fuel_on(
                 "2026-10-10",
                 &a_mans_records(HIS_WAIST_CM),
-                &a_desk_job(),
+                &BurnRecords::default(),
                 &fuel,
             );
             let (band, macros) = (
@@ -1247,7 +964,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &fuel,
         );
 
@@ -1280,7 +997,7 @@ mod tests {
         let macros = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &fuel,
         )
         .macros
@@ -1307,7 +1024,7 @@ mod tests {
             waist_cm: Some(70.0),
         });
 
-        let fuelled = fuel_on("2026-10-10", &records, &a_desk_job(), &aiming());
+        let fuelled = fuel_on("2026-10-10", &records, &BurnRecords::default(), &aiming());
 
         let floor = |fuelled: &Fuel| fuelled.macros.map(|macros| macros.protein.floor_g);
         assert!(floor(&fuelled).is_some_and(|grams| about(grams, 1.6 * 80.0)));
@@ -1318,7 +1035,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &aiming(),
         );
 
@@ -1388,7 +1105,7 @@ mod tests {
         let fuelled = fuel_on(
             "2026-10-10",
             &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
+            &BurnRecords::default(),
             &aiming(),
         );
 

@@ -6,13 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::burn_records::BurnRecords;
 use crate::burn_target::target_on;
 use crate::gather_records::GatherRecords;
-use crate::kept::{InForce, Kept, in_force};
 use crate::measurement::Measurement;
-use crate::profile::Profile;
-use crate::recommendations::recommended;
 use crate::verdict::{Verdict, verdict_of};
-use crate::version::{dated_version_in_force_on, version_in_force_on};
-use crate::volitional::Volitional;
+use crate::version::version_in_force_on;
 use crate::workout::{Workout, burnt_by};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -27,8 +23,6 @@ pub struct Burn {
     pub day: NaiveDate,
     pub workouts: Vec<BurntWorkout>,
     pub burnt_kcal: Option<f64>,
-    pub off_the_clock: Option<Volitional>,
-    pub off_the_clock_is_usual: bool,
     /// The body mass in force on the day, the one its workouts are priced on.
     pub body_mass_kg: Option<f64>,
     pub target_kcal: Option<f64>,
@@ -44,19 +38,6 @@ pub(crate) fn body_mass_in_force_on(day: NaiveDate, measurements: &[Measurement]
     version_in_force_on(&masses, day).copied()
 }
 
-/// The usual day off the clock in force on a day: the one kept from the latest day up to it (the earliest
-/// before any), its own or the recommendation for the age in force; never kept, the recommendation; nothing
-/// without a profile to recommend for.
-pub(crate) fn usual_day_in_force(
-    day: NaiveDate,
-    usual_days: &[(NaiveDate, Kept<Volitional>)],
-    profiles: &[(NaiveDate, Profile)],
-) -> Option<InForce<Volitional>> {
-    in_force(dated_version_in_force_on(usual_days, day), || {
-        version_in_force_on(profiles, day).map(|profile| recommended(profile, day, None).usual_day)
-    })
-}
-
 pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) -> Burn {
     Burns::of(records, gather).on(day)
 }
@@ -65,7 +46,6 @@ pub fn burn_on(day: NaiveDate, records: &BurnRecords, gather: &GatherRecords) ->
 /// once rather than for each day.
 pub(crate) struct Burns<'records> {
     records: &'records BurnRecords,
-    gather: &'records GatherRecords,
     workouts: BTreeMap<NaiveDate, Vec<(i64, &'records Workout)>>,
     masses: Vec<(NaiveDate, f64)>,
 }
@@ -80,7 +60,6 @@ impl<'records> Burns<'records> {
         masses.sort_by_key(|(day, _)| *day);
         Burns {
             records,
-            gather,
             workouts: records
                 .workouts
                 .iter()
@@ -123,21 +102,10 @@ impl<'records> Burns<'records> {
             .sum::<Option<f64>>();
         let target_kcal =
             target_on(day, &self.records.targets, body_mass_kg).map(|target| target.values);
-        let own_day = self
-            .records
-            .days_off_the_clock
-            .iter()
-            .find(|(kept_on, _)| *kept_on == day)
-            .map(|(_, volitional)| *volitional);
         Burn {
             day,
             burnt_kcal,
             workouts,
-            off_the_clock: own_day.or_else(|| {
-                usual_day_in_force(day, &self.records.usual_days, &self.gather.profiles)
-                    .map(|usual| usual.values)
-            }),
-            off_the_clock_is_usual: own_day.is_none(),
             body_mass_kg,
             target_kcal,
             verdict: burnt_kcal
@@ -248,6 +216,7 @@ mod tests {
             ]
         );
     }
+    use crate::kept::Kept;
     use crate::workout::burnt_by;
 
     fn gathered(measurements: &[Measurement]) -> GatherRecords {
@@ -279,14 +248,6 @@ mod tests {
             sets: 1,
             load_kg: 0.0,
             circuit: None,
-        }
-    }
-
-    fn a_desk_day() -> Volitional {
-        Volitional {
-            sitting_min: 480.0,
-            standing_min: 120.0,
-            moving_km: 3.0,
         }
     }
 
@@ -417,35 +378,9 @@ mod tests {
     }
 
     #[test]
-    fn a_day_without_workouts_burns_nothing_beyond_its_day_off_the_clock() {
+    fn a_day_without_workouts_burns_nothing() {
         let burn = burn_on(day("2026-10-10"), &BurnRecords::default(), &gathered(&[]));
 
         assert_eq!(burn.burnt_kcal, Some(0.0));
-    }
-
-    #[test]
-    fn a_day_off_the_clock_of_its_own_comes_before_the_usual_one() {
-        let lazy_sunday = Volitional {
-            sitting_min: 600.0,
-            standing_min: 60.0,
-            moving_km: 1.0,
-        };
-        let records = BurnRecords {
-            days_off_the_clock: vec![(day("2026-10-11"), lazy_sunday)],
-            usual_days: vec![(day("2026-03-01"), Kept::Own(a_desk_day()))],
-            ..BurnRecords::default()
-        };
-
-        let saturday = burn_on(day("2026-10-10"), &records, &gathered(&[]));
-        let sunday = burn_on(day("2026-10-11"), &records, &gathered(&[]));
-
-        assert_eq!(
-            (saturday.off_the_clock, saturday.off_the_clock_is_usual),
-            (Some(a_desk_day()), true)
-        );
-        assert_eq!(
-            (sunday.off_the_clock, sunday.off_the_clock_is_usual),
-            (Some(lazy_sunday), false)
-        );
     }
 }

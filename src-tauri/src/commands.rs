@@ -10,7 +10,7 @@ use grind_core::exercise::Exercise;
 use grind_core::failure::Failure;
 use grind_core::food::{Food, Nutrients};
 use grind_core::for_burning::CircuitSessionForm;
-use grind_core::for_burning::{self, OffTheClockForm, SessionForm, WorkoutForm};
+use grind_core::for_burning::{self, SessionForm, WorkoutForm};
 use grind_core::for_cataloguing::CircuitForm;
 use grind_core::for_cataloguing::{self, FoodForm, MealForm, PricedCircuit};
 use grind_core::for_charting::{
@@ -22,7 +22,7 @@ use grind_core::for_hydrating::{self, DrinkingForm};
 use grind_core::for_keeping_a_copy;
 use grind_core::for_reviewing_progress::{self, Window};
 use grind_core::for_setting_up_the_profile::{
-    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm, UsualDayForm,
+    self, BurnTargetForm, FuelTargetsForm, GoalsForm, HydrateTargetForm, ProfileForm,
 };
 use grind_core::for_starting_over;
 use grind_core::for_tracking;
@@ -40,7 +40,6 @@ use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
 use grind_core::streak::Streak;
-use grind_core::volitional::Volitional;
 use grind_sqlite::Sqlite;
 use tauri::State;
 
@@ -204,16 +203,6 @@ pub fn remove_workouts(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_day_off_the_clock(
-    records: State<Records>,
-    date: String,
-    form: OffTheClockForm,
-) -> Result<Burn, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_burning::set_day_off_the_clock(&*records, &*records, &date, &form)
-}
-
-#[tauri::command(rename_all = "snake_case")]
 pub fn exercises(records: State<Records>) -> Result<Vec<Exercise>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_cataloguing::exercises(&*records)
@@ -234,24 +223,6 @@ pub fn add_exercise(
 pub fn remove_exercise(records: State<Records>, name: String) -> Result<Vec<Exercise>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_cataloguing::remove_exercise(&*records, &name)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn set_usual_day(
-    records: State<Records>,
-    form: UsualDayForm,
-) -> Result<Option<InForce<Volitional>>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_usual_day(&*records, &*records, &form)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn usual_day_on(
-    records: State<Records>,
-    date: String,
-) -> Result<Option<InForce<Volitional>>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::usual_day_on(&*records, &*records, &date)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -580,12 +551,9 @@ pub fn handlers<R: tauri::Runtime>()
         log_workout,
         remove_workout,
         remove_workouts,
-        set_day_off_the_clock,
         exercises,
         add_exercise,
         remove_exercise,
-        set_usual_day,
-        usual_day_on,
         fuel_day,
         fuel_day_with,
         pace_over_the_window,
@@ -1030,23 +998,6 @@ mod tests {
     }
 
     #[test]
-    fn a_day_off_the_clock_set_from_the_screen_is_that_days_own() {
-        let (_app, screen) = launched();
-
-        let answer = invoke(
-            &screen,
-            "set_day_off_the_clock",
-            json!({ "date": "2026-10-10",
-                    "form": { "sitting_min": 600.0, "standing_min": 60.0, "moving_km": 1.0 } }),
-        );
-
-        assert_eq!(
-            answer.map(|burn| burn["off_the_clock_is_usual"].clone()),
-            Ok(json!(false))
-        );
-    }
-
-    #[test]
     fn exercises_added_and_removed_from_the_screen_answer_the_catalog() {
         let (_app, screen) = launched();
         with_walking_in_the_catalog(&screen);
@@ -1059,23 +1010,6 @@ mod tests {
             Ok(json!([{ "name": "Walking", "met": 4.0, "description": "" }]))
         );
         assert_eq!(removed, Ok(json!([])));
-    }
-
-    #[test]
-    fn a_usual_day_set_from_the_screen_is_the_one_in_force_from_its_day() {
-        let (_app, screen) = launched();
-        let usual = json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 3.0 });
-
-        let set = invoke(
-            &screen,
-            "set_usual_day",
-            json!({ "form": { "from": "2026-03-01", "kept": { "Own": usual } } }),
-        );
-        let in_force = invoke(&screen, "usual_day_on", json!({ "date": "2026-10-10" }));
-
-        let kept = json!({ "values": usual, "recommended": false, "from": "2026-03-01" });
-        assert_eq!(set, Ok(kept.clone()));
-        assert_eq!(in_force, Ok(kept));
     }
 
     fn with_skyr_in_the_catalog(screen: &WebviewWindow<MockRuntime>) -> Result<Value, Value> {
@@ -1646,9 +1580,6 @@ mod tests {
         let advised = invoke(&screen, "recommended_on", json!({ "date": "2026-10-11" }))
             .expect("recommendations");
 
-        assert_eq!(
-            advised["usual_day"],
-            json!({ "sitting_min": 480.0, "standing_min": 120.0, "moving_km": 1.9 })
-        );
+        assert_eq!(advised["goal_fat_ratio"], json!(0.165));
     }
 }

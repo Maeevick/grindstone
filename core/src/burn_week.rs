@@ -163,8 +163,6 @@ mod tests {
             day: day(date),
             burnt_kcal,
             workouts,
-            off_the_clock: None,
-            off_the_clock_is_usual: true,
             body_mass_kg: Some(70.0),
             target_kcal: Some(77.0),
             verdict: burnt_kcal.map(|burnt| verdict_of(burnt, 77.0, f64::INFINITY)),

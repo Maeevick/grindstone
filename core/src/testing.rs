@@ -21,7 +21,6 @@ use crate::kept::Kept;
 use crate::meal::Meal;
 use crate::measurement::Measurement;
 use crate::profile::Profile;
-use crate::volitional::Volitional;
 use crate::workout::Workout;
 use chrono::NaiveDate;
 
@@ -105,15 +104,6 @@ impl ForStoringGatherRecords for BrokenGatherRecords {
 #[derive(Default)]
 pub struct BurnRecordsInMemory(RefCell<BurnRecords>);
 
-fn keeping_one_per_day(
-    kept: &mut Vec<(NaiveDate, Volitional)>,
-    day: NaiveDate,
-    volitional: &Volitional,
-) {
-    kept.retain(|(kept_on, _)| *kept_on != day);
-    kept.push((day, *volitional));
-}
-
 impl ForStoringBurnRecords for BurnRecordsInMemory {
     fn save_exercise(&self, exercise: &Exercise) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
@@ -148,24 +138,6 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
         Ok(())
     }
 
-    fn save_day_off_the_clock(
-        &self,
-        day: NaiveDate,
-        volitional: &Volitional,
-    ) -> Result<(), Broken> {
-        keeping_one_per_day(&mut self.0.borrow_mut().days_off_the_clock, day, volitional);
-        Ok(())
-    }
-
-    fn save_usual_day(&self, from: NaiveDate, usual: &Kept<Volitional>) -> Result<(), Broken> {
-        let mut records = self.0.borrow_mut();
-        records
-            .usual_days
-            .retain(|(kept_from, _)| *kept_from != from);
-        records.usual_days.push((from, *usual));
-        Ok(())
-    }
-
     fn save_burn_target(&self, from: NaiveDate, kcal: Kept<f64>) -> Result<(), Broken> {
         let mut records = self.0.borrow_mut();
         records.targets.retain(|(kept_from, _)| *kept_from != from);
@@ -188,8 +160,6 @@ impl ForStoringBurnRecords for BurnRecordsInMemory {
             .exercises
             .sort_by(|one, other| one.name.cmp(&other.name));
         burnt.workouts.sort_by_key(|(id, done)| (done.day, *id));
-        burnt.days_off_the_clock.sort_by_key(|(day, _)| *day);
-        burnt.usual_days.sort_by_key(|(from, _)| *from);
         burnt.targets.sort_by_key(|(from, _)| *from);
         burnt
             .circuits
@@ -229,14 +199,6 @@ impl ForStoringBurnRecords for BrokenBurnRecords {
     }
 
     fn remove_workout(&self, _: i64) -> Result<(), Broken> {
-        Err(Broken("the disk is full".into()))
-    }
-
-    fn save_day_off_the_clock(&self, _: NaiveDate, _: &Volitional) -> Result<(), Broken> {
-        Err(Broken("the disk is full".into()))
-    }
-
-    fn save_usual_day(&self, _: NaiveDate, _: &Kept<Volitional>) -> Result<(), Broken> {
         Err(Broken("the disk is full".into()))
     }
 
@@ -289,18 +251,6 @@ pub mod honouring_for_storing_burn_records {
         }
     }
 
-    fn usual(sitting_min: f64) -> Kept<Volitional> {
-        Kept::Own(sitting(sitting_min))
-    }
-
-    fn sitting(sitting_min: f64) -> Volitional {
-        Volitional {
-            sitting_min,
-            standing_min: 120.0,
-            moving_km: 3.0,
-        }
-    }
-
     fn without_ids(records: &BurnRecords) -> Vec<Workout> {
         records
             .workouts
@@ -324,18 +274,6 @@ pub mod honouring_for_storing_burn_records {
             records.save_workout(&workout).expect("a workout saves");
         }
         records
-            .save_day_off_the_clock(day("2026-10-10"), &sitting(600.0))
-            .expect("a day off the clock saves");
-        records
-            .save_day_off_the_clock(day("2026-10-09"), &sitting(500.0))
-            .expect("a day off the clock saves");
-        records
-            .save_usual_day(day("2026-09-01"), &usual(420.0))
-            .expect("a usual day saves");
-        records
-            .save_usual_day(day("2026-03-01"), &usual(480.0))
-            .expect("a usual day saves");
-        records
             .save_burn_target(day("2026-10-15"), Kept::Own(150.0))
             .expect("a target saves");
         records
@@ -357,20 +295,6 @@ pub mod honouring_for_storing_burn_records {
             ]
         );
         assert_eq!(
-            burnt.days_off_the_clock,
-            vec![
-                (day("2026-10-09"), sitting(500.0)),
-                (day("2026-10-10"), sitting(600.0))
-            ]
-        );
-        assert_eq!(
-            burnt.usual_days,
-            vec![
-                (day("2026-03-01"), usual(480.0)),
-                (day("2026-09-01"), usual(420.0))
-            ]
-        );
-        assert_eq!(
             burnt.targets,
             vec![
                 (day("2026-03-01"), Kept::Own(80.0)),
@@ -379,15 +303,9 @@ pub mod honouring_for_storing_burn_records {
         );
     }
 
-    pub fn a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so(
+    pub fn a_target_kept_as_the_recommendation_comes_back_kept_so(
         records: &impl ForStoringBurnRecords,
     ) {
-        records
-            .save_usual_day(day("2026-03-01"), &usual(480.0))
-            .expect("a usual day saves");
-        records
-            .save_usual_day(day("2026-09-01"), &Kept::Recommended)
-            .expect("a usual day saves");
         records
             .save_burn_target(day("2026-03-01"), Kept::Own(80.0))
             .expect("a target saves");
@@ -398,17 +316,11 @@ pub mod honouring_for_storing_burn_records {
         let burnt = records.burn_records().expect("the records read");
 
         assert_eq!(
-            (burnt.usual_days, burnt.targets),
-            (
-                vec![
-                    (day("2026-03-01"), usual(480.0)),
-                    (day("2026-09-01"), Kept::Recommended)
-                ],
-                vec![
-                    (day("2026-03-01"), Kept::Own(80.0)),
-                    (day("2026-09-01"), Kept::Recommended)
-                ]
-            )
+            burnt.targets,
+            vec![
+                (day("2026-03-01"), Kept::Own(80.0)),
+                (day("2026-09-01"), Kept::Recommended)
+            ]
         );
     }
 
@@ -418,22 +330,10 @@ pub mod honouring_for_storing_burn_records {
         records
             .save_exercise(&named("Walking", 3.5))
             .expect("an exercise saves");
-        records
-            .save_day_off_the_clock(day("2026-10-10"), &sitting(600.0))
-            .expect("a day off the clock saves");
-        records
-            .save_usual_day(day("2026-03-01"), &usual(480.0))
-            .expect("a usual day saves");
 
         records
             .save_exercise(&named("Walking", 4.0))
             .expect("an exercise saves");
-        records
-            .save_day_off_the_clock(day("2026-10-10"), &sitting(300.0))
-            .expect("a day off the clock saves");
-        records
-            .save_usual_day(day("2026-03-01"), &usual(420.0))
-            .expect("a usual day saves");
         records
             .save_burn_target(day("2026-03-01"), Kept::Own(80.0))
             .expect("a target saves");
@@ -444,11 +344,6 @@ pub mod honouring_for_storing_burn_records {
         let burnt = records.burn_records().expect("the records read");
         assert_eq!(burnt.exercises, vec![named("Walking", 4.0)]);
         assert_eq!(burnt.targets, vec![(day("2026-03-01"), Kept::Own(150.0))]);
-        assert_eq!(
-            burnt.days_off_the_clock,
-            vec![(day("2026-10-10"), sitting(300.0))]
-        );
-        assert_eq!(burnt.usual_days, vec![(day("2026-03-01"), usual(420.0))]);
     }
 
     pub fn removing_a_workout_or_an_exercise_leaves_the_others(
@@ -500,8 +395,6 @@ pub mod honouring_for_storing_burn_records {
         let replacement = BurnRecords {
             exercises: vec![named("Biking", 8.0)],
             workouts: vec![(0, done("2026-06-22", "Biking", 45.0))],
-            days_off_the_clock: vec![(day("2026-06-22"), sitting(500.0))],
-            usual_days: vec![(day("2026-03-01"), usual(480.0))],
             circuits: vec![morning_rust()],
             targets: vec![(day("2026-03-01"), Kept::Own(120.0))],
         };
@@ -513,8 +406,6 @@ pub mod honouring_for_storing_burn_records {
         let burnt = records.burn_records().expect("the records read");
         assert_eq!(burnt.exercises, replacement.exercises);
         assert_eq!(without_ids(&burnt), without_ids(&replacement));
-        assert_eq!(burnt.days_off_the_clock, replacement.days_off_the_clock);
-        assert_eq!(burnt.usual_days, replacement.usual_days);
         assert_eq!(burnt.circuits, replacement.circuits);
         assert_eq!(burnt.targets, replacement.targets);
     }
@@ -1558,8 +1449,8 @@ mod tests {
     }
 
     #[test]
-    fn a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so() {
-        honouring_for_storing_burn_records::a_usual_day_or_a_target_kept_as_the_recommendation_comes_back_kept_so(
+    fn a_target_kept_as_the_recommendation_comes_back_kept_so() {
+        honouring_for_storing_burn_records::a_target_kept_as_the_recommendation_comes_back_kept_so(
             &BurnRecordsInMemory::default(),
         );
     }

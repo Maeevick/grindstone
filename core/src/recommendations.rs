@@ -9,7 +9,6 @@ use crate::burn_target::target_on;
 use crate::fuel_records::FuelTargets;
 use crate::gender::Gender;
 use crate::profile::Profile;
-use crate::volitional::Volitional;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Recommendations {
@@ -17,7 +16,6 @@ pub struct Recommendations {
     pub goal_mass_kg: f64,
     pub healthy_fat_ratio: (f64, f64),
     pub goal_fat_ratio: f64,
-    pub usual_day: Volitional,
     pub burn_target_kcal: Option<f64>,
     /// Each macro's health floor on the day, per kilo of body mass; none before a body to fuel.
     pub fuel_floors_g_per_kg: FuelTargets,
@@ -34,9 +32,6 @@ pub struct Recommendations {
 /// - Each macro's floor and the water a day, read on the day's records rather than the profile alone, come with
 ///   the recommendations from `recommended_on`: the floors as the Fuel band asks them, per kilo of body mass, and the
 ///   water as Hydrate recommends it before the burn.
-/// - The usual day: sitting 8 hours at most, past which the least active die sooner [19]; standing 2 hours, the
-///   first step towards 4 [18]; and the steps of a day with no exercise in it, the workouts logged counting the
-///   rest: "< 2,500 steps/day ('basal activity')" [17], at about 0.75 m a step.
 /// - The burn target: WHO's 150 minutes a week of moderate activity on the body weighed [20]; none before a
 ///   weigh-in, when any workout holds the tick.
 pub fn recommended(
@@ -54,11 +49,6 @@ pub fn recommended(
         goal_mass_kg,
         healthy_fat_ratio,
         goal_fat_ratio: to_the_thousandth((healthy_fat_ratio.0 + healthy_fat_ratio.1) / 2.0),
-        usual_day: Volitional {
-            sitting_min: SITTING_MIN,
-            standing_min: STANDING_MIN,
-            moving_km: to_the_tenth(BASAL_STEPS * METRES_A_STEP / 1000.0),
-        },
         burn_target_kcal: target_on(day, &[], body_mass_kg).map(|target| target.values),
         fuel_floors_g_per_kg: FuelTargets::default(),
         water_ml: None,
@@ -68,10 +58,6 @@ pub fn recommended(
 const LOWEST_NORMAL_BMI: f64 = 18.5;
 const HIGHEST_NORMAL_BMI: f64 = 24.9;
 const MIDDLE_OF_NORMAL_BMI: f64 = 21.7;
-const SITTING_MIN: f64 = 480.0;
-const STANDING_MIN: f64 = 120.0;
-const METRES_A_STEP: f64 = 0.75;
-const BASAL_STEPS: f64 = 2500.0;
 
 fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
     match (gender, age) {
@@ -82,10 +68,6 @@ fn healthy_fat_ratio(gender: Gender, age: u32) -> (f64, f64) {
         (Gender::Female, 40..=59) => (0.23, 0.34),
         (Gender::Female, _) => (0.24, 0.36),
     }
-}
-
-fn to_the_tenth(value: f64) -> f64 {
-    (value * 10.0).round() / 10.0
 }
 
 fn to_the_thousandth(value: f64) -> f64 {
@@ -140,36 +122,6 @@ mod tests {
         assert_eq!(fat_of("2010-01-01", Gender::Male), ((0.08, 0.20), 0.14));
         assert_eq!(fat_of("1980-01-01", Gender::Female), ((0.23, 0.34), 0.285));
         assert_eq!(fat_of("1950-01-01", Gender::Female), ((0.24, 0.36), 0.3));
-    }
-
-    #[test]
-    fn the_usual_day_sits_eight_hours_at_most_stands_two_and_walks_no_more_than_basal_activity_at_any_age()
-     {
-        let usual_day_of = |birthday| {
-            recommended(
-                &born(birthday, Gender::Male, 180.0),
-                day("2026-10-11"),
-                None,
-            )
-            .usual_day
-        };
-
-        assert_eq!(
-            usual_day_of("1985-04-12"),
-            Volitional {
-                sitting_min: 480.0,
-                standing_min: 120.0,
-                moving_km: 1.9
-            }
-        );
-        assert_eq!(
-            usual_day_of("1960-01-01"),
-            Volitional {
-                sitting_min: 480.0,
-                standing_min: 120.0,
-                moving_km: 1.9
-            }
-        );
     }
 
     #[test]

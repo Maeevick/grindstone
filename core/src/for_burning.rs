@@ -10,7 +10,6 @@ use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::refusal::Refusal;
-use crate::volitional::volitional;
 use crate::week::the_days_between;
 use crate::workout::{Workout, workout};
 
@@ -42,13 +41,6 @@ pub const DEFAULT_MINUTES: f64 = 1.0;
 pub const DEFAULT_REPS: u32 = 1;
 pub const DEFAULT_SETS: u32 = 1;
 pub const DEFAULT_LOAD_KG: f64 = 0.0;
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct OffTheClockForm {
-    pub sitting_min: f64,
-    pub standing_min: f64,
-    pub moving_km: f64,
-}
 
 fn day(date: &str) -> Result<NaiveDate, Failure> {
     NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|_| Failure::Refused(Refusal::NotADate))
@@ -152,19 +144,6 @@ pub fn remove_workouts(
     burn_of_the_day(gather, burn, day)
 }
 
-pub fn set_day_off_the_clock(
-    gather: &impl ForStoringGatherRecords,
-    burn: &impl ForStoringBurnRecords,
-    date: &str,
-    form: &OffTheClockForm,
-) -> Result<Burn, Failure> {
-    let day = day(date)?;
-    let off_the_clock = volitional(form.sitting_min, form.standing_min, form.moving_km)
-        .map_err(Failure::Refused)?;
-    burn.save_day_off_the_clock(day, &off_the_clock)?;
-    burn_of_the_day(gather, burn, day)
-}
-
 fn workouts_of_the_session(
     crafted: &Circuit,
     form: &CircuitSessionForm,
@@ -256,7 +235,6 @@ mod tests {
     };
     use crate::for_tracking::log_measurement;
     use crate::testing::{BrokenBurnRecords, BurnRecordsInMemory, GatherRecordsInMemory};
-    use crate::volitional::Volitional;
     use crate::workout::Workout;
 
     fn a_catalog_with_walking() -> BurnRecordsInMemory {
@@ -408,38 +386,6 @@ mod tests {
     }
 
     #[test]
-    fn a_day_whose_usual_day_was_never_kept_spends_its_time_off_the_clock_as_recommended_for_the_age()
-     {
-        let gather = GatherRecordsInMemory::default();
-        gather
-            .save_profile(
-                NaiveDate::from_ymd_opt(2026, 3, 1).expect("a day"),
-                &crate::profile::Profile {
-                    birthday: NaiveDate::from_ymd_opt(1985, 4, 12).expect("a day"),
-                    gender: crate::gender::Gender::Male,
-                    height_cm: 180.0,
-                    neck_cm: 38.5,
-                    hip_cm: None,
-                },
-            )
-            .expect("a profile saves");
-
-        let burnt = burn_day(&gather, &BurnRecordsInMemory::default(), "2026-10-10");
-
-        assert_eq!(
-            burnt.map(|burnt| (burnt.off_the_clock, burnt.off_the_clock_is_usual)),
-            Ok((
-                Some(Volitional {
-                    sitting_min: 480.0,
-                    standing_min: 120.0,
-                    moving_km: 1.9,
-                }),
-                true
-            ))
-        );
-    }
-
-    #[test]
     fn a_logged_workout_comes_back_in_its_days_burn_with_what_it_burnt() {
         let gather = GatherRecordsInMemory::default();
         log_measurement(&gather, "2026-10-10", 80.0, None).expect("a measurement logs");
@@ -491,33 +437,6 @@ mod tests {
     }
 
     #[test]
-    fn a_day_off_the_clock_set_for_a_day_is_that_days_own() {
-        let burnt = set_day_off_the_clock(
-            &GatherRecordsInMemory::default(),
-            &BurnRecordsInMemory::default(),
-            "2026-10-10",
-            &OffTheClockForm {
-                sitting_min: 600.0,
-                standing_min: 60.0,
-                moving_km: 1.0,
-            },
-        )
-        .expect("a burn");
-
-        assert_eq!(
-            (burnt.off_the_clock, burnt.off_the_clock_is_usual),
-            (
-                Some(Volitional {
-                    sitting_min: 600.0,
-                    standing_min: 60.0,
-                    moving_km: 1.0,
-                }),
-                false
-            )
-        );
-    }
-
-    #[test]
     fn a_days_burn_reads_back_what_was_logged_on_it() {
         let gather = GatherRecordsInMemory::default();
         let burn = a_catalog_with_walking();
@@ -543,19 +462,6 @@ mod tests {
         assert_eq!(
             remove_workout(&gather, &BrokenBurnRecords, "2026-10-10", 1),
             Err(Failure::Broken("the disk is full".into()))
-        );
-        assert_eq!(
-            set_day_off_the_clock(
-                &gather,
-                &BurnRecordsInMemory::default(),
-                "2026-10-10",
-                &OffTheClockForm {
-                    sitting_min: -1.0,
-                    standing_min: 0.0,
-                    moving_km: 0.0,
-                },
-            ),
-            Err(Failure::Refused(Refusal::NotADistance))
         );
     }
 
