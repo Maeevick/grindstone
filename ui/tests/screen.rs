@@ -4057,7 +4057,7 @@ async fn every_tables_figures_stand_right_its_names_and_dates_left() {
 }
 
 #[wasm_bindgen_test]
-async fn the_icon_bar_leads_home_and_to_each_tab() {
+async fn the_icon_bar_leads_to_each_tab_home_gone() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
     let _mounted = the_app(&screen);
@@ -4065,15 +4065,15 @@ async fn the_icon_bar_leads_home_and_to_each_tab() {
 
     assert_eq!(
         attributes_of(&screen, "nav.tabs a", "href"),
-        ["/", "/gather", "/fuel", "/hydrate", "/burn"]
+        ["/gather", "/fuel", "/hydrate", "/burn"]
     );
     assert_eq!(
         texts_in_order(&screen, "nav.tabs a"),
-        ["🏠", "⚖️", "⚡", "💧", "🔥"]
+        ["⚖️", "⚡", "💧", "🔥"]
     );
     assert_eq!(
         attributes_of(&screen, "nav.tabs a", "aria-label"),
-        ["Home", "Gather", "Fuel", "Hydrate", "Burn"]
+        ["Gather", "Fuel", "Hydrate", "Burn"]
     );
     let mut opened = Vec::new();
     for (tab, form) in [
