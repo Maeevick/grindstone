@@ -650,6 +650,13 @@ pub fn Stats(chip: Chip) -> impl IntoView {
     }
 }
 
+/// A tab's history, month by month back from today, each day's streak dot by it, a tap opening its ticks then
+/// its entries.
+#[component]
+pub fn History(chip: Chip, today: String) -> impl IntoView {
+    let _ = (chip, today);
+}
+
 #[component]
 pub fn Charts(today: String) -> impl IntoView {
     let chip = RwSignal::new(Chip::Gather);

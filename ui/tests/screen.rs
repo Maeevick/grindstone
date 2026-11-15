@@ -32,7 +32,7 @@ use grind_ui::app::App;
 use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
-use grind_ui::screens::charts::Charts;
+use grind_ui::screens::charts::{Charts, Chip, History};
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
@@ -3042,6 +3042,71 @@ fn fuels_last_days(screen: &Element) -> impl Drop {
             </Router>
         }
     })
+}
+
+fn fuels_history(screen: &Element) -> impl Drop {
+    answering(&format!(
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
+            "fuel_day": {{ "__by": "date", "2026-10-10": {}, "2026-10-09": {} }}, "meals": [],
+            "streak": {{ "days": 2, "longest": 5, "at_risk": true, "history": [
+                {{ "day": "2026-10-09", "status": "Joker", "ticks": {{ "weighed": true, "fuelled": false, "worked_out": true, "hydrated": true }} }},
+                {{ "day": "2026-10-10", "status": "Pending", "ticks": {{ "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true }} }} ] }} }}"#,
+        fuelled_on("2026-10-10", 108.0),
+        fuelled_on("2026-10-09", 880.0),
+        fuelled_with("2026-10-10", "Skyr", 200.0, 108.0),
+        fuelled_with("2026-10-09", "Pasta in cream", 350.0, 880.0),
+    ));
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <History chip=Chip::Fuel today="2026-10-10".to_string() />
+            </Router>
+        }
+    })
+}
+
+#[wasm_bindgen_test]
+async fn a_tabs_history_tapped_opens_the_days_ticks_then_its_entries_their_cross_in_the_streak_column()
+ {
+    let screen = screen();
+    let _mounted = fuels_history(&screen);
+    settled().await;
+    let closed = (
+        texts_in_order(&screen, "section.card.history thead th"),
+        texts_in_order(&screen, ".history tbody tr.chosen td:first-child"),
+        texts_in_order(&screen, ".history tbody tr.entry").len(),
+    );
+
+    clicked(&screen, ".history tbody tr:not(.chosen)");
+    settled().await;
+    settled().await;
+
+    assert_eq!(
+        closed,
+        (
+            [
+                "Day",
+                "Energy (kcal)",
+                "Prot (g)",
+                "Fat (g)",
+                "Fib (g)",
+                "Carbs (g)",
+                "Qty (g)",
+                "Streak"
+            ]
+            .map(String::from)
+            .to_vec(),
+            vec!["2026-10-10".to_string()],
+            0
+        )
+    );
+    assert!(text_of(&screen, ".history tbody tr:nth-child(3).ticks").contains("a joker"));
+    assert_eq!(
+        texts_in_order(&screen, ".history tbody tr.entry td"),
+        ["Pasta in cream", "880", "19", "1", "2", "8", "350", "×"]
+            .map(String::from)
+            .to_vec()
+    );
 }
 
 fn first_cells(screen: &Element) -> Vec<String> {
