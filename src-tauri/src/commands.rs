@@ -30,7 +30,6 @@ use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::FuelWeek;
-use grind_core::gather_average::GatherAverage;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
@@ -78,16 +77,6 @@ pub fn pace_over_the_window(
 ) -> Result<Option<Pace>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
     for_tracking::pace_over_the_window(&*records, &today, window)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn gather_average_over_the_window(
-    records: State<Records>,
-    today: String,
-    window: Window,
-) -> Result<Option<GatherAverage>, Failure> {
-    let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_tracking::gather_average_over_the_window(&*records, &today, window)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -600,7 +589,6 @@ pub fn handlers<R: tauri::Runtime>()
         fuel_day,
         fuel_day_with,
         pace_over_the_window,
-        gather_average_over_the_window,
         fuel_over_the_window,
         hydrate_over_the_window,
         burn_over_the_window,
@@ -1130,14 +1118,13 @@ mod tests {
 
         let crossed = [
             "pace_over_the_window",
-            "gather_average_over_the_window",
             "fuel_over_the_window",
             "hydrate_over_the_window",
             "burn_over_the_window",
         ]
         .map(|command| invoke(&screen, command, over_30_days.clone()));
 
-        assert_eq!(crossed, [(); 5].map(|_| Ok(json!(null))));
+        assert_eq!(crossed, [(); 4].map(|_| Ok(json!(null))));
     }
 
     #[test]

@@ -248,12 +248,11 @@ mod tests {
 
         assert_eq!(
             [
-                logged_over(Window::Days7),
                 logged_over(Window::Days30),
                 logged_over(Window::Days90),
                 logged_over(Window::Everything)
             ],
-            [Some(1), Some(1), Some(2), Some(2)]
+            [Some(1), Some(2), Some(2)]
         );
     }
 
@@ -330,7 +329,7 @@ mod tests {
                 &BurnRecordsInMemory::default(),
                 &FuelRecordsInMemory::default(),
                 "2026-02-30",
-                Window::Days7
+                Window::Days30
             ),
             Err(Failure::Refused(Refusal::NotADate))
         );

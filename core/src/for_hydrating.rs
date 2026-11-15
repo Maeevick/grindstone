@@ -208,11 +208,17 @@ mod tests {
             log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, tea_ml)).expect("a drink logs");
         }
 
-        let water =
-            hydrate_over_the_window(&gather, &burn, &fuel, &hydrate, "2026-10-10", Window::Days7)
-                .ok()
-                .flatten()
-                .map(|over| over.water);
+        let water = hydrate_over_the_window(
+            &gather,
+            &burn,
+            &fuel,
+            &hydrate,
+            "2026-10-10",
+            Window::Days30,
+        )
+        .ok()
+        .flatten()
+        .map(|over| over.water);
 
         assert_eq!(
             water,
@@ -234,7 +240,7 @@ mod tests {
             FuelRecordsInMemory::default(),
             a_catalog_with_tea(),
         );
-        for date in ["2026-09-20", "2026-10-05", "2026-10-10"] {
+        for date in ["2026-08-20", "2026-10-05", "2026-10-10"] {
             log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
         }
         let logged_over = |window| {
@@ -246,8 +252,8 @@ mod tests {
 
         assert_eq!(
             [
-                logged_over(Window::Days7),
                 logged_over(Window::Days30),
+                logged_over(Window::Days90),
                 logged_over(Window::Everything)
             ],
             [Some(1), Some(2), Some(2)]
@@ -296,7 +302,7 @@ mod tests {
                 &FuelRecordsInMemory::default(),
                 &HydrateRecordsInMemory::default(),
                 "2026-02-30",
-                Window::Days7
+                Window::Days30
             ),
             Err(Failure::Refused(Refusal::NotADate))
         );

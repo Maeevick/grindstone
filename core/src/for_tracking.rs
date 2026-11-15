@@ -5,7 +5,6 @@ use crate::aims::{Aims, aims_on};
 use crate::failure::Failure;
 use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_gather_records::ForStoringGatherRecords;
-use crate::gather_average::{GatherAverage, averaged_between};
 use crate::gather_records::GatherRecords;
 use crate::ledger::{Day, ledger};
 use crate::measurement::measurement;
@@ -54,28 +53,9 @@ pub fn pace_over_the_window(
     window: Window,
 ) -> Result<Option<Pace>, Failure> {
     let today = day_of(today)?;
-    if !window.reads_a_pace() {
-        return Ok(None);
-    }
     let gathered = records.gather_records()?;
     let began = began_on(gathered.goals.iter().map(|(from, _)| *from), &gathered);
     Ok(pace_between(
-        first_day_of(window, today, began),
-        today,
-        &gathered,
-    ))
-}
-
-/// Each measure averaged over the weigh-ins of a window up to today, today included: a weigh-in is whole once made.
-pub fn gather_average_over_the_window(
-    records: &impl ForStoringGatherRecords,
-    today: &str,
-    window: Window,
-) -> Result<Option<GatherAverage>, Failure> {
-    let today = day_of(today)?;
-    let gathered = records.gather_records()?;
-    let began = began_on(gathered.goals.iter().map(|(from, _)| *from), &gathered);
-    Ok(averaged_between(
         first_day_of(window, today, began),
         today,
         &gathered,
@@ -131,7 +111,7 @@ mod tests {
             log_measurement(&records, date, kg, None).expect("a measurement logs");
         }
 
-        let paced = pace_over_the_window(&records, "2026-10-10", Window::Days7);
+        let paced = pace_over_the_window(&records, "2026-10-10", Window::Days30);
 
         assert_eq!(paced.ok().flatten().map(|pace| pace.body_mass.by), None);
     }
@@ -186,116 +166,14 @@ mod tests {
     }
 
     #[test]
-    fn the_average_over_a_window_reads_the_body_mass_over_its_weigh_ins_today_included() {
-        let records = GatherRecordsInMemory::default();
-        for (date, kg) in [
-            ("2026-10-03", 81.0),
-            ("2026-10-05", 80.0),
-            ("2026-10-08", 79.6),
-            ("2026-10-10", 79.4),
-        ] {
-            log_measurement(&records, date, kg, None).expect("a measurement logs");
-        }
-
-        let averaged = gather_average_over_the_window(&records, "2026-10-10", Window::Days7)
-            .ok()
-            .flatten();
-
-        assert_eq!(
-            averaged.map(|average| (average.weigh_ins, format!("{:.2}", average.body_mass_kg))),
-            Some((3, "79.67".to_string()))
-        );
-    }
-
-    #[test]
-    fn the_average_over_a_window_reads_the_composition_of_its_weigh_ins_as_the_ledger_carries_it() {
-        let records = GatherRecordsInMemory::default();
-        records
-            .save_profile(
-                day("2026-03-01"),
-                &Profile {
-                    birthday: day("1985-04-12"),
-                    gender: Gender::Male,
-                    height_cm: 180.0,
-                    neck_cm: 38.5,
-                    hip_cm: None,
-                },
-            )
-            .expect("a profile saves");
-        let mut week = None;
-        for (date, kg, waist_cm) in [
-            ("2026-10-05", 80.0, None),
-            ("2026-10-08", 79.6, Some(82.0)),
-            ("2026-10-10", 79.4, None),
-        ] {
-            week = log_measurement(&records, date, kg, waist_cm).ok();
-        }
-        let splits: Vec<_> = week
-            .map(|week| {
-                week.days
-                    .iter()
-                    .filter_map(|measured| measured.composition)
-                    .collect()
-            })
-            .unwrap_or_default();
-        let mean_of = |figure: fn(&crate::composition::Composition) -> f64| {
-            Some(splits.iter().map(figure).sum::<f64>() / 3.0)
-        };
-
-        let averaged = gather_average_over_the_window(&records, "2026-10-10", Window::Days7)
-            .ok()
-            .flatten();
-
-        assert_eq!(splits.len(), 3);
-        assert_eq!(
-            averaged.map(|average| (average.lean_mass_kg, average.fat_mass_kg, average.fat_ratio)),
-            Some((
-                mean_of(|split| split.lean_mass_kg),
-                mean_of(|split| split.fat_mass_kg),
-                mean_of(|split| split.fat_ratio)
-            ))
-        );
-    }
-
-    #[test]
-    fn the_average_over_a_window_counts_from_the_goals_first_day_and_is_none_without_a_weigh_in() {
-        let records = GatherRecordsInMemory::default();
-        crate::for_setting_up_the_profile::set_goals(
-            &records,
-            &crate::for_setting_up_the_profile::GoalsForm {
-                from: "2026-10-08".into(),
-                kept: crate::kept::Kept::Own(crate::for_setting_up_the_profile::TypedGoals {
-                    body_mass_kg: 70.0,
-                    fat_percentage: 10.0,
-                }),
-            },
-        )
-        .expect("goals set");
-        for (date, kg) in [("2026-10-05", 80.0), ("2026-10-09", 79.6)] {
-            log_measurement(&records, date, kg, None).expect("a measurement logs");
-        }
-        let weighed_over = |today| {
-            gather_average_over_the_window(&records, today, Window::Days7)
-                .ok()
-                .flatten()
-                .map(|average| average.weigh_ins)
-        };
-
-        assert_eq!(
-            [weighed_over("2026-10-10"), weighed_over("2026-10-20")],
-            [Some(1), None]
-        );
-    }
-
-    #[test]
     fn the_pace_over_a_window_reads_the_weigh_ins_across_it() {
         let records = GatherRecordsInMemory::default();
         for (date, kg) in [
-            ("2026-09-15", 81.0),
-            ("2026-09-18", 80.7),
-            ("2026-09-22", 80.4),
-            ("2026-09-26", 80.1),
-            ("2026-09-30", 79.8),
+            ("2026-08-20", 81.0),
+            ("2026-08-23", 80.7),
+            ("2026-08-27", 80.4),
+            ("2026-08-31", 80.1),
+            ("2026-09-04", 79.8),
         ] {
             log_measurement(&records, date, kg, None).expect("a measurement logs");
         }
@@ -307,7 +185,7 @@ mod tests {
         };
 
         assert_eq!(
-            [paced_over(Window::Days7), paced_over(Window::Days30)],
+            [paced_over(Window::Days30), paced_over(Window::Days90)],
             [false, true]
         );
     }

@@ -18,18 +18,9 @@ use crate::verdict::{Verdict, verdict_of};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Window {
-    Days7,
     Days30,
     Days90,
     Everything,
-}
-
-impl Window {
-    /// Whether a pace means anything over the window: a day's weight swings about 0.5 kg with water and salt,
-    /// so a week's slope carries about 0.66 kg a week of noise, 30 days' about 0.07.
-    pub fn reads_a_pace(self) -> bool {
-        self != Window::Days7
-    }
 }
 
 pub fn streak(
@@ -127,7 +118,6 @@ pub(crate) fn first_day_of(
     began: Option<NaiveDate>,
 ) -> NaiveDate {
     let first = match window {
-        Window::Days7 => today - Days::new(6),
         Window::Days30 => today - Days::new(29),
         Window::Days90 => today - Days::new(89),
         Window::Everything => NaiveDate::MIN,
@@ -145,20 +135,6 @@ mod tests {
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
-    }
-
-    #[test]
-    fn only_a_window_of_thirty_days_or_more_reads_a_pace() {
-        let windows = [
-            Window::Days7,
-            Window::Days30,
-            Window::Days90,
-            Window::Everything,
-        ];
-
-        let reading_a_pace = windows.map(Window::reads_a_pace);
-
-        assert_eq!(reading_a_pace, [false, true, true, true]);
     }
 
     mod the_streak {

@@ -18,7 +18,6 @@ use grind_core::for_tracking::GatherWeek;
 use grind_core::fuel::Fuel;
 use grind_core::fuel_records::FuelTargets;
 use grind_core::fuel_week::FuelWeek;
-use grind_core::gather_average::GatherAverage;
 use grind_core::goals::Goals;
 use grind_core::hydrate::Hydrate;
 use grind_core::hydrate_week::HydrateWeek;
@@ -266,7 +265,6 @@ fn the_core_gives(command: &str, answer: &serde_json::Value) -> Result<(), Strin
         "hydrate_month" => read_back::<Month<HydrateRow>>(answer),
         "burn_month" => read_back::<Month<BurnRow>>(answer),
         "pace_over_the_window" => read_back::<Option<Pace>>(answer),
-        "gather_average_over_the_window" => read_back::<Option<GatherAverage>>(answer),
         "fuel_over_the_window" => read_back::<Option<FuelWeek>>(answer),
         "hydrate_over_the_window" => read_back::<Option<HydrateWeek>>(answer),
         "burn_over_the_window" => read_back::<Option<BurnWeek>>(answer),
@@ -1119,40 +1117,6 @@ async fn the_pace_says_it_reads_the_slope_of_the_seven_day_average_over_its_weig
 }
 
 #[wasm_bindgen_test]
-async fn on_seven_days_gather_averages_each_measure_over_its_weigh_ins_today_included() {
-    answering(
-        r#"{ "gather_average_over_the_window": { "weigh_ins": 5, "body_mass_kg": 71.04,
-             "lean_mass_kg": 61.62, "fat_mass_kg": 9.42, "fat_ratio": 0.1326 } }"#,
-    );
-    let screen = screen();
-
-    let _mounted = the_pace(&screen, Window::Days7);
-    settled().await;
-
-    assert_eq!(
-        (
-            text_of(&screen, ".pace p.hint"),
-            texts_in_order(&screen, ".pace li > span")
-        ),
-        (
-            "Average over 5 weigh-ins, today included.".to_string(),
-            [
-                "Body mass",
-                "71.0 kg",
-                "Lean mass",
-                "61.6 kg",
-                "Fat mass",
-                "9.4 kg",
-                "Fat %",
-                "13.3%"
-            ]
-            .map(String::from)
-            .to_vec()
-        )
-    );
-}
-
-#[wasm_bindgen_test]
 async fn the_pace_offers_no_info_bubble_any_more() {
     answering(&format!(r#"{{ "pace_over_the_window": {A_PACE} }}"#));
     let screen = screen();
@@ -1984,7 +1948,7 @@ fn the_fuel_week(screen: &Element) -> impl Drop {
         view! {
             <Router>
                 <section class="card week">
-                    <FuelOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                    <FuelOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days30) />
                 </section>
             </Router>
         }
@@ -2053,7 +2017,7 @@ fn the_hydrate_week(screen: &Element) -> impl Drop {
         view! {
             <Router>
                 <section class="card week">
-                    <HydrateOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                    <HydrateOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days30) />
                 </section>
             </Router>
         }
@@ -2133,7 +2097,7 @@ fn the_burn_week(screen: &Element) -> impl Drop {
         view! {
             <Router>
                 <section class="card week">
-                    <BurnOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days7) />
+                    <BurnOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days30) />
                 </section>
             </Router>
         }
@@ -5500,9 +5464,7 @@ const A_PACE: &str = r#"{ "body_mass": { "by": -0.4, "heading": "Toward" },
 #[wasm_bindgen_test]
 async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_over_its_window() {
     answering(&format!(
-        r#"{{ "gather_average_over_the_window": {{ "weigh_ins": 5, "body_mass_kg": 71.04,
-                 "lean_mass_kg": 61.62, "fat_mass_kg": 9.42, "fat_ratio": 0.1326 }},
-             "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
+        r#"{{ "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
              "hydrate_over_the_window": null, "burn_over_the_window": {A_BURN_WEEK} }}"#
     ));
     let screen = screen();

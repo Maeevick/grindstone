@@ -282,19 +282,19 @@ mod tests {
     }
 
     #[test]
-    fn the_sum_up_over_the_last_seven_days_counts_each_exercise_its_times_and_minutes() {
+    fn the_sum_up_over_a_window_counts_each_exercise_its_times_and_minutes() {
         let gather = GatherRecordsInMemory::default();
-        log_measurement(&gather, "2026-10-01", 80.0, None).expect("a measurement logs");
+        log_measurement(&gather, "2026-09-01", 80.0, None).expect("a measurement logs");
         let burn = a_catalog_with_walking();
         for (date, minutes) in [
-            ("2026-10-03", 30.0),
+            ("2026-09-03", 30.0),
             ("2026-10-04", 60.0),
             ("2026-10-09", 30.0),
         ] {
             log_workout(&gather, &burn, &walking(date, minutes)).expect("a workout logs");
         }
 
-        let week = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Days7);
+        let week = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Days30);
 
         assert_eq!(
             week.ok().flatten().map(|week| {
@@ -330,7 +330,7 @@ mod tests {
             .expect("a workout logs");
         }
 
-        let kept = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Days7)
+        let kept = burn_over_the_window(&gather, &burn, "2026-10-10", Window::Days30)
             .ok()
             .flatten()
             .map(|over| {
@@ -349,9 +349,9 @@ mod tests {
     #[test]
     fn the_sum_up_over_a_window_runs_over_its_finished_days_today_left_out_until_it_is_over() {
         let gather = GatherRecordsInMemory::default();
-        log_measurement(&gather, "2026-09-01", 80.0, None).expect("a measurement logs");
+        log_measurement(&gather, "2026-08-01", 80.0, None).expect("a measurement logs");
         let burn = a_catalog_with_walking();
-        for date in ["2026-09-20", "2026-10-05", "2026-10-10"] {
+        for date in ["2026-08-20", "2026-10-05", "2026-10-10"] {
             log_workout(&gather, &burn, &walking(date, 30.0)).expect("a workout logs");
         }
         let active_over = |window| {
@@ -363,8 +363,8 @@ mod tests {
 
         assert_eq!(
             [
-                active_over(Window::Days7),
                 active_over(Window::Days30),
+                active_over(Window::Days90),
                 active_over(Window::Everything)
             ],
             [Some(1), Some(2), Some(2)]
@@ -401,7 +401,7 @@ mod tests {
                 &GatherRecordsInMemory::default(),
                 &BurnRecordsInMemory::default(),
                 "2026-02-30",
-                Window::Days7
+                Window::Days30
             ),
             Err(Failure::Refused(Refusal::NotADate))
         );

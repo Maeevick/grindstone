@@ -2,8 +2,6 @@ use grind_core::burn_week::ExerciseWeek;
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown};
 use grind_core::for_reviewing_progress::Window;
-use grind_core::gather_average::GatherAverage;
-use grind_core::pace::Pace;
 use grind_core::tendency::{Change, Heading};
 use leptos::prelude::*;
 
@@ -50,52 +48,19 @@ fn failed(failure: &Failure) -> AnyView {
     view! { <p class="bad">{lines::failure(failure)}</p> }.into_any()
 }
 
-fn average_line(
-    name: &'static str,
-    value: Option<f64>,
-    figure: fn(f64) -> Figure,
-) -> impl IntoView {
-    value.map(|value| {
-        view! {
-            <li>
-                <span>{name}</span>
-                <span>{shown(figure(value))}</span>
-            </li>
-        }
-    })
-}
-
-/// What Gather reads over a window: a week's average, its pace from 30 days on.
-#[derive(Clone)]
-enum Gathered {
-    Averaged(Option<GatherAverage>),
-    Paced(Option<Pace>),
-}
-
-/// Gather over the window: on 7 days each measure averaged; from 30 days on how each moved a week, and the
-/// body mass's pace judged.
+/// Gather over the window: how each measure moved a week.
 #[component]
 pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
     let gathered = LocalResource::new(move || {
         let (today, window) = (today.clone(), window.get());
-        async move {
-            if window.reads_a_pace() {
-                tauri::pace_over_the_window(&today, window)
-                    .await
-                    .map(Gathered::Paced)
-            } else {
-                tauri::gather_average_over_the_window(&today, window)
-                    .await
-                    .map(Gathered::Averaged)
-            }
-        }
+        async move { tauri::pace_over_the_window(&today, window).await }
     });
     view! {
         <Transition fallback=|| view! { <p class="empty">{lines::LOADING}</p> }>
             {move || {
                 gathered.get()
                     .map(|answer| match answer {
-                        Ok(Gathered::Paced(Some(pace))) => {
+                        Ok(Some(pace)) => {
                             view! {
                                 <p class="hint">{lines::paced_over(pace.weigh_ins)}</p>
                                 <ul class="pace-lines">
@@ -107,23 +72,8 @@ pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
                             }
                                 .into_any()
                         }
-                        Ok(Gathered::Paced(None)) => {
+                        Ok(None) => {
                             view! { <p class="empty">{lines::NO_PACE_YET}</p> }.into_any()
-                        }
-                        Ok(Gathered::Averaged(Some(average))) => {
-                            view! {
-                                <p class="hint">{lines::averaged_over(average.weigh_ins)}</p>
-                                <ul class="pace-lines">
-                                    {average_line("Body mass", Some(average.body_mass_kg), Figure::Mass)}
-                                    {average_line("Lean mass", average.lean_mass_kg, Figure::Mass)}
-                                    {average_line("Fat mass", average.fat_mass_kg, Figure::Mass)}
-                                    {average_line("Fat %", average.fat_ratio, Figure::Ratio)}
-                                </ul>
-                            }
-                                .into_any()
-                        }
-                        Ok(Gathered::Averaged(None)) => {
-                            view! { <p class="empty">{lines::NO_WEIGH_IN_YET}</p> }.into_any()
                         }
                         Err(failure) => failed(&failure),
                     })
@@ -132,7 +82,7 @@ pub fn PaceOver(today: String, window: RwSignal<Window>) -> impl IntoView {
     }
 }
 
-/// Fuel over the window: a logged day on average against the bands, then what runs short and over.
+/// Fuel over the window: a logged day on average against the bands.
 #[component]
 pub fn FuelOver(today: String, window: RwSignal<Window>) -> impl IntoView {
     let over = LocalResource::new(move || {

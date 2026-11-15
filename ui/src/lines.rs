@@ -647,17 +647,6 @@ pub fn paced_over(weigh_ins: usize) -> String {
     }
 }
 
-pub fn averaged_over(weigh_ins: usize) -> String {
-    if weigh_ins == 1 {
-        "Average over 1 weigh-in, today included.".into()
-    } else {
-        format!("Average over {weigh_ins} weigh-ins, today included.")
-    }
-}
-
-pub const NO_WEIGH_IN_YET: &str =
-    "No weigh-in in these 7 days yet. The scale is patient: it has nowhere else to be.";
-
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
@@ -1428,21 +1417,14 @@ mod tests {
     }
 
     #[test]
-    fn the_pace_and_the_weeks_average_tell_the_weigh_ins_they_read() {
-        let said = [
-            paced_over(1),
-            paced_over(5),
-            averaged_over(1),
-            averaged_over(4),
-        ];
+    fn the_pace_tells_the_weigh_ins_it_reads() {
+        let said = [paced_over(1), paced_over(5)];
 
         assert_eq!(
             said,
             [
                 "Pace: the slope of the 7-day average over 1 weigh-in.",
                 "Pace: the slope of the 7-day average over 5 weigh-ins.",
-                "Average over 1 weigh-in, today included.",
-                "Average over 4 weigh-ins, today included.",
             ]
         );
     }
