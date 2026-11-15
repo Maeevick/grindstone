@@ -35,6 +35,19 @@ pub struct Band {
     /// The largest deficit the fat store can feed: maintenance less what the whole fat mass can spare, never under
     /// the minimum.
     pub alpert_kcal: f64,
+    /// Where the band holds firm, inside its floor and its cap: what lies between them and the band's edges still
+    /// counts, a stretch towards Alpert or the goal.
+    pub firm_floor_kcal: f64,
+    pub firm_cap_kcal: f64,
+    pub mode: Mode,
+}
+
+/// Where the goals lead from today's body: down, up, or nowhere.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Mode {
+    Leaning,
+    Holding,
+    Bulking,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -215,6 +228,9 @@ fn band_for(
         goal_kcal: goal_kcal.max(minimum_kcal),
         maintenance_kcal,
         alpert_kcal: (maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
+        firm_floor_kcal: floor_kcal.max(minimum_kcal),
+        firm_cap_kcal: cap_kcal.max(minimum_kcal),
+        mode: Mode::Holding,
     };
     (band, budget)
 }
@@ -635,6 +651,161 @@ mod tests {
                 (band.goal_kcal / band.maintenance_kcal * 100.0).round()
             ),
             ((0.005 * 80.0 * 7700.0 / 7.0_f64).round(), 105.0)
+        );
+    }
+
+    /// What a body would spend on a desk day before eating, with nothing worn down: no digestion yet.
+    fn spent_before_eating_by(lean_kg: f64, fat_kg: f64) -> f64 {
+        daily_energy_budget(
+            41,
+            lean_kg,
+            fat_kg,
+            Gender::Male,
+            A_DESK_DAY,
+            Deficit {
+                trailing_deficit_kcal: 0.0,
+                weeks_in_deficit: 0,
+            },
+            Eaten {
+                energy: 0.0,
+                macros: Macro {
+                    protein: 0.0,
+                    fat: 0.0,
+                    fib: 0.0,
+                    carb: 0.0,
+                },
+            },
+        )
+        .kcal()
+    }
+
+    /// The same man aiming at a body of his choice.
+    fn aiming_at(body_mass_kg: f64, fat_ratio: f64, waist_cm: f64) -> GatherRecords {
+        GatherRecords {
+            goals: vec![(
+                day("2026-03-01"),
+                Kept::Own(Goals {
+                    body_mass_kg,
+                    fat_ratio,
+                }),
+            )],
+            ..a_mans_records(waist_cm)
+        }
+    }
+
+    #[test]
+    fn the_goal_tick_is_what_the_goal_body_would_spend_that_day() {
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        assert!(
+            about(
+                band.goal_kcal,
+                spent_before_eating_by(70.0 * 0.9, 70.0 * 0.1)
+            ),
+            "{band:?}"
+        );
+    }
+
+    #[test]
+    fn a_goal_body_spending_under_99_percent_of_maintenance_leans_from_alpert_firm_from_the_goal_to_2_and_a_half_percent_above_maintenance()
+     {
+        let lean_waist_cm = 70.0;
+
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(lean_waist_cm),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        let given = band.alpert_kcal > band.minimum_kcal
+            && band.alpert_kcal < band.goal_kcal
+            && band.goal_kcal < 0.99 * band.maintenance_kcal;
+        assert!(
+            given
+                && band.mode == Mode::Leaning
+                && about(band.floor_kcal, band.alpert_kcal)
+                && about(band.firm_floor_kcal, band.goal_kcal)
+                && about(band.firm_cap_kcal, 1.025 * band.maintenance_kcal)
+                && about(band.cap_kcal, 1.025 * band.maintenance_kcal),
+            "{band:?}"
+        );
+    }
+
+    #[test]
+    fn a_goal_body_spending_under_alpert_leans_firm_from_alpert() {
+        let lean_waist_cm = 70.0;
+
+        let band = fuel_on(
+            "2026-10-10",
+            &aiming_at(50.0, 0.1, lean_waist_cm),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        let given = band.alpert_kcal > band.minimum_kcal && band.goal_kcal < band.alpert_kcal;
+        assert!(
+            given
+                && band.mode == Mode::Leaning
+                && about(band.floor_kcal, band.alpert_kcal)
+                && about(band.firm_floor_kcal, band.alpert_kcal),
+            "{band:?}"
+        );
+    }
+
+    #[test]
+    fn a_goal_body_spending_over_a_twentieth_above_maintenance_bulks_firm_5_percent_either_side_of_maintenance_then_up_to_the_goal()
+     {
+        let band = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming())
+            .band
+            .expect("a band");
+
+        let given = band.goal_kcal > 1.05 * band.maintenance_kcal;
+        assert!(
+            given
+                && band.mode == Mode::Bulking
+                && about(band.floor_kcal, 0.95 * band.maintenance_kcal)
+                && about(band.firm_floor_kcal, 0.95 * band.maintenance_kcal)
+                && about(band.firm_cap_kcal, 1.05 * band.maintenance_kcal)
+                && about(band.cap_kcal, band.goal_kcal),
+            "{band:?}"
+        );
+    }
+
+    #[test]
+    fn a_goal_body_spending_1_to_5_percent_above_maintenance_bulks_5_percent_either_side_of_maintenance()
+     {
+        let (_, fat_kg) = the_body();
+
+        let band = fuel_on(
+            "2026-10-10",
+            &aiming_at(82.0, fat_kg / 80.0, HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        let given = band.goal_kcal > 1.01 * band.maintenance_kcal
+            && band.goal_kcal < 1.05 * band.maintenance_kcal;
+        assert!(
+            given
+                && band.mode == Mode::Bulking
+                && about(band.floor_kcal, 0.95 * band.maintenance_kcal)
+                && about(band.firm_cap_kcal, 1.05 * band.maintenance_kcal)
+                && about(band.cap_kcal, 1.05 * band.maintenance_kcal),
+            "{band:?}"
         );
     }
 

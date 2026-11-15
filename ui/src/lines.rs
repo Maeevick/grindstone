@@ -939,6 +939,9 @@ mod tests {
             goal_kcal: 1950.0,
             maintenance_kcal: 2500.0,
             alpert_kcal: 1300.0,
+            firm_floor_kcal: 1950.0,
+            firm_cap_kcal: 2300.4,
+            mode: grind_core::fuel::Mode::Leaning,
         };
 
         let said = [energy_line(&fuel(Some(band))), energy_line(&fuel(None))];

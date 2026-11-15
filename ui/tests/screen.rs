@@ -958,6 +958,9 @@ async fn an_edges_label_without_room_slides_over_its_edge_rather_than_out_of_the
                         goal_kcal: 2300.0,
                         maintenance_kcal: 2600.0,
                         alpert_kcal: 1600.0,
+                        firm_floor_kcal: 2300.0,
+                        firm_cap_kcal: 2600.0,
+                        mode: grind_core::fuel::Mode::Leaning,
                     }
                     ghost=None
                 />
@@ -1851,6 +1854,9 @@ async fn every_gauge_labels_its_tick_under_it_in_gold_capitalised_and_anchored_t
         goal_kcal: 2199.4,
         maintenance_kcal: 2650.2,
         alpert_kcal: 1767.5,
+        firm_floor_kcal: 2199.4,
+        firm_cap_kcal: 2650.2,
+        mode: grind_core::fuel::Mode::Leaning,
     };
     let screen = screen();
     let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
@@ -1924,7 +1930,7 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
     "intakes": [[1, { "day": "2026-10-10", "food": "Skyr", "unit": "Gram", "quantity": 200.0,
         "nutrients": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 } }]],
     "eaten": { "energy_kcal": 108.0, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 0.0, "fibre_g": 0.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2424.8, "alpert_kcal": 1767.5 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2424.8, "alpert_kcal": 1767.5, "firm_floor_kcal": 2199.4, "firm_cap_kcal": 2650.2, "mode": "Leaning" },
     "energy": "Low",
     "macros": {
         "protein": { "eaten_g": 19.0, "floor_g": 160.0, "goal_g": 160.0, "painted": true, "ceiling_g": 9.0, "verdict": "Low" },
@@ -1934,7 +1940,7 @@ const A_FUELLED_DAY: &str = r#"{ "day": "2026-10-10",
 
 const A_FUELLED_DAY_WITH_ITS_BUDGET: &str = r#"{ "day": "2026-10-10", "intakes": [],
     "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2650.2, "alpert_kcal": 1767.5 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2650.2, "alpert_kcal": 1767.5, "firm_floor_kcal": 2199.4, "firm_cap_kcal": 2650.2, "mode": "Leaning" },
     "energy": "Low", "macros": null,
     "budget": { "resting_kcal": 1718.1, "digestion_kcal": 275.8,
                 "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 } }"#;
@@ -3667,7 +3673,8 @@ fn a_fuelled_day_of(
         r#"{{ "day": "2026-10-10", "intakes": [],
             "eaten": {{ "energy_kcal": {kcal}, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "fibre_g": 0.0 }},
             "band": {{ "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5,
-                       "floor_kcal": {floor}, "cap_kcal": {cap}, "goal_kcal": {floor}, "maintenance_kcal": {maintenance}, "alpert_kcal": 1767.5 }},
+                       "floor_kcal": {floor}, "cap_kcal": {cap}, "goal_kcal": {floor}, "maintenance_kcal": {maintenance}, "alpert_kcal": 1767.5,
+                       "firm_floor_kcal": {floor}, "firm_cap_kcal": {cap}, "mode": "Leaning" }},
             "energy": "Low", "macros": null,
             "budget": {{ "resting_kcal": 1718.1, "digestion_kcal": {digestion_kcal},
                          "spontaneous_kcal": 234.0, "volitional_kcal": 197.52 }} }}"#
@@ -3676,7 +3683,7 @@ fn a_fuelled_day_of(
 
 const A_FUELLED_DAY_WITH_THE_PASTA: &str = r#"{ "day": "2026-10-10", "intakes": [],
     "eaten": { "energy_kcal": 468.0, "protein_g": 31.0, "carbs_g": 78.0, "fat_g": 1.5, "fibre_g": 3.0 },
-    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2235.3, "cap_kcal": 2686.1, "goal_kcal": 2235.3, "maintenance_kcal": 2460.7, "alpert_kcal": 1767.5 },
+    "band": { "minimum_kcal_per_kg_of_lean_mass": 25.0, "minimum_kcal": 1767.5, "floor_kcal": 2235.3, "cap_kcal": 2686.1, "goal_kcal": 2235.3, "maintenance_kcal": 2460.7, "alpert_kcal": 1767.5, "firm_floor_kcal": 2235.3, "firm_cap_kcal": 2686.1, "mode": "Leaning" },
     "energy": "Low",
     "macros": {
         "protein": { "eaten_g": 31.0, "floor_g": 160.0, "goal_g": 160.0, "painted": true, "ceiling_g": 39.0, "verdict": "Low" },

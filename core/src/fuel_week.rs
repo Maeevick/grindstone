@@ -91,6 +91,9 @@ mod tests {
                 goal_kcal: 1800.0,
                 maintenance_kcal: 2400.0,
                 alpert_kcal: 1500.0,
+                firm_floor_kcal: 1800.0,
+                firm_cap_kcal: 2400.0,
+                mode: crate::fuel::Mode::Leaning,
             }),
             energy: Some(verdict_of(energy_kcal, 1800.0, 2400.0)),
             macros: Some(Macros {
