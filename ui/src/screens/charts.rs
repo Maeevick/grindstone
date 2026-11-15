@@ -640,7 +640,7 @@ pub fn Charts(today: String) -> impl IntoView {
     });
     view! {
         <section class="card tips">
-            <h2>"The unwanted tips"</h2>
+            <h2>"The Unwanted Stats"</h2>
             <div class="pills chips">
                 {pill_buttons("chip", CHIPS, chip)}
             </div>
