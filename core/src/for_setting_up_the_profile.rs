@@ -187,6 +187,7 @@ pub struct FuelTargetsForm {
 
 pub fn set_fuel_targets(
     gather: &impl ForStoringGatherRecords,
+    _burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     form: &FuelTargetsForm,
 ) -> Result<Option<InForce<FuelTargets>>, Failure> {
@@ -764,6 +765,7 @@ mod tests {
         );
         set_fuel_targets(
             &gather,
+            &BurnRecordsInMemory::default(),
             &fuel,
             &fuel_targets_kept("2026-03-01", Kept::Own(own_targets())),
         )
@@ -808,7 +810,13 @@ mod tests {
             ("2026-03-01", Kept::Own(own_targets())),
             ("2026-10-10", Kept::Recommended),
         ] {
-            set_fuel_targets(&gather, &fuel, &fuel_targets_kept(from, kept)).expect("targets keep");
+            set_fuel_targets(
+                &gather,
+                &BurnRecordsInMemory::default(),
+                &fuel,
+                &fuel_targets_kept(from, kept),
+            )
+            .expect("targets keep");
         }
 
         let in_force = |date| fuel_targets_on(&gather, &fuel, date).ok().flatten();
@@ -838,9 +846,58 @@ mod tests {
     }
 
     #[test]
+    fn fuel_targets_outside_the_recommendation_on_the_day_they_are_kept_are_refused() {
+        let gather = born("1985-04-12");
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(84.0))
+            .expect("a measurement logs");
+        let kept = |targets: FuelTargets| {
+            set_fuel_targets(
+                &gather,
+                &BurnRecordsInMemory::default(),
+                &crate::testing::FuelRecordsInMemory::default(),
+                &fuel_targets_kept("2026-10-10", Kept::Own(targets)),
+            )
+            .map(|_| ())
+        };
+        assert_eq!(
+            [
+                kept(FuelTargets {
+                    protein_g_per_kg: Some(0.82),
+                    ..own_targets()
+                }),
+                kept(FuelTargets {
+                    protein_g_per_kg: Some(2.21),
+                    ..own_targets()
+                }),
+                kept(FuelTargets {
+                    fat_g_per_kg: Some(0.1),
+                    ..own_targets()
+                }),
+                kept(FuelTargets {
+                    fat_g_per_kg: Some(3.0),
+                    ..own_targets()
+                }),
+                kept(FuelTargets {
+                    fibre_g_per_kg: Some(0.3),
+                    ..own_targets()
+                }),
+                kept(FuelTargets {
+                    carbs_g_per_kg: Some(1.6),
+                    ..own_targets()
+                }),
+            ],
+            [0, 1, 2, 3, 4, 5].map(|_| Err(Failure::Refused(
+                Refusal::FuelTargetsOutsideTheRecommendation
+            )))
+        );
+        assert_eq!(kept(own_targets()), Ok(()));
+    }
+
+    #[test]
     fn fuel_targets_below_nothing_are_refused() {
         let refused = set_fuel_targets(
             &GatherRecordsInMemory::default(),
+            &BurnRecordsInMemory::default(),
             &crate::testing::FuelRecordsInMemory::default(),
             &fuel_targets_kept(
                 "2026-03-01",
@@ -976,6 +1033,7 @@ mod tests {
         set_goals(&gather, &goals_kept("2026-10-10", 70.0, 10.0)).expect("the goals keep");
         set_fuel_targets(
             &gather,
+            &BurnRecordsInMemory::default(),
             &fuel,
             &fuel_targets_kept("2026-10-11", Kept::Recommended),
         )

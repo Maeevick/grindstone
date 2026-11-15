@@ -262,6 +262,7 @@ mod tests {
         let (gather, burn) = (a_man_with_a_waist(), BurnRecordsInMemory::default());
         crate::for_setting_up_the_profile::set_fuel_targets(
             &gather,
+            &burn,
             &fuel,
             &crate::for_setting_up_the_profile::FuelTargetsForm {
                 from: "2026-10-01".into(),

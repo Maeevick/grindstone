@@ -310,7 +310,7 @@ pub fn set_fuel_targets(
     form: FuelTargetsForm,
 ) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let records = records.0.lock().unwrap_or_else(PoisonError::into_inner);
-    for_setting_up_the_profile::set_fuel_targets(&*records, &*records, &form)
+    for_setting_up_the_profile::set_fuel_targets(&*records, &*records, &*records, &form)
 }
 
 #[tauri::command(rename_all = "snake_case")]

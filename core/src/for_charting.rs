@@ -910,6 +910,7 @@ mod tests {
         let logged = a_logged_man();
         crate::for_setting_up_the_profile::set_fuel_targets(
             &logged.gather,
+            &logged.burn,
             &logged.fuel,
             &crate::for_setting_up_the_profile::FuelTargetsForm {
                 from: "2026-10-01".into(),

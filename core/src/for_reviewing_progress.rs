@@ -213,6 +213,7 @@ mod tests {
             .expect("a usual day set");
             set_fuel_targets(
                 &records.gather,
+                &records.burn,
                 &records.fuel,
                 &FuelTargetsForm {
                     from: "2026-03-01".into(),
