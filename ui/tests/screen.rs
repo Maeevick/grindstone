@@ -1407,6 +1407,32 @@ async fn the_days_weigh_in_removed_from_its_card_leaves_the_day_ungathered() {
 }
 
 #[wasm_bindgen_test]
+async fn homes_window_offers_thirty_ninety_and_every_day_thirty_first() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, "section.card.tips button[class*='window-']"),
+            attributes_of(
+                &screen,
+                "section.card.tips button.chosen[class*='window-']",
+                "class"
+            ),
+        ),
+        (
+            ["30 days", "90 days", "∞"].map(String::from).to_vec(),
+            vec!["pill window-Days30 chosen".to_string()]
+        )
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_window_pills_start_on_seven_days_and_redraw_the_chart_over_the_days_they_name() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }},
