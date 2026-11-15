@@ -524,6 +524,14 @@ mod tests {
             .push((id, intake(date, plate, 1.0).expect("an intake")));
     }
 
+    /// A day eaten big, 400 g of protein among it, so digestion lifts maintenance well above the lean mass minimum
+    /// and the band's own edges show.
+    fn a_big_day() -> FuelRecords {
+        let mut fuel = aiming();
+        eating(&mut fuel, "2026-10-10", &a_food(400.0, 300.0, 72.0, 28.0));
+        fuel
+    }
+
     fn fuel_on(date: &str, gather: &GatherRecords, burn: &BurnRecords, fuel: &FuelRecords) -> Fuel {
         fuel_over(&[day(date)], gather, burn, fuel)
             .into_iter()
@@ -718,7 +726,7 @@ mod tests {
             "2026-10-10",
             &a_mans_records(lean_waist_cm),
             &a_desk_job(),
-            &aiming(),
+            &a_big_day(),
         );
 
         assert!(
@@ -750,7 +758,7 @@ mod tests {
             "2026-10-10",
             &a_mans_records(waist_cm),
             &a_desk_job(),
-            &aiming(),
+            &a_big_day(),
         );
 
         assert!(
@@ -782,7 +790,7 @@ mod tests {
             "2026-10-10",
             &a_mans_records(lean_waist_cm),
             &a_desk_job(),
-            &aiming(),
+            &a_big_day(),
         )
         .band
         .expect("a band");
@@ -849,7 +857,7 @@ mod tests {
     #[test]
     fn a_day_eaten_inside_its_band_with_each_macro_inside_its_own_reads_in_band() {
         let mut fuel = aiming();
-        eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
+        eating(&mut fuel, "2026-10-10", &a_food(160.0, 180.0, 60.0, 35.0));
 
         let fuelled = fuel_on(
             "2026-10-10",
@@ -893,34 +901,6 @@ mod tests {
 
         assert_eq!(under.energy, Some(Verdict::Low));
         assert_eq!(over.energy, Some(Verdict::High));
-    }
-
-    #[test]
-    fn weeks_eaten_well_under_the_cap_wear_the_spontaneous_activity_down() {
-        let mut dieting = aiming();
-        for date in 1..=28 {
-            eating(
-                &mut dieting,
-                &format!("2026-09-{:02}", date + 2),
-                &a_food(150.0, 100.0, 40.0, 20.0),
-            );
-        }
-
-        let rested = fuel_on(
-            "2026-10-01",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &aiming(),
-        );
-        let worn = fuel_on(
-            "2026-10-01",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &dieting,
-        );
-
-        let cap = |fuelled: &Fuel| fuelled.band.map(|band| band.cap_kcal).unwrap_or_default();
-        assert!(cap(&worn) < cap(&rested) - 100.0);
     }
 
     #[test]

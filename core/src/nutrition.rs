@@ -33,7 +33,7 @@ pub struct Budget {
 
 impl Budget {
     pub fn kcal(&self) -> f64 {
-        self.resting_kcal + self.digestion_kcal + self.spontaneous_kcal + self.volitional_kcal
+        self.resting_kcal + self.digestion_kcal
     }
 }
 
@@ -121,26 +121,6 @@ mod tests {
     }
 
     #[test]
-    fn a_mans_budget_adds_up_his_resting_digestion_and_non_exercise_burns_the_organs_inside_the_resting_rate()
-     {
-        let intake = Intake {
-            energy: 2500.0,
-            macros: Macro {
-                protein: 150.0,
-                fat: 70.0,
-                fib: 35.0,
-                carb: 300.0,
-            },
-        };
-
-        assert!(about(
-            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake)
-                .kcal(),
-            1774.0 * 0.9685 + 275.75 + 431.52
-        ));
-    }
-
-    #[test]
     fn a_days_budget_is_its_resting_rate_and_digestion_alone() {
         let intake = Intake {
             energy: 2500.0,
@@ -155,11 +135,7 @@ mod tests {
         let budget =
             daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake);
 
-        assert!(
-            about(budget.kcal(), 1774.0 * 0.9685 + 275.75),
-            "{}",
-            budget.kcal()
-        );
+        assert!(about(budget.kcal(), 1774.0 * 0.9685 + 275.75));
     }
 
     #[test]
