@@ -685,6 +685,53 @@ mod tests {
     }
 
     #[test]
+    fn the_goal_tick_counts_the_days_burn_as_maintenance_does() {
+        let mut burn = a_desk_job();
+        let walking = Exercise {
+            name: "Walking".into(),
+            met: 4.0,
+            description: String::new(),
+        };
+        let walked = workout("2026-10-10", &walking, 60.0, None, 1, 0.0).expect("a workout");
+        burn.workouts.push((1, walked.clone()));
+
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(HIS_WAIST_CM),
+            &burn,
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        assert!(
+            about(
+                band.goal_kcal,
+                spent_before_eating_by(70.0 * 0.9, 70.0 * 0.1) + burnt_by(&walked, 80.0)
+            ),
+            "{band:?}"
+        );
+    }
+
+    #[test]
+    fn a_goal_body_spending_just_above_maintenance_still_holds() {
+        let (_, fat_kg) = the_body();
+
+        let band = fuel_on(
+            "2026-10-10",
+            &aiming_at(80.5, fat_kg / 80.5, HIS_WAIST_CM),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        let given = band.goal_kcal > band.maintenance_kcal + 2.0
+            && band.goal_kcal < 1.01 * band.maintenance_kcal;
+        assert!(given && band.mode == Mode::Holding, "{band:?}");
+    }
+
+    #[test]
     fn a_goal_body_spending_under_99_percent_of_maintenance_leans_from_alpert_firm_from_the_goal_to_2_and_a_half_percent_above_maintenance()
      {
         let lean_waist_cm = 70.0;
