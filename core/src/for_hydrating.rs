@@ -5,10 +5,8 @@ use crate::drinking::drinking;
 use crate::failure::Failure;
 use crate::for_reviewing_progress::{Window, began_on, first_day_of};
 use crate::for_storing_burn_records::ForStoringBurnRecords;
-use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::fuel_over;
 use crate::hydrate::{Hydrate, hydrate_on, hydrate_over};
 use crate::hydrate_week::{HydrateWeek, hydrate_week_of};
 use crate::refusal::Refusal;
@@ -28,7 +26,6 @@ fn day(date: &str) -> Result<NaiveDate, Failure> {
 fn hydrate_of_the_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     day: NaiveDate,
 ) -> Result<Hydrate, Failure> {
@@ -37,25 +34,22 @@ fn hydrate_of_the_day(
         &hydrate.hydrate_records()?,
         &gather.gather_records()?,
         &burn.burn_records()?,
-        &fuel.fuel_records()?,
     ))
 }
 
 pub fn hydrate_day(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
 ) -> Result<Hydrate, Failure> {
-    hydrate_of_the_day(gather, burn, fuel, hydrate, day(date)?)
+    hydrate_of_the_day(gather, burn, hydrate, day(date)?)
 }
 
 /// The average over the logged days of a window up to today, today left out while under way.
 pub fn hydrate_over_the_window(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     today: &str,
     window: Window,
@@ -70,20 +64,14 @@ pub fn hydrate_over_the_window(
         hydrated.drinkings.iter().map(|(_, drunk)| drunk.day),
     );
     let burnt = burn.burn_records()?;
-    let fuelled_days = fuel_over(&logged, &gathered, &burnt, &fuel.fuel_records()?);
     Ok(hydrate_week_of(&hydrate_over(
-        &logged,
-        &hydrated,
-        &gathered,
-        &burnt,
-        &fuelled_days,
+        &logged, &hydrated, &gathered, &burnt,
     )))
 }
 
 pub fn log_drink(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     form: &DrinkingForm,
 ) -> Result<Hydrate, Failure> {
@@ -100,20 +88,19 @@ pub fn log_drink(
     )
     .map_err(Failure::Refused)?;
     hydrate.save_drinking(&drunk)?;
-    hydrate_of_the_day(gather, burn, fuel, hydrate, drunk.day)
+    hydrate_of_the_day(gather, burn, hydrate, drunk.day)
 }
 
 pub fn remove_drinking(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     date: &str,
     id: i64,
 ) -> Result<Hydrate, Failure> {
     let day = day(date)?;
     hydrate.remove_drinking(id)?;
-    hydrate_of_the_day(gather, burn, fuel, hydrate, day)
+    hydrate_of_the_day(gather, burn, hydrate, day)
 }
 
 #[cfg(test)]
@@ -125,8 +112,8 @@ mod tests {
     use crate::for_tracking::log_measurement;
     use crate::refusal::Refusal;
     use crate::testing::{
-        BrokenBurnRecords, BrokenFuelRecords, BrokenGatherRecords, BrokenHydrateRecords,
-        BurnRecordsInMemory, FuelRecordsInMemory, GatherRecordsInMemory, HydrateRecordsInMemory,
+        BrokenBurnRecords, BrokenGatherRecords, BrokenHydrateRecords, BurnRecordsInMemory,
+        GatherRecordsInMemory, HydrateRecordsInMemory,
     };
     use crate::week::Averaged;
 
@@ -166,7 +153,6 @@ mod tests {
         let hydrated = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
-            &FuelRecordsInMemory::default(),
             &hydrate,
             &tea("2026-10-10", 300.0),
         )
@@ -178,10 +164,9 @@ mod tests {
 
     #[test]
     fn the_average_over_a_window_tells_each_days_share_of_water_against_four_fifths() {
-        let (gather, burn, fuel, hydrate) = (
+        let (gather, burn, hydrate) = (
             GatherRecordsInMemory::default(),
             BurnRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
             a_catalog_with_tea(),
         );
         hydrate
@@ -197,7 +182,6 @@ mod tests {
             log_drink(
                 &gather,
                 &burn,
-                &fuel,
                 &hydrate,
                 &DrinkingForm {
                     drink: "Water".into(),
@@ -205,20 +189,13 @@ mod tests {
                 },
             )
             .expect("a drink logs");
-            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, tea_ml)).expect("a drink logs");
+            log_drink(&gather, &burn, &hydrate, &tea(date, tea_ml)).expect("a drink logs");
         }
 
-        let water = hydrate_over_the_window(
-            &gather,
-            &burn,
-            &fuel,
-            &hydrate,
-            "2026-10-10",
-            Window::Days30,
-        )
-        .ok()
-        .flatten()
-        .map(|over| over.water);
+        let water = hydrate_over_the_window(&gather, &burn, &hydrate, "2026-10-10", Window::Days30)
+            .ok()
+            .flatten()
+            .map(|over| over.water);
 
         assert_eq!(
             water,
@@ -234,17 +211,16 @@ mod tests {
 
     #[test]
     fn the_average_over_a_window_runs_over_its_logged_days_up_to_today_today_left_out() {
-        let (gather, burn, fuel, hydrate) = (
+        let (gather, burn, hydrate) = (
             GatherRecordsInMemory::default(),
             BurnRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
             a_catalog_with_tea(),
         );
         for date in ["2026-08-20", "2026-10-05", "2026-10-10"] {
-            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
+            log_drink(&gather, &burn, &hydrate, &tea(date, 400.0)).expect("a drink logs");
         }
         let logged_over = |window| {
-            hydrate_over_the_window(&gather, &burn, &fuel, &hydrate, "2026-10-10", window)
+            hydrate_over_the_window(&gather, &burn, &hydrate, "2026-10-10", window)
                 .ok()
                 .flatten()
                 .map(|over| over.logged_days)
@@ -262,10 +238,9 @@ mod tests {
 
     #[test]
     fn the_average_over_a_window_counts_from_the_water_aims_first_day() {
-        let (gather, burn, fuel, hydrate) = (
+        let (gather, burn, hydrate) = (
             GatherRecordsInMemory::default(),
             BurnRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
             a_catalog_with_tea(),
         );
         crate::for_setting_up_the_profile::set_hydrate_target(
@@ -278,17 +253,11 @@ mod tests {
         )
         .expect("a water target keeps");
         for date in ["2026-09-20", "2026-10-05", "2026-10-08"] {
-            log_drink(&gather, &burn, &fuel, &hydrate, &tea(date, 400.0)).expect("a drink logs");
+            log_drink(&gather, &burn, &hydrate, &tea(date, 400.0)).expect("a drink logs");
         }
 
-        let over = hydrate_over_the_window(
-            &gather,
-            &burn,
-            &fuel,
-            &hydrate,
-            "2026-10-10",
-            Window::Everything,
-        );
+        let over =
+            hydrate_over_the_window(&gather, &burn, &hydrate, "2026-10-10", Window::Everything);
 
         assert_eq!(over.ok().flatten().map(|over| over.logged_days), Some(2));
     }
@@ -299,7 +268,6 @@ mod tests {
             hydrate_over_the_window(
                 &GatherRecordsInMemory::default(),
                 &BurnRecordsInMemory::default(),
-                &FuelRecordsInMemory::default(),
                 &HydrateRecordsInMemory::default(),
                 "2026-02-30",
                 Window::Days30
@@ -311,9 +279,8 @@ mod tests {
     #[test]
     fn an_own_water_target_is_a_base_plus_a_millilitre_per_kcal_burnt_its_band_a_fifth_either_side()
     {
-        let (gather, fuel, hydrate) = (
+        let (gather, hydrate) = (
             GatherRecordsInMemory::default(),
-            FuelRecordsInMemory::default(),
             HydrateRecordsInMemory::default(),
         );
         log_measurement(&gather, "2026-10-01", 80.0, None).expect("a measurement logs");
@@ -347,8 +314,7 @@ mod tests {
         )
         .expect("a water target keeps");
 
-        let hydrated =
-            hydrate_day(&gather, &burn, &fuel, &hydrate, "2026-10-10").expect("a hydrate");
+        let hydrated = hydrate_day(&gather, &burn, &hydrate, "2026-10-10").expect("a hydrate");
 
         let target_ml = 2800.0 + 252.0;
         assert!(
@@ -368,7 +334,6 @@ mod tests {
         let refused = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
-            &FuelRecordsInMemory::default(),
             &HydrateRecordsInMemory::default(),
             &tea("2026-10-10", 200.0),
         );
@@ -381,37 +346,17 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let hydrate = a_catalog_with_tea();
-        log_drink(
-            &gather,
-            &burn,
-            &FuelRecordsInMemory::default(),
-            &hydrate,
-            &tea("2026-10-10", 200.0),
-        )
-        .expect("a drink logs");
-        let logged = log_drink(
-            &gather,
-            &burn,
-            &FuelRecordsInMemory::default(),
-            &hydrate,
-            &tea("2026-10-10", 100.0),
-        )
-        .expect("a hydrate");
+        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 200.0)).expect("a drink logs");
+        let logged =
+            log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 100.0)).expect("a hydrate");
         let first = logged
             .drinkings
             .first()
             .map(|(id, _)| *id)
             .expect("a first drinking");
 
-        let hydrated = remove_drinking(
-            &gather,
-            &burn,
-            &FuelRecordsInMemory::default(),
-            &hydrate,
-            "2026-10-10",
-            first,
-        )
-        .expect("a hydrate");
+        let hydrated =
+            remove_drinking(&gather, &burn, &hydrate, "2026-10-10", first).expect("a hydrate");
 
         assert_eq!(volumes(&hydrated), vec![100.0]);
     }
@@ -421,23 +366,9 @@ mod tests {
         let gather = GatherRecordsInMemory::default();
         let burn = BurnRecordsInMemory::default();
         let hydrate = a_catalog_with_tea();
-        log_drink(
-            &gather,
-            &burn,
-            &FuelRecordsInMemory::default(),
-            &hydrate,
-            &tea("2026-10-10", 400.0),
-        )
-        .expect("a drink logs");
+        log_drink(&gather, &burn, &hydrate, &tea("2026-10-10", 400.0)).expect("a drink logs");
 
-        let hydrated = hydrate_day(
-            &gather,
-            &burn,
-            &FuelRecordsInMemory::default(),
-            &hydrate,
-            "2026-10-10",
-        )
-        .expect("a hydrate");
+        let hydrated = hydrate_day(&gather, &burn, &hydrate, "2026-10-10").expect("a hydrate");
 
         assert_eq!(volumes(&hydrated), vec![400.0]);
     }
@@ -470,7 +401,6 @@ mod tests {
         let hydrated = hydrate_day(
             &gather,
             &burn,
-            &FuelRecordsInMemory::default(),
             &HydrateRecordsInMemory::default(),
             "2026-10-10",
         )
@@ -486,40 +416,26 @@ mod tests {
         let broken = Failure::Broken("the disk is full".into());
 
         assert_eq!(
-            hydrate_day(
-                &gather,
-                &burn,
-                &FuelRecordsInMemory::default(),
-                &a_catalog_with_tea(),
-                "2026-02-30"
-            ),
+            hydrate_day(&gather, &burn, &a_catalog_with_tea(), "2026-02-30"),
             Err(Failure::Refused(Refusal::NotADate))
         );
         assert_eq!(
             log_drink(
                 &gather,
                 &burn,
-                &FuelRecordsInMemory::default(),
                 &a_catalog_with_tea(),
                 &tea("2026-10-10", 0.0)
             ),
             Err(Failure::Refused(Refusal::NotAVolume))
         );
         assert_eq!(
-            hydrate_day(
-                &gather,
-                &burn,
-                &FuelRecordsInMemory::default(),
-                &BrokenHydrateRecords,
-                "2026-10-10"
-            ),
+            hydrate_day(&gather, &burn, &BrokenHydrateRecords, "2026-10-10"),
             Err(broken.clone())
         );
         assert_eq!(
             hydrate_day(
                 &BrokenGatherRecords,
                 &burn,
-                &FuelRecordsInMemory::default(),
                 &a_catalog_with_tea(),
                 "2026-10-10"
             ),
@@ -529,31 +445,13 @@ mod tests {
             hydrate_day(
                 &gather,
                 &BrokenBurnRecords,
-                &FuelRecordsInMemory::default(),
                 &a_catalog_with_tea(),
                 "2026-10-10"
             ),
             Err(broken.clone())
         );
         assert_eq!(
-            hydrate_day(
-                &gather,
-                &burn,
-                &BrokenFuelRecords,
-                &a_catalog_with_tea(),
-                "2026-10-10"
-            ),
-            Err(broken.clone())
-        );
-        assert_eq!(
-            remove_drinking(
-                &gather,
-                &burn,
-                &FuelRecordsInMemory::default(),
-                &BrokenHydrateRecords,
-                "2026-10-10",
-                1
-            ),
+            remove_drinking(&gather, &burn, &BrokenHydrateRecords, "2026-10-10", 1),
             Err(broken)
         );
     }
@@ -568,7 +466,6 @@ mod tests {
         let hydrated = log_drink(
             &GatherRecordsInMemory::default(),
             &BurnRecordsInMemory::default(),
-            &FuelRecordsInMemory::default(),
             &a_catalog_with_tea(),
             &unmeasured,
         )

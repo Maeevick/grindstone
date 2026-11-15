@@ -49,7 +49,7 @@ pub fn streak(
     );
     let days: Vec<NaiveDate> = start.iter_days().take_while(|day| *day <= today).collect();
     let fuelled_days = fuel_over(&days, &gathered, &burnt, &fuelled);
-    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt, &fuelled_days);
+    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt);
     let burns = Burns::of(&burnt, &gathered);
     let weighed_days: BTreeSet<NaiveDate> = gathered
         .measurements
@@ -261,7 +261,6 @@ mod tests {
             crate::for_hydrating::log_drink(
                 &records.gather,
                 &records.burn,
-                &records.fuel,
                 &records.hydrate,
                 &crate::for_hydrating::DrinkingForm {
                     date: date.into(),
@@ -365,7 +364,6 @@ mod tests {
                 crate::for_hydrating::log_drink(
                     &records.gather,
                     &records.burn,
-                    &records.fuel,
                     &records.hydrate,
                     &crate::for_hydrating::DrinkingForm {
                         date: "2026-10-10".into(),
@@ -687,7 +685,6 @@ mod tests {
             let floor_ml = crate::for_hydrating::hydrate_day(
                 &records.gather,
                 &records.burn,
-                &records.fuel,
                 &records.hydrate,
                 "2026-10-10",
             )
@@ -696,7 +693,6 @@ mod tests {
             crate::for_hydrating::log_drink(
                 &records.gather,
                 &records.burn,
-                &records.fuel,
                 &records.hydrate,
                 &crate::for_hydrating::DrinkingForm {
                     date: "2026-10-10".into(),

@@ -127,28 +127,20 @@ pub fn fuel_chart(
 pub fn hydrate_chart(
     gather: &impl ForStoringGatherRecords,
     burn: &impl ForStoringBurnRecords,
-    fuel: &impl ForStoringFuelRecords,
     hydrate: &impl ForStoringHydrateRecords,
     today: &str,
     window: Window,
 ) -> Result<BandChart, Failure> {
     let today = day_of(today)?;
-    let (gathered, burnt, fuelled, hydrated) = (
+    let (gathered, burnt, hydrated) = (
         gather.gather_records()?,
         burn.burn_records()?,
-        fuel.fuel_records()?,
         hydrate.hydrate_records()?,
     );
     let began = began_on(hydrated.targets.iter().map(|(from, _)| *from), &gathered);
     let span = span_of(today, window, began);
     let days = days_within(hydrated.drinkings.iter().map(|(_, drunk)| drunk.day), span);
-    let hydrated_days = hydrate_over(
-        &days,
-        &hydrated,
-        &gathered,
-        &burnt,
-        &fuel_over(&days, &gathered, &burnt, &fuelled),
-    );
+    let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt);
     Ok(BandChart {
         amounts: hydrated_days
             .iter()
@@ -511,7 +503,6 @@ mod tests {
             log_drink(
                 &logged.gather,
                 &logged.burn,
-                &logged.fuel,
                 &logged.hydrate,
                 &DrinkingForm {
                     date: date.into(),
@@ -625,7 +616,6 @@ mod tests {
         let chart = hydrate_chart(
             &logged.gather,
             &logged.burn,
-            &logged.fuel,
             &logged.hydrate,
             "2026-10-10",
             Window::Everything,
@@ -643,7 +633,6 @@ mod tests {
             let of_the_day = hydrate_day(
                 &logged.gather,
                 &logged.burn,
-                &logged.fuel,
                 &logged.hydrate,
                 &day.to_string(),
             )
@@ -797,7 +786,6 @@ mod tests {
         log_drink(
             &logged.gather,
             &logged.burn,
-            &logged.fuel,
             &logged.hydrate,
             &DrinkingForm {
                 date: "2026-10-10".into(),
@@ -901,7 +889,6 @@ mod tests {
         let chart = hydrate_chart(
             &logged.gather,
             &logged.burn,
-            &logged.fuel,
             &logged.hydrate,
             "2026-10-10",
             Window::Everything,

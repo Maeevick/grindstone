@@ -7,8 +7,6 @@ use crate::burn::Burns;
 use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
 use crate::drinking::Drinking;
-use crate::fuel::{Fuel, fuel_on};
-use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::hydrate_base::default_base_ml;
@@ -59,28 +57,19 @@ pub fn hydrate_on(
     records: &HydrateRecords,
     gather: &GatherRecords,
     burn: &BurnRecords,
-    fuel: &FuelRecords,
 ) -> Hydrate {
-    hydrated(
-        day,
-        &Drinks::of(records, gather, burn),
-        &fuel_on(day, gather, burn, fuel),
-    )
+    hydrated(day, &Drinks::of(records, gather, burn))
 }
 
-/// Each day's drinks, judged against the same day fuelled, the two lists in step.
+/// Each day's drinks against its band.
 pub fn hydrate_over(
     days: &[NaiveDate],
     records: &HydrateRecords,
     gather: &GatherRecords,
     burn: &BurnRecords,
-    fuelled_days: &[Fuel],
 ) -> Vec<Hydrate> {
     let drinks = Drinks::of(records, gather, burn);
-    days.iter()
-        .zip(fuelled_days)
-        .map(|(day, fuelled)| hydrated(*day, &drinks, fuelled))
-        .collect()
+    days.iter().map(|day| hydrated(*day, &drinks)).collect()
 }
 
 /// A history's drinks read day after day: grouped by day, beside the burn they are judged against, gathered once
@@ -142,7 +131,7 @@ fn recommended_optimal_ml(gender: Option<Gender>) -> f64 {
 /// The day's drinks against its band: the optimal, a water target of one's own or the recommended one, plus a
 /// millilitre per kcal burnt, within the 0.84 to 1.46 mL lost per kcal spent [30]; the band a fifth either side of
 /// it (the user's rule).
-fn hydrated(day: NaiveDate, drinks: &Drinks, _fuelled: &Fuel) -> Hydrate {
+fn hydrated(day: NaiveDate, drinks: &Drinks) -> Hydrate {
     let Drinks {
         records, gather, ..
     } = drinks;
@@ -248,7 +237,6 @@ mod tests {
             &HydrateRecords::default(),
             &a_man_measured_with_his_waist(),
             &walked_an_hour("2026-10-10"),
-            &FuelRecords::default(),
         );
 
         let optimal_ml = 2000.0 / 0.8 + 252.0;
@@ -270,7 +258,6 @@ mod tests {
             &records,
             &GatherRecords::default(),
             &BurnRecords::default(),
-            &FuelRecords::default(),
         );
 
         assert_eq!(
@@ -290,7 +277,6 @@ mod tests {
             &HydrateRecords::default(),
             &GatherRecords::default(),
             &walked_an_hour("2026-10-10"),
-            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.target_ml, 2500.0));
@@ -303,7 +289,6 @@ mod tests {
             &HydrateRecords::default(),
             &GatherRecords::default(),
             &BurnRecords::default(),
-            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.floor_ml, 2000.0));
@@ -331,7 +316,6 @@ mod tests {
             &HydrateRecords::default(),
             &a_woman,
             &BurnRecords::default(),
-            &FuelRecords::default(),
         );
 
         assert!(about(hydrate.floor_ml, 1600.0));
@@ -352,7 +336,6 @@ mod tests {
                 &records,
                 &GatherRecords::default(),
                 &BurnRecords::default(),
-                &FuelRecords::default(),
             )
             .verdict
         };

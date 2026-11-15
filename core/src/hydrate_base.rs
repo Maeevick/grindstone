@@ -1,6 +1,6 @@
 use crate::gender::Gender;
 
-pub(crate) const DRINKS_PERCENT_OF_TOTAL_WATER: f64 = 80.0;
+const DRINKS_PERCENT_OF_TOTAL_WATER: f64 = 80.0;
 
 fn adequate_intake_of_total_water_ml(gender: Option<Gender>) -> f64 {
     match gender {
@@ -9,8 +9,8 @@ fn adequate_intake_of_total_water_ml(gender: Option<Gender>) -> f64 {
     }
 }
 
-/// The drinks a day takes before any lean mass is known: four fifths of EFSA's adequate intake of
-/// total water, 2.5 L for men and 2.0 L for women, food bringing the rest [28].
+/// EFSA's drinks a day: four fifths of its adequate intake of total water, 2.5 L for men and 2.0 L for women,
+/// food bringing the rest [28].
 pub fn default_base_ml(gender: Option<Gender>) -> f64 {
     adequate_intake_of_total_water_ml(gender) * DRINKS_PERCENT_OF_TOTAL_WATER / 100.0
 }
