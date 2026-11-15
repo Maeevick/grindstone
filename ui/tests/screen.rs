@@ -2655,7 +2655,7 @@ async fn fuels_band_runs_dashed_from_its_floor_to_its_goal_then_solid_to_its_cap
 }
 
 #[wasm_bindgen_test]
-async fn fuels_gauge_names_no_alpert_floor_the_goal_tick_marking_a_cuts_floor() {
+async fn fuels_gauge_names_ea_goal_and_maintenance_never_the_floor() {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
     ));
