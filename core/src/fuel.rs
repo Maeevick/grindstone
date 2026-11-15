@@ -701,7 +701,8 @@ mod tests {
     }
 
     #[test]
-    fn the_bands_floor_is_maintenance_less_what_the_fat_left_to_lose_can_spare() {
+    fn in_a_cut_the_bands_floor_stands_below_the_goal_tick_as_far_as_the_cap_stands_above_maintenance()
+     {
         let waist_cm = 84.0;
         let fat_kg = crate::composition::body_composition(
             80.0,
@@ -725,10 +726,29 @@ mod tests {
         assert!(
             fuelled.band.is_some_and(|band| about(
                 band.floor_kcal,
-                band.maintenance_kcal - 290.0 / 4.184 * (fat_kg - his_goals_fat_kg)
+                band.maintenance_kcal
+                    - 290.0 / 4.184 * (fat_kg - his_goals_fat_kg)
+                    - 0.05 * band.maintenance_kcal
             )),
             "{:?}",
             fuelled.band
+        );
+    }
+
+    #[test]
+    fn with_a_gain_to_aim_for_the_bands_floor_stands_below_maintenance_as_far_as_the_cap_stands_above_the_goal_tick()
+     {
+        let band = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming())
+            .band
+            .expect("a band");
+
+        let cap_above_the_goal_kcal = 0.005 * 80.0 * 7700.0 / 7.0 - 0.05 * band.maintenance_kcal;
+        assert!(
+            about(
+                band.floor_kcal,
+                band.maintenance_kcal - cap_above_the_goal_kcal
+            ),
+            "{band:?}"
         );
     }
 
