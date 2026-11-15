@@ -1203,6 +1203,8 @@ mod tests {
     const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
     const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
     const BEFORE_THE_RECOMMENDATIONS: usize = 20;
+    /// The schema a reverted build moved to version 28 by dropping the days off the clock and the usual days.
+    const BEFORE_THE_NEAT_DROP: usize = 27;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
@@ -1560,6 +1562,58 @@ mod tests {
                 store.restored(r#"{ "tables": { "measurements": "every day" } }"#)
             ],
             [Err(Unrestorable::NotACopy), Err(Unrestorable::NotACopy)]
+        );
+    }
+
+    /// A store at the version before the drop, holding a usual day and a day off the clock.
+    fn a_store_with_neat_before_the_drop() -> Connection {
+        let store = a_store_at_version(BEFORE_THE_NEAT_DROP);
+        store
+            .execute_batch(
+                "insert into measurements (day, body_mass_kg) values ('2026-10-10', 81.5);
+                 insert into days_off_the_clock (day, sitting_min, standing_min, moving_km)
+                     values ('2026-10-10', 600.0, 60.0, 1.0);
+                 insert into usual_days (effective_from, sitting_min, standing_min, moving_km, recommended)
+                     values ('2026-03-01', 480.0, 120.0, 3.0, 0);",
+            )
+            .expect("records kept before the drop");
+        store
+    }
+
+    #[test]
+    fn the_store_the_neat_drop_left_gets_its_tables_back_and_restores_its_backup_any_other_keeping_its_rows()
+     {
+        let dropped = a_store_at_version(BEFORE_THE_NEAT_DROP);
+        dropped
+            .execute_batch(
+                "drop table days_off_the_clock; drop table usual_days; pragma user_version = 28;",
+            )
+            .expect("the drop a reverted build ran");
+        let backup = copy_of(
+            &a_store_with_neat_before_the_drop(),
+            NaiveDate::from_ymd_opt(2026, 11, 15).expect("a real day"),
+        )
+        .expect("a copy")
+        .text;
+        let (dropped, untouched) = (
+            migrated(dropped).expect("the dropped store migrates"),
+            migrated(a_store_with_neat_before_the_drop()).expect("the untouched store migrates"),
+        );
+
+        let restored = dropped.restored(&backup);
+
+        let neat = |store: &Sqlite| {
+            store
+                .burn_records()
+                .map(|burnt| (burnt.usual_days.len(), burnt.days_off_the_clock.len()))
+        };
+        assert_eq!(
+            (
+                restored.map(|counted| counted.records),
+                neat(&dropped),
+                neat(&untouched)
+            ),
+            (Ok(3), Ok((1, 1)), Ok((1, 1)))
         );
     }
 
