@@ -12,6 +12,7 @@ use leptos::task::spawn_local;
 
 use crate::choice::{chosen, grouped, nothing_matches};
 use crate::lines;
+use crate::screens::charts::{Chip, Stats};
 use crate::screens::entries::{DrinkFields, DrinkFigures, KINDS, NameField, NewEntry, name_cell};
 use crate::screens::fields::{Chooser, FigureField};
 use crate::screens::gauge::Gauge;
@@ -475,6 +476,7 @@ pub fn HydrateTab() -> impl IntoView {
     view! {
         <DayCard day=day />
         <HydrateDay day=day />
+        <Stats chip=Chip::Hydrate />
         <HydrateLastDays day=day />
     }
 }

@@ -14,6 +14,7 @@ use crate::lines::AboutToEat;
 use crate::screens::catalog::MealDetails;
 use crate::screens::cells::nutrient_cells;
 use crate::screens::charts::bare_or_dash;
+use crate::screens::charts::{Chip, Stats};
 use crate::screens::entries::{FoodFields, FoodFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::FuelGauge;
@@ -545,6 +546,7 @@ pub fn FuelTab() -> impl IntoView {
     view! {
         <DayCard day=day />
         <FuelDay day=day />
+        <Stats chip=Chip::Fuel />
         <FuelLastDays day=day />
     }
 }

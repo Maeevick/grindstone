@@ -18,6 +18,7 @@ use crate::lines;
 use crate::lines::AboutToBurn;
 use crate::screens::cells::opening_cell;
 use crate::screens::charts::bare_or_dash;
+use crate::screens::charts::{Chip, Stats};
 use crate::screens::circuits::how_a_step_goes;
 use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
@@ -742,6 +743,7 @@ pub fn BurnTab() -> impl IntoView {
     view! {
         <DayCard day=day />
         <BurnDay day=day />
+        <Stats chip=Chip::Burn />
         <BurnLastDays day=day />
     }
 }

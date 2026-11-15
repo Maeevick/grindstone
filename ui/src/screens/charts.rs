@@ -20,8 +20,9 @@ use crate::screens::said::refused_line;
 use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
 use crate::tauri;
 
+/// Which tab a chart, its stats and its history belong to.
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Chip {
+pub enum Chip {
     Gather,
     Fuel,
     Hydrate,
@@ -622,6 +623,33 @@ history!(
     ]
 );
 
+/// A tab's figures over the window picked.
+fn figures_over(chip: Chip, today: String, window: RwSignal<Window>) -> AnyView {
+    match chip {
+        Chip::Gather => view! { <PaceOver today=today window=window /> }.into_any(),
+        Chip::Fuel => view! { <FuelOver today=today window=window /> }.into_any(),
+        Chip::Hydrate => view! { <HydrateOver today=today window=window /> }.into_any(),
+        Chip::Burn => view! { <BurnOver today=today window=window /> }.into_any(),
+    }
+}
+
+/// A tab's stats: its chart over the window picked, then its figures over the same days, up to today.
+#[component]
+pub fn Stats(chip: Chip) -> impl IntoView {
+    let window = RwSignal::new(Window::Days30);
+    let today = crate::screens::today();
+    view! {
+        <section class="card stats">
+            <h2>"Stats"</h2>
+            <div class="pills">
+                {pill_buttons("window", WINDOWS, window)}
+            </div>
+            <ChipPlot chip=chip today=today.clone() window=window />
+            {figures_over(chip, today, window)}
+        </section>
+    }
+}
+
 #[component]
 pub fn Charts(today: String) -> impl IntoView {
     let chip = RwSignal::new(Chip::Gather);
@@ -648,14 +676,7 @@ pub fn Charts(today: String) -> impl IntoView {
                 {pill_buttons("window", WINDOWS, window)}
             </div>
             {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
-            {move || match chip.get() {
-                Chip::Gather => view! { <PaceOver today=today.get_value() window=window /> }.into_any(),
-                Chip::Fuel => view! { <FuelOver today=today.get_value() window=window /> }.into_any(),
-                Chip::Hydrate => {
-                    view! { <HydrateOver today=today.get_value() window=window /> }.into_any()
-                }
-                Chip::Burn => view! { <BurnOver today=today.get_value() window=window /> }.into_any(),
-            }}
+            {move || figures_over(chip.get(), today.get_value(), window)}
         </section>
         <section class="card history">
             <h2>"History"</h2>

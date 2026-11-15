@@ -4,6 +4,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::lines;
+use crate::screens::charts::{Chip, Stats};
 use crate::screens::fields::FigureField;
 use crate::screens::gauge::AimGauge;
 use crate::screens::last_days::GatherLastDays;
@@ -146,6 +147,7 @@ pub fn GatherTab() -> impl IntoView {
     view! {
         <DayCard day=day />
         <GatherDay day=day />
+        <Stats chip=Chip::Gather />
         <GatherLastDays day=day />
     }
 }
