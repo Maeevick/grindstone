@@ -2657,7 +2657,8 @@ async fn fuels_band_runs_dashed_from_its_floor_to_its_goal_then_solid_to_its_cap
 }
 
 #[wasm_bindgen_test]
-async fn fuels_gauge_names_ea_goal_and_maintenance_never_the_floor() {
+async fn fuels_gauge_names_ea_goal_and_maintenance_never_the_floor_alpert_stepping_aside_at_the_minimum()
+ {
     answering(&format!(
         r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
     ));
@@ -2671,6 +2672,36 @@ async fn fuels_gauge_names_ea_goal_and_maintenance_never_the_floor() {
         ["EA25 1768", "Goal 2199", "Maintenance 2425"]
             .map(String::from)
             .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
+async fn fuels_gauge_ticks_alpert_in_green_on_its_own_line_above_the_minimum() {
+    let fat_to_spare = A_FUELLED_DAY.replace(
+        r#""maintenance_kcal": 2424.8, "alpert_kcal": 1767.5"#,
+        r#""maintenance_kcal": 2424.8, "alpert_kcal": 1900.0"#,
+    );
+    answering(&format!(r#"{{ "foods": [], "fuel_day": {fat_to_spare} }}"#));
+    let screen = screen();
+
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    let gauge: Element = found(&screen, ".fuel-gauge");
+    let alpert: Element = found(&screen, ".fuel-gauge .tick-label.good");
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".fuel-gauge .tick-label"),
+            alpert.text_content(),
+            share_of(&gauge, "line.alpert", "x1") < share_of(&gauge, "line.goal", "x1"),
+        ),
+        (
+            ["EA25 1768", "Goal 2199", "Alpert 1900", "Maintenance 2425"]
+                .map(String::from)
+                .to_vec(),
+            Some("Alpert 1900".to_string()),
+            true,
+        )
     );
 }
 
