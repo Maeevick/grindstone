@@ -59,9 +59,6 @@ pub fn App() -> impl IntoView {
                 </Routes>
             </main>
             <nav class="tabs">
-                <A href="/" exact=true attr:aria-label="Home">
-                    "🏠"
-                </A>
                 <A href="/gather" attr:aria-label="Gather">
                     "⚖️"
                 </A>
