@@ -122,6 +122,7 @@ const MIGRATIONS: &[&str] = &[
      drop table fuel_targets;
      alter table fuel_goals rename to fuel_targets;",
     "drop table switch_over",
+    "drop table days_off_the_clock; drop table usual_days;",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
