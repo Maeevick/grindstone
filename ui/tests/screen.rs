@@ -1371,6 +1371,22 @@ async fn the_days_weigh_in_removed_from_its_card_leaves_the_day_ungathered() {
 }
 
 #[wasm_bindgen_test]
+async fn homes_stats_card_is_titled_the_unwanted_stats() {
+    answering(&format!(
+        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_charts(&screen);
+    settled().await;
+
+    assert_eq!(
+        text_of(&screen, "section.card.tips h2"),
+        "The Unwanted Stats"
+    );
+}
+
+#[wasm_bindgen_test]
 async fn homes_window_offers_thirty_ninety_and_every_day_thirty_first() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
