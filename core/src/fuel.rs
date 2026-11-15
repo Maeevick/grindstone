@@ -11,6 +11,7 @@ use crate::food::{Nutrients, summed};
 use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
+use crate::heading::AT_THE_AIM_SHARE;
 use crate::intake::Intake;
 use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::{Day, ledger};
@@ -135,8 +136,6 @@ const MOST_FAT_SHARE: f64 = 0.35;
 /// 14 g per 1000 kcal at 2 kcal a gram.
 const LEAST_FIBRE_SHARE: f64 = 0.028;
 const DAYS_OF_ADAPTATION: u64 = 28;
-/// Within a hundredth of maintenance either way, what the goal body would spend holds today's body: the user's rule.
-const HOLDING_SHARE: f64 = 0.01;
 /// Holding or bulking, the band holds firm a twentieth either side of maintenance: the user's rule.
 const EITHER_SIDE_SHARE: f64 = 0.05;
 /// Leaning, the band's cap stands a fortieth above maintenance: the user's rule.
@@ -160,10 +159,11 @@ fn digested(eaten: Nutrients) -> Eaten {
     }
 }
 
-/// The day's band, from what the goal body would spend against maintenance, both the budget of their body plus
-/// the burn. Under a hundredth below maintenance, the band leans: from Alpert, firm from the goal tick, to a fortieth
-/// above maintenance. Over a hundredth above, it bulks: firm a twentieth either side of maintenance, then up to the
-/// goal tick. Between, it holds: a twentieth either side of maintenance. Nothing falls under a minimum per kilo of
+/// The day's band, by the body mass against the goal's, around maintenance, the budget of today's body plus the
+/// burn; the goal tick, what the goal body would spend that day. Over a hundredth above the goal's mass, the band
+/// leans: from Alpert, firm from the goal tick (never past the cap), to a fortieth above maintenance. Over a
+/// hundredth under, it bulks: firm a twentieth either side of maintenance, then up to the goal tick. Between, it
+/// holds: a twentieth either side of maintenance. Nothing falls under a minimum per kilo of
 /// lean mass plus the burn. The Alpert tick, the largest deficit the fat store can feed, stands below maintenance by
 /// what the whole fat mass can spare.
 ///
@@ -205,9 +205,9 @@ fn band_for(
         + burnt_kcal;
     let alpert_kcal =
         (maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal);
-    let mode = if goal_kcal < (1.0 - HOLDING_SHARE) * maintenance_kcal {
+    let mode = if body.mass_kg > (1.0 + AT_THE_AIM_SHARE) * aims.body_mass_kg {
         Mode::Leaning
-    } else if goal_kcal > (1.0 + HOLDING_SHARE) * maintenance_kcal {
+    } else if body.mass_kg < (1.0 - AT_THE_AIM_SHARE) * aims.body_mass_kg {
         Mode::Bulking
     } else {
         Mode::Holding
@@ -217,7 +217,12 @@ fn band_for(
     let (floor_kcal, firm_floor_kcal, firm_cap_kcal, cap_kcal) = match mode {
         Mode::Leaning => {
             let cap_kcal = (1.0 + LEANING_CAP_SHARE) * maintenance_kcal;
-            (alpert_kcal, goal_kcal.max(alpert_kcal), cap_kcal, cap_kcal)
+            (
+                alpert_kcal,
+                goal_kcal.max(alpert_kcal).min(cap_kcal),
+                cap_kcal,
+                cap_kcal,
+            )
         }
         Mode::Holding => (below_kcal, below_kcal, above_kcal, above_kcal),
         Mode::Bulking => (

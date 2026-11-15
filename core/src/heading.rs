@@ -2,7 +2,7 @@ use crate::tendency::Heading;
 
 /// A measure moving less than 0.15% of itself a week holds steady.
 pub(crate) const STABLE_SHARE_A_WEEK: f64 = 0.0015;
-/// Within 1% of its aim, a body mass stands at it.
+/// Within 1% of its aim, a body mass stands at it: the user's rule.
 pub const AT_THE_AIM_SHARE: f64 = 0.01;
 
 /// What a measure aims at: a value to reach, or a floor to stay above.
