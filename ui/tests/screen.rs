@@ -2644,7 +2644,12 @@ async fn fuels_gauge_labels_ea_and_goal_then_maintenance_its_zones_edges_outward
 
 #[wasm_bindgen_test]
 async fn fuels_band_runs_dashed_from_its_floor_to_its_goal_then_solid_to_its_cap() {
-    let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
+    let cutting = A_FUELLED_DAY
+        .replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#)
+        .replace(
+            r#""firm_floor_kcal": 2199.4"#,
+            r#""firm_floor_kcal": 2300.0"#,
+        );
     answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
     let screen = screen();
     let _mounted = the_fuel_day(&screen);
@@ -2708,6 +2713,76 @@ async fn fuels_gauge_ticks_alpert_in_green_on_its_own_line_above_the_minimum() {
             Some("Alpert 1900".to_string()),
             true,
         )
+    );
+}
+
+/// A_FUELLED_DAY's band, leaning, to swap for a band in another mode.
+const ITS_LEANING_BAND: &str = r#""floor_kcal": 2199.4, "cap_kcal": 2650.2, "goal_kcal": 2199.4, "maintenance_kcal": 2424.8, "alpert_kcal": 1767.5, "firm_floor_kcal": 2199.4, "firm_cap_kcal": 2650.2, "mode": "Leaning""#;
+
+#[wasm_bindgen_test]
+async fn fuels_gauge_says_its_mode_above_the_band() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(text_of(&screen, ".fuel-gauge .gauge-title"), "Leaning");
+}
+
+#[wasm_bindgen_test]
+async fn a_holding_gauge_merges_its_goal_into_maintenance() {
+    let holding = A_FUELLED_DAY.replace(
+        ITS_LEANING_BAND,
+        r#""floor_kcal": 2303.6, "cap_kcal": 2546.0, "goal_kcal": 2424.8, "maintenance_kcal": 2424.8, "alpert_kcal": 1767.5, "firm_floor_kcal": 2303.6, "firm_cap_kcal": 2546.0, "mode": "Holding""#,
+    );
+    answering(&format!(r#"{{ "foods": [], "fuel_day": {holding} }}"#));
+    let screen = screen();
+
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".fuel-gauge .tick-label"),
+            screen
+                .query_selector(".fuel-gauge line.goal")
+                .ok()
+                .flatten()
+                .is_some()
+        ),
+        (
+            ["EA25 1768", "Maintenance 2425"].map(String::from).to_vec(),
+            false
+        )
+    );
+}
+
+#[wasm_bindgen_test]
+async fn a_bulking_gauge_holds_firm_to_a_twentieth_above_maintenance_then_runs_dashed_to_its_goal()
+{
+    let bulking = A_FUELLED_DAY.replace(
+        ITS_LEANING_BAND,
+        r#""floor_kcal": 2303.6, "cap_kcal": 2700.0, "goal_kcal": 2700.0, "maintenance_kcal": 2424.8, "alpert_kcal": 1767.5, "firm_floor_kcal": 2303.6, "firm_cap_kcal": 2546.0, "mode": "Bulking""#,
+    );
+    answering(&format!(r#"{{ "foods": [], "fuel_day": {bulking} }}"#));
+    let screen = screen();
+
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    let gauge: Element = found(&screen, ".fuel-gauge");
+    let at =
+        |selector: &str, attribute: &str| (share_of(&gauge, selector, attribute) * 1000.0).round();
+    assert_eq!(
+        (
+            at("rect.band", "x") + at("rect.band", "width") == at("line.cap-zone", "x1"),
+            at("line.cap-zone", "x1") < at("line.cap-zone", "x2"),
+            at("line.cap-zone", "x2") == at("line.goal", "x1"),
+        ),
+        (true, true, true)
     );
 }
 

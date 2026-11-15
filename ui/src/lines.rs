@@ -3,7 +3,7 @@ use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, energy_apart, mass_apart, shown, typed_back};
 use grind_core::food::{Nutrients, Unit};
 use grind_core::for_copying_records::{Counted, Restored};
-use grind_core::fuel::{Fuel, Verdict};
+use grind_core::fuel::{Fuel, Mode, Verdict};
 use grind_core::fuel_records::FuelTargets;
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
@@ -191,6 +191,12 @@ pub const CHOOSE_FIRST: &str = "Choose from the list first: three letters narrow
 pub const NO_MEAL: &str = "No meal cooked yet. The lab is spotless, which worries everyone.";
 
 pub const NO_FOOD: &str = "The catalog has no food yet. Add one with its figures per portion.";
+
+/// The mode the goals set the band in, said above its gauge.
+pub fn mode_name(mode: Mode) -> &'static str {
+    let _ = mode;
+    ""
+}
 
 pub fn energy_line(fuel: &Fuel) -> String {
     let eaten = shown(Figure::Energy(fuel.eaten.energy_kcal));
@@ -656,6 +662,14 @@ mod tests {
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
+    }
+
+    #[test]
+    fn each_mode_is_named_by_its_word() {
+        assert_eq!(
+            [Mode::Leaning, Mode::Holding, Mode::Bulking].map(mode_name),
+            ["Leaning", "Holding", "Bulking"]
+        );
     }
 
     fn burn(burnt_kcal: Option<f64>, target_kcal: Option<f64>, verdict: Option<Verdict>) -> Burn {
