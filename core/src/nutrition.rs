@@ -141,6 +141,28 @@ mod tests {
     }
 
     #[test]
+    fn a_days_budget_is_its_resting_rate_and_digestion_alone() {
+        let intake = Intake {
+            energy: 2500.0,
+            macros: Macro {
+                protein: 150.0,
+                fat: 70.0,
+                fib: 35.0,
+                carb: 300.0,
+            },
+        };
+
+        let budget =
+            daily_energy_budget(41, 65.0, 10.0, Gender::Male, A_DESK_DAY, NO_DEFICIT, intake);
+
+        assert!(
+            about(budget.kcal(), 1774.0 * 0.9685 + 275.75),
+            "{}",
+            budget.kcal()
+        );
+    }
+
+    #[test]
     fn at_twenty_the_basal_rate_is_katch_and_mcardle_with_nothing_taken_off() {
         assert!(about(bmr_by_katch_and_mcardle(20, 65.0), 1774.0));
     }
