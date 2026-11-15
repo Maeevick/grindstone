@@ -464,10 +464,9 @@ pub const FUEL_TARGETS_WHY: &str = "Healthy, whatever they are, on the day's ene
 pub const WATER_HOW: &str = "Your water a day, in mL, before the burn: the day's band adds what your workouts \
     sweat out. Leave it empty to follow the recommendation, shown in grey.";
 
-pub const WATER_WHY: &str = "Recommended: once the tapes read a lean mass, 68% of the water Yamada's equation \
-    turns over in a day for that lean mass and your age, at its reference climate (10 °C, 50% humidity, an activity \
-    level of 1.75): 85% of the turnover is taken in, four fifths of that drunk; weighed without one, 35 mL per kilo of body mass; before a weigh-in, EFSA's \
-    2.5 L a day for a man and 2 L for a woman, four fifths of it drunk.";
+pub const WATER_WHY: &str = "Recommended: 2.5 L a day for a man and 2 L for a woman, its floor 20% under it on \
+    EFSA's drinks (four fifths of its 2.5 L and 2 L of water a day, food bringing the rest), its cap 20% above it: \
+    your rule.";
 
 pub const BURN_TARGET_HOW: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. Leave it \
     empty to follow the recommendation, shown in grey.";
