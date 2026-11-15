@@ -454,12 +454,12 @@ pub const GOALS_HOW: &str = "The body mass to reach, in kg, and its fat, in %. T
     its recommendation, shown in grey; leave both empty to follow the recommendation as your body changes.";
 
 pub const FUEL_TARGETS_HOW: &str = "Your targets, in grams a day per kilo of body mass. An empty one aims at its \
-    health floor, today's shown in grey.";
+    recommended floor, today's shown in grey.";
 
-pub const FUEL_TARGETS_WHY: &str = "Healthy, whatever they are, on the day's energy (what is eaten, never less than \
-    the band's floor) and the band's cap: protein from 1.6 g per kg of body mass and 10% of the energy to 35% of the \
-    cap, fat from 20% to 35%, fibre from 14 g per 1000 kcal, carbs from 130 g. A target beyond them is yours to set; \
-    if you are not sure, ask a doctor or a coach first.";
+pub const FUEL_TARGETS_WHY: &str = "Recommended: protein from EFSA's 0.83 g per kg of body mass to 2.2 g, past which \
+    training builds no more lean mass; fat from 20% of the day's energy (what is eaten, never less than the band's \
+    floor) to 35% of the band's cap; fibre from 25 g; carbs from 130 g, the brain's glucose. A target stretches \
+    its bounds 5% either side of it, never inside the recommendation: your rule.";
 
 pub const WATER_HOW: &str = "Your water a day, in mL, before the burn: the day's band adds what your workouts \
     sweat out. Leave it empty to follow the recommendation, shown in grey.";
