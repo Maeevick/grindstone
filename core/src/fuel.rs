@@ -125,16 +125,19 @@ const FIBRE_KCAL_PER_G: f64 = 2.0;
 const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
+/// "a daily intake of 130 g of glycaemic carbohydrates has been estimated to cover the glucose requirement of the
+/// brain" [33].
 const CARBS_FLOOR_G: f64 = 130.0;
-/// "break point=1.62 (1.03, 2.20) g/kg/day" [22], past which
-/// "protein intakes at amounts greater than ~1.6 g/kg/day do not further contribute RET-induced gains in FFM".
-const LEAST_PROTEIN_G_PER_KG: f64 = 1.6;
-const LEAST_PROTEIN_SHARE: f64 = 0.10;
-const MOST_PROTEIN_SHARE: f64 = 0.35;
+/// "Adults (including older adults) – 0.83 g per kg of body weight per day" [32].
+const LEAST_PROTEIN_G_PER_KG: f64 = 0.83;
+/// "break point=1.62 (1.03, 2.20) g/kg/day" [22]: the upper bound of the break point past which
+/// "protein intakes at amounts greater than ~1.6 g/kg/day do not further contribute RET-induced gains in FFM",
+/// the user's pick for the most.
+const MOST_PROTEIN_G_PER_KG: f64 = 2.2;
 const LEAST_FAT_SHARE: f64 = 0.20;
 const MOST_FAT_SHARE: f64 = 0.35;
-/// 14 g per 1000 kcal at 2 kcal a gram.
-const LEAST_FIBRE_SHARE: f64 = 0.028;
+/// EFSA's adequate intake of dietary fibre for adults, 25 g a day [25].
+const FIBRE_FLOOR_G: f64 = 25.0;
 const DAYS_OF_ADAPTATION: u64 = 28;
 /// Holding or bulking, the band holds firm a twentieth either side of maintenance: the user's rule.
 const EITHER_SIDE_SHARE: f64 = 0.05;
@@ -278,18 +281,17 @@ fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f6
     }
 }
 
-/// Each macro's health bounds and its goal. The floors are shares of the energy eaten, never less than the
-/// band's floor, the least the day must hold, so they stand before the first meal and rise with what is eaten
-/// past it; the ceilings, shares of the band's cap, the most the day may hold; the goal, the target painted per
+/// Each macro's recommended bounds and its goal. The fat's are shares of the energy: its floor of the energy eaten,
+/// never less than the band's floor, the least the day must hold, so it stands before the first meal and rises with
+/// what is eaten past it; its ceiling of the band's cap, the most the day may hold. The goal, the target painted per
 /// kilo of body mass, the floor until one is.
 ///
-/// - Protein at least 1.6 g per kilo of body mass, where the gains in lean mass from training level off [22], and
-///   10% of the energy, at most 35%, the Institute of Medicine's 10 to 35% [27].
-/// - Fat at least 20% and at most 35% of the energy, EFSA's reference range [23].
-/// - Fibre at least 14 g per 1000 kcal, the Institute of Medicine's adequate intake [27], 2.8% of the energy at
-///   2 kcal a gram; no ceiling, none being set.
-/// - Carbohydrates at least 130 g, the Institute of Medicine's [27]; no ceiling, the energy's cap telling what
-///   is too much.
+/// - Protein from EFSA's 0.83 g per kilo of body mass [32] to 2.2 g, the upper bound of the break point past which
+///   training gains no more lean mass [22].
+/// - Fat from 20% to 35% of the energy, EFSA's reference range [23].
+/// - Fibre at least 25 g, EFSA's adequate intake [25]; no ceiling, none being set.
+/// - Carbohydrates at least 130 g, the glucose the brain needs [33]; no ceiling, the energy's cap telling what is
+///   too much.
 fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -> Macros {
     let at_least = eaten.energy_kcal.max(band.floor_kcal);
     let at_most = band.cap_kcal;
@@ -298,9 +300,8 @@ fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -
         protein: row(
             eaten.protein_g,
             (
-                (LEAST_PROTEIN_G_PER_KG * body.mass_kg)
-                    .max(LEAST_PROTEIN_SHARE * at_least / PROTEIN_KCAL_PER_G),
-                Some(MOST_PROTEIN_SHARE * at_most / PROTEIN_KCAL_PER_G),
+                LEAST_PROTEIN_G_PER_KG * body.mass_kg,
+                Some(MOST_PROTEIN_G_PER_KG * body.mass_kg),
             ),
             goal(targets.protein_g_per_kg),
         ),
@@ -314,7 +315,7 @@ fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -
         ),
         fibre: row(
             eaten.fibre_g,
-            (LEAST_FIBRE_SHARE * at_least / FIBRE_KCAL_PER_G, None),
+            (FIBRE_FLOOR_G, None),
             goal(targets.fibre_g_per_kg),
         ),
         carbs: row(
@@ -1406,76 +1407,6 @@ mod tests {
     }
 
     #[test]
-    fn each_macros_health_bounds_read_the_band_its_floors_on_what_is_eaten_once_past_the_bands_floor()
-     {
-        let bounds_after = |grams: Option<(f64, f64, f64, f64)>| {
-            let mut fuel = FuelRecords::default();
-            if let Some((protein, carbs, fat, fibre)) = grams {
-                eating(&mut fuel, "2026-10-10", &a_food(protein, carbs, fat, fibre));
-            }
-            let fuelled = fuel_on(
-                "2026-10-10",
-                &a_mans_records(HIS_WAIST_CM),
-                &a_desk_job(),
-                &fuel,
-            );
-            let (band, macros) = (
-                fuelled.band.expect("a band"),
-                fuelled.macros.expect("macros"),
-            );
-            let energy = fuelled.eaten.energy_kcal.max(band.floor_kcal);
-            let expected = [
-                (
-                    (1.6 * 80.0f64).max(0.1 * energy / 4.0),
-                    Some(0.35 * band.cap_kcal / 4.0),
-                ),
-                (0.2 * energy / 9.0, Some(0.35 * band.cap_kcal / 9.0)),
-                (0.028 * energy / 2.0, None),
-                (130.0, None),
-            ];
-            [macros.protein, macros.fat, macros.fibre, macros.carbs]
-                .iter()
-                .zip(expected)
-                .all(|(row, (floor, ceiling))| {
-                    about(row.floor_g, floor)
-                        && row.ceiling_g.map(|got| (got * 1e6).round())
-                            == ceiling.map(|wanted| (wanted * 1e6).round())
-                })
-        };
-
-        assert_eq!(
-            [
-                bounds_after(None),
-                bounds_after(Some((170.0, 230.0, 80.0, 35.0)))
-            ],
-            [true, true]
-        );
-    }
-    #[test]
-    fn protein_asks_for_a_tenth_of_the_energy_when_that_is_more_than_1_6_g_a_kilo() {
-        let mut fuel = FuelRecords::default();
-        for _ in 0..3 {
-            eating(&mut fuel, "2026-10-10", &a_food(170.0, 230.0, 80.0, 35.0));
-        }
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &fuel,
-        );
-
-        let energy = fuelled.eaten.energy_kcal;
-        assert!(
-            fuelled
-                .macros
-                .is_some_and(|macros| about(macros.protein.floor_g, 0.1 * energy / 4.0)),
-            "{:?}",
-            fuelled.macros
-        );
-    }
-
-    #[test]
     fn a_target_painted_from_a_day_stands_as_its_macros_goal_per_kilo_of_body_mass_the_health_floor_without_one()
      {
         let fuel = FuelRecords {
@@ -1524,20 +1455,7 @@ mod tests {
         let fuelled = fuel_on("2026-10-10", &records, &a_desk_job(), &aiming());
 
         let floor = |fuelled: &Fuel| fuelled.macros.map(|macros| macros.protein.floor_g);
-        assert!(floor(&fuelled).is_some_and(|grams| about(grams, 1.6 * 80.0)));
-    }
-
-    #[test]
-    fn protein_holds_at_least_1_6_g_a_kilo_where_the_gains_in_lean_mass_from_training_level_off() {
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(HIS_WAIST_CM),
-            &a_desk_job(),
-            &aiming(),
-        );
-
-        let floor = fuelled.macros.map(|macros| macros.protein.floor_g);
-        assert!(floor.is_some_and(|grams| about(grams, 1.6 * 80.0)));
+        assert!(floor(&fuelled).is_some_and(|grams| about(grams, 0.83 * 80.0)));
     }
 
     #[test]
