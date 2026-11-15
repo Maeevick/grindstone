@@ -92,6 +92,9 @@ export function settle() {
 export function asked(command) {
     return window.__asked[command] || '';
 }
+export function path_now() {
+    return window.location.pathname;
+}
 export function back_home() {
     window.history.replaceState(null, '', '/');
 }
@@ -170,6 +173,7 @@ extern "C" {
     /// fails after two seconds.
     fn settle() -> js_sys::Promise;
     fn back_home();
+    fn path_now() -> String;
     /// Moves to another tab through the history: a click on a tab is cancelled by the link
     /// handlers the routers of earlier tests leave behind.
     fn went_to(path: &str);
@@ -400,6 +404,31 @@ async fn a_first_launch_welcomes_you_and_points_to_the_profile_and_to_restoring_
         (
             "Set up your profile".to_string(),
             "Restore a copy".to_string()
+        )
+    );
+}
+
+#[wasm_bindgen_test]
+async fn the_app_opens_on_the_profile_welcoming_you_before_a_profile_is_kept_on_gather_after() {
+    answering(r#"{ "profile_on": null }"#);
+    let screen = screen();
+    let first_launch = the_app(&screen);
+    settled().await;
+    let welcomed = (
+        path_now(),
+        text_of(&screen, ".welcome a[href='/profile#copy']"),
+    );
+    drop(first_launch);
+
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    assert_eq!(
+        (welcomed, path_now()),
+        (
+            ("/profile".to_string(), "Restore a copy".to_string()),
+            "/gather".to_string()
         )
     );
 }
