@@ -90,6 +90,7 @@ mod tests {
                 cap_kcal: 2400.0,
                 goal_kcal: 1800.0,
                 maintenance_kcal: 2400.0,
+                alpert_kcal: 1500.0,
             }),
             energy: Some(verdict_of(energy_kcal, 1800.0, 2400.0)),
             macros: Some(Macros {

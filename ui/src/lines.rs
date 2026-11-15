@@ -938,6 +938,7 @@ mod tests {
             cap_kcal: 2300.4,
             goal_kcal: 1950.0,
             maintenance_kcal: 2500.0,
+            alpert_kcal: 1300.0,
         };
 
         let said = [energy_line(&fuel(Some(band))), energy_line(&fuel(None))];

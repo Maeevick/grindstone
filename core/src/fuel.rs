@@ -32,6 +32,9 @@ pub struct Band {
     pub goal_kcal: f64,
     /// What the day spends, the budget plus the burn, wherever the band runs.
     pub maintenance_kcal: f64,
+    /// The largest deficit the fat store can feed: maintenance less what the whole fat mass can spare, never under
+    /// the minimum.
+    pub alpert_kcal: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -209,6 +212,7 @@ fn band_for(
         cap_kcal: cap_kcal.max(minimum_kcal),
         goal_kcal: goal_kcal.max(minimum_kcal),
         maintenance_kcal,
+        alpert_kcal: 0.0,
     };
     (band, budget)
 }
@@ -630,6 +634,52 @@ mod tests {
             ),
             ((0.005 * 80.0 * 7700.0 / 7.0_f64).round(), 105.0)
         );
+    }
+
+    #[test]
+    fn the_alpert_tick_stands_below_maintenance_by_what_the_whole_fat_mass_can_spare() {
+        let lean_waist_cm = 70.0;
+        let fat_kg = crate::composition::body_composition(
+            80.0,
+            180.0,
+            crate::composition::Tapes::Male {
+                neck_cm: 38.5,
+                waist_cm: lean_waist_cm,
+            },
+        )
+        .expect("a composition")
+        .fat_mass_kg;
+
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(lean_waist_cm),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        assert!(
+            about(
+                band.alpert_kcal,
+                band.maintenance_kcal - 290.0 / 4.184 * fat_kg
+            ),
+            "{band:?}"
+        );
+    }
+
+    #[test]
+    fn a_fat_body_ticks_alpert_at_the_lean_mass_minimum() {
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(110.0),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        assert!(about(band.alpert_kcal, band.minimum_kcal), "{band:?}");
     }
 
     #[test]
