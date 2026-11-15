@@ -341,7 +341,7 @@ mod tests {
         }
 
         #[test]
-        fn a_day_in_its_energy_band_with_a_macro_out_of_its_own_leaves_the_fuel_tick_open() {
+        fn a_day_in_its_energy_band_holds_the_fuel_tick_whatever_its_macros() {
             let records = a_man_at_his_desk();
             a_full_day(&records, "2026-10-08", "Plate");
             a_full_day(&records, "2026-10-09", "Fibreless plate");
@@ -349,7 +349,7 @@ mod tests {
 
             assert_eq!(
                 ticks_on(&records, "2026-10-10", "2026-10-09").and_then(|ticks| ticks.fuelled),
-                Some(false)
+                Some(true)
             );
         }
 
