@@ -575,6 +575,21 @@ mod tests {
     }
 
     #[test]
+    fn an_energy_gauge_stretches_to_show_a_goal_above_its_cap() {
+        let leaning_to_a_hungrier_goal = energy_gauge_of(
+            1800.0,
+            &a_band((1600.0, 1700.0, 2600.0, 2000.0, 2050.0)),
+            None,
+            960.0,
+        );
+
+        assert!(
+            (leaning_to_a_hungrier_goal.goal_at - 880.0).abs() < 1e-9,
+            "{leaning_to_a_hungrier_goal:?}"
+        );
+    }
+
+    #[test]
     fn an_energy_gauge_ticks_the_goal_where_it_falls_in_its_band() {
         let cutting = energy_gauge_of(
             2200.0,
