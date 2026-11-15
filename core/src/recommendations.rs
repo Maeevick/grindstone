@@ -37,8 +37,8 @@ pub struct Recommendations {
 /// - The usual day: sitting 8 hours at most, past which the least active die sooner [19]; standing 2 hours, the
 ///   first step towards 4 [18]; and the steps of a day with no exercise in it, the workouts logged counting the
 ///   rest: "< 2,500 steps/day ('basal activity')" [17], at about 0.75 m a step.
-/// - The burn target: WHO's 150 minutes a week of moderate activity on the body weighed [20]; none before a
-///   weigh-in, when any workout holds the tick.
+/// - The burn target: from 2026-11-15, 75 kcal a day, the user's choice; before it, WHO's 150 minutes a week of
+///   moderate activity on the body weighed [20], none before a weigh-in, when any workout held the tick.
 pub fn recommended(
     profile: &Profile,
     day: NaiveDate,

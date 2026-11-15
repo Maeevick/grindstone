@@ -6,11 +6,15 @@ use crate::workout::activity_induced_energy_expenditure_from_compendium;
 const MODERATE_MINUTES_A_WEEK: f64 = 150.0;
 const MODERATE_MET: f64 = 4.0;
 const DAYS_A_WEEK: f64 = 7.0;
+/// From this day on, the recommendation is a flat 75 kcal a day: the user's choice.
+const FLAT_FROM: Option<NaiveDate> = NaiveDate::from_ymd_opt(2026, 11, 15);
+const FLAT_KCAL: f64 = 75.0;
 
 /// The net kcal a day's workouts aim to burn: the target kept from the latest day up to it, its own kcal or
-/// the recommendation. Before any, and wherever the recommendation is kept, the World Health Organization's
-/// 150 minutes a week of moderate activity, spread over the days at 4 METs, less the rest it replaces, on the
-/// body mass in force, priced as a workout is; without a body mass either, nothing to price a workout on [20].
+/// the recommendation. Before any, and wherever the recommendation is kept: from 2026-11-15, 75 kcal a day, the
+/// user's choice; before it, the World Health Organization's 150 minutes a week of moderate activity, spread over
+/// the days at 4 METs, less the rest it replaces, on the body mass in force, priced as a workout is, and without a
+/// body mass, nothing to price a workout on [20].
 pub fn target_on(
     day: NaiveDate,
     targets: &[(NaiveDate, Kept<f64>)],
@@ -22,6 +26,9 @@ pub fn target_on(
             .filter(|(from, _)| *from <= day)
             .max_by_key(|(from, _)| *from),
         || {
+            if FLAT_FROM.is_some_and(|flat| day >= flat) {
+                return Some(FLAT_KCAL);
+            }
             body_mass_kg.map(|kg| {
                 activity_induced_energy_expenditure_from_compendium(
                     kg,
