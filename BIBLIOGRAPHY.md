@@ -68,7 +68,7 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
    Used for: The usual day's 8 hours sitting at most, past which the least active die sooner.
 
 20. Bull F. C., Al-Ansari S. S., Biddle S., et al. (2020). *World Health Organization 2020 guidelines on physical activity and sedentary behaviour*. British Journal of Sports Medicine 54(24):1451-1462. <https://doi.org/10.1136/bjsports-2020-102955>
-   Used for: Less sitting and more moving, at any intensity: the direction of the usual day; and the burn target, 150 minutes a week of moderate activity priced on the body weighed.
+   Used for: Less sitting and more moving, at any intensity: the direction of the usual day; and the burn target before 2026-11-15, 150 minutes a week of moderate activity priced on the body weighed (75 kcal a day since, the user's pick).
 
 ## Macronutrients
 
