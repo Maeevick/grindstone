@@ -718,16 +718,21 @@ mod tests {
 
     #[test]
     fn at_the_goal_the_band_runs_a_twentieth_either_side_of_maintenance_its_goal_tick_on_it() {
-        let lean_waist_cm = 70.0;
+        let (_, fat_kg) = the_body();
+        let at_the_goal = GatherRecords {
+            goals: vec![(
+                day("2026-03-01"),
+                Kept::Own(Goals {
+                    body_mass_kg: 80.0,
+                    fat_ratio: fat_kg / 80.0,
+                }),
+            )],
+            ..a_mans_records(HIS_WAIST_CM)
+        };
 
-        let band = fuel_on(
-            "2026-10-10",
-            &a_mans_records(lean_waist_cm),
-            &a_desk_job(),
-            &aiming(),
-        )
-        .band
-        .expect("a band");
+        let band = fuel_on("2026-10-10", &at_the_goal, &a_desk_job(), &aiming())
+            .band
+            .expect("a band");
 
         assert!(
             about(band.floor_kcal, 0.95 * band.maintenance_kcal)
