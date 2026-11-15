@@ -40,18 +40,6 @@ impl Averaged {
     pub fn goal_or_floor(&self) -> f64 {
         self.goal.unwrap_or(self.floor)
     }
-
-    /// How far the average runs from its band, a day: under its floor short, past its ceiling over, nothing
-    /// within it.
-    pub fn gap(&self) -> Option<f64> {
-        match self.verdict() {
-            Verdict::Low => Some(self.per_day.round() - self.floor.round()),
-            Verdict::High => self
-                .ceiling
-                .map(|ceiling| self.per_day.round() - ceiling.round()),
-            Verdict::InBand => None,
-        }
-    }
 }
 
 /// The logged days' amounts and bands, averaged; nothing without a day.
@@ -116,35 +104,6 @@ mod tests {
             ceiling: Some(2400.0),
             goal: None,
         }
-    }
-
-    fn a_day_of(per_day: f64) -> Averaged {
-        Averaged {
-            per_day,
-            floor: 1800.0,
-            ceiling: Some(2400.0),
-            goal: None,
-            in_band: 0,
-        }
-    }
-
-    #[test]
-    fn an_averages_gap_is_the_difference_of_its_figures_as_shown() {
-        let averaged = |per_day: f64, floor: f64, ceiling: f64| Averaged {
-            per_day,
-            floor,
-            ceiling: Some(ceiling),
-            goal: None,
-            in_band: 0,
-        };
-
-        assert_eq!(
-            [
-                averaged(23.4, 24.6, 60.0).gap(),
-                averaged(61.6, 20.0, 60.4).gap()
-            ],
-            [Some(-2.0), Some(2.0)]
-        );
     }
 
     #[test]
@@ -229,14 +188,30 @@ mod tests {
     }
 
     #[test]
-    fn an_average_under_its_floor_runs_short_past_its_ceiling_over_and_within_its_band_on_course() {
+    fn an_average_under_its_floor_is_low_past_its_ceiling_high_and_within_its_band_in_it() {
+        let days = |amount: f64| averaged(&[banded(amount)]).map(|week| week.verdict());
+
         assert_eq!(
+            [days(1700.0), days(2500.0), days(2000.0)],
             [
-                a_day_of(1700.0).gap(),
-                a_day_of(2500.0).gap(),
-                a_day_of(2000.0).gap()
-            ],
-            [Some(-100.0), Some(100.0), None]
+                Some(Verdict::Low),
+                Some(Verdict::High),
+                Some(Verdict::InBand)
+            ]
+        );
+    }
+
+    #[test]
+    fn an_average_is_told_against_its_goal_painted_its_floor_without_one() {
+        let painted = Banded {
+            goal: Some(2100.0),
+            ..banded(2000.0)
+        };
+
+        assert_eq!(
+            [&[painted][..], &[banded(2000.0)][..]]
+                .map(|days| averaged(days).map(|week| week.goal_or_floor())),
+            [Some(2100.0), Some(1800.0)]
         );
     }
 }
