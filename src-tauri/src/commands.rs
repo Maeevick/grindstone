@@ -1543,8 +1543,8 @@ mod tests {
             (own, recommended, in_force),
             (
                 Ok(json!({ "values": 2800.0, "recommended": false, "from": "2026-03-01" })),
-                Ok(json!({ "values": 2000.0, "recommended": true, "from": "2026-10-10" })),
-                Ok(json!({ "values": 2000.0, "recommended": true, "from": "2026-10-10" }))
+                Ok(json!({ "values": 2500.0, "recommended": true, "from": "2026-10-10" })),
+                Ok(json!({ "values": 2500.0, "recommended": true, "from": "2026-10-10" }))
             )
         );
     }

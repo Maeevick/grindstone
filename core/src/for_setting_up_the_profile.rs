@@ -313,7 +313,7 @@ pub fn recommended_on(
         .unwrap_or_default();
     Ok(Recommendations {
         fuel_floors_g_per_kg: floors,
-        water_ml: Some(recommended_water_ml(day, &gathered, body_mass_kg)),
+        water_ml: Some(recommended_water_ml(day, &gathered)),
         ..recommended(profile, day, body_mass_kg)
     })
 }
@@ -864,38 +864,11 @@ mod tests {
         })
     }
 
-    fn the_lean_masss_turnover_share_ml(gather: &GatherRecordsInMemory) -> f64 {
-        let lean_kg = crate::ledger::ledger(
-            &gather.gather_records().expect("records").measurements,
-            &gather.gather_records().expect("records").profiles,
-        )
-        .last()
-        .and_then(|measured| measured.composition)
-        .map(|split| split.lean_mass_kg)
-        .expect("a lean mass");
-        let age = 41.0;
-        0.85 * 0.8
-            * (861.9 * 1.75 + 37.34 * lean_kg + 4.288 * 50.0 - 0.3625 * age * age
-                + 29.42 * age
-                + 1.937 * 10.0 * 10.0
-                - 23.15 * 10.0
-                - 984.8)
-    }
-
-    fn following(actual: Option<InForce<f64>>, recommended_ml: f64) -> bool {
-        actual.is_some_and(|actual| {
-            (actual.values - recommended_ml).abs() < 1e-9 && actual.recommended
-        })
-    }
-
     #[test]
     fn a_mans_water_target_never_kept_follows_a_fifth_above_efsas_drinks_weighed_taped_or_not() {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        let (unweighed, weighed, taped) = (
-            born("1985-04-12"),
-            born("1985-04-12"),
-            born("1985-04-12"),
-        );
+        let (unweighed, weighed, taped) =
+            (born("1985-04-12"), born("1985-04-12"), born("1985-04-12"));
         crate::for_tracking::log_measurement(&weighed, "2026-10-01", 80.0, None)
             .expect("a measurement logs");
         crate::for_tracking::log_measurement(&taped, "2026-10-01", 80.0, Some(82.0))
@@ -920,30 +893,8 @@ mod tests {
     }
 
     #[test]
-    fn a_water_target_never_kept_follows_the_recommendation_efsas_base_before_a_lean_mass_its_turnover_after()
-     {
-        let hydrate = crate::testing::HydrateRecordsInMemory::default();
-        let without_a_waist = born("1985-04-12");
-        let with_a_waist = born("1985-04-12");
-        crate::for_tracking::log_measurement(&with_a_waist, "2026-10-01", 80.0, Some(82.0))
-            .expect("a measurement logs");
-
-        let unweighed = hydrate_target_on(&without_a_waist, &hydrate, "2026-10-10");
-        let lean = hydrate_target_on(&with_a_waist, &hydrate, "2026-10-10");
-
-        assert_eq!(unweighed, Ok(recommended_ml(2000.0, None)));
-        assert!(
-            following(
-                lean.clone().ok().flatten(),
-                the_lean_masss_turnover_share_ml(&with_a_waist)
-            ),
-            "{lean:?}"
-        );
-    }
-
-    #[test]
-    fn the_water_targets_recommendation_kept_from_a_day_follows_the_body_own_values_holding_before_it()
-     {
+    fn the_water_targets_recommendation_kept_from_a_day_holds_from_it_own_values_holding_before_it()
+    {
         let (gather, hydrate) = (
             born("1985-04-12"),
             crate::testing::HydrateRecordsInMemory::default(),
@@ -954,14 +905,11 @@ mod tests {
         ] {
             set_hydrate_target(&gather, &hydrate, &water_kept(from, kept)).expect("a target keeps");
         }
-        let before_a_waist = hydrate_target_on(&gather, &hydrate, "2026-10-11");
-        crate::for_tracking::log_measurement(&gather, "2026-10-12", 80.0, Some(82.0))
-            .expect("a measurement logs");
 
         assert_eq!(
             (
                 hydrate_target_on(&gather, &hydrate, "2026-10-05"),
-                before_a_waist
+                hydrate_target_on(&gather, &hydrate, "2026-10-11")
             ),
             (
                 Ok(Some(InForce {
@@ -969,15 +917,9 @@ mod tests {
                     recommended: false,
                     from: since("2026-03-01"),
                 })),
-                Ok(recommended_ml(2000.0, since("2026-10-10")))
+                Ok(recommended_ml(2500.0, since("2026-10-10")))
             )
         );
-        assert!(following(
-            hydrate_target_on(&gather, &hydrate, "2026-10-12")
-                .ok()
-                .flatten(),
-            the_lean_masss_turnover_share_ml(&gather)
-        ));
     }
 
     #[test]
@@ -1302,57 +1244,6 @@ mod tests {
                 fibre_g_per_kg: Some(macros.fibre.floor_g / 80.0),
                 carbs_g_per_kg: Some(macros.carbs.floor_g / 80.0),
             }
-        );
-    }
-
-    #[test]
-    fn the_recommendations_tell_the_water_a_day_from_the_lean_mass_the_body_mass_or_the_gender() {
-        let measured = |waist_cm: Option<f64>| {
-            let gather = GatherRecordsInMemory::default();
-            set_profile(
-                &gather,
-                &crate::testing::BurnRecordsInMemory::default(),
-                &crate::testing::FuelRecordsInMemory::default(),
-                &crate::testing::HydrateRecordsInMemory::default(),
-                &a_mans_form("2026-03-01"),
-            )
-            .expect("a profile set");
-            if let Some(waist) = waist_cm {
-                crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(waist))
-                    .expect("a measurement logs");
-            }
-            gather
-        };
-        let (unweighed, tape_measured) = (measured(None), measured(Some(84.0)));
-        let weighed = GatherRecordsInMemory::default();
-        set_profile(
-            &weighed,
-            &crate::testing::BurnRecordsInMemory::default(),
-            &crate::testing::FuelRecordsInMemory::default(),
-            &crate::testing::HydrateRecordsInMemory::default(),
-            &a_mans_form("2026-03-01"),
-        )
-        .expect("a profile set");
-        crate::for_tracking::log_measurement(&weighed, "2026-10-01", 80.0, None)
-            .expect("a measurement logs");
-        let water = |gather: &GatherRecordsInMemory| {
-            recommended_on(
-                gather,
-                &BurnRecordsInMemory::default(),
-                &FuelRecordsInMemory::default(),
-                "2026-10-11",
-            )
-            .ok()
-            .and_then(|advised| advised.water_ml)
-        };
-
-        assert_eq!(
-            [water(&unweighed), water(&weighed), water(&tape_measured)],
-            [
-                Some(crate::hydrate_base::default_base_ml(Some(Gender::Male))),
-                Some(35.0 * 80.0),
-                Some(the_lean_masss_turnover_share_ml(&tape_measured))
-            ]
         );
     }
 

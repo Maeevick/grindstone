@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::body::body_on;
 use crate::burn::Burns;
 use crate::burn_records::BurnRecords;
 use crate::drink::DrinkKind;
@@ -12,10 +11,9 @@ use crate::fuel::{Fuel, fuel_on};
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
-use crate::hydrate_base::{DRINKS_PERCENT_OF_TOTAL_WATER, default_base_ml};
+use crate::hydrate_base::default_base_ml;
 use crate::hydrate_records::HydrateRecords;
 use crate::kept::{InForce, Kept, in_force};
-use crate::ledger::ledger;
 use crate::verdict::{Verdict, verdict_of};
 use crate::version::{dated_version_in_force_on, version_in_force_on};
 
@@ -54,13 +52,7 @@ impl Hydrate {
 }
 
 const ML_PER_KCAL_SPENT: f64 = 1.0;
-/// Before the tapes read a lean mass, a weighed body drinks 35 mL a kilo, the common rule of thumb of 30 to 35 mL a
-/// kilo a day for adults; not an EFSA figure, and in no source of the bibliography.
-const ML_A_KILO_OF_BODY_MASS: f64 = 35.0;
 const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
-/// "daily water intake from liquids and foods is equivalent to ~85% of WT" [29], metabolic water
-/// and what the lungs and skin take up bringing the rest.
-const TURNOVER_TAKEN_IN: f64 = 0.85;
 
 pub fn hydrate_on(
     day: NaiveDate,
@@ -124,67 +116,20 @@ impl<'records> Drinks<'records> {
     }
 }
 
-fn turned_over_on(day: NaiveDate, gather: &GatherRecords) -> Option<f64> {
-    body_on(
-        day,
-        &ledger(&gather.measurements, &gather.profiles),
-        &gather.profiles,
-    )
-    .map(|body| turned_over_ml(body.lean_kg, body.age))
-}
-
-/// The share of the water a body turns over that it drinks: what it takes in, less what food brings.
-fn drinks_share() -> f64 {
-    TURNOVER_TAKEN_IN * DRINKS_PERCENT_OF_TOTAL_WATER / 100.0
-}
-
-/// The water a body turns over in a day, by Yamada's equation for a known body composition [29]: "WT mL/d
-/// = 861.9 × PAL + 37.34 × Fat‐freemass kg + 4.288 × Humidity % + 699.7 × Athletestatus + 105.0 × HDI + 0.5140 ×
-/// Altitude(m) − 0.3625 × Age^2 + 29.42 × Age(y) + 1.937 × Temperature^2 – 23.15 × Temperature °C – 984.8 [eq.2]",
-/// everything but the lean mass and the age taken at the paper's reference case, "not athletic and exhibits a PAL of
-/// 1.75, and who lives in a high HDI country at 0 m altitude where mean air temperature is 10°C and relative humidity
-/// is 50%", "HDI is 0 for high HDI countries": the athlete, HDI and altitude terms come to nothing.
-fn turned_over_ml(lean_kg: f64, age: u32) -> f64 {
-    let age = f64::from(age);
-    let (pal, humidity_percent, temperature_c) = (1.75, 50.0, 10.0);
-    861.9 * pal + 37.34 * lean_kg + 4.288 * humidity_percent - 0.3625 * age * age
-        + 29.42 * age
-        + 1.937 * temperature_c * temperature_c
-        - 23.15 * temperature_c
-        - 984.8
-}
-
-/// The water a day recommended before the burn: once a lean mass is known, the drinks' share of the water it turns over;
-/// a body weighed without one, 35 mL a kilo; before a weigh-in, EFSA's base for the gender [28].
-pub(crate) fn recommended_water_ml(
-    day: NaiveDate,
-    gather: &GatherRecords,
-    body_mass_kg: Option<f64>,
-) -> f64 {
-    match (turned_over_on(day, gather), body_mass_kg) {
-        (Some(turned_over_ml), _) => drinks_share() * turned_over_ml,
-        (None, Some(kg)) => ML_A_KILO_OF_BODY_MASS * kg,
-        (None, None) => default_base_ml(
-            version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
-        ),
-    }
+/// The water a day recommended before the burn, a fifth above EFSA's drinks for the gender [28], the user's rule.
+pub(crate) fn recommended_water_ml(day: NaiveDate, gather: &GatherRecords) -> f64 {
+    recommended_optimal_ml(version_in_force_on(&gather.profiles, day).map(|profile| profile.gender))
 }
 
 /// The water target in force on a day: kept from the latest day up to it (the earliest before any), its own
-/// base or the recommendation; never kept, the recommendation: once a lean mass is known, the drinks' share of the
-/// water it turns over in a day, before, EFSA's base [28].
+/// base or the recommendation; never kept, the recommendation.
 pub(crate) fn water_target_in_force(
     day: NaiveDate,
     records: &HydrateRecords,
     gather: &GatherRecords,
 ) -> Option<InForce<f64>> {
     in_force(dated_version_in_force_on(&records.targets, day), || {
-        Some(match turned_over_on(day, gather) {
-            Some(turned_over_ml) => drinks_share() * turned_over_ml,
-            None => default_base_ml(
-                version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
-            ),
-        })
+        Some(recommended_water_ml(day, gather))
     })
 }
 
@@ -207,11 +152,7 @@ fn hydrated(day: NaiveDate, drinks: &Drinks, _fuelled: &Fuel) -> Hydrate {
     let base_ml = version_in_force_on(&records.targets, day)
         .and_then(Kept::own)
         .copied()
-        .unwrap_or_else(|| {
-            recommended_optimal_ml(
-                version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
-            )
-        });
+        .unwrap_or_else(|| recommended_water_ml(day, gather));
     let target_ml = base_ml + burnt_kcal * ML_PER_KCAL_SPENT;
     let floor_ml = target_ml * (1.0 - BAND_SHARE_EITHER_SIDE);
     let cap_ml = target_ml * (1.0 + BAND_SHARE_EITHER_SIDE);
