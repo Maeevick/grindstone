@@ -3,14 +3,13 @@ use std::future::Future;
 use grind_core::failure::Failure;
 use grind_core::figures::typed_back;
 use grind_core::for_setting_up_the_profile::{
-    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, TypedGoals, UsualDayForm,
+    BurnTargetForm, FuelTargetsForm, GoalsForm, ProfileForm, TypedGoals,
 };
 use grind_core::fuel_records::FuelTargets;
 use grind_core::gender::Gender;
 use grind_core::goals::{Goals, fat_percentage};
 use grind_core::kept::{InForce, Kept};
 use grind_core::recommendations::Recommendations;
-use grind_core::volitional::Volitional;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -251,104 +250,6 @@ fn GoalsCard() -> impl IntoView {
                     name="target_fat"
                     value=target_fat
                     placeholder=fat_placeholder
-                />
-            </div>
-        </ProfileCard>
-    }
-}
-
-#[component]
-fn UsualDayCard() -> impl IntoView {
-    let sitting = RwSignal::new(String::new());
-    let standing = RwSignal::new(String::new());
-    let moving = RwSignal::new(String::new());
-    let advised = Advised::here();
-    let said = RwSignal::new(None::<String>);
-    let recorded = Recorded::here();
-    let show = move |usual: Option<Volitional>| {
-        let back = |figure: fn(&Volitional) -> f64| {
-            usual
-                .as_ref()
-                .map(figure)
-                .map(typed_back)
-                .unwrap_or_default()
-        };
-        sitting.set(back(|usual| usual.sitting_min));
-        standing.set(back(|usual| usual.standing_min));
-        moving.set(back(|usual| usual.moving_km));
-    };
-    let held = holding(lines::usual_day_held);
-    shown_in_force(async { tauri::usual_day_on(&today()).await }, show, held);
-    let keep = move |kept: Kept<Volitional>, filed: fn(&str) -> String| {
-        let form = UsualDayForm {
-            from: today(),
-            kept,
-        };
-        let filed = filed(&form.from);
-        keep_and_show(
-            async move { tauri::set_usual_day(&form).await },
-            show,
-            said,
-            (filed, recorded),
-            held,
-        );
-    };
-    let recommend = Callback::new(move |()| keep(Kept::Recommended, lines::recommendation_kept));
-    let sitting_placeholder = advised.placeholder(|advised| Some(advised.usual_day.sitting_min));
-    let standing_placeholder = advised.placeholder(|advised| Some(advised.usual_day.standing_min));
-    let moving_placeholder = advised.placeholder(|advised| Some(advised.usual_day.moving_km));
-    let save = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        if all_empty(&[sitting, standing, moving]) {
-            keep(Kept::Recommended, lines::recommendation_kept);
-            return;
-        }
-        let Some([sitting_min, standing_min, moving_km]) = figures_typed([
-            &typed_or_placeholder(sitting, sitting_placeholder),
-            &typed_or_placeholder(standing, standing_placeholder),
-            &typed_or_placeholder(moving, moving_placeholder),
-        ]) else {
-            said.set(Some(lines::UNREADABLE.into()));
-            return;
-        };
-        keep(
-            Kept::Own(Volitional {
-                sitting_min: sitting_min.unwrap_or(0.0),
-                standing_min: standing_min.unwrap_or(0.0),
-                moving_km: moving_km.unwrap_or(0.0),
-            }),
-            lines::usual_day_kept,
-        );
-    };
-    view! {
-        <ProfileCard
-            title="The forgotten bucket of sweat"
-            form="usual-day"
-            how=lines::USUAL_DAY_HOW
-            why=lines::USUAL_DAY_WHY.to_string()
-            save="Keep this usual day"
-            forget=recommend
-            said=said
-            on_submit=Callback::new(save)
-        >
-            <div class="row thirds">
-                <FigureField
-                    label="Sitting (min)"
-                    name="usual_sitting"
-                    value=sitting
-                    placeholder=sitting_placeholder
-                />
-                <FigureField
-                    label="Standing (min)"
-                    name="usual_standing"
-                    value=standing
-                    placeholder=standing_placeholder
-                />
-                <FigureField
-                    label="Moving (km)"
-                    name="usual_moving"
-                    value=moving
-                    placeholder=moving_placeholder
                 />
             </div>
         </ProfileCard>
@@ -646,7 +547,6 @@ pub fn ProfileScreen() -> impl IntoView {
         <FuelTargetsCard />
         <HydrateTargetCard />
         <BurnTargetCard />
-        <UsualDayCard />
         <p class="hint disclaimer">{lines::RECOMMENDATIONS_DISCLAIMER}</p>
         <Settings />
     }

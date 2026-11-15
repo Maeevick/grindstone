@@ -495,10 +495,6 @@ async fn each_profile_card_shares_its_rows_between_its_figures() {
             vec!["target_fibre", "target_carbs"]
         ]
     );
-    assert_eq!(
-        fields_in_rows(&screen, "form.usual-day"),
-        [vec!["usual_sitting", "usual_standing", "usual_moving"]]
-    );
 }
 
 #[wasm_bindgen_test]
@@ -533,7 +529,7 @@ async fn the_profile_ends_past_a_divider_on_the_settings_the_vaults_copy_then_th
 }
 
 #[wasm_bindgen_test]
-async fn the_profile_asks_the_aches_the_day_owes_before_the_forgotten_bucket_of_sweat() {
+async fn the_profile_cards_run_from_the_rusty_you_to_the_aches_the_day_owes() {
     answering(
         r#"{ "profile_on": null, "goals_on": null, "usual_day_on": null,
              "fuel_targets_on": { "values": { "protein_g_per_kg": 1.6, "fat_g_per_kg": 0.9 }, "recommended": false },
@@ -550,15 +546,14 @@ async fn the_profile_asks_the_aches_the_day_owes_before_the_forgotten_bucket_of_
     settled().await;
 
     assert_eq!(
-        texts_in_order(&screen, "h2")[..7],
+        texts_in_order(&screen, "h2")[..6],
         [
             "Profile",
             "The rusty you behind the numbers",
             "Where the grindstone is heading",
             "How to feed the forge",
             "Hydrate the material",
-            "The aches the day owes",
-            "The forgotten bucket of sweat"
+            "The aches the day owes"
         ]
     );
 }
@@ -649,8 +644,7 @@ async fn each_profile_card_reads_title_note_fields_note_then_its_buttons_and_non
             card("Engrave these goals", true),
             card("Paint these targets", true),
             card("Store this aim", true),
-            card("Fire this ambition", true),
-            card("Keep this usual day", true)
+            card("Fire this ambition", true)
         ]
     );
     assert_eq!(
@@ -763,7 +757,6 @@ async fn every_card_saves_on_today() {
         "form.fuel-targets",
         "form.water-target",
         "form.burn-target",
-        "form.usual-day",
     ] {
         found::<HtmlFormElement>(&screen, form)
             .request_submit()
@@ -778,11 +771,10 @@ async fn every_card_saves_on_today() {
             "set_goals",
             "set_fuel_targets",
             "set_hydrate_target",
-            "set_burn_target",
-            "set_usual_day"
+            "set_burn_target"
         ]
         .map(|command| asked(command).contains(&today)),
-        [true; 6]
+        [true; 5]
     );
 }
 
@@ -800,23 +792,13 @@ async fn a_figure_typed_alone_keeps_the_others_placeholders() {
     found::<HtmlFormElement>(&screen, "form.goals")
         .request_submit()
         .expect("the goals are saved");
-    typed_into(&screen, "usual_sitting", "600");
-    found::<HtmlFormElement>(&screen, "form.usual-day")
-        .request_submit()
-        .expect("the usual day is saved");
     settled().await;
 
     assert_eq!(
-        (asked("set_goals"), asked("set_usual_day")),
-        (
-            format!(
-                r#"{{"form":{{"from":"{}","kept":{{"Own":{{"body_mass_kg":70,"fat_percentage":16.5}}}}}}}}"#,
-                grind_ui::screens::today()
-            ),
-            format!(
-                r#"{{"form":{{"from":"{}","kept":{{"Own":{{"sitting_min":600,"standing_min":120,"moving_km":6}}}}}}}}"#,
-                grind_ui::screens::today()
-            )
+        asked("set_goals"),
+        format!(
+            r#"{{"form":{{"from":"{}","kept":{{"Own":{{"body_mass_kg":70,"fat_percentage":16.5}}}}}}}}"#,
+            grind_ui::screens::today()
         )
     );
 }
@@ -1734,28 +1716,6 @@ async fn burn_logs_workouts_only() {
         ),
         (vec![], true, false)
     );
-}
-
-#[wasm_bindgen_test]
-async fn the_burn_card_offers_a_workout_or_the_day_off_the_clock_on_its_pills() {
-    answering(&format!(
-        r#"{{ "exercises": [{{ "name": "Walking", "met": 4.0 }}], "circuits": [{MORNING_RUST}],
-             "burn_day": {AN_EMPTY_BURN}, "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_burn_day(&screen);
-    settled().await;
-    let shown = |selector: &str| screen.query_selector(selector).ok().flatten().is_some();
-    let pills = texts_in_order(&screen, "button.pill");
-    let at_first = shown("form.workout") && !shown("form.off-the-clock");
-
-    clicked(&screen, "button.burn-OffTheClock");
-    settled().await;
-
-    assert_eq!(pills, ["Workout", "Off the clock"]);
-    assert!(at_first);
-    assert!(shown("form.off-the-clock") && !shown("form.workout"));
-    assert_eq!(value_of(&screen, "sitting"), "480");
 }
 
 #[wasm_bindgen_test]
@@ -3209,38 +3169,6 @@ async fn a_burn_days_details_list_its_workouts_only() {
             && !said.contains("volitional")
             && !said.contains("spontaneous"),
         "{said}"
-    );
-}
-
-#[wasm_bindgen_test]
-async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting_in_grey() {
-    let screen = screen();
-    let _mounted = burns_last_days_of_morning_rust(&screen);
-    settled().await;
-    settled().await;
-
-    assert_eq!(
-        (
-            texts_in_order(&screen, ".last-days tr.entry.neat td"),
-            texts_in_order(&screen, ".last-days tr.details").len()
-        ),
-        (
-            [
-                "volitional",
-                "198",
-                "–",
-                "–",
-                "",
-                "spontaneous",
-                "234",
-                "–",
-                "–",
-                ""
-            ]
-            .map(String::from)
-            .to_vec(),
-            0
-        )
     );
 }
 
@@ -6041,10 +5969,7 @@ async fn each_card_shows_its_own_values_and_leaves_the_recommendation_to_its_pla
             "target_fibre",
             "target_carbs",
             "water_target",
-            "burn_target",
-            "usual_sitting",
-            "usual_standing",
-            "usual_moving"
+            "burn_target"
         ]
         .map(shown),
         [
@@ -6055,10 +5980,7 @@ async fn each_card_shows_its_own_values_and_leaves_the_recommendation_to_its_pla
             ("", "0.33"),
             ("", "1.63"),
             ("2800", "2480"),
-            ("", "77.14"),
-            ("", "480"),
-            ("", "120"),
-            ("", "6")
+            ("", "77.14")
         ]
         .map(|(value, placeholder)| (value.to_string(), placeholder.to_string()))
     );
@@ -6139,28 +6061,6 @@ async fn forgetting_a_card_follows_the_recommendation_and_tells_what_was_there_b
             "Before: 2800 mL.",
             "Before: the recommendation."
         ]
-    );
-}
-
-#[wasm_bindgen_test]
-async fn forgetting_the_usual_day_follows_the_recommendation_and_empties_its_fields() {
-    answering(&format!(
-        r#"{{ {IN_FORCE_ON_EVERY_CARD}, {KEPT_AS_RECOMMENDED}, "recommended_on": {RECOMMENDED} }}"#
-    ));
-    let screen = screen();
-    let _mounted = the_profile_screen(&screen);
-    settled().await;
-    typed_into(&screen, "usual_sitting", "600");
-
-    clicked(&screen, "form.usual-day button.forget");
-    settled().await;
-
-    assert_eq!(
-        (
-            asked("set_usual_day").contains(r#""kept":"Recommended""#),
-            value_of(&screen, "usual_sitting")
-        ),
-        (true, String::new())
     );
 }
 
@@ -6272,8 +6172,6 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
 
     let burn = screen();
     let _burn = the_burn_day(&burn);
-    settled().await;
-    clicked(&burn, "button.burn-OffTheClock");
     settled().await;
     said.push(spoken_on(&burn));
 

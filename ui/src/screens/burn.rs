@@ -4,11 +4,8 @@ use grind_core::exercise::{Exercise, exercise as exercise_of};
 use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare, shown, typed_back};
 use grind_core::for_burning::{
-    CircuitSessionForm, DEFAULT_LOAD_KG, DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS,
-    OffTheClockForm, WorkoutForm,
+    CircuitSessionForm, DEFAULT_LOAD_KG, DEFAULT_MINUTES, DEFAULT_REPS, DEFAULT_SETS, WorkoutForm,
 };
-use grind_core::nutrition::Budget;
-use grind_core::volitional::Volitional;
 use grind_core::workout::{burnt_by, workout};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -23,24 +20,12 @@ use crate::screens::entries::{ExerciseFields, ExerciseFigures, NewEntry};
 use crate::screens::fields::{Chooser, FigureField, preview_line};
 use crate::screens::gauge::BurnGauge;
 use crate::screens::last_days::{BurnLastDays, entries_failed, entries_said};
-use crate::screens::pills::pill_buttons;
 use crate::screens::said::said_line;
 use crate::screens::session::{Session, SessionInProgress};
 use crate::screens::tab::{DayCard, FormTitle};
 use crate::screens::{Recorded, today};
 use crate::tauri;
 use crate::typed::{count_typed, figures_typed};
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Logging {
-    Workout,
-    OffTheClock,
-}
-
-const LOGGINGS: [(Logging, &str); 2] = [
-    (Logging::Workout, "Workout"),
-    (Logging::OffTheClock, "Off the clock"),
-];
 
 /// A workout among its day's entries: the exercise by name, its figures and its removal.
 #[component]
@@ -160,21 +145,7 @@ fn CircuitEntry(
     }
 }
 
-/// The time off the clock or the fidgeting among a day's entries, in grey: what it burnt, nothing to remove.
-fn neat_entry(activity: &'static str, kcal: f64) -> impl IntoView {
-    view! {
-        <tr class="entry neat">
-            <td>{activity}</td>
-            <td>{bare(Figure::Energy(kcal))}</td>
-            <td>"–"</td>
-            <td>"–"</td>
-            <td></td>
-        </tr>
-    }
-}
-
-/// A day's workouts, newest first, then its time off the clock and its fidgeting, opened under its row in the
-/// last days.
+/// A day's workouts, newest first, opened under its row in the last days.
 #[component]
 pub fn BurnEntries(date: String) -> impl IntoView {
     let recorded = Recorded::here();
@@ -182,14 +153,13 @@ pub fn BurnEntries(date: String) -> impl IntoView {
     let burn = LocalResource::new(move || {
         recorded.heard();
         let date = date.clone();
-        async move { (tauri::burn_day(&date).await, tauri::fuel_day(&date).await) }
+        async move { tauri::burn_day(&date).await }
     });
     view! {
         {move || {
             burn.get()
-                .map(|(answer, fuel)| match answer {
+                .map(|answer| match answer {
                     Ok(burn) => {
-                        let spent = fuel.ok().and_then(|fuel| fuel.budget);
                         view! {
                             {entries_of(&burn.workouts)
                                 .into_iter()
@@ -203,13 +173,6 @@ pub fn BurnEntries(date: String) -> impl IntoView {
                                     }
                                 })
                                 .collect_view()}
-                            {spent
-                                .map(|spent| {
-                                    view! {
-                                        {neat_entry("volitional", spent.volitional_kcal)}
-                                        {neat_entry("spontaneous", spent.spontaneous_kcal)}
-                                    }
-                                })}
                         }
                             .into_any()
                     }
@@ -223,7 +186,6 @@ pub fn BurnEntries(date: String) -> impl IntoView {
 #[component]
 pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let burn = RwSignal::new(None::<Burn>);
-    let budget = RwSignal::new(None::<Budget>);
     let catalog = RwSignal::new(Vec::<Exercise>::new());
     let crafted = RwSignal::new(Vec::<Circuit>::new());
     let exercise = RwSignal::new(String::new());
@@ -231,8 +193,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     let reps = RwSignal::new(String::new());
     let sets = RwSignal::new(String::new());
     let load = RwSignal::new(String::new());
-    let off_the_clock = OffTheClockTyped::default();
-    let logging = RwSignal::new(Logging::Workout);
     let said = RwSignal::new(None::<String>);
     let recorded = Recorded::here();
     let options = Signal::derive(move || {
@@ -254,12 +214,7 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
             .map(|choice| choice.name)
             .collect::<Vec<_>>()
     });
-    let shown_burn = Callback::new(move |answer: Burn| {
-        if let Some(off) = answer.off_the_clock {
-            off_the_clock.shown(off);
-        }
-        burn.set(Some(answer));
-    });
+    let shown_burn = Callback::new(move |answer: Burn| burn.set(Some(answer)));
     let body_mass = Signal::derive(move || burn.get().and_then(|answer| answer.body_mass_kg));
     let figures = ExerciseFigures::default();
     let session = use_context::<SessionInProgress>().unwrap_or_default();
@@ -319,13 +274,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
         (false, Some(kcal)) => Some((AboutToBurn::Workout, kcal)),
         (false, None) => None,
     });
-    let budget_of = Callback::new(move |date: String| {
-        spawn_local(async move {
-            if let Ok(fuel) = tauri::fuel_day(&date).await {
-                budget.set(fuel.budget);
-            }
-        });
-    });
     Effect::new(move |_| {
         recorded.heard();
         spawn_local(async move {
@@ -341,7 +289,6 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     Effect::new(move |_| {
         recorded.heard();
         let date = day.get();
-        budget_of.run(date.clone());
         spawn_local(async move {
             match tauri::burn_day(&date).await {
                 Ok(answer) => shown_burn.run(answer),
@@ -472,12 +419,8 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
     view! {
         <section class="card">
             <FormTitle title="Burn" grimoire="/burn/grimoire" />
-            <div class="pills">
-                {pill_buttons("burn", LOGGINGS, logging)}
-            </div>
-            {move || match logging.get() {
-                Logging::Workout => {
-                    view! {
+            {move || {
+                view! {
                         <form class="workout" on:submit=log>
                             <div class="row">
                                 <Chooser label="Exercise or circuit" name="exercise" options=options typed=exercise />
@@ -597,98 +540,11 @@ pub fn BurnDay(day: RwSignal<String>) -> impl IntoView {
                                     }
                                 })
                         }}
-                    }
-                        .into_any()
-                }
-                Logging::OffTheClock => {
-                    view! {
-                        <OffTheClockLog
-                            day=day
-                            burn=burn
-                            typed=off_the_clock
-                            said=said
-                            shown_burn=shown_burn
-                            budget_of=budget_of
-                        />
-                    }
-                        .into_any()
                 }
             }}
             {said_line(said)}
         </section>
         <BurnStands burn=burn about_to_burn=about_to_burn />
-    }
-}
-
-/// The day off the clock as typed: minutes sitting and standing, kilometres moving.
-#[derive(Clone, Copy, Default)]
-struct OffTheClockTyped {
-    sitting: RwSignal<String>,
-    standing: RwSignal<String>,
-    moving: RwSignal<String>,
-}
-
-impl OffTheClockTyped {
-    fn shown(self, off: Volitional) {
-        self.sitting.set(off.sitting_min.to_string());
-        self.standing.set(off.standing_min.to_string());
-        self.moving.set(off.moving_km.to_string());
-    }
-}
-
-#[component]
-fn OffTheClockLog(
-    day: RwSignal<String>,
-    burn: RwSignal<Option<Burn>>,
-    typed: OffTheClockTyped,
-    said: RwSignal<Option<String>>,
-    shown_burn: Callback<Burn>,
-    budget_of: Callback<String>,
-) -> impl IntoView {
-    let recorded = Recorded::here();
-    let keep_off_the_clock = move |event: leptos::ev::SubmitEvent| {
-        event.prevent_default();
-        let date = day.get_untracked();
-        let Some([sitting_min, standing_min, moving_km]) = figures_typed([
-            &typed.sitting.get_untracked(),
-            &typed.standing.get_untracked(),
-            &typed.moving.get_untracked(),
-        ]) else {
-            said.set(Some(lines::UNREADABLE.into()));
-            return;
-        };
-        let form = OffTheClockForm {
-            sitting_min: sitting_min.unwrap_or(0.0),
-            standing_min: standing_min.unwrap_or(0.0),
-            moving_km: moving_km.unwrap_or(0.0),
-        };
-        spawn_local(async move {
-            match tauri::set_day_off_the_clock(&date, &form).await {
-                Ok(answer) => {
-                    shown_burn.run(answer);
-                    budget_of.run(date);
-                    said.set(Some(lines::DAY_OFF_THE_CLOCK_KEPT.into()));
-                    recorded.told();
-                }
-                Err(failure) => said.set(Some(lines::failure(&failure))),
-            }
-        });
-    };
-    view! {
-        {move || {
-            burn.get()
-                .map(|answer| view! { <p class="hint">{lines::off_the_clock(&answer)}</p> })
-        }}
-        <form class="off-the-clock" on:submit=keep_off_the_clock>
-            <div class="row">
-                <FigureField label="Sitting (min)" name="sitting" value=typed.sitting />
-                <FigureField label="Standing (min)" name="standing" value=typed.standing />
-                <FigureField label="Moving (km)" name="moving" value=typed.moving />
-            </div>
-            <button class="cta" type="submit">
-                "Keep for this day"
-            </button>
-        </form>
     }
 }
 

@@ -623,6 +623,10 @@ pub fn over_logged_days(days: usize) -> String {
     }
 }
 
+/// What maintenance leaves out, said under the energy gauge: NEAT is not priced, the user's choice.
+pub const NEAT_LEFT_OUT: &str = "Maintenance counts your resting rate, digestion and workouts only. Sitting, \
+    standing, walking and fidgeting are left out on purpose: they only deepen the deficit below the band.";
+
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
 /// What the window's burn stands against, after its figure: the sum of its days' targets when known.
