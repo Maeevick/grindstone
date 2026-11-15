@@ -1425,7 +1425,8 @@ mod tests {
     }
 
     #[test]
-    fn a_target_painted_bounds_its_macro_20_percent_either_side_of_it_within_the_recommendation() {
+    fn a_target_painted_bounds_its_macro_20_percent_either_side_of_it_within_the_recommendation_no_ceiling_where_it_sets_none()
+     {
         let fuel = FuelRecords {
             targets: vec![(
                 day("2026-03-01"),
@@ -1460,8 +1461,8 @@ mod tests {
                     rounded(0.8 * 72.0),
                     Some(rounded(0.35 * band.cap_kcal / 9.0))
                 ),
-                (rounded(0.8 * 40.0), Some(rounded(1.2 * 40.0))),
-                (rounded(0.8 * 240.0), Some(rounded(1.2 * 240.0))),
+                (rounded(0.8 * 40.0), None),
+                (rounded(0.8 * 240.0), None),
             ]
         );
     }
