@@ -1177,6 +1177,51 @@ async fn the_pace_offers_no_info_bubble_any_more() {
     );
 }
 
+#[wasm_bindgen_test]
+async fn home_shows_each_chips_figures_without_a_tip() {
+    answering(&format!(
+        r#"{{ "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
+             "hydrate_over_the_window": {{ "logged_days": 6,
+                 "drunk": {{ "per_day": 1900.0, "floor": 2000.0, "ceiling": 2400.0, "in_band": 3 }},
+                 "water": {{ "per_day": 80.0, "floor": 75.0, "ceiling": 100.0, "in_band": 5 }} }} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <section class="card pace">
+                    <PaceOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days30) />
+                </section>
+                <section class="card fuel-week">
+                    <FuelOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days30) />
+                </section>
+                <section class="card hydrate-week">
+                    <HydrateOver today="2026-10-10".to_string() window=RwSignal::new(Window::Days30) />
+                </section>
+            </Router>
+        }
+    });
+    settled().await;
+
+    assert_eq!(
+        (
+            texts_in_order(&screen, ".pace li > span:first-child"),
+            cells_by_row(&screen, ".fuel-week tbody tr").len(),
+            cells_by_row(&screen, ".hydrate-week tbody tr").len(),
+            texts_in_order(&screen, "p.tip"),
+        ),
+        (
+            ["Body mass", "Lean mass", "Fat mass", "Fat %"]
+                .map(String::from)
+                .to_vec(),
+            5,
+            2,
+            vec![]
+        )
+    );
+}
+
 async fn said_of_a_pace_past_the_safe_loss(lean_mass: &str) -> String {
     answering(&format!(
         r#"{{ "pace_over_the_window": {{ "body_mass": {{ "by": -0.623, "heading": "Toward" }},
