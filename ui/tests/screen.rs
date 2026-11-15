@@ -32,7 +32,7 @@ use grind_ui::app::App;
 use grind_ui::screens::Recorded;
 use grind_ui::screens::burn::BurnDay;
 use grind_ui::screens::catalog::{BurnShelf, FuelShelf, HydrateShelf};
-use grind_ui::screens::charts::{Charts, Chip, History};
+use grind_ui::screens::charts::{Chip, History, Stats};
 use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
@@ -1383,37 +1383,21 @@ async fn the_days_weigh_in_removed_from_its_card_leaves_the_day_ungathered() {
 }
 
 #[wasm_bindgen_test]
-async fn homes_stats_card_is_titled_the_unwanted_stats() {
+async fn the_stats_window_offers_thirty_ninety_and_every_day_thirty_first() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
     let screen = screen();
 
-    let _mounted = the_charts(&screen);
-    settled().await;
-
-    assert_eq!(
-        text_of(&screen, "section.card.tips h2"),
-        "The Unwanted Stats"
-    );
-}
-
-#[wasm_bindgen_test]
-async fn homes_window_offers_thirty_ninety_and_every_day_thirty_first() {
-    answering(&format!(
-        r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
-    ));
-    let screen = screen();
-
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
 
     assert_eq!(
         (
-            texts_in_order(&screen, "section.card.tips button[class*='window-']"),
+            texts_in_order(&screen, "section.card.stats button[class*='window-']"),
             attributes_of(
                 &screen,
-                "section.card.tips button.chosen[class*='window-']",
+                "section.card.stats button.chosen[class*='window-']",
                 "class"
             ),
         ),
@@ -1435,7 +1419,7 @@ async fn the_window_pills_redraw_the_chart_over_the_days_they_name() {
                               "lean_masses": [], "goal_kg": 70.0, "goal_lean_kg": null }} }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
     let masses_drawn = |screen: &Element| {
         screen
@@ -5384,7 +5368,7 @@ async fn the_history_marks_each_day_with_its_streak_dot_under_headers_holding_th
                 {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_history(&screen);
     settled().await;
 
     let heads = text_of(&screen, ".history thead");
@@ -5413,7 +5397,7 @@ async fn each_streak_dot_wears_its_own_mark_and_names_its_status_the_legends_lef
     ));
     let screen = screen();
 
-    let _mounted = the_charts(&screen);
+    let _mounted = the_history(&screen);
     settled().await;
 
     assert_eq!(
@@ -5440,7 +5424,7 @@ async fn every_day_opens_from_its_date_its_details_a_day_never_streaked_without_
                 {{ "day": "2026-10-01", "body_mass_kg": 81.0, "lean_mass_kg": 71.0, "fat_mass_kg": 10.0, "fat_ratio": 0.123 }} ] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_history(&screen);
     settled().await;
 
     clicked(&screen, ".history tbody tr:nth-child(2) button.opens");
@@ -5470,7 +5454,7 @@ async fn the_history_shows_today_in_gold() {
                 {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_history(&screen);
     settled().await;
 
     assert_eq!(
@@ -5487,7 +5471,7 @@ async fn a_history_row_tapped_shows_its_days_four_ticks() {
                 {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }} ] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_history(&screen);
     settled().await;
 
     clicked(&screen, ".history tbody tr:nth-child(2)");
@@ -5520,51 +5504,48 @@ const A_PACE: &str = r#"{ "body_mass": { "by": -0.4, "heading": "Toward" },
     "fat_ratio": { "by": -0.006, "heading": "Toward" }, "weigh_ins": 12 }"#;
 
 #[wasm_bindgen_test]
-async fn the_unwanted_tips_hold_the_chart_then_the_chips_stats_over_its_window() {
+async fn a_tabs_stats_hold_its_chart_then_its_figures_over_the_window() {
     answering(&format!(
-        r#"{{ "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
+        r#"{{ {THE_CHARTS}, "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
              "hydrate_over_the_window": null, "burn_over_the_window": {A_BURN_WEEK} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let gathered = {
+        let _mounted = the_stats(&screen, Chip::Gather);
+        settled().await;
+        settled().await;
+        texts_in_order(&screen, "section.card.stats .pace-lines li").len()
+    };
+    let _mounted = the_stats(&screen, Chip::Fuel);
+    settled().await;
+    clicked(&screen, "section.card.stats .window-Days90");
     settled().await;
     settled().await;
+    let averaged = texts_in_order(&screen, "section.card.stats table.macros tbody tr").len();
 
-    let untitled_chart = screen
-        .query_selector("section.card.charts")
-        .ok()
-        .flatten()
-        .is_some();
-    let charted_in_the_tips = screen
-        .query_selector("section.card.tips .pills.chips")
-        .ok()
-        .flatten()
-        .is_some();
-    let gathered = texts_in_order(&screen, "section.card.tips .pace-lines li").len();
-    assert_eq!(
-        (untitled_chart, charted_in_the_tips, gathered),
-        (false, true, 4)
-    );
-    clicked(&screen, "section.card.tips .chip-Fuel");
-    settled().await;
-    clicked(&screen, "section.card.tips .window-Days30");
-    settled().await;
-    settled().await;
-    let averaged = texts_in_order(&screen, "section.card.tips table.macros tbody tr").len();
-
-    assert_eq!(averaged, 5);
+    assert_eq!((gathered, averaged), (4, 5));
     assert!(
-        asked("fuel_over_the_window").contains(r#""window":"Days30""#),
+        asked("fuel_over_the_window").contains(r#""window":"Days90""#),
         "{}",
         asked("fuel_over_the_window")
     );
 }
 
-fn the_charts(screen: &Element) -> impl Drop {
+fn the_history(screen: &Element) -> impl Drop {
     leptos::mount::mount_to(screen.clone().unchecked_into(), || {
         view! {
             <Router>
-                <Charts today="2026-10-10".to_string() />
+                <History chip=Chip::Gather today="2026-10-10".to_string() />
+            </Router>
+        }
+    })
+}
+
+fn the_stats(screen: &Element, chip: Chip) -> impl Drop {
+    leptos::mount::mount_to(screen.clone().unchecked_into(), move || {
+        view! {
+            <Router>
+                <Stats chip=chip />
             </Router>
         }
     })
@@ -5572,25 +5553,25 @@ fn the_charts(screen: &Element) -> impl Drop {
 
 fn lines_drawn(screen: &Element) -> u32 {
     screen
-        .query_selector_all(".tips svg polyline")
+        .query_selector_all(".stats svg polyline")
         .map(|found| found.length())
         .unwrap_or_default()
 }
 
 #[wasm_bindgen_test]
-async fn the_home_chart_draws_gather_on_one_axis_with_its_goals_then_each_chip_its_own_lines_burn_with_its_target()
+async fn each_tabs_chart_draws_its_own_lines_gather_on_one_axis_with_its_goals_burn_with_its_target()
  {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
 
     assert_eq!(lines_drawn(&screen), 4);
     assert!(
         screen
-            .query_selector(".tips ul.figures")
+            .query_selector(".stats ul.figures")
             .ok()
             .flatten()
             .is_none()
@@ -5609,24 +5590,29 @@ async fn the_home_chart_draws_gather_on_one_axis_with_its_goals_then_each_chip_i
             .is_none()
     );
 
+    drop(_mounted);
+    let mut burnt = None;
     for (chip, lines, said) in [
-        ("Fuel", 3, "1900 kcal"),
-        ("Hydrate", 3, "2100 mL"),
-        ("Burn", 2, "Target"),
+        (Chip::Fuel, 3, "1900 kcal"),
+        (Chip::Hydrate, 3, "2100 mL"),
+        (Chip::Burn, 2, "Target"),
     ] {
-        found::<web_sys::HtmlElement>(&screen, &format!("button.chip-{chip}")).click();
+        drop(burnt.take());
+        let mounted = the_stats(&screen, chip);
         settled().await;
 
-        assert_eq!(lines_drawn(&screen), lines, "{chip}");
+        assert_eq!(lines_drawn(&screen), lines, "{chip:?}");
         let labels = screen.text_content().unwrap_or_default();
-        assert!(labels.contains(said), "{chip}: {labels}");
+        assert!(labels.contains(said), "{chip:?}: {labels}");
+        burnt = Some(mounted);
     }
-    let legend = text_of(&screen, ".tips ul.legend");
+    let legend = text_of(&screen, ".stats ul.legend");
     assert!(
         legend.contains("Burnt (kcal)") && legend.contains("Target") && !legend.contains("Minutes"),
         "{legend}"
     );
     found::<Element>(&screen, ".plot polyline.goal.dashed");
+    drop(burnt);
 }
 
 fn texts_of(screen: &Element, selector: &str) -> Vec<String> {
@@ -5645,15 +5631,15 @@ async fn the_chosen_pill_says_it_is_pressed_and_the_others_that_they_are_not() {
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
 
-    clicked(&screen, "button.chip-Fuel");
+    clicked(&screen, "button.window-Days90");
     settled().await;
 
     assert_eq!(
-        attributes_of(&screen, ".tips .chips button.pill", "aria-pressed"),
-        ["false", "true", "false", "false"]
+        attributes_of(&screen, ".stats button.pill", "aria-pressed"),
+        ["false", "true", "false"]
     );
 }
 
@@ -5664,19 +5650,22 @@ async fn a_charts_drawing_is_hidden_from_screen_readers_its_labels_and_tables_sa
     ));
     let screen = screen();
 
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
 
-    assert_eq!(attributes_of(&screen, ".tips svg", "aria-hidden"), ["true"]);
+    assert_eq!(
+        attributes_of(&screen, ".stats svg", "aria-hidden"),
+        ["true"]
+    );
 }
 
 #[wasm_bindgen_test]
-async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines() {
+async fn every_tabs_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
     let count = |screen: &Element, selector: &str| {
         screen
@@ -5685,28 +5674,30 @@ async fn every_home_chart_draws_its_y_axis_on_round_ticks_over_thin_grey_lines()
             .unwrap_or_default()
     };
 
-    assert_eq!(count(&screen, ".tips svg line.axis"), 1);
-    assert_eq!(count(&screen, ".tips svg line.grid"), 4);
+    assert_eq!(count(&screen, ".stats svg line.axis"), 1);
+    assert_eq!(count(&screen, ".stats svg line.grid"), 4);
     assert_eq!(
-        texts_of(&screen, ".tips .label.tick"),
+        texts_of(&screen, ".stats .label.tick"),
         ["60.0", "80.0", "90.0"]
     );
 
-    clicked(&screen, "button.chip-Fuel");
+    drop(_mounted);
+    let fuelled = the_stats(&screen, Chip::Fuel);
     settled().await;
     assert_eq!(
-        texts_of(&screen, ".tips .label.tick"),
+        texts_of(&screen, ".stats .label.tick"),
         ["1750", "2000", "2250", "2500", "2750"]
     );
 
-    clicked(&screen, "button.chip-Burn");
+    drop(fuelled);
+    let _burnt = the_stats(&screen, Chip::Burn);
     settled().await;
-    assert_eq!(count(&screen, ".tips svg line.axis"), 1);
+    assert_eq!(count(&screen, ".stats svg line.axis"), 1);
     assert_eq!(
-        texts_of(&screen, ".tips .label.tick.burnt"),
+        texts_of(&screen, ".stats .label.tick.burnt"),
         ["0", "100", "200", "300"]
     );
-    assert_eq!(count(&screen, ".tips .label.tick.minutes"), 0);
+    assert_eq!(count(&screen, ".stats .label.tick.minutes"), 0);
 }
 
 #[wasm_bindgen_test]
@@ -5717,11 +5708,11 @@ async fn a_chart_dates_its_x_axis_from_its_oldest_day_to_its_newest_with_three_b
                                 "goal_kg": null, "goal_lean_kg": null }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_stats(&screen, Chip::Gather);
     settled().await;
 
     assert_eq!(
-        texts_of(&screen, ".tips .label.x"),
+        texts_of(&screen, ".stats .label.x"),
         ["09-10", "09-18", "09-25", "10-03", "10-10"]
     );
 }
@@ -5737,7 +5728,7 @@ async fn the_history_beneath_the_chart_loads_the_month_before_on_demand() {
                 {{ "day": "2026-09-30", "body_mass_kg": 80.4, "lean_mass_kg": null, "fat_mass_kg": null, "fat_ratio": null }} ] }} }} }}"#
     ));
     let screen = screen();
-    let _mounted = the_charts(&screen);
+    let _mounted = the_history(&screen);
     settled().await;
     let rows_listed = |screen: &Element| {
         screen
@@ -6213,7 +6204,7 @@ async fn the_screens_keep_their_voice_without_naming_the_websites_cast() {
     let welcome = screen();
     let _welcome = the_app(&welcome);
     let charts = screen();
-    let _charts = the_charts(&charts);
+    let _charts = the_stats(&charts, Chip::Gather);
     said.push(spoken_on(&charts));
     settled().await;
     said.extend([spoken_on(&welcome), spoken_on(&charts)]);

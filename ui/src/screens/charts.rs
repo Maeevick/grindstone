@@ -33,13 +33,6 @@ pub enum Chip {
     Burn,
 }
 
-const CHIPS: [(Chip, &str); 4] = [
-    (Chip::Gather, "Gather"),
-    (Chip::Fuel, "Fuel"),
-    (Chip::Hydrate, "Hydrate"),
-    (Chip::Burn, "Burn"),
-];
-
 const WINDOWS: [(Window, &str); 3] = [
     (Window::Days30, "30 days"),
     (Window::Days90, "90 days"),
@@ -759,26 +752,5 @@ pub fn History(chip: Chip, today: String) -> impl IntoView {
                     .collect_view()}
             </ul>
         </section>
-    }
-}
-
-#[component]
-pub fn Charts(today: String) -> impl IntoView {
-    let chip = RwSignal::new(Chip::Gather);
-    let window = RwSignal::new(Window::Days30);
-    let today = StoredValue::new(today);
-    view! {
-        <section class="card tips">
-            <h2>"The Unwanted Stats"</h2>
-            <div class="pills chips">
-                {pill_buttons("chip", CHIPS, chip)}
-            </div>
-            <div class="pills">
-                {pill_buttons("window", WINDOWS, window)}
-            </div>
-            {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
-            {move || figures_over(chip.get(), today.get_value(), window)}
-        </section>
-        {move || view! { <History chip=chip.get() today=today.get_value() /> }}
     }
 }

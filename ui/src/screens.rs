@@ -9,7 +9,6 @@ pub mod fuel;
 pub mod gather;
 pub mod gauge;
 pub mod header;
-pub mod home;
 pub mod hydrate;
 mod pills;
 pub mod plate;
