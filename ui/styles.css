@@ -210,8 +210,7 @@ td:not(:first-child) {
 	text-align: left;
 }
 
-.last-days tr:not(.entry) td:first-child,
-.history-table td:first-child {
+.history-table tr:not(.entry) td:first-child {
 	white-space: nowrap;
 }
 
@@ -521,10 +520,6 @@ p.bad:empty {
 	justify-content: safe flex-end;
 }
 
-.chips .pill {
-	font-weight: bold;
-}
-
 .plot {
 	position: relative;
 	margin: 0.5rem 3.6rem;
@@ -693,7 +688,6 @@ p.bad:empty {
 	border-top: 1px solid var(--line);
 }
 
-.last-days tr.chosen td,
 .history-table tr.chosen td {
 	color: var(--acc);
 }
@@ -756,22 +750,22 @@ p.bad:empty {
 	font-weight: 600;
 }
 
-.last-days tbody tr:not(.entry) {
+.history-table tbody tr:not(.entry):not(.ticks) {
 	cursor: pointer;
 }
 
-.last-days tr.entry td {
+.history-table tr.entry td {
 	font-size: 0.78rem;
 	border-top: 0;
 	padding-top: 4px;
 	padding-bottom: 4px;
 }
 
-.last-days tr.entry td:first-child {
+.history-table tr.entry td:first-child {
 	padding-left: 14px;
 }
 
-.last-days tr.neat td {
+.history-table tr.neat td {
 	color: var(--mut);
 }
 
@@ -917,10 +911,6 @@ textarea:focus {
 
 .plot .label.tick.other {
 	color: #7aa2f7;
-}
-
-.streak .count {
-	margin: 0 0 4px;
 }
 
 .streak .current {
