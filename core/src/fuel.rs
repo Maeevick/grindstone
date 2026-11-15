@@ -848,6 +848,33 @@ mod tests {
     }
 
     #[test]
+    fn a_body_within_1_percent_either_side_of_its_goal_mass_holds_past_it_leans_or_bulks() {
+        let (_, fat_kg) = the_body();
+        let mode_aiming_at = |goal_mass_kg: f64| {
+            fuel_on(
+                "2026-10-10",
+                &aiming_at(goal_mass_kg, fat_kg / goal_mass_kg, HIS_WAIST_CM),
+                &a_desk_job(),
+                &aiming(),
+            )
+            .band
+            .map(|band| band.mode)
+        };
+
+        let modes = [79.2, 79.3, 80.8, 80.9].map(mode_aiming_at);
+
+        assert_eq!(
+            modes,
+            [
+                Some(Mode::Leaning),
+                Some(Mode::Holding),
+                Some(Mode::Holding),
+                Some(Mode::Bulking)
+            ]
+        );
+    }
+
+    #[test]
     fn the_alpert_tick_stands_below_maintenance_by_what_the_whole_fat_mass_can_spare() {
         let lean_waist_cm = 70.0;
         let fat_kg = crate::composition::body_composition(
