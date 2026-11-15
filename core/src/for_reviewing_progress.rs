@@ -406,6 +406,22 @@ mod tests {
         }
 
         #[test]
+        fn a_day_weighed_holds_the_weigh_in_tick_only_with_its_waist_taped() {
+            let records = a_man_at_his_desk();
+            log_measurement(&records.gather, "2026-10-09", 80.0, Some(HIS_WAIST_CM))
+                .expect("a measurement logs");
+            log_measurement(&records.gather, "2026-10-10", 80.0, None).expect("a measurement logs");
+
+            let weighed_on =
+                |date| ticks_on(&records, "2026-10-10", date).and_then(|ticks| ticks.weighed);
+
+            assert_eq!(
+                [weighed_on("2026-10-09"), weighed_on("2026-10-10")],
+                [Some(true), Some(false)]
+            );
+        }
+
+        #[test]
         fn from_the_profiles_first_day_every_tick_counts_a_tracker_without_a_log_failing_it() {
             let records = a_man_at_his_desk();
             log_measurement(&records.gather, "2026-10-05", 80.0, Some(HIS_WAIST_CM))
