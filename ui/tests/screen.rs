@@ -4474,6 +4474,36 @@ async fn every_screen_wears_the_header_its_person_opening_the_profile_and_todays
 }
 
 #[wasm_bindgen_test]
+async fn every_screen_wears_the_streak_in_its_header_just_above_todays_tiles() {
+    answering_all(&[A_HOME, EVERY_TAB]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let mut worn = Vec::new();
+    for page in ["/gather", "/burn", "/profile"] {
+        went_to(page);
+        settled().await;
+        worn.push((
+            page,
+            text_of(&screen, "header.top .today .streak + .tiles").is_empty(),
+            text_of(&screen, "header.top .streak .current"),
+            text_of(&screen, "header.top .streak .longest"),
+        ));
+    }
+
+    assert_eq!(
+        worn,
+        ["/gather", "/burn", "/profile"].map(|page| (
+            page,
+            false,
+            "2 days".to_string(),
+            "(longest: 5 days)".to_string()
+        ))
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_logo_and_the_name_lead_home_from_every_screen() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
