@@ -27,7 +27,8 @@ pub struct Band {
     pub minimum_kcal: f64,
     pub floor_kcal: f64,
     pub cap_kcal: f64,
-    /// Where the goals would start the band: maintenance less what the fat left to lose can spare.
+    /// Where the goals aim the day: a twentieth above maintenance with a gain to aim for, else maintenance less what the
+    /// fat left to lose can spare.
     pub goal_kcal: f64,
     /// What the day spends, the budget plus the burn, wherever the band runs.
     pub maintenance_kcal: f64,
@@ -149,10 +150,11 @@ fn digested(eaten: Nutrients) -> Eaten {
     }
 }
 
-/// The day's band around its maintenance, the budget plus the burn: the floor is what the fat left to lose above
-/// the fat of the goals can spare below it, never under the minimum; the cap, a twentieth above it, the small surplus of a gain, or with a gain to aim for, the
-/// most a body should gain, half a percent of its mass a week; the goal tick, with a gain to aim for, that small
-/// surplus, else what the fat left to lose above the fat of the goals can spare.
+/// The day's band around its maintenance, the budget plus the burn. The goal tick, with a gain to aim for, stands a
+/// twentieth above maintenance, the small surplus of a gain, else below it by what the fat left to lose above the fat
+/// of the goals can spare. The cap stands a twentieth above maintenance, or with a gain to aim for, at the most a body
+/// should gain, half a percent of its mass a week. The floor mirrors the cap: as far below the lower of the goal tick
+/// and maintenance as the cap stands above the higher, the user's rule.
 /// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
 /// minimum per kilo of lean mass plus the burn.
 ///
@@ -190,24 +192,15 @@ fn band_for(
         } else {
             surplus_kcal
         };
-    let narrowest_kcal = NARROWEST_BAND_SHARE * maintenance_kcal;
+    let goal_kcal = if gaining {
+        maintenance_kcal + surplus_kcal
+    } else {
+        maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg
+    };
+    let margin_kcal = gain_cap_kcal - goal_kcal.max(maintenance_kcal);
     let (floor_kcal, cap_kcal) = widened(
-        (
-            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg,
-            gain_cap_kcal,
-        ),
-        narrowest_kcal,
-    );
-    let (goal_kcal, _) = widened(
-        (
-            if gaining {
-                maintenance_kcal + surplus_kcal
-            } else {
-                maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg
-            },
-            gain_cap_kcal,
-        ),
-        narrowest_kcal,
+        (goal_kcal.min(maintenance_kcal) - margin_kcal, gain_cap_kcal),
+        NARROWEST_BAND_SHARE * maintenance_kcal,
     );
     let band = Band {
         minimum_kcal_per_kg_of_lean_mass,
@@ -595,31 +588,6 @@ mod tests {
         assert_eq!(fuelled.budget, Some(budget));
     }
 
-    /// What a body would spend on a desk day before eating: no digestion yet.
-    fn spent_before_eating_by(lean_kg: f64, fat_kg: f64) -> f64 {
-        daily_energy_budget(
-            41,
-            lean_kg,
-            fat_kg,
-            Gender::Male,
-            A_DESK_DAY,
-            Deficit {
-                trailing_deficit_kcal: 0.0,
-                weeks_in_deficit: 0,
-            },
-            Eaten {
-                energy: 0.0,
-                macros: Macro {
-                    protein: 0.0,
-                    fat: 0.0,
-                    fib: 0.0,
-                    carb: 0.0,
-                },
-            },
-        )
-        .kcal()
-    }
-
     /// The same man aiming above his body: a gain.
     fn gaining() -> GatherRecords {
         GatherRecords {
@@ -661,42 +629,6 @@ mod tests {
                 (band.goal_kcal / band.maintenance_kcal * 100.0).round()
             ),
             ((0.005 * 80.0 * 7700.0 / 7.0_f64).round(), 105.0)
-        );
-    }
-
-    #[test]
-    fn the_goal_tick_of_a_band_narrower_than_a_tenth_of_maintenance_stands_five_percent_under_its_middle()
-     {
-        let (lean_kg, fat_kg) = the_body();
-        let band_aiming_at = |body_mass_kg: f64, goal_fat_kg: f64| {
-            let aiming_at = GatherRecords {
-                goals: vec![(
-                    day("2026-03-01"),
-                    Kept::Own(Goals {
-                        body_mass_kg,
-                        fat_ratio: goal_fat_kg / body_mass_kg,
-                    }),
-                )],
-                ..a_mans_records(HIS_WAIST_CM)
-            };
-            fuel_on("2026-10-10", &aiming_at, &a_desk_job(), &aiming())
-                .band
-                .map(|band| band.goal_kcal)
-                .expect("a band")
-        };
-        let maintenance = spent_before_eating_by(lean_kg, fat_kg);
-
-        let at_the_goal = band_aiming_at(80.0, fat_kg);
-        let a_kilo_of_fat_away = band_aiming_at(79.0, fat_kg - 1.0);
-
-        let middle = |spared: f64| maintenance + (0.05 * maintenance - spared) / 2.0;
-        assert!(
-            about(at_the_goal, middle(0.0) - 0.05 * maintenance)
-                && about(
-                    a_kilo_of_fat_away,
-                    middle(290.0 / 4.184) - 0.05 * maintenance
-                ),
-            "{at_the_goal} {a_kilo_of_fat_away}"
         );
     }
 
@@ -785,19 +717,8 @@ mod tests {
     }
 
     #[test]
-    fn a_band_narrower_than_a_tenth_of_maintenance_widens_around_its_middle_five_percent_either_side()
-     {
+    fn at_the_goal_the_band_runs_a_twentieth_either_side_of_maintenance_its_goal_tick_on_it() {
         let lean_waist_cm = 70.0;
-        let fat_kg = crate::composition::body_composition(
-            80.0,
-            180.0,
-            crate::composition::Tapes::Male {
-                neck_cm: 38.5,
-                waist_cm: lean_waist_cm,
-            },
-        )
-        .expect("a composition")
-        .fat_mass_kg;
 
         let band = fuel_on(
             "2026-10-10",
@@ -808,12 +729,10 @@ mod tests {
         .band
         .expect("a band");
 
-        let fat_left_kg = (fat_kg - 70.0 * 0.1).max(0.0);
-        let middle = band.maintenance_kcal
-            + (0.05 * band.maintenance_kcal - 290.0 / 4.184 * fat_left_kg) / 2.0;
         assert!(
-            about(band.floor_kcal, middle - 0.05 * band.maintenance_kcal)
-                && about(band.cap_kcal, middle + 0.05 * band.maintenance_kcal),
+            about(band.floor_kcal, 0.95 * band.maintenance_kcal)
+                && about(band.goal_kcal, band.maintenance_kcal)
+                && about(band.cap_kcal, 1.05 * band.maintenance_kcal),
             "{band:?}"
         );
     }
