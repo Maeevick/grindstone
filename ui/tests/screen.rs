@@ -2648,8 +2648,8 @@ async fn fuels_band_runs_dashed_from_its_floor_to_its_goal_then_solid_to_its_cap
 
     assert_eq!(
         (
-            at("line.alpert-zone", "x1") < at("line.goal", "x1"),
-            at("line.alpert-zone", "x2"),
+            at("line.floor-zone", "x1") < at("line.goal", "x1"),
+            at("line.floor-zone", "x2"),
             at("rect.band", "x")
         ),
         (true, at("line.goal", "x1"), at("line.goal", "x1"))

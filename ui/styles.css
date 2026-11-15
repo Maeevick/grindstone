@@ -736,7 +736,7 @@ p.bad:empty {
 }
 
 /* The band below the goal tick, from its floor: green still, but dashed. */
-.fuel-gauge .alpert-zone {
+.fuel-gauge .floor-zone {
 	stroke: #5fd99f;
 	stroke-width: 6;
 	stroke-dasharray: 6 4;

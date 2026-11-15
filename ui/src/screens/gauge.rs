@@ -133,7 +133,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
         <div class="gauge fuel-gauge">
             <svg viewBox="0 0 360 24" preserveAspectRatio="none" aria-hidden="true">
                 <rect class="track" x="0" y="9" width="360" height="6" />
-                <line class="alpert-zone" x1=placed.floor_at x2=placed.goal_at y1="12" y2="12" />
+                <line class="floor-zone" x1=placed.floor_at x2=placed.goal_at y1="12" y2="12" />
                 <rect class="band" x=placed.goal_at y="9" width=placed.cap_at - placed.goal_at height="6" />
                 {placed
                     .ghost
