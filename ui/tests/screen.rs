@@ -2560,7 +2560,7 @@ async fn the_fuel_form_previews_what_an_intake_will_record_one_portion_when_no_q
 }
 
 #[wasm_bindgen_test]
-async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_its_zones_edges_outward() {
+async fn fuels_gauge_labels_ea_and_goal_then_maintenance_its_zones_edges_outward() {
     let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
     let screen = screen();
@@ -2625,24 +2625,17 @@ async fn fuels_gauge_labels_ea_and_goal_then_alpert_and_maintenance_its_zones_ed
                 ),
                 label("Goal 2300", "acc tick-label", under("line.goal", "x1"))
             ],
-            vec![
-                label(
-                    "Alpert 2199",
-                    "good tick-label ends-at",
-                    ending_at(at("line.alpert-zone", "x1"))
-                ),
-                label(
-                    "Maintenance 2425",
-                    "acc tick-label",
-                    under("line.maintenance", "x1")
-                )
-            ]
+            vec![label(
+                "Maintenance 2425",
+                "acc tick-label",
+                under("line.maintenance", "x1")
+            )]
         ]
     );
 }
 
 #[wasm_bindgen_test]
-async fn fuels_band_runs_dashed_from_alpert_to_its_goal_then_solid_to_its_cap() {
+async fn fuels_band_runs_dashed_from_its_floor_to_its_goal_then_solid_to_its_cap() {
     let cutting = A_FUELLED_DAY.replace(r#""goal_kcal": 2199.4"#, r#""goal_kcal": 2300.0"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {cutting} }}"#));
     let screen = screen();
@@ -2668,22 +2661,6 @@ async fn fuels_gauge_names_no_alpert_floor_the_goal_tick_marking_a_cuts_floor() 
     ));
     let screen = screen();
 
-    let _mounted = the_fuel_day(&screen);
-    settled().await;
-
-    assert_eq!(
-        texts_in_order(&screen, ".fuel-gauge .tick-label"),
-        ["EA25 1768", "Goal 2199", "Maintenance 2425"]
-            .map(String::from)
-            .to_vec()
-    );
-}
-
-#[wasm_bindgen_test]
-async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
-    let held = A_FUELLED_DAY.replace(r#""floor_kcal": 2199.4"#, r#""floor_kcal": 1767.5"#);
-    answering(&format!(r#"{{ "foods": [], "fuel_day": {held} }}"#));
-    let screen = screen();
     let _mounted = the_fuel_day(&screen);
     settled().await;
 

@@ -728,7 +728,7 @@ p.bad:empty {
 	vector-effect: non-scaling-stroke;
 }
 
-/* What Alpert allows below the goals' start, the whole fat mass spared: green still, but dashed. */
+/* The band below the goal tick, from its floor: green still, but dashed. */
 .fuel-gauge .alpert-zone {
 	stroke: #5fd99f;
 	stroke-width: 6;

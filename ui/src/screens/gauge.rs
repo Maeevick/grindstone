@@ -179,25 +179,14 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 ),
                 (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc", Anchor::Tick),
             ] />
-            <TickRow labels=(band.floor_kcal > band.minimum_kcal)
-                .then(|| {
-                    (
-                        placed.floor_at,
-                        format!("Alpert {}", bare(Figure::Energy(band.floor_kcal))),
-                        "good",
-                        Anchor::EndsAt,
-                    )
-                })
-                .into_iter()
-                .chain([
-                    (
-                        placed.maintenance_at,
-                        format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal))),
-                        "acc",
-                        Anchor::Tick,
-                    ),
-                ])
-                .collect() />
+            <TickRow labels=vec![
+                (
+                    placed.maintenance_at,
+                    format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal))),
+                    "acc",
+                    Anchor::Tick,
+                ),
+            ] />
         </div>
     }
 }
