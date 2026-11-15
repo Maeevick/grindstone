@@ -1249,6 +1249,40 @@ mod tests {
     }
 
     #[test]
+    fn the_recommendations_tell_a_macros_floor_even_once_a_target_is_painted_under_it() {
+        let (gather, burn, fuel) = (
+            GatherRecordsInMemory::default(),
+            BurnRecordsInMemory::default(),
+            FuelRecordsInMemory::default(),
+        );
+        set_profile(
+            &gather,
+            &crate::testing::BurnRecordsInMemory::default(),
+            &crate::testing::FuelRecordsInMemory::default(),
+            &crate::testing::HydrateRecordsInMemory::default(),
+            &a_mans_form("2026-03-01"),
+        )
+        .expect("a profile set");
+        crate::for_tracking::log_measurement(&gather, "2026-10-01", 80.0, Some(84.0))
+            .expect("a measurement logs");
+        fuel.save_targets(
+            NaiveDate::from_ymd_opt(2026, 3, 1).expect("a real day"),
+            &Kept::Own(FuelTargets {
+                fibre_g_per_kg: Some(0.2),
+                ..FuelTargets::default()
+            }),
+        )
+        .expect("the targets save");
+
+        let advised = recommended_on(&gather, &burn, &fuel, "2026-10-11").expect("recommendations");
+
+        assert_eq!(
+            advised.fuel_floors_g_per_kg.fibre_g_per_kg,
+            Some(25.0 / 80.0)
+        );
+    }
+
+    #[test]
     fn a_first_profile_starts_every_card_on_its_day_with_the_recommendation() {
         let (gather, burn, fuel, hydrate) = (
             GatherRecordsInMemory::default(),
