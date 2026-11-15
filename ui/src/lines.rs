@@ -5,16 +5,12 @@ use grind_core::food::{Nutrients, Unit};
 use grind_core::for_copying_records::{Counted, Restored};
 use grind_core::fuel::{Fuel, Verdict};
 use grind_core::fuel_records::FuelTargets;
-use grind_core::fuel_week::Habit;
-use grind_core::fuel_week::{FuelWeek, Gap};
 use grind_core::gender::Gender;
 use grind_core::goals::Goals;
 use grind_core::heading::Aim;
 use grind_core::hydrate::Hydrate;
-use grind_core::hydrate_week::HydrateWeek;
-use grind_core::judgement::{AT_THE_AIM_SHARE, Judgement};
+use grind_core::judgement::AT_THE_AIM_SHARE;
 use grind_core::meal::Ingredient;
-use grind_core::pace::{Lean, Pace, SafeLoss};
 use grind_core::profile::Profile;
 use grind_core::recommendations::Recommendations;
 use grind_core::refusal::Refusal;
@@ -439,16 +435,6 @@ pub fn load_the_month(month: &str) -> String {
     format!("Load {}", month_name(month))
 }
 
-fn habit_name(habit: Habit) -> &'static str {
-    match habit {
-        Habit::Energy => "Energy",
-        Habit::Protein => "Protein",
-        Habit::Fat => "Fat",
-        Habit::Fibre => "Fibre",
-        Habit::Carbs => "Carbs",
-    }
-}
-
 pub const PROFILE_HOW: &str = "Who the numbers belong to: the birthday, the gender, and in centimetres the height, \
     the neck just below the larynx and, for a woman, the hip at its widest. They price every band.";
 
@@ -640,81 +626,6 @@ pub fn over_logged_days(days: usize) -> String {
     }
 }
 
-fn gaps_said(gaps: &[Gap], a_day_first: bool) -> String {
-    let said: Vec<String> = gaps
-        .iter()
-        .enumerate()
-        .map(|(at, gap)| {
-            let figure = match gap.habit {
-                Habit::Energy => Figure::Energy(gap.per_day),
-                _ => Figure::Grams(gap.per_day),
-            };
-            format!(
-                "{} ({}{}{})",
-                habit_name(gap.habit).to_lowercase(),
-                if gap.per_day > 0.0 { "+" } else { "" },
-                shown(figure),
-                if at == 0 && a_day_first { " a day" } else { "" }
-            )
-        })
-        .collect();
-    match said.as_slice() {
-        [rest @ .., last] if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
-        _ => said.concat(),
-    }
-}
-
-/// What the window's average runs short of, then over, said plainly before a word from the ledger: the energy
-/// against its band, each macro against its goal; without a goal, an invitation to paint one.
-pub fn fuel_week_said(week: &FuelWeek) -> String {
-    let (short, over) = (week.short(), week.over());
-    match (short.is_empty(), over.is_empty()) {
-        (true, true) if week.has_goals() => {
-            "Every average sits on its goal. I checked twice, which for me counts as restraint."
-                .to_string()
-        }
-        (true, true) => "The energy sits in its band.".to_string(),
-        (false, true) => format!(
-            "Short on {}. A little more every day and the gap closes on its own; I only have to watch, my favourite kind of work.",
-            gaps_said(&short, true)
-        ),
-        (true, false) => format!(
-            "Over on {}. A few swaps sand that down; no need to grind the whole stone.",
-            gaps_said(&over, true)
-        ),
-        (false, false) => format!(
-            "Short on {}, over on {}. Trade a little of the one for the other: the energy barely moves, the days do.",
-            gaps_said(&short, true),
-            gaps_said(&over, false)
-        ),
-    }
-}
-
-/// How far the window's drinks run from the band, then how much of them was water, said plainly before a word
-/// from the ledger.
-pub fn hydrate_week_said(week: &HydrateWeek) -> String {
-    let gap = week.drunk.gap().unwrap_or_default();
-    let drunk = match week.drunk.verdict() {
-        Verdict::Low => format!(
-            "Short of the band by {} a day. A glass more by mid-afternoon closes it; I measured, twice.",
-            shown(Figure::Volume(-gap))
-        ),
-        Verdict::High => format!(
-            "Past the band by {} a day. Kidneys clear about a litre an hour, so nothing grave; a glass less will do.",
-            shown(Figure::Volume(gap))
-        ),
-        Verdict::InBand => {
-            "A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high praise."
-                .into()
-        }
-    };
-    let water = match week.water.verdict() {
-        Verdict::Low => "A little more water than the others would do.",
-        _ => "Keep going: water is the best one.",
-    };
-    format!("{drunk} {water}")
-}
-
 pub const A_TIME_BENEATH: &str = "Totals, with a time's average beneath.";
 
 /// What the window's burn stands against, after its figure: the sum of its days' targets when known.
@@ -747,74 +658,10 @@ pub fn averaged_over(weigh_ins: usize) -> String {
 pub const NO_WEIGH_IN_YET: &str =
     "No weigh-in in these 7 days yet. The scale is patient: it has nowhere else to be.";
 
-/// Past the safe loss: said plainly first, figures to the hundredth, lean mass named only when the tape
-/// sees it leave.
-fn losing_too_fast(pace: &Pace) -> String {
-    let moved = shown(Figure::WeeklyMass(pace.body_mass.by));
-    let safe = shown(Figure::WeeklyMass(pace.safe_loss_kg));
-    let lean = pace.lean();
-    let past = match (pace.safe_loss_by, lean) {
-        (SafeLoss::FatStore, Lean::Leaving(_)) => format!("past the {safe} your fat can spare"),
-        (SafeLoss::FatStore, _) => format!("past the {safe} your fat can spare on paper"),
-        (SafeLoss::MassShare, _) => format!("past the {safe} that 1% of your body mass allows"),
-        (SafeLoss::AKilo, _) => format!("past the {safe} the guidelines allow"),
-    };
-    match lean {
-        Lean::Leaving(by) => format!(
-            "{moved} a week, {past}: your lean mass is going too ({} a week). Ease the deficit towards \
-             the top of your band, keep protein high, keep lifting. Steel ground too hot loses its \
-             temper; so do goblins, I have the burnt eyebrows to prove it.",
-            shown(Figure::WeeklyMass(by))
-        ),
-        Lean::Holding => format!(
-            "{moved} a week, {past}, though your lean mass holds so far. Ease the deficit a little and \
-             watch the next weigh-ins. The paper is mine, so it is right about 97.3% of the time."
-        ),
-        Lean::Unmeasured => format!(
-            "{moved} a week, {past}. Ease the deficit a little and watch the next weigh-ins. Without a \
-             tape round the waist I cannot tell what is leaving, and I squint badly."
-        ),
-    }
-}
-
-pub fn pace_said(pace: &Pace) -> String {
-    match pace.judgement {
-        Judgement::Holding => {
-            "Holding the line at the aim. Steady is the hardest pace there is: keep it.".into()
-        }
-        Judgement::VeryGood => format!(
-            "{} a week, inside the safe lane. Keep the pace: the grindstone likes a steady hand.",
-            shown(Figure::Mass(pace.body_mass.by))
-        ),
-        Judgement::Good => {
-            "The right way, slower than the lane allows. Slow still sharpens.".into()
-        }
-        Judgement::Stable => {
-            "Steady this week. Plateaus are where scales go to think; give it another week.".into()
-        }
-        Judgement::WrongWay => {
-            "The week drifted from the aim. One week is a data point, not a verdict.".into()
-        }
-        Judgement::GainingTooFast => {
-            "Gaining faster than muscle can follow: past half a percent a week, \
-            the rest is stored. Trim the surplus a little."
-                .into()
-        }
-        Judgement::LosingTooFast => losing_too_fast(pace),
-    }
-}
-
-/// A tip, said between quotation marks.
-pub fn quoted(line: &str) -> String {
-    format!("“{line}”")
-}
-
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
     use grind_core::fuel::Band;
-    use grind_core::tendency::{Change, Heading};
-    use grind_core::week::Averaged;
 
     use super::*;
 
@@ -832,67 +679,6 @@ mod tests {
             body_mass_kg: Some(72.0),
             target_kcal,
             verdict,
-        }
-    }
-
-    fn averaged(per_day: f64, floor: f64, ceiling: Option<f64>, goal: Option<f64>) -> Averaged {
-        Averaged {
-            per_day,
-            floor,
-            ceiling,
-            goal,
-            in_band: 0,
-        }
-    }
-
-    /// A week whose energy sits in its band and every macro on its goal, or on its floor without one.
-    fn a_week_on_its_goals() -> FuelWeek {
-        FuelWeek {
-            logged_days: 6,
-            energy: averaged(2000.0, 1800.0, Some(2400.0), Some(1900.0)),
-            protein: averaged(130.0, 60.0, None, Some(130.0)),
-            fat: averaged(70.0, 50.0, None, Some(70.0)),
-            fibre: averaged(30.0, 25.0, None, None),
-            carbs: averaged(250.0, 130.0, None, None),
-        }
-    }
-
-    fn hydrate_week(drunk_ml: f64, water_percent: f64) -> HydrateWeek {
-        HydrateWeek {
-            logged_days: 6,
-            drunk: averaged(drunk_ml, 2000.0, Some(3500.0), None),
-            water: averaged(water_percent, 80.0, Some(100.0), None),
-        }
-    }
-
-    fn pace(judgement: Judgement, by: f64) -> Pace {
-        Pace {
-            body_mass: Change {
-                by,
-                heading: Heading::Toward,
-            },
-            lean_mass: None,
-            fat_mass: None,
-            fat_ratio: None,
-            judgement,
-            safe_loss_kg: 0.8456,
-            safe_loss_by: SafeLoss::FatStore,
-            weigh_ins: 7,
-        }
-    }
-
-    fn losing_too_fast_by(safe_loss_by: SafeLoss, lean_by: Option<f64>) -> Pace {
-        Pace {
-            lean_mass: lean_by.map(|by| Change {
-                by,
-                heading: if by < 0.0 {
-                    Heading::Away
-                } else {
-                    Heading::Toward
-                },
-            }),
-            safe_loss_by,
-            ..pace(Judgement::LosingTooFast, -1.234)
         }
     }
 
@@ -1659,205 +1445,5 @@ mod tests {
                 "Average over 4 weigh-ins, today included.",
             ]
         );
-    }
-
-    #[test]
-    fn a_week_on_its_goals_says_so_and_one_without_goals_says_its_energy_sits_in_its_band() {
-        let on_its_goals = a_week_on_its_goals();
-        let without_goals = FuelWeek {
-            protein: averaged(130.0, 60.0, None, None),
-            fat: averaged(70.0, 50.0, None, None),
-            ..on_its_goals
-        };
-
-        let said = [
-            fuel_week_said(&on_its_goals),
-            fuel_week_said(&without_goals),
-        ];
-
-        assert_eq!(
-            said,
-            [
-                "Every average sits on its goal. I checked twice, which for me counts as restraint.",
-                "The energy sits in its band.",
-            ]
-        );
-    }
-
-    #[test]
-    fn a_week_short_of_its_goals_says_each_gap_furthest_first_the_first_a_day() {
-        let short = FuelWeek {
-            energy: averaged(1650.0, 1800.0, Some(2400.0), Some(1900.0)),
-            protein: averaged(90.0, 60.0, None, Some(130.0)),
-            fibre: averaged(20.0, 30.0, None, None),
-            ..a_week_on_its_goals()
-        };
-
-        let said = fuel_week_said(&short);
-
-        assert_eq!(
-            said,
-            "Short on fibre (-10 g a day), protein (-40 g) and energy (-150 kcal). A little more every day and \
-             the gap closes on its own; I only have to watch, my favourite kind of work."
-        );
-    }
-
-    #[test]
-    fn a_week_over_its_goals_says_each_gap_with_its_sign() {
-        let over = FuelWeek {
-            energy: averaged(2600.0, 1800.0, Some(2400.0), Some(1900.0)),
-            fat: averaged(95.0, 50.0, None, Some(70.0)),
-            ..a_week_on_its_goals()
-        };
-
-        let said = fuel_week_said(&over);
-
-        assert_eq!(
-            said,
-            "Over on fat (+25 g a day) and energy (+200 kcal). A few swaps sand that down; no need to grind the \
-             whole stone."
-        );
-    }
-
-    #[test]
-    fn a_week_short_on_one_and_over_on_another_says_both_and_offers_a_trade() {
-        let both = FuelWeek {
-            protein: averaged(90.0, 60.0, None, Some(130.0)),
-            carbs: averaged(310.0, 130.0, None, Some(250.0)),
-            ..a_week_on_its_goals()
-        };
-
-        let said = fuel_week_said(&both);
-
-        assert_eq!(
-            said,
-            "Short on protein (-40 g a day), over on carbs (+60 g). Trade a little of the one for the other: \
-             the energy barely moves, the days do."
-        );
-    }
-
-    #[test]
-    fn a_week_short_of_drinks_tells_the_gap_a_day_and_asks_for_more_water() {
-        let short = hydrate_week(1650.0, 60.0);
-
-        let said = hydrate_week_said(&short);
-
-        assert_eq!(
-            said,
-            "Short of the band by 350 mL a day. A glass more by mid-afternoon closes it; I measured, twice. \
-             A little more water than the others would do."
-        );
-    }
-
-    #[test]
-    fn a_week_past_its_drinks_band_tells_the_gap_a_day() {
-        let past = hydrate_week(3900.0, 92.0);
-
-        let said = hydrate_week_said(&past);
-
-        assert_eq!(
-            said,
-            "Past the band by 400 mL a day. Kidneys clear about a litre an hour, so nothing grave; a glass less \
-             will do. Keep going: water is the best one."
-        );
-    }
-
-    #[test]
-    fn a_week_of_drinks_in_its_band_is_praised_by_the_kidneys() {
-        let in_band = hydrate_week(2600.0, 100.0);
-
-        let said = hydrate_week_said(&in_band);
-
-        assert_eq!(
-            said,
-            "A day's drinks sit in the band on average. Your kidneys say nothing, which from kidneys is high \
-             praise. Keep going: water is the best one."
-        );
-    }
-
-    #[test]
-    fn a_pace_in_or_short_of_the_safe_lane_is_said_plainly() {
-        let judged = [
-            pace(Judgement::Holding, 0.02),
-            pace(Judgement::VeryGood, -0.54),
-            pace(Judgement::Good, -0.21),
-            pace(Judgement::Stable, 0.03),
-            pace(Judgement::WrongWay, 0.31),
-            pace(Judgement::GainingTooFast, 0.72),
-        ];
-
-        let said = judged.map(|judged| pace_said(&judged));
-
-        assert_eq!(
-            said,
-            [
-                "Holding the line at the aim. Steady is the hardest pace there is: keep it.",
-                "-0.5 kg a week, inside the safe lane. Keep the pace: the grindstone likes a steady hand.",
-                "The right way, slower than the lane allows. Slow still sharpens.",
-                "Steady this week. Plateaus are where scales go to think; give it another week.",
-                "The week drifted from the aim. One week is a data point, not a verdict.",
-                "Gaining faster than muscle can follow: past half a percent a week, the rest is stored. Trim \
-                 the surplus a little.",
-            ]
-        );
-    }
-
-    #[test]
-    fn a_pace_losing_lean_mass_past_what_the_fat_can_spare_is_said_with_both_figures_and_its_limit()
-    {
-        let leaving = losing_too_fast_by(SafeLoss::FatStore, Some(-0.312));
-
-        let said = pace_said(&leaving);
-
-        assert_eq!(
-            said,
-            "-1.23 kg a week, past the 0.85 kg your fat can spare: your lean mass is going too (-0.31 kg a \
-             week). Ease the deficit towards the top of your band, keep protein high, keep lifting. Steel \
-             ground too hot loses its temper; so do goblins, I have the burnt eyebrows to prove it."
-        );
-    }
-
-    #[test]
-    fn a_pace_losing_too_fast_while_the_lean_mass_holds_is_past_the_fat_store_on_paper() {
-        let holding = losing_too_fast_by(SafeLoss::FatStore, Some(0.05));
-
-        let said = pace_said(&holding);
-
-        assert_eq!(
-            said,
-            "-1.23 kg a week, past the 0.85 kg your fat can spare on paper, though your lean mass holds so \
-             far. Ease the deficit a little and watch the next weigh-ins. The paper is mine, so it is right \
-             about 97.3% of the time."
-        );
-    }
-
-    #[test]
-    fn a_pace_losing_too_fast_without_a_tape_names_the_limit_it_passes() {
-        let by_the_mass_share = losing_too_fast_by(SafeLoss::MassShare, None);
-        let by_a_kilo = Pace {
-            safe_loss_kg: 1.0,
-            ..losing_too_fast_by(SafeLoss::AKilo, None)
-        };
-
-        let said = [pace_said(&by_the_mass_share), pace_said(&by_a_kilo)];
-
-        assert_eq!(
-            said,
-            [
-                "-1.23 kg a week, past the 0.85 kg that 1% of your body mass allows. Ease the deficit a little \
-                 and watch the next weigh-ins. Without a tape round the waist I cannot tell what is leaving, \
-                 and I squint badly.",
-                "-1.23 kg a week, past the 1.00 kg the guidelines allow. Ease the deficit a little and watch \
-                 the next weigh-ins. Without a tape round the waist I cannot tell what is leaving, and I \
-                 squint badly.",
-            ]
-        );
-    }
-
-    #[test]
-    fn a_tip_is_said_between_quotation_marks() {
-        let said = quoted("Patience is half the hunt.");
-
-        assert_eq!(said, "“Patience is half the hunt.”");
     }
 }
