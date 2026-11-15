@@ -25,13 +25,13 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
    Not used at the moment; was: losing 0.7% a week kept more lean mass than 1.4%, why a fast loss was judged dangerous.
 
 7. Iraki J., Fitschen P., Espinar S., et al. (2019). *Nutrition recommendations for bodybuilders in the off-season: a narrative review*. Sports 7(7):154. <https://doi.org/10.3390/sports7070154>
-   Used for: The band's cap with a gain to aim for: half a percent of the body mass a week, the upper rate of a gain that builds more than it stores.
+   Not used at the moment; was: the band's cap with a gain to aim for, half a percent of the body mass a week, the upper rate of a gain that builds more than it stores.
 
 8. National Institute for Health and Care Excellence (2025). *Overweight and obesity management*. NICE guideline NG246. <https://www.nice.org.uk/guidance/ng246>
    Not used at the moment; was: no more than 0.5 to 1 kg lost a week.
 
 9. Wishnofsky M. (1958). *Caloric equivalent of gained or lost weight*. American Journal of Clinical Nutrition 6(5):542-546. <https://doi.org/10.1093/ajcn/6.5.542>
-   Used for: About 7,700 kcal a kilo of fat tissue, to turn the cap's half a percent of the body mass a week into kcal a day.
+   Not used at the moment; was: about 7,700 kcal a kilo of fat tissue, to turn the cap's half a percent of the body mass a week into kcal a day.
 
 ## Energy
 
@@ -51,7 +51,7 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
    Used for: The band's minimum per kilo of lean mass, plus the burn.
 
 15. Helms E. R., Spence A.-J., Sousa C., et al. (2023). *Effect of small and large energy surpluses on strength, muscle, and skinfold thickness in resistance-trained individuals: a parallel groups design*. Sports Medicine - Open 9:102. <https://pubmed.ncbi.nlm.nih.gov/37914977/>
-   Used for: The band's cap, maintenance and a twentieth, and its goal tick with a gain to aim for: a small surplus, as a large one mostly adds fat.
+   Not used at the moment; was: the band's cap, maintenance and a twentieth, and its goal tick with a gain to aim for, a small surplus, as a large one mostly adds fat.
 
 ## Activity
 
