@@ -51,9 +51,11 @@ pub fn streak(
     let fuelled_days = fuel_over(&days, &gathered, &burnt, &fuelled);
     let hydrated_days = hydrate_over(&days, &hydrated, &gathered, &burnt);
     let burns = Burns::of(&burnt, &gathered);
+    // Weighed and taped: the body mass and the waist, the hip staying with the neck in Profile, the user's rule.
     let weighed_days: BTreeSet<NaiveDate> = gathered
         .measurements
         .iter()
+        .filter(|measured| measured.waist_cm.is_some())
         .map(|measured| measured.day)
         .collect();
     let ticked: Vec<(NaiveDate, Ticks)> = days

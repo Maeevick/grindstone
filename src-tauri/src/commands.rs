@@ -1248,7 +1248,7 @@ mod tests {
         invoke(
             &screen,
             "log_measurement",
-            json!({ "date": "2026-10-10", "body_mass_kg": 80.0 }),
+            json!({ "date": "2026-10-10", "body_mass_kg": 80.0, "waist_cm": 85.0 }),
         )
         .expect("a measurement logs");
 
