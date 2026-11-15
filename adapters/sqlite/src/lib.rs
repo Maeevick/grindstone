@@ -1138,6 +1138,7 @@ mod tests {
     const BEFORE_THE_TWO_DRINK_KINDS: usize = 12;
     const BEFORE_THE_CIRCUIT_DESCRIPTIONS: usize = 13;
     const BEFORE_THE_RECOMMENDATIONS: usize = 20;
+    const BEFORE_THE_NEAT_LEFT_OUT: usize = 27;
     use grind_core::testing::honouring_for_storing_burn_records;
     use grind_core::testing::honouring_for_storing_fuel_records;
     use grind_core::testing::honouring_for_storing_gather_records;
@@ -1495,6 +1496,55 @@ mod tests {
                 store.restored(r#"{ "tables": { "measurements": "every day" } }"#)
             ],
             [Err(Unrestorable::NotACopy), Err(Unrestorable::NotACopy)]
+        );
+    }
+
+    /// The tables of the day off the clock a store still holds.
+    fn neat_tables_in(store: &Sqlite) -> i64 {
+        store
+            .0
+            .query_row(
+                "select count(*) from sqlite_master
+                 where type = 'table' and name in ('days_off_the_clock', 'usual_days')",
+                [],
+                |row| row.get(0),
+            )
+            .expect("the tables count")
+    }
+
+    #[test]
+    fn a_store_drops_the_days_off_the_clock_and_the_usual_days() {
+        assert_eq!(neat_tables_in(&database()), 0);
+    }
+
+    #[test]
+    fn an_older_copy_restores_without_them() {
+        let other = a_store_with_a_day(20);
+        let older = a_store_at_version(BEFORE_THE_NEAT_LEFT_OUT);
+        older
+            .execute_batch(
+                "insert into measurements (day, body_mass_kg) values ('2026-10-10', 81.5);
+                 insert into days_off_the_clock (day, sitting_min, standing_min, moving_km)
+                     values ('2026-10-10', 600.0, 60.0, 1.0);
+                 insert into usual_days (effective_from, sitting_min, standing_min, moving_km, recommended)
+                     values ('2026-03-01', 480.0, 120.0, 3.0, 0);",
+            )
+            .expect("records kept before");
+        let copy = copy_of(
+            &older,
+            NaiveDate::from_ymd_opt(2026, 11, 4).expect("a real day"),
+        )
+        .expect("a copy")
+        .text;
+
+        let restored = other.restored(&copy);
+
+        assert_eq!(
+            (
+                restored.map(|counted| counted.records),
+                neat_tables_in(&other)
+            ),
+            (Ok(1), 0)
         );
     }
 
