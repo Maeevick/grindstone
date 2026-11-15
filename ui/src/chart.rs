@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
 use grind_core::figures::{Figure, bare, shown};
+use grind_core::fuel::Band;
 use grind_core::heading::AT_THE_AIM_SHARE;
 use grind_core::heading::Aim;
 
@@ -168,27 +169,29 @@ pub struct GhostEnergy {
 
 pub fn energy_gauge_of(
     eaten: f64,
-    (minimum, floor, goal, maintenance, cap, alpert): (f64, f64, f64, f64, f64, f64),
-    ghost: Option<(f64, (f64, f64, f64))>,
+    band: &Band,
+    ghost: Option<(f64, &Band)>,
     width: f64,
 ) -> EnergyGauge {
-    let top = ghost.map_or(cap, |(_, (_, _, ghost_cap))| cap.max(ghost_cap));
-    let spare = 0.1 * (top - minimum).max(0.1 * top);
-    let scale = (minimum - spare, top + spare);
+    let top = ghost.map_or(band.cap_kcal, |(_, after)| {
+        band.cap_kcal.max(after.cap_kcal)
+    });
+    let spare = 0.1 * (top - band.minimum_kcal).max(0.1 * top);
+    let scale = (band.minimum_kcal - spare, top + spare);
     let at = |kcal| placed(kcal, scale, width);
     EnergyGauge {
-        minimum_at: at(minimum),
-        floor_at: at(floor),
-        goal_at: at(goal),
-        maintenance_at: at(maintenance),
-        cap_at: at(cap),
-        alpert_at: at(alpert),
+        minimum_at: at(band.minimum_kcal),
+        floor_at: at(band.floor_kcal),
+        goal_at: at(band.goal_kcal),
+        maintenance_at: at(band.maintenance_kcal),
+        cap_at: at(band.cap_kcal),
+        alpert_at: at(band.alpert_kcal),
         eaten_at: at(eaten).clamp(0.0, width),
-        ghost: ghost.map(|(eaten, (floor, maintenance, cap))| GhostEnergy {
+        ghost: ghost.map(|(eaten, after)| GhostEnergy {
             eaten_at: at(eaten).clamp(0.0, width),
-            floor_at: at(floor),
-            maintenance_at: at(maintenance),
-            cap_at: at(cap),
+            floor_at: at(after.floor_kcal),
+            maintenance_at: at(after.maintenance_kcal),
+            cap_at: at(after.cap_kcal),
         }),
     }
 }
@@ -346,6 +349,23 @@ pub fn clear_of(ticks: Vec<Label>, labels: &[Label]) -> Vec<Label> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use grind_core::fuel::Mode;
+
+    /// A band from its minimum, floor, goal, maintenance and cap, firm from edge to edge, Alpert on its minimum.
+    fn a_band((minimum, floor, goal, maintenance, cap): (f64, f64, f64, f64, f64)) -> Band {
+        Band {
+            minimum_kcal_per_kg_of_lean_mass: 25.0,
+            minimum_kcal: minimum,
+            floor_kcal: floor,
+            cap_kcal: cap,
+            goal_kcal: goal,
+            maintenance_kcal: maintenance,
+            alpert_kcal: minimum,
+            firm_floor_kcal: floor,
+            firm_cap_kcal: cap,
+            mode: Mode::Holding,
+        }
+    }
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
@@ -489,7 +509,7 @@ mod tests {
     fn an_energy_gauge_runs_a_tenth_of_its_band_past_the_minimum_and_the_cap() {
         let gauge = energy_gauge_of(
             2200.0,
-            (1600.0, 2000.0, 2000.0, 2400.0, 2400.0, 1600.0),
+            &a_band((1600.0, 2000.0, 2000.0, 2400.0, 2400.0)),
             None,
             960.0,
         );
@@ -506,7 +526,7 @@ mod tests {
 
     #[test]
     fn what_was_eaten_beyond_the_gauge_stays_on_its_edge() {
-        let band = (1600.0, 2000.0, 2000.0, 2400.0, 2400.0, 1600.0);
+        let band = &a_band((1600.0, 2000.0, 2000.0, 2400.0, 2400.0));
 
         assert_eq!(energy_gauge_of(100.0, band, None, 960.0).eaten_at, 0.0);
         assert_eq!(energy_gauge_of(5000.0, band, None, 960.0).eaten_at, 960.0);
@@ -516,7 +536,7 @@ mod tests {
     fn a_band_closed_on_its_minimum_sits_in_the_middle_of_a_gauge_a_tenth_of_it_wide() {
         let closed = energy_gauge_of(
             1800.0,
-            (1800.0, 1800.0, 1800.0, 1800.0, 1800.0, 1800.0),
+            &a_band((1800.0, 1800.0, 1800.0, 1800.0, 1800.0)),
             None,
             960.0,
         );
@@ -531,8 +551,8 @@ mod tests {
     fn an_energy_gauge_stretches_to_hold_the_band_previewed_and_places_it_on_the_same_line() {
         let previewed = energy_gauge_of(
             2200.0,
-            (1600.0, 2000.0, 2000.0, 2400.0, 2400.0, 1600.0),
-            Some((2300.0, (2200.0, 2600.0, 2600.0))),
+            &a_band((1600.0, 2000.0, 2000.0, 2400.0, 2400.0)),
+            Some((2300.0, &a_band((1600.0, 2200.0, 2200.0, 2600.0, 2600.0)))),
             1200.0,
         );
 
@@ -554,7 +574,7 @@ mod tests {
     fn an_energy_gauge_ticks_the_goal_where_it_falls_in_its_band() {
         let cutting = energy_gauge_of(
             2200.0,
-            (1600.0, 1700.0, 2050.0, 2400.0, 2400.0, 1600.0),
+            &a_band((1600.0, 1700.0, 2050.0, 2400.0, 2400.0)),
             None,
             960.0,
         );
@@ -566,7 +586,7 @@ mod tests {
     fn an_energy_gauge_ticks_maintenance_where_it_falls_in_its_band() {
         let gaining = energy_gauge_of(
             2200.0,
-            (1600.0, 2000.0, 2000.0, 2100.0, 2400.0, 1600.0),
+            &a_band((1600.0, 2000.0, 2000.0, 2100.0, 2400.0)),
             None,
             960.0,
         );
@@ -709,7 +729,7 @@ mod tests {
     fn a_band_narrower_than_a_tenth_of_its_top_keeps_a_tenth_of_the_top_for_its_margins() {
         let gauge = energy_gauge_of(
             2050.0,
-            (2000.0, 2020.0, 2040.0, 2060.0, 2100.0, 2000.0),
+            &a_band((2000.0, 2020.0, 2040.0, 2060.0, 2100.0)),
             None,
             360.0,
         );
