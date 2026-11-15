@@ -770,6 +770,32 @@ mod tests {
     }
 
     #[test]
+    fn a_body_over_its_goal_mass_leans_even_when_its_goal_body_would_spend_more_dashed_from_its_floor_to_its_cap()
+     {
+        let fat_waist_cm = 110.0;
+
+        let band = fuel_on(
+            "2026-10-10",
+            &a_mans_records(fat_waist_cm),
+            &a_desk_job(),
+            &aiming(),
+        )
+        .band
+        .expect("a band");
+
+        let given = band.goal_kcal > 1.025 * band.maintenance_kcal;
+        assert!(
+            given
+                && band.mode == Mode::Leaning
+                && about(band.floor_kcal, band.minimum_kcal)
+                && about(band.firm_floor_kcal, band.cap_kcal)
+                && about(band.firm_cap_kcal, band.cap_kcal)
+                && about(band.cap_kcal, 1.025 * band.maintenance_kcal),
+            "{band:?}"
+        );
+    }
+
+    #[test]
     fn a_goal_body_spending_under_alpert_leans_firm_from_alpert() {
         let lean_waist_cm = 70.0;
 
