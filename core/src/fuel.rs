@@ -270,12 +270,28 @@ fn deficit_before(day: NaiveDate, gaps: &[(NaiveDate, f64)]) -> Deficit {
     }
 }
 
-fn row(eaten_g: f64, (floor_g, ceiling_g): (f64, Option<f64>), goal_g: Option<f64>) -> MacroRow {
+/// A painted goal stretches the recommended bounds to 5% either side of it, never inside them: the user's rule.
+const GOAL_SHARE_EITHER_SIDE: f64 = 0.05;
+
+/// A macro's row: its recommended bounds, stretched around a painted goal; without one, the floor stands as the goal.
+fn row(
+    eaten_g: f64,
+    (recommended_floor_g, recommended_ceiling_g): (f64, Option<f64>),
+    goal_g: Option<f64>,
+) -> MacroRow {
+    let (floor_g, ceiling_g) =
+        goal_g.map_or((recommended_floor_g, recommended_ceiling_g), |goal_g| {
+            (
+                ((1.0 - GOAL_SHARE_EITHER_SIDE) * goal_g).min(recommended_floor_g),
+                recommended_ceiling_g
+                    .map(|ceiling_g| ((1.0 + GOAL_SHARE_EITHER_SIDE) * goal_g).max(ceiling_g)),
+            )
+        });
     MacroRow {
         eaten_g,
         floor_g,
         ceiling_g,
-        goal_g: goal_g.unwrap_or(floor_g),
+        goal_g: goal_g.unwrap_or(recommended_floor_g),
         painted: goal_g.is_some(),
         verdict: verdict_of(eaten_g, floor_g, ceiling_g.unwrap_or(f64::INFINITY)),
     }
