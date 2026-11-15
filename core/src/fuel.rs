@@ -1423,15 +1423,14 @@ mod tests {
     }
 
     #[test]
-    fn a_target_painted_stretches_its_macros_bounds_5_percent_either_side_of_it_never_inside_the_recommendation()
-     {
+    fn a_target_painted_bounds_its_macro_20_percent_either_side_of_it_within_the_recommendation() {
         let fuel = FuelRecords {
             targets: vec![(
                 day("2026-03-01"),
                 Kept::Own(FuelTargets {
                     protein_g_per_kg: Some(2.5),
-                    fat_g_per_kg: Some(0.1),
-                    fibre_g_per_kg: Some(0.2),
+                    fat_g_per_kg: Some(0.9),
+                    fibre_g_per_kg: Some(0.5),
                     carbs_g_per_kg: Some(3.0),
                 }),
             )],
@@ -1449,23 +1448,18 @@ mod tests {
             fuelled.band.expect("a band"),
             fuelled.macros.expect("macros"),
         );
-        let bounds = |row: MacroRow| {
-            (
-                (row.floor_g * 1e6).round(),
-                row.ceiling_g.map(|grams| (grams * 1e6).round()),
-            )
-        };
         let rounded = |grams: f64| (grams * 1e6).round();
+        let bounds = |row: MacroRow| (rounded(row.floor_g), row.ceiling_g.map(rounded));
         assert_eq!(
             [macros.protein, macros.fat, macros.fibre, macros.carbs].map(bounds),
             [
-                (rounded(0.83 * 80.0), Some(rounded(1.05 * 200.0))),
+                (rounded(0.8 * 200.0), Some(rounded(2.2 * 80.0))),
                 (
-                    rounded(0.95 * 8.0),
+                    rounded(0.8 * 72.0),
                     Some(rounded(0.35 * band.cap_kcal / 9.0))
                 ),
-                (rounded(0.95 * 16.0), None),
-                (rounded(130.0), None),
+                (rounded(0.8 * 40.0), Some(rounded(1.2 * 40.0))),
+                (rounded(0.8 * 240.0), Some(rounded(1.2 * 240.0))),
             ]
         );
     }
