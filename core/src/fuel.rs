@@ -1362,6 +1362,50 @@ mod tests {
     }
 
     #[test]
+    fn without_a_target_each_macro_keeps_to_its_recommendation_protein_0_83_to_2_2_g_a_kilo_fat_20_to_35_percent_fibre_25_g_carbs_130_g()
+     {
+        let bounds_after = |grams: Option<(f64, f64, f64, f64)>| {
+            let mut fuel = FuelRecords::default();
+            if let Some((protein, carbs, fat, fibre)) = grams {
+                eating(&mut fuel, "2026-10-10", &a_food(protein, carbs, fat, fibre));
+            }
+            let fuelled = fuel_on(
+                "2026-10-10",
+                &a_mans_records(HIS_WAIST_CM),
+                &a_desk_job(),
+                &fuel,
+            );
+            let (band, macros) = (
+                fuelled.band.expect("a band"),
+                fuelled.macros.expect("macros"),
+            );
+            let energy = fuelled.eaten.energy_kcal.max(band.floor_kcal);
+            let expected = [
+                (0.83 * 80.0, Some(2.2 * 80.0)),
+                (0.2 * energy / 9.0, Some(0.35 * band.cap_kcal / 9.0)),
+                (25.0, None),
+                (130.0, None),
+            ];
+            [macros.protein, macros.fat, macros.fibre, macros.carbs]
+                .iter()
+                .zip(expected)
+                .all(|(row, (floor, ceiling))| {
+                    about(row.floor_g, floor)
+                        && row.ceiling_g.map(|got| (got * 1e6).round())
+                            == ceiling.map(|wanted| (wanted * 1e6).round())
+                })
+        };
+
+        assert_eq!(
+            [
+                bounds_after(None),
+                bounds_after(Some((170.0, 230.0, 80.0, 35.0)))
+            ],
+            [true, true]
+        );
+    }
+
+    #[test]
     fn each_macros_health_bounds_read_the_band_its_floors_on_what_is_eaten_once_past_the_bands_floor()
      {
         let bounds_after = |grams: Option<(f64, f64, f64, f64)>| {
