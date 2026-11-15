@@ -10,7 +10,7 @@ use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
 use crate::fuel::{fuel_on, fuel_targets_in_force};
-use crate::fuel_records::{FuelTargets, fuel_targets};
+use crate::fuel_records::{FuelRecords, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
 use crate::hydrate::{recommended_water_ml, water_target_in_force};
@@ -301,7 +301,12 @@ pub fn recommended_on(
         .map(|measured| (measured.day, measured.body_mass_kg))
         .collect();
     let body_mass_kg = version_in_force_on(&masses, day).copied();
-    let floors = fuel_on(day, &gathered, &burn.burn_records()?, &fuel.fuel_records()?)
+    // The day as if nothing were painted, so a target set under a floor never shows as its recommendation.
+    let unpainted = FuelRecords {
+        targets: Vec::new(),
+        ..fuel.fuel_records()?
+    };
+    let floors = fuel_on(day, &gathered, &burn.burn_records()?, &unpainted)
         .macros
         .zip(body_mass_kg)
         .map(|(macros, kg)| FuelTargets {
