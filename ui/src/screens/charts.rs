@@ -13,8 +13,12 @@ use crate::chart::{
     ticks_on,
 };
 use crate::lines;
+use crate::screens::Recorded;
+use crate::screens::burn::BurnEntries;
 use crate::screens::cells::opening_cell;
+use crate::screens::fuel::FuelEntries;
 use crate::screens::header::tick_class;
+use crate::screens::hydrate::HydrateEntries;
 use crate::screens::pills::pill_buttons;
 use crate::screens::said::refused_line;
 use crate::screens::tips::{BurnOver, FuelOver, HydrateOver, PaceOver};
@@ -467,43 +471,53 @@ fn ticks_of(streaked: StreakDay) -> impl IntoView {
     }
 }
 
+/// A day of the history: its cells and streak dot; opened, its ticks when it was streaked, then its details.
 #[component]
 fn HistoryRow(
     day: String,
     streaked: Option<StreakDay>,
     chosen: bool,
     columns: usize,
+    open: RwSignal<Vec<String>>,
+    details: ViewFn,
     children: Children,
 ) -> impl IntoView {
-    let open = RwSignal::new(false);
-    let day_cell = if streaked.is_some() {
-        opening_cell(day, open.into()).into_any()
-    } else {
-        view! { <td>{day}</td> }.into_any()
-    };
+    let this = day.clone();
+    let opened = Signal::derive(move || open.with(|open| open.contains(&this)));
+    let toggled = day.clone();
     view! {
         <tr
             class:streaked=streaked.is_some()
             class:chosen=chosen
+            class:open=opened
             on:click=move |_| {
-                if streaked.is_some() {
-                    open.update(|open| *open = !*open);
-                }
+                open.update(|open| {
+                    if let Some(at) = open.iter().position(|day| *day == toggled) {
+                        open.remove(at);
+                    } else {
+                        open.push(toggled.clone());
+                    }
+                })
             }
         >
-            {day_cell}
+            {opening_cell(day, opened)}
             {children()}
             {streak_cell(streaked.map(|day| day.status))}
         </tr>
         {move || {
-            open.get()
-                .then_some(streaked)
-                .flatten()
-                .map(|day| {
+            opened
+                .get()
+                .then(|| {
                     view! {
-                        <tr class="ticks">
-                            <td colspan=columns.to_string()>{ticks_of(day)}</td>
-                        </tr>
+                        {streaked
+                            .map(|day| {
+                                view! {
+                                    <tr class="ticks">
+                                        <td colspan=columns.to_string()>{ticks_of(day)}</td>
+                                    </tr>
+                                }
+                            })}
+                        {details.run()}
                     }
                 })
         }}
@@ -511,24 +525,39 @@ fn HistoryRow(
 }
 
 macro_rules! history {
-    ($name:ident, $row:ty, $load:path, $render:ident, [$(($head:literal, $unit:literal)),*]) => {
+    ($name:ident, $row:ty, $load:path, $render:ident, $details:expr, [$(($head:literal, $unit:literal)),*]) => {
         #[component]
         fn $name(today: String, streaked: Signal<Vec<StreakDay>>) -> impl IntoView {
             let columns = [$($head),*].len() + 1;
             let months = RwSignal::new(Vec::<Month<$row>>::new());
+            let open = RwSignal::new(Vec::<String>::new());
             let said = RwSignal::new(None::<String>);
+            let recorded = Recorded::here();
             let picked = today.clone();
             let chosen = today.clone();
             let load = Callback::new(move |month: String| {
                 let picked = picked.clone();
                 spawn_local(async move {
                     match $load(&month, &picked).await {
-                        Ok(loaded) => months.update(|kept| kept.push(loaded)),
+                        Ok(loaded) => months.update(|kept| {
+                            kept.retain(|month| month.month != loaded.month);
+                            kept.push(loaded);
+                            kept.sort_by(|newer, older| older.month.cmp(&newer.month));
+                        }),
                         Err(failure) => said.set(Some(lines::failure(&failure))),
                     }
                 });
             });
-            load.run(today.chars().take(7).collect());
+            let first: String = today.chars().take(7).collect();
+            Effect::new(move |_| {
+                recorded.heard();
+                let shown: Vec<String> =
+                    months.with_untracked(|kept| kept.iter().map(|month| month.month.clone()).collect());
+                let again = if shown.is_empty() { vec![first.clone()] } else { shown };
+                for month in again {
+                    load.run(month);
+                }
+            });
             view! {
                 <div class="scroll">
                     <table class="history-table">
@@ -549,8 +578,17 @@ macro_rules! history {
                                             .find(|streaked| streaked.day == row.day)
                                             .copied();
                                         let chosen = row.day.to_string() == chosen;
+                                        let opened = row.clone();
+                                        let details = ViewFn::from(move || $details(&opened));
                                         view! {
-                                            <HistoryRow day=row.day.to_string() streaked=streaked chosen=chosen columns=columns>
+                                            <HistoryRow
+                                                day=row.day.to_string()
+                                                streaked=streaked
+                                                chosen=chosen
+                                                columns=columns
+                                                open=open
+                                                details=details
+                                            >
                                                 {$render(row)}
                                             </HistoryRow>
                                         }
@@ -575,11 +613,36 @@ macro_rules! history {
     };
 }
 
+/// A gathered day's details: its waist, for now.
+fn gathered_details(row: &GatherRow) -> AnyView {
+    view! {
+        <tr class="entry">
+            <td>{header("Waist", "cm")}</td>
+            <td>{bare_or_dash(row.waist_cm, Figure::Length)}</td>
+            <td colspan="4"></td>
+        </tr>
+    }
+    .into_any()
+}
+
+fn fuelled_details(row: &FuelRow) -> AnyView {
+    view! { <FuelEntries date=row.day.to_string() /> }.into_any()
+}
+
+fn hydrated_details(row: &HydrateRow) -> AnyView {
+    view! { <HydrateEntries date=row.day.to_string() /> }.into_any()
+}
+
+fn burnt_details(row: &BurnRow) -> AnyView {
+    view! { <BurnEntries date=row.day.to_string() /> }.into_any()
+}
+
 history!(
     GatherHistory,
     GatherRow,
     tauri::gather_month,
     gather_cells,
+    gathered_details,
     [
         ("Day", ""),
         ("BM", "kg"),
@@ -593,6 +656,7 @@ history!(
     FuelRow,
     tauri::fuel_month,
     fuel_cells,
+    fuelled_details,
     [
         ("Day", ""),
         ("Energy", "kcal"),
@@ -608,6 +672,7 @@ history!(
     HydrateRow,
     tauri::hydrate_month,
     hydrate_cells,
+    hydrated_details,
     [("Day", ""), ("Drunk", "mL"), ("Water %", "")]
 );
 history!(
@@ -615,6 +680,7 @@ history!(
     BurnRow,
     tauri::burn_month,
     burn_cells,
+    burnt_details,
     [
         ("Day", ""),
         ("Burnt", "kcal"),
@@ -654,16 +720,11 @@ pub fn Stats(chip: Chip) -> impl IntoView {
 /// its entries.
 #[component]
 pub fn History(chip: Chip, today: String) -> impl IntoView {
-    let _ = (chip, today);
-}
-
-#[component]
-pub fn Charts(today: String) -> impl IntoView {
-    let chip = RwSignal::new(Chip::Gather);
-    let window = RwSignal::new(Window::Days30);
-    let today = StoredValue::new(today);
+    let recorded = Recorded::here();
+    let on = today.clone();
     let streak = LocalResource::new(move || {
-        let today = today.get_value();
+        recorded.heard();
+        let today = on.clone();
         async move { tauri::streak(&today).await }
     });
     let streaked = Signal::derive(move || {
@@ -674,32 +735,13 @@ pub fn Charts(today: String) -> impl IntoView {
             .unwrap_or_default()
     });
     view! {
-        <section class="card tips">
-            <h2>"The Unwanted Stats"</h2>
-            <div class="pills chips">
-                {pill_buttons("chip", CHIPS, chip)}
-            </div>
-            <div class="pills">
-                {pill_buttons("window", WINDOWS, window)}
-            </div>
-            {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
-            {move || figures_over(chip.get(), today.get_value(), window)}
-        </section>
         <section class="card history">
             <h2>"History"</h2>
-            {move || match chip.get() {
-                Chip::Gather => {
-                    view! { <GatherHistory today=today.get_value() streaked=streaked /> }.into_any()
-                }
-                Chip::Fuel => {
-                    view! { <FuelHistory today=today.get_value() streaked=streaked /> }.into_any()
-                }
-                Chip::Hydrate => {
-                    view! { <HydrateHistory today=today.get_value() streaked=streaked /> }.into_any()
-                }
-                Chip::Burn => {
-                    view! { <BurnHistory today=today.get_value() streaked=streaked /> }.into_any()
-                }
+            {match chip {
+                Chip::Gather => view! { <GatherHistory today=today streaked=streaked /> }.into_any(),
+                Chip::Fuel => view! { <FuelHistory today=today streaked=streaked /> }.into_any(),
+                Chip::Hydrate => view! { <HydrateHistory today=today streaked=streaked /> }.into_any(),
+                Chip::Burn => view! { <BurnHistory today=today streaked=streaked /> }.into_any(),
             }}
             <ul class="legend">
                 {[Status::Success, Status::Joker, Status::Break, Status::Pending]
@@ -717,5 +759,26 @@ pub fn Charts(today: String) -> impl IntoView {
                     .collect_view()}
             </ul>
         </section>
+    }
+}
+
+#[component]
+pub fn Charts(today: String) -> impl IntoView {
+    let chip = RwSignal::new(Chip::Gather);
+    let window = RwSignal::new(Window::Days30);
+    let today = StoredValue::new(today);
+    view! {
+        <section class="card tips">
+            <h2>"The Unwanted Stats"</h2>
+            <div class="pills chips">
+                {pill_buttons("chip", CHIPS, chip)}
+            </div>
+            <div class="pills">
+                {pill_buttons("window", WINDOWS, window)}
+            </div>
+            {move || view! { <ChipPlot chip=chip.get() today=today.get_value() window=window /> }}
+            {move || figures_over(chip.get(), today.get_value(), window)}
+        </section>
+        {move || view! { <History chip=chip.get() today=today.get_value() /> }}
     }
 }

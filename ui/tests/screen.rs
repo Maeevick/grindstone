@@ -1284,7 +1284,7 @@ async fn a_gathered_day_fills_its_fields_and_a_day_not_gathered_yet_marks_the_bo
 }
 
 #[wasm_bindgen_test]
-async fn the_last_days_of_gather_list_each_day_under_its_units_the_chosen_one_highlighted() {
+async fn the_history_of_gather_lists_each_day_under_its_units() {
     answering(&format!(
         r#"{{ "gather_week": {}, "gather_month": {A_MONTH_GATHERED} }}"#,
         a_gathered_week()
@@ -1296,12 +1296,11 @@ async fn the_last_days_of_gather_list_each_day_under_its_units_the_chosen_one_hi
     typed_into(&screen, "day", "2026-10-10");
     settled().await;
 
-    let heads = text_of(&screen, ".last-days thead");
-    for unit in ["Mass (kg)", "Waist (cm)", "Fat (%)", "Lean (kg)"] {
+    let heads = text_of(&screen, ".history thead");
+    for unit in ["BM (kg)", "FFM (kg)", "FM (kg)", "Fat %", "Streak"] {
         assert!(heads.contains(unit), "{unit} in {heads}");
     }
-    assert!(text_of(&screen, ".last-days tr.chosen").contains("2026-10-10"));
-    let listed = text_of(&screen, ".last-days tbody");
+    let listed = text_of(&screen, ".history tbody");
     assert!(
         listed.contains("80.6") && !listed.contains(" kg"),
         "{listed}"
@@ -1309,7 +1308,7 @@ async fn the_last_days_of_gather_list_each_day_under_its_units_the_chosen_one_hi
 }
 
 #[wasm_bindgen_test]
-async fn after_logging_a_measurement_the_day_stays_its_form_shows_it_and_it_joins_the_last_days() {
+async fn after_logging_a_measurement_the_day_stays_its_form_shows_it_and_it_joins_the_history() {
     answering(&format!(
         r#"{{ "gather_week": {A_WEEK_NOT_GATHERED_YET}, "gather_month": {A_MONTH_NOT_GATHERED_YET} }}"#
     ));
@@ -1332,7 +1331,7 @@ async fn after_logging_a_measurement_the_day_stays_its_form_shows_it_and_it_join
     settled().await;
     settled().await;
 
-    let listed = text_of(&screen, ".last-days tbody");
+    let listed = text_of(&screen, ".history tbody");
     assert!(
         listed.contains("80.0") && listed.contains("11.6"),
         "{listed}"
@@ -4302,7 +4301,7 @@ fn shown_in_order(screen: &Element) -> Vec<String> {
 }
 
 #[wasm_bindgen_test]
-async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_its_stats_then_the_last_days() {
+async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_its_stats_then_its_history() {
     let a_day_in_each_tab = format!(
         r#"{{ "gather_week": {{ "day": {A_GATHERED_DAY}, "days": [{A_GATHERED_DAY}],
                   "aims": {{ "body_mass_kg": 75.0, "lean_mass_kg": 66.0, "recommended": false }} }},
@@ -4331,7 +4330,7 @@ async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_its_stats_then
                 "Gather",
                 "Where you stand",
                 "Stats",
-                "The last days"
+                "History"
             ],
             vec![
                 "Today",
@@ -4339,7 +4338,7 @@ async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_its_stats_then
                 "Fuel",
                 "Where the day stands",
                 "Stats",
-                "The last days"
+                "History"
             ],
             vec![
                 "Today",
@@ -4347,7 +4346,7 @@ async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_its_stats_then
                 "Hydrate",
                 "Where the day stands",
                 "Stats",
-                "The last days"
+                "History"
             ],
             vec![
                 "Today",
@@ -4355,7 +4354,7 @@ async fn each_tab_runs_pick_the_day_the_form_where_the_day_stands_its_stats_then
                 "Burn",
                 "Where the day stands",
                 "Stats",
-                "The last days"
+                "History"
             ],
         ]
     );
@@ -4573,7 +4572,7 @@ async fn every_screen_wears_the_streak_in_its_header_just_above_todays_tiles() {
 }
 
 #[wasm_bindgen_test]
-async fn each_tab_holds_its_stats_its_window_and_its_own_chart_just_before_its_last_days() {
+async fn each_tab_holds_its_stats_its_window_and_its_own_chart_just_before_its_history() {
     let charts = format!(
         r#"{{ {THE_CHARTS}, "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
              "hydrate_over_the_window": null, "burn_over_the_window": {A_BURN_WEEK},
@@ -4596,7 +4595,7 @@ async fn each_tab_holds_its_stats_its_window_and_its_own_chart_just_before_its_l
         settled().await;
         held.push((
             page,
-            text_of(&screen, "section.card.stats + section.card.last-days h2"),
+            text_of(&screen, "section.card.stats + section.card.history h2"),
             text_of(&screen, "section.card.stats h2"),
             texts_in_order(&screen, "section.card.stats button[class*='window-']"),
             screen
@@ -4611,7 +4610,7 @@ async fn each_tab_holds_its_stats_its_window_and_its_own_chart_just_before_its_l
         held,
         ["/gather", "/fuel", "/hydrate", "/burn"].map(|page| (
             page,
-            "The last days".to_string(),
+            "History".to_string(),
             "Stats".to_string(),
             ["30 days", "90 days", "∞"].map(String::from).to_vec(),
             true
@@ -5646,7 +5645,7 @@ async fn each_streak_dot_wears_its_own_mark_and_names_its_status_the_legends_lef
 }
 
 #[wasm_bindgen_test]
-async fn a_streaked_day_opens_its_ticks_from_its_date_a_day_never_streaked_having_none_to_open() {
+async fn every_day_opens_from_its_date_its_details_a_day_never_streaked_without_ticks() {
     answering(&format!(
         r#"{{ {THE_CHARTS}, "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [
                 {{ "day": "2026-10-09", "body_mass_kg": 80.2, "lean_mass_kg": 70.9, "fat_mass_kg": 9.3, "fat_ratio": 0.116 }},
@@ -5656,22 +5655,21 @@ async fn a_streaked_day_opens_its_ticks_from_its_date_a_day_never_streaked_havin
     let _mounted = the_charts(&screen);
     settled().await;
 
-    clicked(&screen, ".history tbody tr button.opens");
+    clicked(&screen, ".history tbody tr:nth-child(2) button.opens");
     settled().await;
 
     assert_eq!(
         (
             texts_in_order(&screen, ".history tbody button.opens"),
             attributes_of(&screen, ".history tbody button.opens", "aria-expanded"),
-            texts_in_order(&screen, ".history tbody td:first-child")
-                .into_iter()
-                .filter(|day| day.starts_with("2026"))
-                .collect::<Vec<_>>()
+            texts_in_order(&screen, ".history tbody tr.ticks").len(),
+            texts_in_order(&screen, ".history tbody tr.entry td"),
         ),
         (
-            vec!["2026-10-09".to_string()],
-            vec!["true".to_string()],
-            vec!["2026-10-09".to_string(), "2026-10-01".into()]
+            vec!["2026-10-09".to_string(), "2026-10-01".into()],
+            vec!["false".to_string(), "true".into()],
+            0,
+            ["Waist (cm)", "–", ""].map(String::from).to_vec()
         )
     );
 }
