@@ -22,6 +22,8 @@ pub enum Refusal {
     NotAnExercise,
     NotAPortion,
     NotANutrient,
+    /// Fuel targets outside the recommendation, per kilo of body mass on the day they are kept.
+    FuelTargetsOutsideTheRecommendation,
     NotAQuantity,
     NotAFood,
     NotASingleStep,

@@ -157,6 +157,7 @@ pub fn failure(failure: &Failure) -> String {
              that boils down, 1 for what keeps its mass."
                 .into()
         }
+        Failure::Refused(Refusal::FuelTargetsOutsideTheRecommendation) => String::new(),
         Failure::Refused(Refusal::NotAnEnergy) => {
             "That is no amount of sweat I can file: kilocalories, from nothing up.".into()
         }
@@ -863,6 +864,17 @@ mod tests {
                 "That circuit is not in the lab. Craft it first, at the bottom of Burn.",
                 "That is no amount of sweat I can file: kilocalories, from nothing up.",
             ]
+        );
+    }
+
+    #[test]
+    fn fuel_targets_outside_the_recommendation_are_said_with_its_bounds() {
+        assert_eq!(
+            failure(&Failure::Refused(
+                Refusal::FuelTargetsOutsideTheRecommendation
+            )),
+            "Inside the recommendation, please: protein from 0.83 to 2.2 g per kg, fat between 20% of today's \
+             band floor and 35% of its cap, fibre from 25 g a day and carbs from 130 g."
         );
     }
 
