@@ -96,13 +96,13 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
 ## Water
 
 28. EFSA Panel on Dietetic Products, Nutrition and Allergies (2010). *Scientific Opinion on Dietary Reference Values for water*. EFSA Journal 8(3):1459. <https://doi.org/10.2903/j.efsa.2010.1459>
-   Used for: Before a lean mass is known, water of 2.5 L a day for men and 2.0 L for women, four fifths of it from drinks.
+   Used for: Water of 2.5 L a day for men and 2.0 L for women, four fifths of it from drinks: the floor of the recommended water.
 
 29. Yamada Y., Zhang X., Henderson M. E. T., et al. (2022). *Variation in human water turnover associated with environmental and lifestyle factors*. Science 378(6622):909-915. <https://doi.org/10.1126/science.abm8668>
-   Used for: The day's target: the water turned over a day for a lean mass and an age, at the paper's reference climate, 85% of it taken in, four fifths of that drunk.
+   Not used at the moment; was: the day's water target, the water turned over a day for a lean mass and an age, at the paper's reference climate, 85% of it taken in, four fifths of that drunk.
 
 30. Westerterp K. R., Plasqui G., Goris A. H. C. (2005). *Water loss as a function of energy intake, physical activity and season*. British Journal of Nutrition 93(2):199-203. <https://www.cambridge.org/core/journals/british-journal-of-nutrition/article/water-loss-as-a-function-of-energy-intake-physical-activity-and-season/51D08EEA77F1019DD393667429046510>
-   Used for: The floor of a millilitre per kcal spent, and 1.25 mL per kcal burnt in the target.
+   Used for: A millilitre per kcal burnt added to the day's water, within the 0.84 to 1.46 mL lost per kcal spent.
 
 31. Joo M. A., Kim E. Y. (2013). *Hyponatremia caused by excessive intake of water as a form of child abuse*. Annals of Pediatric Endocrinology & Metabolism 18(2):95-98. <https://doi.org/10.6065/apem.2013.18.2.95>
    Used for: Kidneys clearing no more than 0.8 to 1 L of water an hour, the reason to spread the cups out.
