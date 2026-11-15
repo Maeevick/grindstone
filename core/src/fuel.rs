@@ -344,6 +344,30 @@ fn macros_for(eaten: Nutrients, body: &Body, band: Band, targets: FuelTargets) -
     }
 }
 
+/// Whether painted targets keep to the recommendation on a day, per kilo of body mass (the user's rule): protein from
+/// 0.83 to 2.2 g, fat between 20% of the band's floor and 35% of its cap, fibre from 25 g and carbs from 130 g a day;
+/// what the day cannot weigh, without a body mass or a band, goes unchecked.
+pub(crate) fn within_the_recommendation(
+    targets: &FuelTargets,
+    body_mass_kg: Option<f64>,
+    band: Option<Band>,
+) -> bool {
+    let grams = |g_per_kg: Option<f64>| g_per_kg.zip(body_mass_kg).map(|(g, kg)| g * kg);
+    let protein = targets.protein_g_per_kg.is_none_or(|g_per_kg| {
+        (LEAST_PROTEIN_G_PER_KG..=MOST_PROTEIN_G_PER_KG).contains(&g_per_kg)
+    });
+    let fat = grams(targets.fat_g_per_kg)
+        .zip(band)
+        .is_none_or(|(fat_g, band)| {
+            (LEAST_FAT_SHARE * band.floor_kcal / FAT_KCAL_PER_G
+                ..=MOST_FAT_SHARE * band.cap_kcal / FAT_KCAL_PER_G)
+                .contains(&fat_g)
+        });
+    let fibre = grams(targets.fibre_g_per_kg).is_none_or(|fibre_g| fibre_g >= FIBRE_FLOOR_G);
+    let carbs = grams(targets.carbs_g_per_kg).is_none_or(|carbs_g| carbs_g >= CARBS_FLOOR_G);
+    protein && fat && fibre && carbs
+}
+
 /// The fuel targets in force on a day: those painted from the latest day up to it (the earliest before any);
 /// never painted, none; nothing without a profile.
 pub(crate) fn fuel_targets_in_force(

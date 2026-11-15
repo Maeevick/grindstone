@@ -9,7 +9,7 @@ use crate::for_storing_burn_records::ForStoringBurnRecords;
 use crate::for_storing_fuel_records::ForStoringFuelRecords;
 use crate::for_storing_gather_records::ForStoringGatherRecords;
 use crate::for_storing_hydrate_records::ForStoringHydrateRecords;
-use crate::fuel::{fuel_on, fuel_targets_in_force};
+use crate::fuel::{fuel_on, fuel_targets_in_force, within_the_recommendation};
 use crate::fuel_records::{FuelRecords, FuelTargets, fuel_targets};
 use crate::gender::Gender;
 use crate::goals::{Goals, goals};
@@ -187,13 +187,30 @@ pub struct FuelTargetsForm {
 
 pub fn set_fuel_targets(
     gather: &impl ForStoringGatherRecords,
-    _burn: &impl ForStoringBurnRecords,
+    burn: &impl ForStoringBurnRecords,
     fuel: &impl ForStoringFuelRecords,
     form: &FuelTargetsForm,
 ) -> Result<Option<InForce<FuelTargets>>, Failure> {
     let from = day(&form.from)?;
     let kept = match form.kept {
-        Kept::Own(targets) => Kept::Own(fuel_targets(targets).map_err(Failure::Refused)?),
+        Kept::Own(targets) => {
+            let targets = fuel_targets(targets).map_err(Failure::Refused)?;
+            let gathered = gather.gather_records()?;
+            let band = fuel_on(
+                from,
+                &gathered,
+                &burn.burn_records()?,
+                &fuel.fuel_records()?,
+            )
+            .band;
+            let body_mass_kg = body_mass_in_force_on(from, &gathered.measurements);
+            if !within_the_recommendation(&targets, body_mass_kg, band) {
+                return Err(Failure::Refused(
+                    Refusal::FuelTargetsOutsideTheRecommendation,
+                ));
+            }
+            Kept::Own(targets)
+        }
         Kept::Recommended => Kept::Recommended,
     };
     fuel.save_targets(from, &kept)?;
