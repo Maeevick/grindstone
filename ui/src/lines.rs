@@ -795,6 +795,7 @@ mod tests {
             Refusal::NotANeck,
             Refusal::NotAHip,
             Refusal::NotARatio,
+            Refusal::GoalFatUnderItsFloor { percent: 17 },
             Refusal::NotAProfile,
         ];
 
@@ -810,6 +811,7 @@ mod tests {
                 "A neck above nothing, please.",
                 "Her Navy formula reads the hip: a hip above nothing, please.",
                 "A fat target between 0 and 100%, the goblin way or any other.",
+                "A fat goal of 17% at least: this tracker files none lower.",
                 "Recommendations need the rusty you first: birthday, gender and height.",
             ]
         );

@@ -103,6 +103,15 @@ pub struct GoalsForm {
     pub kept: Kept<TypedGoals>,
 }
 
+/// The least fat a goal may aim at, in percent: 10 for a man, 17 for a woman, the user's choice, a floor for this
+/// tracker rather than a health line. Before a profile tells the gender, a man's.
+fn goal_fat_floor_percent(gender: Option<Gender>) -> u32 {
+    match gender {
+        Some(Gender::Female) => 17,
+        _ => 10,
+    }
+}
+
 pub fn set_goals(
     records: &impl ForStoringGatherRecords,
     form: &GoalsForm,
@@ -110,6 +119,14 @@ pub fn set_goals(
     let from = day(&form.from)?;
     let kept = match form.kept {
         Kept::Own(typed) => {
+            let gender = version_in_force_on(&records.gather_records()?.profiles, from)
+                .map(|profile| profile.gender);
+            let floor = goal_fat_floor_percent(gender);
+            if typed.fat_percentage < f64::from(floor) {
+                return Err(Failure::Refused(Refusal::GoalFatUnderItsFloor {
+                    percent: floor,
+                }));
+            }
             Kept::Own(goals(typed.body_mass_kg, typed.fat_percentage).map_err(Failure::Refused)?)
         }
         Kept::Recommended => Kept::Recommended,
