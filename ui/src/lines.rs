@@ -472,8 +472,7 @@ pub const WATER_WHY: &str = "Recommended: once the tapes read a lean mass, 68% o
 pub const BURN_TARGET_HOW: &str = "Net kilocalories a day your workouts aim to burn, rest set aside. Leave it \
     empty to follow the recommendation, shown in grey.";
 
-pub const BURN_TARGET_WHY: &str =
-    "Recommended: WHO's 150 minutes a week of moderate activity, priced on your body.";
+pub const BURN_TARGET_WHY: &str = "Recommended: 75 kcal a day, your own pick, not a guideline.";
 
 pub const USUAL_DAY_HOW: &str = "Outside workouts: the minutes you usually sit and stand, the kilometres you \
     usually move. It prices the day's NEAT. Type some alone and the others keep their recommendation; leave all \
