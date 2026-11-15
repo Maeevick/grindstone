@@ -106,6 +106,9 @@ pub fn failure(failure: &Failure) -> String {
         Failure::Refused(Refusal::NotARatio) => {
             "A fat target between 0 and 100%, the goblin way or any other.".into()
         }
+        Failure::Refused(Refusal::GoalFatUnderItsFloor { percent }) => {
+            format!("A fat goal of {percent}% at least: this tracker files none lower.")
+        }
         Failure::Refused(Refusal::NotAProfile) => {
             "Recommendations need the rusty you first: birthday, gender and height.".into()
         }

@@ -551,6 +551,47 @@ mod tests {
         }
     }
 
+    #[test]
+    fn a_goal_fat_under_10_percent_for_a_man_or_17_for_a_woman_is_refused() {
+        let a_woman = GatherRecordsInMemory::default();
+        a_woman
+            .save_profile(
+                NaiveDate::from_ymd_opt(2026, 3, 1).expect("a real day"),
+                &Profile {
+                    birthday: NaiveDate::from_ymd_opt(1990, 6, 1).expect("a real day"),
+                    gender: Gender::Female,
+                    height_cm: 168.0,
+                    neck_cm: 32.0,
+                    hip_cm: Some(96.0),
+                },
+            )
+            .expect("a profile saves");
+        let a_man = born("1985-04-12");
+        let kept = |gather: &GatherRecordsInMemory, fat_percentage| {
+            set_goals(gather, &goals_kept("2026-10-10", 60.0, fat_percentage))
+                .map(|in_force| in_force.map(|goals| goals.values.fat_ratio))
+        };
+
+        assert_eq!(
+            [
+                kept(&a_man, 9.9),
+                kept(&a_man, 10.0),
+                kept(&a_woman, 16.9),
+                kept(&a_woman, 17.0)
+            ],
+            [
+                Err(Failure::Refused(Refusal::GoalFatUnderItsFloor {
+                    percent: 10
+                })),
+                Ok(Some(0.1)),
+                Err(Failure::Refused(Refusal::GoalFatUnderItsFloor {
+                    percent: 17
+                })),
+                Ok(Some(0.17))
+            ]
+        );
+    }
+
     /// A profile kept with no card started beside it, as records kept before a first profile seeded them.
     fn born(birthday: &str) -> GatherRecordsInMemory {
         let gather = GatherRecordsInMemory::default();

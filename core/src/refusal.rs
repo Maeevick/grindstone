@@ -9,6 +9,10 @@ pub enum Refusal {
     NotANeck,
     NotAHip,
     NotARatio,
+    /// A goal's fat under the tracker's floor for the gender, in percent.
+    GoalFatUnderItsFloor {
+        percent: u32,
+    },
     NotAName,
     NotAMet,
     NotADuration,
@@ -30,5 +34,8 @@ pub enum Refusal {
     NotAnEnergy,
     NotACopy,
     NoCopyPushed,
-    AnotherSchema { copy: i64, store: i64 },
+    AnotherSchema {
+        copy: i64,
+        store: i64,
+    },
 }
