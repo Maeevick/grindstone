@@ -116,6 +116,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
         band.goal_kcal,
         band.maintenance_kcal,
         band.cap_kcal,
+        band.alpert_kcal,
     );
     let placed = energy_gauge_of(
         eaten,
@@ -155,6 +156,12 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                         }
                     })}
                 <line class="minimum" x1=placed.minimum_at x2=placed.minimum_at y1="3" y2="21" />
+                {(band.alpert_kcal > band.minimum_kcal)
+                    .then(|| {
+                        view! {
+                            <line class="alpert" x1=placed.alpert_at x2=placed.alpert_at y1="3" y2="21" />
+                        }
+                    })}
                 <line class="goal" x1=placed.goal_at x2=placed.goal_at y1="3" y2="21" />
                 <line
                     class="maintenance"
@@ -179,14 +186,25 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 ),
                 (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc", Anchor::Tick),
             ] />
-            <TickRow labels=vec![
-                (
-                    placed.maintenance_at,
-                    format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal))),
-                    "acc",
-                    Anchor::Tick,
-                ),
-            ] />
+            <TickRow labels=(band.alpert_kcal > band.minimum_kcal)
+                .then(|| {
+                    (
+                        placed.alpert_at,
+                        format!("Alpert {}", bare(Figure::Energy(band.alpert_kcal))),
+                        "good",
+                        Anchor::Tick,
+                    )
+                })
+                .into_iter()
+                .chain([
+                    (
+                        placed.maintenance_at,
+                        format!("Maintenance {}", bare(Figure::Energy(band.maintenance_kcal))),
+                        "acc",
+                        Anchor::Tick,
+                    ),
+                ])
+                .collect() />
         </div>
     }
 }

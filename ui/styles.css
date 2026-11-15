@@ -728,6 +728,13 @@ p.bad:empty {
 	vector-effect: non-scaling-stroke;
 }
 
+/* Alpert's largest deficit, the whole fat mass spared, in the band's green. */
+.fuel-gauge .alpert {
+	stroke: #5fd99f;
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
+}
+
 /* The band below the goal tick, from its floor: green still, but dashed. */
 .fuel-gauge .alpert-zone {
 	stroke: #5fd99f;

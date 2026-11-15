@@ -152,6 +152,7 @@ pub struct EnergyGauge {
     pub goal_at: f64,
     pub maintenance_at: f64,
     pub cap_at: f64,
+    pub alpert_at: f64,
     pub eaten_at: f64,
     pub ghost: Option<GhostEnergy>,
 }
@@ -167,7 +168,7 @@ pub struct GhostEnergy {
 
 pub fn energy_gauge_of(
     eaten: f64,
-    (minimum, floor, goal, maintenance, cap): (f64, f64, f64, f64, f64),
+    (minimum, floor, goal, maintenance, cap, alpert): (f64, f64, f64, f64, f64, f64),
     ghost: Option<(f64, (f64, f64, f64))>,
     width: f64,
 ) -> EnergyGauge {
@@ -181,6 +182,7 @@ pub fn energy_gauge_of(
         goal_at: at(goal),
         maintenance_at: at(maintenance),
         cap_at: at(cap),
+        alpert_at: at(alpert),
         eaten_at: at(eaten).clamp(0.0, width),
         ghost: ghost.map(|(eaten, (floor, maintenance, cap))| GhostEnergy {
             eaten_at: at(eaten).clamp(0.0, width),
@@ -487,7 +489,7 @@ mod tests {
     fn an_energy_gauge_runs_a_tenth_of_its_band_past_the_minimum_and_the_cap() {
         let gauge = energy_gauge_of(
             2200.0,
-            (1600.0, 2000.0, 2000.0, 2400.0, 2400.0),
+            (1600.0, 2000.0, 2000.0, 2400.0, 2400.0, 1600.0),
             None,
             960.0,
         );
@@ -504,7 +506,7 @@ mod tests {
 
     #[test]
     fn what_was_eaten_beyond_the_gauge_stays_on_its_edge() {
-        let band = (1600.0, 2000.0, 2000.0, 2400.0, 2400.0);
+        let band = (1600.0, 2000.0, 2000.0, 2400.0, 2400.0, 1600.0);
 
         assert_eq!(energy_gauge_of(100.0, band, None, 960.0).eaten_at, 0.0);
         assert_eq!(energy_gauge_of(5000.0, band, None, 960.0).eaten_at, 960.0);
@@ -514,7 +516,7 @@ mod tests {
     fn a_band_closed_on_its_minimum_sits_in_the_middle_of_a_gauge_a_tenth_of_it_wide() {
         let closed = energy_gauge_of(
             1800.0,
-            (1800.0, 1800.0, 1800.0, 1800.0, 1800.0),
+            (1800.0, 1800.0, 1800.0, 1800.0, 1800.0, 1800.0),
             None,
             960.0,
         );
@@ -529,7 +531,7 @@ mod tests {
     fn an_energy_gauge_stretches_to_hold_the_band_previewed_and_places_it_on_the_same_line() {
         let previewed = energy_gauge_of(
             2200.0,
-            (1600.0, 2000.0, 2000.0, 2400.0, 2400.0),
+            (1600.0, 2000.0, 2000.0, 2400.0, 2400.0, 1600.0),
             Some((2300.0, (2200.0, 2600.0, 2600.0))),
             1200.0,
         );
@@ -552,7 +554,7 @@ mod tests {
     fn an_energy_gauge_ticks_the_goal_where_it_falls_in_its_band() {
         let cutting = energy_gauge_of(
             2200.0,
-            (1600.0, 1700.0, 2050.0, 2400.0, 2400.0),
+            (1600.0, 1700.0, 2050.0, 2400.0, 2400.0, 1600.0),
             None,
             960.0,
         );
@@ -564,7 +566,7 @@ mod tests {
     fn an_energy_gauge_ticks_maintenance_where_it_falls_in_its_band() {
         let gaining = energy_gauge_of(
             2200.0,
-            (1600.0, 2000.0, 2000.0, 2100.0, 2400.0),
+            (1600.0, 2000.0, 2000.0, 2100.0, 2400.0, 1600.0),
             None,
             960.0,
         );
@@ -707,7 +709,7 @@ mod tests {
     fn a_band_narrower_than_a_tenth_of_its_top_keeps_a_tenth_of_the_top_for_its_margins() {
         let gauge = energy_gauge_of(
             2050.0,
-            (2000.0, 2020.0, 2040.0, 2060.0, 2100.0),
+            (2000.0, 2020.0, 2040.0, 2060.0, 2100.0, 2000.0),
             None,
             360.0,
         );
