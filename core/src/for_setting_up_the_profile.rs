@@ -889,6 +889,37 @@ mod tests {
     }
 
     #[test]
+    fn a_mans_water_target_never_kept_follows_a_fifth_above_efsas_drinks_weighed_taped_or_not() {
+        let hydrate = crate::testing::HydrateRecordsInMemory::default();
+        let (unweighed, weighed, taped) = (
+            born("1985-04-12"),
+            born("1985-04-12"),
+            born("1985-04-12"),
+        );
+        crate::for_tracking::log_measurement(&weighed, "2026-10-01", 80.0, None)
+            .expect("a measurement logs");
+        crate::for_tracking::log_measurement(&taped, "2026-10-01", 80.0, Some(82.0))
+            .expect("a measurement logs");
+        let followed = |gather: &GatherRecordsInMemory| {
+            (
+                hydrate_target_on(gather, &hydrate, "2026-10-10"),
+                recommended_on(
+                    gather,
+                    &BurnRecordsInMemory::default(),
+                    &FuelRecordsInMemory::default(),
+                    "2026-10-10",
+                )
+                .map(|advised| advised.water_ml),
+            )
+        };
+
+        assert_eq!(
+            [followed(&unweighed), followed(&weighed), followed(&taped)],
+            [0, 1, 2].map(|_| (Ok(recommended_ml(2500.0, None)), Ok(Some(2500.0))))
+        );
+    }
+
+    #[test]
     fn a_water_target_never_kept_follows_the_recommendation_efsas_base_before_a_lean_mass_its_turnover_after()
      {
         let hydrate = crate::testing::HydrateRecordsInMemory::default();
