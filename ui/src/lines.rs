@@ -458,8 +458,8 @@ pub const FUEL_TARGETS_HOW: &str = "Your targets, in grams a day per kilo of bod
 
 pub const FUEL_TARGETS_WHY: &str = "Recommended: protein from EFSA's 0.83 g per kg of body mass to 2.2 g, past which \
     training builds no more lean mass; fat from 20% of the day's energy (what is eaten, never less than the band's \
-    floor) to 35% of the band's cap; fibre from 25 g; carbs from 130 g, the brain's glucose. A target stretches \
-    its bounds 5% either side of it, never inside the recommendation: your rule.";
+    floor) to 35% of the band's cap; fibre from 25 g; carbs from 130 g, the brain's glucose. A target keeps \
+    its bounds 20% either side of it, within the recommendation: your rule.";
 
 pub const WATER_HOW: &str = "Your water a day, in mL, before the burn: the day's band adds what your workouts \
     sweat out. Leave it empty to follow the recommendation, shown in grey.";
