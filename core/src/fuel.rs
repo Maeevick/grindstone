@@ -149,8 +149,8 @@ fn digested(eaten: Nutrients) -> Eaten {
     }
 }
 
-/// The day's band around its maintenance, the budget plus the burn: the floor is what the whole fat mass can
-/// spare below it; the cap, a twentieth above it, the small surplus of a gain, or with a gain to aim for, the
+/// The day's band around its maintenance, the budget plus the burn: the floor is what the fat left to lose above
+/// the fat of the goals can spare below it, never under the minimum; the cap, a twentieth above it, the small surplus of a gain, or with a gain to aim for, the
 /// most a body should gain, half a percent of its mass a week; the goal tick, with a gain to aim for, that small
 /// surplus, else what the fat left to lose above the fat of the goals can spare.
 /// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
@@ -193,7 +193,7 @@ fn band_for(
     let narrowest_kcal = NARROWEST_BAND_SHARE * maintenance_kcal;
     let (floor_kcal, cap_kcal) = widened(
         (
-            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg,
+            maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * fat_left_kg,
             gain_cap_kcal,
         ),
         narrowest_kcal,
@@ -701,37 +701,6 @@ mod tests {
     }
 
     #[test]
-    fn the_bands_floor_is_maintenance_less_what_the_whole_fat_mass_can_spare() {
-        let lean_waist_cm = 74.0;
-        let fat_kg = crate::composition::body_composition(
-            80.0,
-            180.0,
-            crate::composition::Tapes::Male {
-                neck_cm: 38.5,
-                waist_cm: lean_waist_cm,
-            },
-        )
-        .expect("a composition")
-        .fat_mass_kg;
-
-        let fuelled = fuel_on(
-            "2026-10-10",
-            &a_mans_records(lean_waist_cm),
-            &a_desk_job(),
-            &aiming(),
-        );
-
-        assert!(
-            fuelled.band.is_some_and(|band| about(
-                band.floor_kcal,
-                band.maintenance_kcal - 290.0 / 4.184 * fat_kg
-            )),
-            "{:?}",
-            fuelled.band
-        );
-    }
-
-    #[test]
     fn the_bands_floor_is_maintenance_less_what_the_fat_left_to_lose_can_spare() {
         let waist_cm = 84.0;
         let fat_kg = crate::composition::body_composition(
@@ -819,8 +788,9 @@ mod tests {
         .band
         .expect("a band");
 
-        let middle =
-            band.maintenance_kcal + (0.05 * band.maintenance_kcal - 290.0 / 4.184 * fat_kg) / 2.0;
+        let fat_left_kg = (fat_kg - 70.0 * 0.1).max(0.0);
+        let middle = band.maintenance_kcal
+            + (0.05 * band.maintenance_kcal - 290.0 / 4.184 * fat_left_kg) / 2.0;
         assert!(
             about(band.floor_kcal, middle - 0.05 * band.maintenance_kcal)
                 && about(band.cap_kcal, middle + 0.05 * band.maintenance_kcal),
