@@ -25,8 +25,8 @@ The screenshots show fictional records.
 
 ## What it does
 
-- 🏠 **Home:** today's four ticks, the streak, the unwanted tips over 7, 30 or 90 days or everything, and the history.
-- ⚖️ **Gather:** weigh-ins and waist, the lean and fat masses they give, and the pace towards your goals within a safe lane.
+- 🏠 **Home:** today's four ticks, the streak, the unwanted tips over 30 or 90 days or everything, and the history.
+- ⚖️ **Gather:** weigh-ins and waist, the lean and fat masses they give, and the pace a week towards your goals.
 - ⚡ **Fuel:** foods, meals and plates from your own catalog, an energy band from a floor to a cap, and the four macros.
 - 💧 **Hydrate:** drinks against a water band drawn from your lean mass.
 - 🔥 **Burn:** workouts and circuits priced in kcal, and the day off the clock.
