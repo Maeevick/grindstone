@@ -123,6 +123,16 @@ const MIGRATIONS: &[&str] = &[
      drop table fuel_targets;
      alter table fuel_goals rename to fuel_targets;",
     "drop table switch_over",
+    // Version 28 dropped the days off the clock and the usual days in a build since reverted: it stays empty here,
+    // so no other store loses them, and version 29 brings them back to the store that build left.
+    "",
+    "create table if not exists days_off_the_clock (
+         day text primary key, sitting_min real not null, standing_min real not null, moving_km real not null
+     );
+     create table if not exists usual_days (
+         effective_from text primary key, sitting_min real not null, standing_min real not null,
+         moving_km real not null, recommended integer not null default 0
+     );",
 ];
 
 /// A version as kept: the recommendation is written as a flag over values nobody reads.
