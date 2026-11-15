@@ -73,25 +73,31 @@ The studies and guidelines behind Grindstone's figures, numbered. The code cites
 ## Macronutrients
 
 21. Jäger R., Kerksick C. M., Campbell B. I., et al. (2017). *International Society of Sports Nutrition position stand: protein and exercise*. Journal of the International Society of Sports Nutrition 14:20. <https://pubmed.ncbi.nlm.nih.gov/28642676/>
-   Used for: Protein of 1.4 to 2.0 g per kilo for those who train.
+   Not used at the moment; was: protein of 1.4 to 2.0 g per kilo for those who train.
 
 22. Morton R. W., Murphy K. T., McKellar S. R., et al. (2018). *A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults*. British Journal of Sports Medicine 52(6):376-384. <https://pmc.ncbi.nlm.nih.gov/articles/PMC5867436/>
-   Used for: Protein of 1.6 g per kilo, where the gains in lean mass from training level off.
+   Used for: Protein of 2.2 g per kilo at most, the upper bound of the break point (1.62 g, 1.03 to 2.20) past which training gains no more lean mass.
 
 23. EFSA Panel on Dietetic Products, Nutrition and Allergies (2010). *Scientific Opinion on Dietary Reference Values for fats, including saturated fatty acids, polyunsaturated fatty acids, monounsaturated fatty acids, trans fatty acids, and cholesterol*. EFSA Journal 8(3):1461. <https://doi.org/10.2903/j.efsa.2010.1461>
    Used for: Fat of 20 to 35% of the day's energy.
 
 24. World Health Organization (2023). *Total fat intake for the prevention of unhealthy weight gain in adults and children: WHO guideline*. World Health Organization, Geneva. <https://www.who.int/publications/i/item/9789240073654>
-   Used for: Fat of 30% of the day's energy at most.
+   Not used at the moment; was: fat of 30% of the day's energy at most.
 
 25. EFSA Panel on Dietetic Products, Nutrition and Allergies (2010). *Scientific Opinion on Dietary Reference Values for carbohydrates and dietary fibre*. EFSA Journal 8(3):1462. <https://doi.org/10.2903/j.efsa.2010.1462>
-   Used for: Fibre of 25 g a day for adults.
+   Used for: Fibre of 25 g a day at least for adults.
 
 26. World Health Organization (2023). *Carbohydrate intake for adults and children: WHO guideline*. World Health Organization, Geneva. <https://www.who.int/publications/i/item/9789240073593>
-   Used for: Fibre of at least 25 g a day, behind the recommended fibre.
+   Not used at the moment; was: fibre of at least 25 g a day, behind the recommended fibre.
 
 27. Institute of Medicine (2005). *Dietary Reference Intakes for energy, carbohydrate, fiber, fat, fatty acids, cholesterol, protein, and amino acids*. The National Academies Press, Washington. <https://doi.org/10.17226/10490>
-   Used for: At least 130 g of carbohydrates, and fibre of 14 g per 1000 kcal.
+   Not used at the moment; was: protein of 10 to 35% of the energy, fibre of 14 g per 1000 kcal and carbohydrates of 130 g at least.
+
+32. EFSA Panel on Dietetic Products, Nutrition and Allergies (2012). *Scientific Opinion on Dietary Reference Values for protein*. EFSA Journal 10(2):2557. <https://doi.org/10.2903/j.efsa.2012.2557>; figure quoted from EFSA's press release, <https://www.efsa.europa.eu/en/press/news/120209>
+   Used for: Protein of 0.83 g per kilo of body weight a day at least for adults.
+
+33. European Commission (2013). *Commission Regulation (EU) No 1018/2013 amending Regulation (EU) No 432/2012 establishing a list of permitted health claims made on foods other than those referring to the reduction of disease risk and to children's development and health*. Official Journal of the European Union. <https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R1018>
+   Used for: Carbohydrates of 130 g a day at least, the glucose the brain needs.
 
 ## Water
 
