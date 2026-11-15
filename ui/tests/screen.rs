@@ -5273,20 +5273,6 @@ async fn a_day_drunk_inside_its_band_says_no_more_than_its_line() {
 }
 
 #[wasm_bindgen_test]
-async fn drinking_past_the_cap_says_to_spread_the_cups_out() {
-    answering(&format!(
-        r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_PAST_THE_CAP} }}"#
-    ));
-    let screen = screen();
-
-    let _mounted = the_day_of(&screen, RwSignal::new("2026-10-12".to_string()));
-    settled().await;
-
-    let day = screen.text_content().unwrap_or_default();
-    assert!(day.contains("about a litre an hour"), "{day}");
-}
-
-#[wasm_bindgen_test]
 async fn drinks_past_the_cap_say_nothing_of_kidneys() {
     answering(&format!(
         r#"{{ "drinks": {THE_CATALOG}, "hydrate_day": {A_DAY_PAST_THE_CAP} }}"#

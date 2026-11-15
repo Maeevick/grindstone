@@ -6,7 +6,7 @@ use grind_core::for_hydrating::DrinkingForm;
 use grind_core::for_setting_up_the_profile::HydrateTargetForm;
 use grind_core::hydrate::{Hydrate, WATER_SHARE_FLOOR_PERCENT};
 use grind_core::kept::Kept;
-use grind_core::verdict::{Verdict, verdict_of};
+use grind_core::verdict::verdict_of;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -96,7 +96,6 @@ fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -
     let drunk_with_it = move || about_to_drink.get().map(|ml| drunk_ml + ml);
     let total = lines::drunk_line(&of_the_day);
     let verdict_class = lines::verdict_class(of_the_day.verdict);
-    let past_the_cap = of_the_day.verdict == Verdict::High;
     let (water_ml, water_share) = (of_the_day.water_ml(), of_the_day.water_share());
     let others_share = if drunk_ml > 0.0 {
         100.0 - water_share
@@ -125,7 +124,6 @@ fn WhereTheDayStands(of_the_day: Hydrate, about_to_drink: Signal<Option<f64>>) -
                     />
                 }
             }}
-            {past_the_cap.then(|| view! { <p class="bad">{lines::PAST_THE_CAP}</p> })}
             <table class="kinds">
                 <thead>
                     <tr>
