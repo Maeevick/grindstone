@@ -4504,6 +4504,53 @@ async fn every_screen_wears_the_streak_in_its_header_just_above_todays_tiles() {
 }
 
 #[wasm_bindgen_test]
+async fn each_tab_holds_its_stats_its_window_and_its_own_chart_just_before_its_last_days() {
+    let charts = format!(
+        r#"{{ {THE_CHARTS}, "pace_over_the_window": {A_PACE}, "fuel_over_the_window": {A_FUEL_WEEK},
+             "hydrate_over_the_window": null, "burn_over_the_window": {A_BURN_WEEK},
+             "gather_month": {{ "month": "2026-10", "earlier": null, "rows": [] }} }}"#
+    );
+    answering_all(&[A_HOME, EVERY_TAB, &charts]);
+    let screen = screen();
+    let _mounted = the_app(&screen);
+    settled().await;
+
+    let mut held = Vec::new();
+    for (page, line) in [
+        ("/gather", "polyline.mass"),
+        ("/fuel", "polyline.intake"),
+        ("/hydrate", "polyline.drunk"),
+        ("/burn", "polyline.burnt"),
+    ] {
+        went_to(page);
+        settled().await;
+        settled().await;
+        held.push((
+            page,
+            text_of(&screen, "section.card.stats + section.card.last-days h2"),
+            text_of(&screen, "section.card.stats h2"),
+            texts_in_order(&screen, "section.card.stats button[class*='window-']"),
+            screen
+                .query_selector(&format!("section.card.stats svg {line}"))
+                .ok()
+                .flatten()
+                .is_some(),
+        ));
+    }
+
+    assert_eq!(
+        held,
+        ["/gather", "/fuel", "/hydrate", "/burn"].map(|page| (
+            page,
+            "The last days".to_string(),
+            "Stats".to_string(),
+            ["30 days", "90 days", "∞"].map(String::from).to_vec(),
+            true
+        ))
+    );
+}
+
+#[wasm_bindgen_test]
 async fn the_logo_and_the_name_lead_home_from_every_screen() {
     answering_all(&[A_HOME, EVERY_TAB]);
     let screen = screen();
