@@ -150,6 +150,8 @@ pub fn aim_gauge_of(amount: f64, aim: Aim, width: f64) -> AimGauge {
 pub struct EnergyGauge {
     pub minimum_at: f64,
     pub floor_at: f64,
+    pub firm_floor_at: f64,
+    pub firm_cap_at: f64,
     pub goal_at: f64,
     pub maintenance_at: f64,
     pub cap_at: f64,
@@ -182,6 +184,8 @@ pub fn energy_gauge_of(
     EnergyGauge {
         minimum_at: at(band.minimum_kcal),
         floor_at: at(band.floor_kcal),
+        firm_floor_at: at(band.firm_floor_kcal),
+        firm_cap_at: at(band.firm_cap_kcal),
         goal_at: at(band.goal_kcal),
         maintenance_at: at(band.maintenance_kcal),
         cap_at: at(band.cap_kcal),

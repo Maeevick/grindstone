@@ -1,5 +1,5 @@
 use grind_core::figures::{Figure, bare};
-use grind_core::fuel::Band;
+use grind_core::fuel::{Band, Mode};
 use grind_core::heading::Aim;
 use leptos::prelude::*;
 
@@ -118,10 +118,18 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
     );
     view! {
         <div class="gauge fuel-gauge">
+            <p class="gauge-title">{lines::mode_name(band.mode)}</p>
             <svg viewBox="0 0 360 24" preserveAspectRatio="none" aria-hidden="true">
                 <rect class="track" x="0" y="9" width="360" height="6" />
-                <line class="floor-zone" x1=placed.floor_at x2=placed.goal_at y1="12" y2="12" />
-                <rect class="band" x=placed.goal_at y="9" width=placed.cap_at - placed.goal_at height="6" />
+                <line class="floor-zone" x1=placed.floor_at x2=placed.firm_floor_at y1="12" y2="12" />
+                <line class="cap-zone" x1=placed.firm_cap_at x2=placed.cap_at y1="12" y2="12" />
+                <rect
+                    class="band"
+                    x=placed.firm_floor_at
+                    y="9"
+                    width=placed.firm_cap_at - placed.firm_floor_at
+                    height="6"
+                />
                 {placed
                     .ghost
                     .map(|ghost| {
@@ -149,7 +157,8 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                             <line class="alpert" x1=placed.alpert_at x2=placed.alpert_at y1="3" y2="21" />
                         }
                     })}
-                <line class="goal" x1=placed.goal_at x2=placed.goal_at y1="3" y2="21" />
+                {(band.mode != Mode::Holding)
+                    .then(|| view! { <line class="goal" x1=placed.goal_at x2=placed.goal_at y1="3" y2="21" /> })}
                 <line
                     class="maintenance"
                     x1=placed.maintenance_at
@@ -160,7 +169,7 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                 {placed.ghost.map(|ghost| view! { <circle class="ghost" cx=ghost.eaten_at cy="12" r="5" /> })}
                 <circle class="eaten" cx=placed.eaten_at cy="12" r="5" />
             </svg>
-            <TickRow labels=vec![
+            <TickRow labels=[
                 (
                     placed.minimum_at,
                     format!(
@@ -171,8 +180,20 @@ pub fn FuelGauge(eaten: f64, band: Band, ghost: Option<(f64, Band)>) -> impl Int
                     "low",
                     Anchor::EndsAt,
                 ),
-                (placed.goal_at, format!("Goal {}", bare(Figure::Energy(band.goal_kcal))), "acc", Anchor::Tick),
-            ] />
+            ]
+                .into_iter()
+                .chain(
+                    (band.mode != Mode::Holding)
+                        .then(|| {
+                            (
+                                placed.goal_at,
+                                format!("Goal {}", bare(Figure::Energy(band.goal_kcal))),
+                                "acc",
+                                Anchor::Tick,
+                            )
+                        }),
+                )
+                .collect() />
             <TickRow labels=(band.alpert_kcal > band.minimum_kcal)
                 .then(|| {
                     (

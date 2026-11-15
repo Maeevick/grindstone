@@ -735,8 +735,9 @@ p.bad:empty {
 	vector-effect: non-scaling-stroke;
 }
 
-/* The band below the goal tick, from its floor: green still, but dashed. */
-.fuel-gauge .floor-zone {
+/* The band's stretches beyond where it holds firm, towards Alpert or the goal: green still, but dashed. */
+.fuel-gauge .floor-zone,
+.fuel-gauge .cap-zone {
 	stroke: #5fd99f;
 	stroke-width: 6;
 	stroke-dasharray: 6 4;

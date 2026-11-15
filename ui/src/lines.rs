@@ -194,8 +194,11 @@ pub const NO_FOOD: &str = "The catalog has no food yet. Add one with its figures
 
 /// The mode the goals set the band in, said above its gauge.
 pub fn mode_name(mode: Mode) -> &'static str {
-    let _ = mode;
-    ""
+    match mode {
+        Mode::Leaning => "Leaning",
+        Mode::Holding => "Holding",
+        Mode::Bulking => "Bulking",
+    }
 }
 
 pub fn energy_line(fuel: &Fuel) -> String {
