@@ -158,6 +158,8 @@ fn digested(eaten: Nutrients) -> Eaten {
 /// of the goals can spare. The cap stands a twentieth above maintenance, or with a gain to aim for, at the most a body
 /// should gain, half a percent of its mass a week. The floor mirrors the cap: as far below the lower of the goal tick
 /// and maintenance as the cap stands above the higher, the user's rule.
+/// The Alpert tick, the largest deficit the fat store can feed, stands below maintenance by what the whole fat mass
+/// can spare.
 /// A band narrower than a tenth of the maintenance widens around its middle, and neither end falls under a
 /// minimum per kilo of lean mass plus the burn.
 ///
@@ -212,7 +214,7 @@ fn band_for(
         cap_kcal: cap_kcal.max(minimum_kcal),
         goal_kcal: goal_kcal.max(minimum_kcal),
         maintenance_kcal,
-        alpert_kcal: 0.0,
+        alpert_kcal: (maintenance_kcal - SPARED_KCAL_PER_KG_OF_FAT * body.fat_kg).max(minimum_kcal),
     };
     (band, budget)
 }
