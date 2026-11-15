@@ -2662,6 +2662,24 @@ async fn fuels_band_runs_dashed_from_alpert_to_its_goal_then_solid_to_its_cap() 
 }
 
 #[wasm_bindgen_test]
+async fn fuels_gauge_names_no_alpert_floor_the_goal_tick_marking_a_cuts_floor() {
+    answering(&format!(
+        r#"{{ "foods": [], "fuel_day": {A_FUELLED_DAY} }}"#
+    ));
+    let screen = screen();
+
+    let _mounted = the_fuel_day(&screen);
+    settled().await;
+
+    assert_eq!(
+        texts_in_order(&screen, ".fuel-gauge .tick-label"),
+        ["EA25 1768", "Goal 2199", "Maintenance 2425"]
+            .map(String::from)
+            .to_vec()
+    );
+}
+
+#[wasm_bindgen_test]
 async fn alpert_steps_aside_when_the_floor_is_the_minimum() {
     let held = A_FUELLED_DAY.replace(r#""floor_kcal": 2199.4"#, r#""floor_kcal": 1767.5"#);
     answering(&format!(r#"{{ "foods": [], "fuel_day": {held} }}"#));
