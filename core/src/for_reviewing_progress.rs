@@ -75,15 +75,9 @@ pub fn streak(
     Ok(streak_of(&ticked, today))
 }
 
-/// A day's energy stands in its band and each of its four macros in its own, as the gauge and the table show
-/// them.
+/// A day's energy stands in its band, as the gauge shows it; the macros only inform, the user's rule.
 fn fuelled_in_band(fuelled: &Fuel) -> bool {
     fuelled.energy == Some(Verdict::InBand)
-        && fuelled.macros.is_some_and(|macros| {
-            [macros.protein, macros.fat, macros.fibre, macros.carbs]
-                .iter()
-                .all(|row| row.verdict == Verdict::InBand)
-        })
 }
 
 /// A day's drinks stand in their band and at least four fifths of them are water, as shown.
