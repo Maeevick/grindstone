@@ -439,12 +439,6 @@ pub const NOTHING_TO_CHART: &str = "Nothing filed in this window yet. The parchm
 
 pub const NOTHING_THIS_MONTH: &str = "Nothing filed this month yet.";
 
-pub const NOTHING_THESE_DAYS: &str = "Nothing filed these days yet.";
-
-pub fn load_the_rest_of(month: &str) -> String {
-    format!("Load the rest of {}", month_name(month))
-}
-
 pub fn load_the_month(month: &str) -> String {
     format!("Load {}", month_name(month))
 }
@@ -1230,19 +1224,10 @@ mod tests {
         let said = [
             month_name("2026-10"),
             month_name("Brumaire"),
-            load_the_rest_of("2026-10"),
             load_the_month("2026-09"),
         ];
 
-        assert_eq!(
-            said,
-            [
-                "October 2026",
-                "Brumaire",
-                "Load the rest of October 2026",
-                "Load September 2026",
-            ]
-        );
+        assert_eq!(said, ["October 2026", "Brumaire", "Load September 2026",]);
     }
 
     #[test]

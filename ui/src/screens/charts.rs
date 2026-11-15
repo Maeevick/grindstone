@@ -358,7 +358,7 @@ fn months_of<Row: Clone + Send + Sync + 'static>(months: RwSignal<Vec<Month<Row>
 #[component]
 fn LoadMore(earlier: Option<String>, load: Callback<String>) -> impl IntoView {
     earlier.map(|month| {
-        let label = format!("Load {}", lines::month_name(&month));
+        let label = lines::load_the_month(&month);
         view! {
             <button class="cta ghost more" type="button" on:click=move |_| load.run(month.clone())>
                 {label}

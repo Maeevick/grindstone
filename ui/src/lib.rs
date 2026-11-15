@@ -1,7 +1,6 @@
 pub mod app;
 pub mod chart;
 pub mod choice;
-pub mod days;
 pub mod lines;
 pub mod screens;
 pub mod tauri;

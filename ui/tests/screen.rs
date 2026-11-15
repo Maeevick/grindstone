@@ -37,7 +37,6 @@ use grind_ui::screens::fuel::FuelDay;
 use grind_ui::screens::gather::GatherTab;
 use grind_ui::screens::gauge::{AimGauge, BurnGauge, FuelGauge, Gauge};
 use grind_ui::screens::hydrate::HydrateDay;
-use grind_ui::screens::last_days::{BurnLastDays, FuelLastDays, GatherLastDays, HydrateLastDays};
 use grind_ui::screens::plate::PlateInProgress;
 use grind_ui::screens::profile::ProfileScreen;
 use grind_ui::screens::settings::Settings;
@@ -2850,105 +2849,7 @@ fn fuelled_on(date: &str, kcal: f64) -> String {
 }
 
 #[wasm_bindgen_test]
-async fn the_last_days_show_the_week_up_to_the_day_then_the_rest_of_its_month_then_the_month_before()
- {
-    answering(&format!(
-        r#"{{ "fuel_month": {{ "__by": "month",
-            "2026-10": {{ "month": "2026-10", "earlier": "2026-08", "rows": [{}, {}, {}, {}] }},
-            "2026-08": {{ "month": "2026-08", "earlier": null, "rows": [{}, {}] }} }},
-            "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#,
-        fuelled_on("2026-10-10", 2400.0),
-        fuelled_on("2026-10-09", 2300.0),
-        fuelled_on("2026-10-05", 2200.0),
-        fuelled_on("2026-10-02", 2100.0),
-        fuelled_on("2026-08-31", 2000.0),
-        fuelled_on("2026-08-15", 1900.0),
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
-        view! {
-            <Router>
-                <FuelLastDays day=day />
-            </Router>
-        }
-    });
-    settled().await;
-    let days = |screen: &Element| texts_in_order(screen, ".last-days tbody tr td:first-child");
-
-    let a_week = days(&screen);
-    let first_more = text_of(&screen, ".last-days button.more");
-    clicked(&screen, ".last-days button.more");
-    settled().await;
-    let the_month = days(&screen);
-    let then_more = text_of(&screen, ".last-days button.more");
-    clicked(&screen, ".last-days button.more");
-    settled().await;
-
-    assert_eq!(a_week, ["2026-10-10", "2026-10-09", "2026-10-05"]);
-    assert_eq!(first_more, "Load the rest of October 2026");
-    assert_eq!(
-        the_month,
-        ["2026-10-10", "2026-10-09", "2026-10-05", "2026-10-02"]
-    );
-    assert_eq!(then_more, "Load August 2026");
-    assert_eq!(
-        days(&screen),
-        [
-            "2026-10-10",
-            "2026-10-09",
-            "2026-10-05",
-            "2026-10-02",
-            "2026-08-31",
-            "2026-08-15"
-        ]
-    );
-    assert!(
-        screen
-            .query_selector(".last-days button.more")
-            .ok()
-            .flatten()
-            .is_none()
-    );
-    assert!(text_of(&screen, ".last-days tr.chosen").contains("2026-10-10"));
-}
-
-#[wasm_bindgen_test]
-async fn the_picked_day_stands_in_gold_in_its_last_days_at_zero_with_nothing_logged() {
-    answering(&format!(
-        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
-            "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#,
-        r#"{ "day": "2026-10-12", "eaten": { "energy_kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0,
-            "fat_g": 0.0, "fibre_g": 0.0 }, "quantity": 0.0 }"#,
-        fuelled_on("2026-10-10", 2400.0),
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-12".to_string());
-        view! {
-            <Router>
-                <FuelLastDays day=day />
-            </Router>
-        }
-    });
-    settled().await;
-
-    assert_eq!(
-        (
-            asked("fuel_month").contains(r#""picked":"2026-10-12""#),
-            texts_in_order(&screen, ".last-days tr.chosen td")
-        ),
-        (
-            true,
-            ["2026-10-12", "0", "0", "0", "0", "0", "0"]
-                .map(String::from)
-                .to_vec()
-        )
-    );
-}
-
-#[wasm_bindgen_test]
-async fn the_picked_day_not_weighed_stands_in_gathers_last_days_with_a_dash() {
+async fn a_day_not_weighed_stands_in_gathers_history_with_a_dash() {
     answering(
         r#"{ "gather_month": { "month": "2026-10", "earlier": null, "rows": [
             { "day": "2026-10-12", "body_mass_kg": null, "waist_cm": null, "lean_mass_kg": null,
@@ -2959,109 +2860,18 @@ async fn the_picked_day_not_weighed_stands_in_gathers_last_days_with_a_dash() {
         let day = RwSignal::new("2026-10-12".to_string());
         view! {
             <Router>
-                <GatherLastDays day=day />
+                <History chip=Chip::Gather today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
 
     assert_eq!(
-        texts_in_order(&screen, ".last-days tr.chosen td"),
-        ["2026-10-12", "–", "", "", ""].map(String::from).to_vec()
-    );
-}
-
-#[wasm_bindgen_test]
-async fn fuels_last_days_end_on_the_grams_and_millilitres_eaten() {
-    answering(&format!(
-        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}] }},
-            "fuel_day": {A_DAY_NOT_FUELLED_YET} }}"#,
-        fuelled_on("2026-10-10", 2400.0),
-    ));
-    let screen = screen();
-    let _mounted = leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
-        view! {
-            <Router>
-                <FuelLastDays day=day />
-            </Router>
-        }
-    });
-    settled().await;
-
-    assert_eq!(
-        (
-            texts_in_order(&screen, ".last-days thead th"),
-            texts_in_order(&screen, ".last-days tbody td")
-        ),
-        (
-            [
-                "Day",
-                "Energy (kcal)",
-                "Prot (g)",
-                "Fat (g)",
-                "Fib (g)",
-                "Carbs (g)",
-                "Qty (g)"
-            ]
+        texts_in_order(&screen, ".history tr.chosen td"),
+        ["2026-10-12", "–", "", "", "", ""]
             .map(String::from)
-            .to_vec(),
-            ["2026-10-10", "2400", "100", "60", "30", "200", "550"]
-                .map(String::from)
-                .to_vec()
-        )
+            .to_vec()
     );
-}
-
-/// A day of Fuel with one food eaten.
-fn fuelled_with(date: &str, food: &str, grams: f64, kcal: f64) -> String {
-    format!(
-        r#"{{ "day": "{date}", "intakes": [[1, {{ "day": "{date}", "food": "{food}", "unit": "Gram",
-            "quantity": {grams}, "nutrients": {{ "energy_kcal": {kcal}, "protein_g": 19.0, "carbs_g": 8.0,
-            "fat_g": 1.0, "fibre_g": 2.0 }} }}]],
-            "eaten": {{ "energy_kcal": {kcal}, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 1.0, "fibre_g": 2.0 }},
-            "band": null, "energy": null, "macros": null }}"#
-    )
-}
-
-fn fuels_last_days(screen: &Element) -> impl Drop {
-    answering(&format!(
-        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
-            "fuel_day": {{ "__by": "date", "2026-10-10": {}, "2026-10-09": {} }} }}"#,
-        fuelled_on("2026-10-10", 108.0),
-        fuelled_on("2026-10-09", 880.0),
-        fuelled_with("2026-10-10", "Skyr", 200.0, 108.0),
-        fuelled_with("2026-10-09", "Pasta in cream", 350.0, 880.0),
-    ));
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        let day = RwSignal::new("2026-10-10".to_string());
-        view! {
-            <Router>
-                <FuelLastDays day=day />
-            </Router>
-        }
-    })
-}
-
-fn fuels_history(screen: &Element) -> impl Drop {
-    answering(&format!(
-        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
-            "fuel_day": {{ "__by": "date", "2026-10-10": {}, "2026-10-09": {} }}, "meals": [],
-            "streak": {{ "days": 2, "longest": 5, "at_risk": true, "history": [
-                {{ "day": "2026-10-09", "status": "Joker", "ticks": {{ "weighed": true, "fuelled": false, "worked_out": true, "hydrated": true }} }},
-                {{ "day": "2026-10-10", "status": "Pending", "ticks": {{ "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true }} }} ] }} }}"#,
-        fuelled_on("2026-10-10", 108.0),
-        fuelled_on("2026-10-09", 880.0),
-        fuelled_with("2026-10-10", "Skyr", 200.0, 108.0),
-        fuelled_with("2026-10-09", "Pasta in cream", 350.0, 880.0),
-    ));
-    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
-        view! {
-            <Router>
-                <History chip=Chip::Fuel today="2026-10-10".to_string() />
-            </Router>
-        }
-    })
 }
 
 #[wasm_bindgen_test]
@@ -3108,72 +2918,63 @@ async fn a_tabs_history_tapped_opens_the_days_ticks_then_its_entries_their_cross
     );
 }
 
+/// A day of Fuel with one food eaten.
+fn fuelled_with(date: &str, food: &str, grams: f64, kcal: f64) -> String {
+    format!(
+        r#"{{ "day": "{date}", "intakes": [[1, {{ "day": "{date}", "food": "{food}", "unit": "Gram",
+            "quantity": {grams}, "nutrients": {{ "energy_kcal": {kcal}, "protein_g": 19.0, "carbs_g": 8.0,
+            "fat_g": 1.0, "fibre_g": 2.0 }} }}]],
+            "eaten": {{ "energy_kcal": {kcal}, "protein_g": 19.0, "carbs_g": 8.0, "fat_g": 1.0, "fibre_g": 2.0 }},
+            "band": null, "energy": null, "macros": null }}"#
+    )
+}
+
+fn fuels_history(screen: &Element) -> impl Drop {
+    answering(&format!(
+        r#"{{ "fuel_month": {{ "month": "2026-10", "earlier": null, "rows": [{}, {}] }},
+            "fuel_day": {{ "__by": "date", "2026-10-10": {}, "2026-10-09": {} }}, "meals": [],
+            "streak": {{ "days": 2, "longest": 5, "at_risk": true, "history": [
+                {{ "day": "2026-10-09", "status": "Joker", "ticks": {{ "weighed": true, "fuelled": false, "worked_out": true, "hydrated": true }} }},
+                {{ "day": "2026-10-10", "status": "Pending", "ticks": {{ "weighed": true, "fuelled": true, "worked_out": false, "hydrated": true }} }} ] }} }}"#,
+        fuelled_on("2026-10-10", 108.0),
+        fuelled_on("2026-10-09", 880.0),
+        fuelled_with("2026-10-10", "Skyr", 200.0, 108.0),
+        fuelled_with("2026-10-09", "Pasta in cream", 350.0, 880.0),
+    ));
+    leptos::mount::mount_to(screen.clone().unchecked_into(), || {
+        view! {
+            <Router>
+                <History chip=Chip::Fuel today="2026-10-10".to_string() />
+            </Router>
+        }
+    })
+}
+
+/// Opens the history's day in gold, its ticks and entries under it.
+async fn opened_the_day(screen: &Element) {
+    clicked(screen, ".history tbody tr.chosen");
+    settled().await;
+    settled().await;
+}
+
 fn first_cells(screen: &Element) -> Vec<String> {
-    texts_in_order(screen, ".last-days tbody tr td:first-child")
-}
-
-#[wasm_bindgen_test]
-async fn the_picked_days_entries_stand_open_under_its_row() {
-    let screen = screen();
-    let _mounted = fuels_last_days(&screen);
-    settled().await;
-    settled().await;
-
-    assert_eq!(
-        first_cells(&screen),
-        ["2026-10-10", "Skyr", "2026-10-09"]
-            .map(String::from)
-            .to_vec()
-    );
-}
-
-#[wasm_bindgen_test]
-async fn a_tap_on_another_day_opens_its_entries_and_closes_the_picked_days() {
-    let screen = screen();
-    let _mounted = fuels_last_days(&screen);
-    settled().await;
-    settled().await;
-
-    clicked(&screen, ".last-days tbody tr:not(.chosen):not(.entry)");
-    settled().await;
-    settled().await;
-
-    assert_eq!(
-        first_cells(&screen),
-        ["2026-10-10", "2026-10-09", "Pasta in cream"]
-            .map(String::from)
-            .to_vec()
-    );
+    texts_in_order(screen, ".history tbody tr td:first-child")
 }
 
 #[wasm_bindgen_test]
 async fn a_tap_on_the_open_day_closes_it() {
     let screen = screen();
-    let _mounted = fuels_last_days(&screen);
+    let _mounted = fuels_history(&screen);
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
 
-    clicked(&screen, ".last-days tbody tr.chosen");
+    clicked(&screen, ".history tbody tr.chosen");
     settled().await;
 
     assert_eq!(
         first_cells(&screen),
         ["2026-10-10", "2026-10-09"].map(String::from).to_vec()
-    );
-}
-
-#[wasm_bindgen_test]
-async fn fuels_entries_read_each_food_by_name_with_its_figures_and_quantity() {
-    let screen = screen();
-    let _mounted = fuels_last_days(&screen);
-    settled().await;
-    settled().await;
-
-    assert_eq!(
-        texts_in_order(&screen, ".last-days tbody tr.entry td"),
-        ["Skyr", "108", "19", "1", "2", "8", "200", "×"]
-            .map(String::from)
-            .to_vec()
     );
 }
 
@@ -3189,22 +2990,23 @@ async fn hydrates_entries_leave_the_water_share_empty() {
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <HydrateLastDays day=day />
+                <History chip=Chip::Hydrate today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
 
     assert_eq!(
-        texts_in_order(&screen, ".last-days tbody tr.entry td"),
+        texts_in_order(&screen, ".history tbody tr.entry td"),
         ["Expresso", "80", "", "×", "Tea", "200", "", "×"]
             .map(String::from)
             .to_vec()
     );
 }
 
-fn burns_last_days_of_morning_rust(screen: &Element) -> impl Drop {
+fn burns_history_of_morning_rust(screen: &Element) -> impl Drop {
     answering(&format!(
         r#"{{ "burn_month": {{ "month": "2026-10", "earlier": null, "rows": [
             {{ "day": "2026-10-10", "burnt_kcal": 120.0, "minutes": 4.5, "reps": 36.0 }}] }},
@@ -3215,7 +3017,7 @@ fn burns_last_days_of_morning_rust(screen: &Element) -> impl Drop {
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <BurnLastDays day=day />
+                <History chip=Chip::Burn today=day.get_untracked() />
             </Router>
         }
     })
@@ -3224,9 +3026,10 @@ fn burns_last_days_of_morning_rust(screen: &Element) -> impl Drop {
 #[wasm_bindgen_test]
 async fn a_circuit_run_opens_from_a_button_on_its_name_that_says_whether_it_is_open() {
     let screen = screen();
-    let _mounted = burns_last_days_of_morning_rust(&screen);
+    let _mounted = burns_history_of_morning_rust(&screen);
     settled().await;
-    let opener = ".last-days tr.entry.circuit td:first-child button.opens";
+    opened_the_day(&screen).await;
+    let opener = ".history tr.entry.circuit td:first-child button.opens";
     let closed_at_first = attributes_of(&screen, opener, "aria-expanded");
 
     clicked(&screen, opener);
@@ -3249,13 +3052,14 @@ async fn a_circuit_run_opens_from_a_button_on_its_name_that_says_whether_it_is_o
 #[wasm_bindgen_test]
 async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_on_a_tap() {
     let screen = screen();
-    let _mounted = burns_last_days_of_morning_rust(&screen);
+    let _mounted = burns_history_of_morning_rust(&screen);
     settled().await;
     settled().await;
-    let run = texts_in_order(&screen, ".last-days tr.entry.circuit td");
+    opened_the_day(&screen).await;
+    let run = texts_in_order(&screen, ".history tr.entry.circuit td");
 
     if let Some(row) = screen
-        .query_selector(".last-days tr.entry.circuit")
+        .query_selector(".history tr.entry.circuit")
         .ok()
         .flatten()
     {
@@ -3264,10 +3068,7 @@ async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_
     settled().await;
 
     assert_eq!(
-        (
-            run,
-            texts_in_order(&screen, ".last-days tr.details.steps li")
-        ),
+        (run, texts_in_order(&screen, ".history tr.details.steps li")),
         (
             ["Morning rust", "120", "4.5", "36", "×"]
                 .map(String::from)
@@ -3285,17 +3086,18 @@ async fn burns_entries_show_a_circuit_run_as_one_entry_its_exercises_in_a_block_
 #[wasm_bindgen_test]
 async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
     let screen = screen();
-    let _mounted = burns_last_days_of_morning_rust(&screen);
+    let _mounted = burns_history_of_morning_rust(&screen);
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
 
-    clicked(&screen, ".last-days tr.entry.circuit button.remove");
+    clicked(&screen, ".history tr.entry.circuit button.remove");
     settled().await;
 
     assert_eq!(
         (
             asked("remove_workouts"),
-            texts_in_order(&screen, ".last-days tr.details.steps li").len()
+            texts_in_order(&screen, ".history tr.details.steps li").len()
         ),
         (r#"{"date":"2026-10-10","ids":[1,2]}"#.to_string(), 0)
     );
@@ -3304,14 +3106,15 @@ async fn removing_a_circuit_run_asks_all_its_workouts_off_the_day() {
 #[wasm_bindgen_test]
 async fn burns_entries_end_on_the_time_off_the_clock_and_the_fidgeting_in_grey() {
     let screen = screen();
-    let _mounted = burns_last_days_of_morning_rust(&screen);
+    let _mounted = burns_history_of_morning_rust(&screen);
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
 
     assert_eq!(
         (
-            texts_in_order(&screen, ".last-days tr.entry.neat td"),
-            texts_in_order(&screen, ".last-days tr.details").len()
+            texts_in_order(&screen, ".history tr.entry.neat td"),
+            texts_in_order(&screen, ".history tr.details").len()
         ),
         (
             [
@@ -3349,13 +3152,14 @@ async fn a_removal_cross_offers_a_finger_at_least_24_px_square() {
         view! {
             <Router>
                 <FuelDay day=day />
-                <FuelLastDays day=day />
+                <History chip=Chip::Fuel today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
+    opened_the_day(&screen).await;
 
-    let cross: Element = found(&screen, ".last-days tr.entry button.remove");
+    let cross: Element = found(&screen, ".history tr.entry button.remove");
     assert!(
         box_width_of(&cross) >= 24.0 && box_height_of(&cross) >= 24.0,
         "{} × {}",
@@ -3380,7 +3184,7 @@ async fn every_table_header_reads_at_least_11_px() {
         view! {
             <Router>
                 <FuelDay day=day />
-                <FuelLastDays day=day />
+                <History chip=Chip::Fuel today=day.get_untracked() />
             </Router>
         }
     });
@@ -3414,12 +3218,12 @@ async fn a_days_row_opens_from_a_button_on_its_date_that_says_whether_it_is_open
         view! {
             <Router>
                 <FuelDay day=day />
-                <FuelLastDays day=day />
+                <History chip=Chip::Fuel today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
-    let opener = ".last-days tr.chosen td:first-child button.opens";
+    let opener = ".history tr.chosen td:first-child button.opens";
     let open_at_first = attributes_of(&screen, opener, "aria-expanded");
 
     clicked(&screen, opener);
@@ -3432,8 +3236,8 @@ async fn a_days_row_opens_from_a_button_on_its_date_that_says_whether_it_is_open
             text_of(&screen, opener)
         ),
         (
-            vec!["true".to_string()],
             vec!["false".to_string()],
+            vec!["true".to_string()],
             "2026-10-10".to_string()
         )
     );
@@ -3453,12 +3257,13 @@ async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
         view! {
             <Router>
                 <FuelDay day=day />
-                <FuelLastDays day=day />
+                <History chip=Chip::Fuel today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
     answering(&format!(
         r#"{{ "foods": [], "meals": [], "fuel_day": {A_DAY_NOT_FUELLED_YET},
             "remove_intake": {A_DAY_NOT_FUELLED_YET},
@@ -3466,7 +3271,7 @@ async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
         fuelled_on("2026-10-10", 0.0)
     ));
 
-    clicked(&screen, ".last-days tr.entry button.remove");
+    clicked(&screen, ".history tr.entry button.remove");
     settled().await;
     settled().await;
     settled().await;
@@ -3474,7 +3279,7 @@ async fn removing_an_entry_refreshes_its_days_row_and_the_band() {
     assert_eq!(
         (
             first_cells(&screen),
-            texts_in_order(&screen, ".last-days tbody tr.chosen td:nth-child(2)"),
+            texts_in_order(&screen, ".history tbody tr.chosen td:nth-child(2)"),
             text_of(&screen, ".bands .figures").contains("108")
         ),
         (vec!["2026-10-10".to_string()], vec!["0".to_string()], false)
@@ -3570,15 +3375,16 @@ async fn fuels_entries_show_a_meals_description_and_ingredients_in_a_block_on_a_
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <FuelLastDays day=day />
+                <History chip=Chip::Fuel today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
 
     if let Some(row) = screen
-        .query_selector(".last-days tr.entry.meal")
+        .query_selector(".history tr.entry.meal")
         .ok()
         .flatten()
     {
@@ -3588,15 +3394,15 @@ async fn fuels_entries_show_a_meals_description_and_ingredients_in_a_block_on_a_
 
     assert_eq!(
         (
-            texts_in_order(&screen, ".last-days tr.details .description"),
-            texts_in_order(&screen, ".last-days tr.details li").len()
+            texts_in_order(&screen, ".history tr.details .description"),
+            texts_in_order(&screen, ".history tr.details li").len()
         ),
         (vec!["Boil, reduce, stir.".to_string()], 2)
     );
 }
 
 #[wasm_bindgen_test]
-async fn burns_last_days_go_without_the_top_exercise() {
+async fn burns_history_goes_without_the_top_exercise() {
     answering(
         r#"{ "burn_month": { "month": "2026-10", "earlier": null, "rows": [
             { "day": "2026-10-10", "burnt_kcal": 372.0, "minutes": 64.25, "reps": 37.0 }] },
@@ -3610,7 +3416,7 @@ async fn burns_last_days_go_without_the_top_exercise() {
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <BurnLastDays day=day />
+                <History chip=Chip::Burn today=day.get_untracked() />
             </Router>
         }
     });
@@ -3618,21 +3424,23 @@ async fn burns_last_days_go_without_the_top_exercise() {
 
     assert_eq!(
         (
-            texts_in_order(&screen, ".last-days thead th"),
-            texts_in_order(&screen, ".last-days tbody td")
+            texts_in_order(&screen, ".history thead th"),
+            texts_in_order(&screen, ".history tbody td")
         ),
         (
             vec![
                 "Day".to_string(),
                 "Burnt (kcal)".to_string(),
                 "Duration (min)".to_string(),
-                "Reps".to_string()
+                "Reps".to_string(),
+                "Streak".to_string()
             ],
             vec![
                 "2026-10-10".to_string(),
                 "372".to_string(),
                 "64.25".to_string(),
-                "37".to_string()
+                "37".to_string(),
+                String::new()
             ]
         )
     );
@@ -5403,14 +5211,15 @@ async fn removing_a_drinking_from_its_days_entries_takes_it_off_that_day() {
         let day = RwSignal::new("2026-10-10".to_string());
         view! {
             <Router>
-                <HydrateLastDays day=day />
+                <History chip=Chip::Hydrate today=day.get_untracked() />
             </Router>
         }
     });
     settled().await;
     settled().await;
+    opened_the_day(&screen).await;
 
-    clicked(&screen, ".last-days tr.entry button.remove");
+    clicked(&screen, ".history tr.entry button.remove");
     settled().await;
 
     assert_eq!(asked("remove_drinking"), r#"{"date":"2026-10-10","id":1}"#);

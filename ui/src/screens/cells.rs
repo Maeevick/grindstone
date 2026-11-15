@@ -1,3 +1,4 @@
+use grind_core::failure::Failure;
 use grind_core::figures::{Figure, bare};
 use grind_core::food::Nutrients;
 use grind_core::week::Averaged;
@@ -72,5 +73,21 @@ pub fn opening_cell(label: String, open: Signal<bool>) -> impl IntoView {
                 {label}
             </button>
         </td>
+    }
+}
+
+/// A day's entries that could not be read, said across its row.
+pub(crate) fn entries_failed(failure: &Failure) -> AnyView {
+    entries_said(lines::failure(failure)).into_any()
+}
+
+/// A line said across a day's entries.
+pub(crate) fn entries_said(line: String) -> impl IntoView {
+    view! {
+        <tr class="entry">
+            <td class="bad" colspan="8">
+                {line}
+            </td>
+        </tr>
     }
 }
