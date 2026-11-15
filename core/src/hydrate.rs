@@ -11,10 +11,11 @@ use crate::drinking::Drinking;
 use crate::fuel::{Fuel, fuel_on};
 use crate::fuel_records::FuelRecords;
 use crate::gather_records::GatherRecords;
+use crate::gender::Gender;
 use crate::hydrate_base::{DRINKS_PERCENT_OF_TOTAL_WATER, default_base_ml};
 use crate::hydrate_records::HydrateRecords;
 use crate::kept::{InForce, Kept, in_force};
-use crate::ledger::{Day, ledger};
+use crate::ledger::ledger;
 use crate::verdict::{Verdict, verdict_of};
 use crate::version::{dated_version_in_force_on, version_in_force_on};
 
@@ -60,7 +61,6 @@ const BAND_SHARE_EITHER_SIDE: f64 = 0.20;
 /// "daily water intake from liquids and foods is equivalent to ~85% of WT" [29], metabolic water
 /// and what the lungs and skin take up bringing the rest.
 const TURNOVER_TAKEN_IN: f64 = 0.85;
-const ML_PER_KCAL_BURNT_AT_BEST: f64 = 1.25;
 
 pub fn hydrate_on(
     day: NaiveDate,
@@ -91,13 +91,12 @@ pub fn hydrate_over(
         .collect()
 }
 
-/// A history's drinks read day after day: grouped by day, beside the ledger and the burn they are judged
-/// against, gathered once rather than for each day.
+/// A history's drinks read day after day: grouped by day, beside the burn they are judged against, gathered once
+/// rather than for each day.
 struct Drinks<'records> {
     records: &'records HydrateRecords,
     gather: &'records GatherRecords,
     burns: Burns<'records>,
-    ledger: Vec<Day>,
     drinkings: BTreeMap<NaiveDate, Vec<(i64, Drinking)>>,
 }
 
@@ -111,7 +110,6 @@ impl<'records> Drinks<'records> {
             records,
             gather,
             burns: Burns::of(burn, gather),
-            ledger: ledger(&gather.measurements, &gather.profiles),
             drinkings: records
                 .drinkings
                 .iter()
@@ -190,56 +188,32 @@ pub(crate) fn water_target_in_force(
     })
 }
 
-/// The day's drinks against its band. A water target of one's own is a base: it plus a millilitre per kcal
-/// burnt, the band a fifth either side. Otherwise, once a lean mass is known, the target is the drinks' share
-/// (the 85% of the turnover taken in, four fifths of it drunk, EFSA's share) of the water Yamada's equation turns
-/// over in a day for that lean mass and age plus 1.25 mL per kcal burnt, and the floor the same share of a millilitre per kcal the day spends (its
-/// budget and burn) but never above the target; before, EFSA's base plus a millilitre per kcal burnt, the floor a fifth
-/// under it.
-///
-/// - The water turned over a day for a lean mass and an age, 85% of it taken in [29].
-/// - Four fifths of the water taken in drunk [28].
-/// - Water lost per kcal spent, 0.84 to 1.46 mL [30].
-fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
+/// The optimal a day recommended before the burn: EFSA's drinks, four fifths of its adequate intake of total water
+/// [28], are the floor, the optimal a fifth above them (the user's rule).
+fn recommended_optimal_ml(gender: Option<Gender>) -> f64 {
+    default_base_ml(gender) / (1.0 - BAND_SHARE_EITHER_SIDE)
+}
+
+/// The day's drinks against its band: the optimal, a water target of one's own or the recommended one, plus a
+/// millilitre per kcal burnt, within the 0.84 to 1.46 mL lost per kcal spent [30]; the band a fifth either side of
+/// it (the user's rule).
+fn hydrated(day: NaiveDate, drinks: &Drinks, _fuelled: &Fuel) -> Hydrate {
     let Drinks {
         records, gather, ..
     } = drinks;
     let drinkings = drinks.drinkings.get(&day).cloned().unwrap_or_default();
     let drunk_ml: f64 = drinkings.iter().map(|(_, drunk)| drunk.volume_ml).sum();
-    let burn = drinks.burns.on(day);
-    let burnt_kcal = burn.burnt_kcal.unwrap_or(0.0);
-    let own_base_ml = version_in_force_on(&records.targets, day)
+    let burnt_kcal = drinks.burns.on(day).burnt_kcal.unwrap_or(0.0);
+    let base_ml = version_in_force_on(&records.targets, day)
         .and_then(Kept::own)
-        .copied();
-    let weighed_kg = burn.body_mass_kg;
-    let (target_ml, floor_ml) = match (
-        own_base_ml,
-        body_on(day, &drinks.ledger, &gather.profiles)
-            .map(|body| turned_over_ml(body.lean_kg, body.age)),
-        fuelled.band,
-        weighed_kg,
-    ) {
-        (Some(base_ml), _, _, _) => {
-            let target_ml = base_ml + burnt_kcal * ML_PER_KCAL_SPENT;
-            (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
-        }
-        (None, Some(turned_over_ml), Some(band), _) => {
-            let target_ml =
-                drinks_share() * (turned_over_ml + burnt_kcal * ML_PER_KCAL_BURNT_AT_BEST);
-            let floor_ml = drinks_share() * band.maintenance_kcal * ML_PER_KCAL_SPENT;
-            (target_ml, floor_ml.min(target_ml))
-        }
-        (None, None, _, Some(body_mass_kg)) => {
-            let target_ml = ML_A_KILO_OF_BODY_MASS * body_mass_kg + burnt_kcal * ML_PER_KCAL_SPENT;
-            (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
-        }
-        _ => {
-            // Unweighed, no workout can be priced: the burn adds nothing.
-            let gender = version_in_force_on(&gather.profiles, day).map(|profile| profile.gender);
-            let target_ml = default_base_ml(gender);
-            (target_ml, target_ml * (1.0 - BAND_SHARE_EITHER_SIDE))
-        }
-    };
+        .copied()
+        .unwrap_or_else(|| {
+            recommended_optimal_ml(
+                version_in_force_on(&gather.profiles, day).map(|profile| profile.gender),
+            )
+        });
+    let target_ml = base_ml + burnt_kcal * ML_PER_KCAL_SPENT;
+    let floor_ml = target_ml * (1.0 - BAND_SHARE_EITHER_SIDE);
     let cap_ml = target_ml * (1.0 + BAND_SHARE_EITHER_SIDE);
     Hydrate {
         day,
@@ -256,10 +230,8 @@ fn hydrated(day: NaiveDate, drinks: &Drinks, fuelled: &Fuel) -> Hydrate {
 mod tests {
     use super::*;
     use crate::gender::Gender;
-    use crate::kept::Kept;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
-    use crate::volitional::Volitional;
     use crate::workout::Workout;
 
     fn day(date: &str) -> NaiveDate {
@@ -306,17 +278,6 @@ mod tests {
         }
     }
 
-    fn weighed(date: &str, body_mass_kg: f64) -> GatherRecords {
-        GatherRecords {
-            measurements: vec![Measurement {
-                day: day(date),
-                body_mass_kg,
-                waist_cm: None,
-            }],
-            ..GatherRecords::default()
-        }
-    }
-
     fn a_man_measured_with_his_waist() -> GatherRecords {
         GatherRecords {
             measurements: vec![Measurement {
@@ -338,39 +299,6 @@ mod tests {
         }
     }
 
-    fn lean_mass_kg_of(gather: &GatherRecords) -> f64 {
-        crate::ledger::ledger(&gather.measurements, &gather.profiles)
-            .iter()
-            .find_map(|measured| measured.composition)
-            .map(|composition| composition.lean_mass_kg)
-            .expect("a lean mass read from the tapes")
-    }
-
-    #[test]
-    fn a_day_aims_for_the_drinks_share_of_the_water_yamadas_equation_turns_over_for_its_lean_mass_and_age_and_of_a_millilitre_and_a_quarter_per_kcal_burnt()
-     {
-        let gather = a_man_measured_with_his_waist();
-
-        let hydrate = hydrate_on(
-            day("2026-10-10"),
-            &HydrateRecords::default(),
-            &gather,
-            &walked_an_hour("2026-10-10"),
-            &FuelRecords::default(),
-        );
-
-        let (lean_kg, age) = (lean_mass_kg_of(&gather), 41.0);
-        let turned_over_ml = 861.9 * 1.75 + 37.34 * lean_kg + 4.288 * 50.0 - 0.3625 * age * age
-            + 29.42 * age
-            + 1.937 * 10.0 * 10.0
-            - 23.15 * 10.0
-            - 984.8;
-        let drinks_share = 0.85 * 0.8;
-        let optimal_ml = drinks_share * (turned_over_ml + 1.25 * 252.0);
-        assert!(about(hydrate.target_ml, optimal_ml));
-        assert!(about(hydrate.cap_ml, 1.2 * optimal_ml));
-    }
-
     #[test]
     fn a_day_without_its_own_target_aims_a_fifth_above_efsas_drinks_and_a_millilitre_more_per_kcal_burnt_twenty_percent_either_side()
      {
@@ -386,52 +314,6 @@ mod tests {
         assert!(about(hydrate.target_ml, optimal_ml));
         assert!(about(hydrate.floor_ml, 0.8 * optimal_ml));
         assert!(about(hydrate.cap_ml, 1.2 * optimal_ml));
-    }
-
-    #[test]
-    fn a_day_floors_at_the_drinks_share_of_a_millilitre_per_kcal_of_its_budget_and_burn() {
-        let gather = a_man_measured_with_his_waist();
-        let burn = walked_an_hour("2026-10-10");
-        let fuel = FuelRecords::default();
-
-        let hydrate = hydrate_on(
-            day("2026-10-10"),
-            &HydrateRecords::default(),
-            &gather,
-            &burn,
-            &fuel,
-        );
-
-        let spent_kcal = fuel_on(day("2026-10-10"), &gather, &burn, &fuel)
-            .band
-            .map(|band| band.maintenance_kcal)
-            .expect("a band for a measured body");
-        assert!(about(hydrate.floor_ml, 0.85 * 0.8 * spent_kcal));
-    }
-
-    #[test]
-    fn the_floor_never_rises_above_the_optimal() {
-        let walking_a_hundred_km_a_day = BurnRecords {
-            usual_days: vec![(
-                day("2026-03-01"),
-                Kept::Own(Volitional {
-                    sitting_min: 480.0,
-                    standing_min: 120.0,
-                    moving_km: 100.0,
-                }),
-            )],
-            ..BurnRecords::default()
-        };
-
-        let hydrate = hydrate_on(
-            day("2026-10-10"),
-            &HydrateRecords::default(),
-            &a_man_measured_with_his_waist(),
-            &walking_a_hundred_km_a_day,
-            &FuelRecords::default(),
-        );
-
-        assert!(about(hydrate.floor_ml, hydrate.target_ml));
     }
 
     #[test]
@@ -461,33 +343,6 @@ mod tests {
     }
 
     #[test]
-    fn a_day_weighed_before_any_lean_mass_aims_for_35_ml_a_kilo_and_a_millilitre_more_per_kcal_burnt()
-     {
-        let hydrate = hydrate_on(
-            day("2026-10-10"),
-            &HydrateRecords::default(),
-            &weighed("2026-10-01", 80.0),
-            &walked_an_hour("2026-10-10"),
-            &FuelRecords::default(),
-        );
-
-        assert!(about(hydrate.target_ml, 35.0 * 80.0 + 252.0));
-    }
-
-    #[test]
-    fn a_day_weighed_before_any_lean_mass_keeps_twenty_percent_either_side() {
-        let hydrate = hydrate_on(
-            day("2026-10-10"),
-            &HydrateRecords::default(),
-            &weighed("2026-10-01", 80.0),
-            &BurnRecords::default(),
-            &FuelRecords::default(),
-        );
-
-        assert!(about(hydrate.floor_ml, 0.8 * 2800.0) && about(hydrate.cap_ml, 1.2 * 2800.0));
-    }
-
-    #[test]
     fn a_burn_of_unknown_size_without_any_weigh_in_adds_nothing_to_the_target() {
         let hydrate = hydrate_on(
             day("2026-10-10"),
@@ -497,11 +352,11 @@ mod tests {
             &FuelRecords::default(),
         );
 
-        assert!(about(hydrate.target_ml, 2000.0));
+        assert!(about(hydrate.target_ml, 2500.0));
     }
 
     #[test]
-    fn a_day_before_any_lean_mass_keeps_efsa_twenty_percent_either_side() {
+    fn with_no_profile_yet_a_day_floors_at_a_mans_efsa_drinks() {
         let hydrate = hydrate_on(
             day("2026-10-10"),
             &HydrateRecords::default(),
@@ -510,8 +365,36 @@ mod tests {
             &FuelRecords::default(),
         );
 
+        assert!(about(hydrate.floor_ml, 2000.0));
+        assert!(about(hydrate.cap_ml, 3000.0));
+    }
+
+    #[test]
+    fn a_womans_day_floors_at_her_efsa_drinks() {
+        let a_woman = GatherRecords {
+            profiles: vec![(
+                day("2026-03-01"),
+                Profile {
+                    birthday: day("1985-04-12"),
+                    gender: Gender::Female,
+                    height_cm: 165.0,
+                    neck_cm: 32.0,
+                    hip_cm: Some(95.0),
+                },
+            )],
+            ..GatherRecords::default()
+        };
+
+        let hydrate = hydrate_on(
+            day("2026-10-10"),
+            &HydrateRecords::default(),
+            &a_woman,
+            &BurnRecords::default(),
+            &FuelRecords::default(),
+        );
+
         assert!(about(hydrate.floor_ml, 1600.0));
-        assert!(about(hydrate.cap_ml, 2400.0));
+        assert!(about(hydrate.target_ml, 2000.0));
     }
 
     #[test]
@@ -519,8 +402,8 @@ mod tests {
         let records = having_drunk(vec![
             (1, drunk("2026-10-09", "Tea", 350.0)),
             (2, drunk("2026-10-10", "Tea", 1200.0)),
-            (3, drunk("2026-10-10", "Tea", 800.0)),
-            (4, drunk("2026-10-11", "Tea", 2650.0)),
+            (3, drunk("2026-10-10", "Tea", 1300.0)),
+            (4, drunk("2026-10-11", "Tea", 3100.0)),
         ]);
         let verdict_on = |date| {
             hydrate_on(
