@@ -719,25 +719,7 @@ mod tests {
     }
 
     #[test]
-    fn a_goal_body_spending_just_above_maintenance_still_holds() {
-        let (_, fat_kg) = the_body();
-
-        let band = fuel_on(
-            "2026-10-10",
-            &aiming_at(80.5, fat_kg / 80.5, HIS_WAIST_CM),
-            &a_desk_job(),
-            &aiming(),
-        )
-        .band
-        .expect("a band");
-
-        let given = band.goal_kcal > band.maintenance_kcal + 2.0
-            && band.goal_kcal < 1.01 * band.maintenance_kcal;
-        assert!(given && band.mode == Mode::Holding, "{band:?}");
-    }
-
-    #[test]
-    fn a_goal_body_spending_under_99_percent_of_maintenance_leans_from_alpert_firm_from_the_goal_to_2_and_a_half_percent_above_maintenance()
+    fn a_body_over_its_goal_mass_leans_from_alpert_firm_from_the_goal_to_2_and_a_half_percent_above_maintenance()
      {
         let lean_waist_cm = 70.0;
         let fat_kg = crate::composition::body_composition(
@@ -760,9 +742,7 @@ mod tests {
         .band
         .expect("a band");
 
-        let given = band.alpert_kcal > band.minimum_kcal
-            && band.alpert_kcal < band.goal_kcal
-            && band.goal_kcal < 0.99 * band.maintenance_kcal;
+        let given = band.alpert_kcal > band.minimum_kcal && band.alpert_kcal < band.goal_kcal;
         assert!(
             given
                 && band.mode == Mode::Leaning
@@ -801,7 +781,7 @@ mod tests {
     }
 
     #[test]
-    fn a_goal_body_spending_under_alpert_leans_firm_from_alpert() {
+    fn a_goal_tick_under_alpert_leans_firm_from_alpert() {
         let lean_waist_cm = 70.0;
 
         let band = fuel_on(
@@ -824,7 +804,7 @@ mod tests {
     }
 
     #[test]
-    fn a_goal_body_spending_over_a_twentieth_above_maintenance_bulks_firm_5_percent_either_side_of_maintenance_then_up_to_the_goal()
+    fn a_body_under_its_goal_mass_bulks_firm_5_percent_either_side_of_maintenance_then_up_to_a_higher_goal_tick()
      {
         let band = fuel_on("2026-10-10", &gaining(), &a_desk_job(), &aiming())
             .band
@@ -843,7 +823,7 @@ mod tests {
     }
 
     #[test]
-    fn a_goal_body_spending_1_to_5_percent_above_maintenance_bulks_5_percent_either_side_of_maintenance()
+    fn a_body_under_its_goal_mass_its_goal_tick_under_5_percent_above_maintenance_bulks_5_percent_either_side()
      {
         let (_, fat_kg) = the_body();
 
@@ -856,8 +836,7 @@ mod tests {
         .band
         .expect("a band");
 
-        let given = band.goal_kcal > 1.01 * band.maintenance_kcal
-            && band.goal_kcal < 1.05 * band.maintenance_kcal;
+        let given = band.goal_kcal < 1.05 * band.maintenance_kcal;
         assert!(
             given
                 && band.mode == Mode::Bulking
@@ -915,8 +894,7 @@ mod tests {
     }
 
     #[test]
-    fn a_goal_body_spending_within_1_percent_of_maintenance_holds_firm_5_percent_either_side_its_goal_on_maintenance()
-     {
+    fn a_body_at_its_goal_mass_holds_firm_5_percent_either_side_its_goal_on_maintenance() {
         let (_, fat_kg) = the_body();
 
         let band = fuel_on(
