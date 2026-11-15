@@ -57,6 +57,17 @@ mod tests {
     }
 
     #[test]
+    fn from_2026_11_15_without_a_target_kept_a_day_aims_for_75_kcal_weighed_or_not() {
+        let aims = [
+            target_on(day("2026-11-15"), &[], Some(72.0)),
+            target_on(day("2026-11-20"), &[], None),
+        ]
+        .map(|target| target.map(|target| target.values));
+
+        assert_eq!(aims, [Some(75.0), Some(75.0)]);
+    }
+
+    #[test]
     fn a_target_kept_from_a_day_stands_from_that_day_and_the_default_before_it() {
         let kept = [(day("2026-10-15"), Kept::Own(150.0))];
 
