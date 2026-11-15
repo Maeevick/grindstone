@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use grind_core::figures::{Figure, bare, shown};
+use grind_core::heading::AT_THE_AIM_SHARE;
 use grind_core::heading::Aim;
-use grind_core::judgement::AT_THE_AIM_SHARE;
 
 fn placed(value: f64, (lowest, highest): (f64, f64), length: f64) -> f64 {
     if highest > lowest {

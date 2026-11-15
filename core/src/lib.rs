@@ -41,7 +41,6 @@ pub mod hydrate_base;
 pub mod hydrate_records;
 pub mod hydrate_week;
 pub mod intake;
-pub mod judgement;
 pub mod kept;
 pub mod ledger;
 pub mod meal;

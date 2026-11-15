@@ -12,11 +12,9 @@ use crate::fuel_records::{FuelRecords, FuelTargets};
 use crate::gather_records::GatherRecords;
 use crate::gender::Gender;
 use crate::intake::Intake;
-use crate::judgement::GAIN_SHARE_A_WEEK_AT_MOST;
 use crate::kept::{InForce, Kept, in_force};
 use crate::ledger::{Day, ledger};
 use crate::nutrition::{Budget, Deficit, Intake as Eaten, Macro, daily_energy_budget};
-use crate::pace::{DAYS_A_WEEK, KCAL_PER_KG_OF_FAT_TISSUE};
 use crate::profile::Profile;
 pub use crate::verdict::Verdict;
 use crate::verdict::verdict_of;
@@ -111,6 +109,11 @@ const SPARED_KJ_PER_KG_OF_FAT: f64 = 290.0;
 const KJ_PER_KCAL: f64 = 4.184;
 pub(crate) const SPARED_KCAL_PER_KG_OF_FAT: f64 = SPARED_KJ_PER_KG_OF_FAT / KJ_PER_KCAL;
 const CARBS_FLOOR_G: f64 = 130.0;
+/// Towards a higher aim, a quarter to half a percent of the body mass a week builds more than it stores [7].
+const GAIN_SHARE_A_WEEK_AT_MOST: f64 = 0.005;
+/// About 7,700 kcal a kilo of fat tissue [9].
+const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
+const DAYS_A_WEEK: f64 = 7.0;
 /// "break point=1.62 (1.03, 2.20) g/kg/day" [22], past which
 /// "protein intakes at amounts greater than ~1.6 g/kg/day do not further contribute RET-induced gains in FFM".
 const LEAST_PROTEIN_G_PER_KG: f64 = 1.6;

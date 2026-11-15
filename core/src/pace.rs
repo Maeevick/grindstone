@@ -2,23 +2,12 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 use crate::aims::aims_on;
-use crate::body::body_on;
-use crate::fuel::SPARED_KCAL_PER_KG_OF_FAT;
 use crate::gather_records::GatherRecords;
 use crate::heading::{Aim, heading_of};
-use crate::judgement::{Judgement, Week, judgement_of};
 use crate::ledger::{Day, ledger};
 use crate::progress::progress_towards;
-use crate::tendency::{Change, Heading};
+use crate::tendency::Change;
 use crate::trend::seven_day_trend;
-
-/// What sets the safe weekly loss: what the fat store can spare, 1% of the body mass, or a kilo.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SafeLoss {
-    FatStore,
-    MassShare,
-    AKilo,
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Pace {
@@ -26,33 +15,8 @@ pub struct Pace {
     pub lean_mass: Option<Change>,
     pub fat_mass: Option<Change>,
     pub fat_ratio: Option<Change>,
-    pub judgement: Judgement,
-    pub safe_loss_kg: f64,
-    pub safe_loss_by: SafeLoss,
     /// The weigh-ins of the window the pace reads.
     pub weigh_ins: usize,
-}
-
-/// What the measured lean mass did over the week: left, by so much a week; held; or went unmeasured,
-/// no waist ever taken.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Lean {
-    Leaving(f64),
-    Holding,
-    Unmeasured,
-}
-
-impl Pace {
-    /// Leaving once it falls past steady, holding otherwise.
-    pub fn lean(&self) -> Lean {
-        match self.lean_mass {
-            None => Lean::Unmeasured,
-            Some(change) if change.by < 0.0 && change.heading != Heading::Steady => {
-                Lean::Leaving(change.by)
-            }
-            Some(_) => Lean::Holding,
-        }
-    }
 }
 
 /// The weigh-ins a pace reads: at least 4, and spread over a fortnight unless there are 8 of them, so a day's swing
@@ -64,34 +28,6 @@ const FEWEST_DAYS_SPANNED: i64 = 14;
 /// How finely a mass and a ratio are shown, so a change that shows as nothing holds steady.
 const A_TENTH_OF_A_KILO: f64 = 0.1;
 const A_TENTH_OF_A_PERCENT: f64 = 0.001;
-pub(crate) const DAYS_A_WEEK: f64 = 7.0;
-const LOSS_SHARE_A_WEEK_AT_MOST: f64 = 0.01;
-const LOSS_KG_A_WEEK_AT_MOST: f64 = 1.0;
-pub(crate) const KCAL_PER_KG_OF_FAT_TISSUE: f64 = 7700.0;
-
-/// The most a body can lose in a week without eating into its lean mass: 1% of its mass, 1 kg at most, and
-/// no more than its fat store can spare.
-///
-/// - 0.5 to 1% of the body mass a week keeps the muscle [5]; 0.7% kept more lean mass than 1.4% [6].
-/// - No more than 0.5 to 1 kg a week [8].
-/// - What the fat store can spare, 290 kJ (about 69.3 kcal) per kilo of fat a day [13]; about 7,700 kcal a kilo of
-///   fat tissue [9].
-fn safe_loss_of(body_mass_kg: f64, fat_kg: Option<f64>) -> (f64, SafeLoss) {
-    let spared = fat_kg.map_or(f64::INFINITY, |fat_kg| {
-        SPARED_KCAL_PER_KG_OF_FAT * fat_kg * DAYS_A_WEEK / KCAL_PER_KG_OF_FAT_TISSUE
-    });
-    [
-        (
-            LOSS_SHARE_A_WEEK_AT_MOST * body_mass_kg,
-            SafeLoss::MassShare,
-        ),
-        (LOSS_KG_A_WEEK_AT_MOST, SafeLoss::AKilo),
-        (spared, SafeLoss::FatStore),
-    ]
-    .into_iter()
-    .min_by(|(one, _), (other, _)| one.total_cmp(other))
-    .unwrap_or((spared, SafeLoss::FatStore))
-}
 
 /// Whether weigh-ins are enough for a slope: 8 of them, or at least 4 spread over a fortnight.
 fn reads_a_slope(weighed: &[NaiveDate]) -> bool {
@@ -149,15 +85,6 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
             heading: heading_of(per_week, now, aim, shown_to),
         })
     };
-    let body = body_on(day, &days, &gathered.profiles);
-    let (safe_loss_kg, safe_loss_by) =
-        safe_loss_of(body_mass_kg, body.as_ref().map(|body| body.fat_kg));
-    let judgement = judgement_of(&Week {
-        per_week,
-        body_mass_kg,
-        safe_loss_kg,
-        aim_kg: aims.map(|aims| aims.body_mass_kg),
-    });
     Some(Pace {
         body_mass: Change {
             by: per_week,
@@ -183,9 +110,6 @@ pub fn pace_between(first: NaiveDate, day: NaiveDate, gathered: &GatherRecords) 
             aims.map(|aims| Aim::Reach(aims.fat_ratio())),
             A_TENTH_OF_A_PERCENT,
         ),
-        judgement,
-        safe_loss_kg,
-        safe_loss_by,
         weigh_ins: days
             .iter()
             .filter(|measured| (first..=day).contains(&measured.day))
@@ -202,6 +126,7 @@ mod tests {
     use crate::gender::Gender;
     use crate::measurement::Measurement;
     use crate::profile::Profile;
+    use crate::tendency::Heading;
 
     fn day(date: &str) -> NaiveDate {
         NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("a real day")
@@ -258,134 +183,6 @@ mod tests {
             )],
             ..gathered
         }
-    }
-
-    fn fat_kg_of(gathered: &GatherRecords) -> f64 {
-        crate::ledger::ledger(&gathered.measurements, &gathered.profiles)
-            .last()
-            .and_then(|measured| measured.composition)
-            .map(|composition| composition.fat_mass_kg)
-            .expect("a fat mass")
-    }
-
-    #[test]
-    fn losing_faster_than_the_fat_store_can_spare_a_week_is_dangerous() {
-        let losing_a_kilo_a_week = aiming_at(70.0, a_man_weighed(81.0, -0.14));
-
-        let pace = pace_on(day("2026-10-10"), &losing_a_kilo_a_week).expect("a pace");
-
-        assert_eq!(pace.judgement, Judgement::LosingTooFast);
-        assert_eq!(pace.safe_loss_by, SafeLoss::FatStore);
-        assert!(
-            (pace.safe_loss_kg - 290.0 / 4.184 * fat_kg_of(&losing_a_kilo_a_week) * 7.0 / 7700.0)
-                .abs()
-                < 1e-9
-        );
-    }
-
-    fn judged(gathered: &GatherRecords) -> Judgement {
-        pace_on(day("2026-10-10"), gathered)
-            .expect("a pace")
-            .judgement
-    }
-
-    fn a_man_with_a_waist_weighed(waist_cm: f64, from_kg: f64, kg_a_day: f64) -> GatherRecords {
-        let weighed = a_man_weighed(from_kg, kg_a_day);
-        GatherRecords {
-            measurements: weighed
-                .measurements
-                .iter()
-                .map(|measured| Measurement {
-                    waist_cm: Some(waist_cm),
-                    ..*measured
-                })
-                .collect(),
-            ..weighed
-        }
-    }
-
-    #[test]
-    fn a_loss_under_the_healthy_mass_or_fat_for_the_age_is_judged_by_the_aim_and_the_safe_lane_alone()
-     {
-        let under_the_healthy_mass = aiming_at(55.0, a_man_with_a_waist_weighed(72.0, 59.0, -0.02));
-        let under_the_healthy_fat_for_the_age =
-            aiming_at(68.0, a_man_with_a_waist_weighed(79.0, 71.0, -0.043));
-
-        assert_eq!(
-            (
-                judged(&under_the_healthy_mass),
-                judged(&under_the_healthy_fat_for_the_age)
-            ),
-            (Judgement::VeryGood, Judgement::VeryGood)
-        );
-    }
-
-    fn losing_at(share_of_the_safe_loss: f64) -> GatherRecords {
-        let safe_loss_kg = pace_on(
-            day("2026-10-10"),
-            &aiming_at(70.0, a_man_weighed(81.0, -0.05)),
-        )
-        .expect("a pace")
-        .safe_loss_kg;
-        aiming_at(
-            70.0,
-            a_man_weighed(81.0, -share_of_the_safe_loss * safe_loss_kg / 7.0),
-        )
-    }
-
-    #[test]
-    fn losing_between_half_the_safe_loss_and_all_of_it_towards_the_aim_is_very_good() {
-        assert_eq!(judged(&losing_at(0.75)), Judgement::VeryGood);
-    }
-
-    #[test]
-    fn losing_slower_than_half_the_safe_loss_towards_the_aim_is_good() {
-        assert_eq!(judged(&losing_at(0.3)), Judgement::Good);
-    }
-
-    #[test]
-    fn gaining_away_from_a_lower_aim_is_the_wrong_way_and_moving_less_than_015_percent_is_stable() {
-        assert_eq!(
-            (
-                judged(&aiming_at(70.0, a_man_weighed(80.0, 0.03))),
-                judged(&aiming_at(70.0, a_man_weighed(80.0, 0.0)))
-            ),
-            (Judgement::WrongWay, Judgement::Stable)
-        );
-    }
-
-    #[test]
-    fn towards_a_higher_aim_gaining_a_quarter_to_half_a_percent_a_week_is_very_good_slower_good_faster_too_fast()
-     {
-        let gaining = |share_a_week: f64| {
-            judged(&aiming_at(
-                85.0,
-                a_man_weighed(75.0, share_a_week * 75.0 / 7.0),
-            ))
-        };
-
-        assert_eq!(
-            [
-                gaining(0.0035),
-                gaining(0.002),
-                gaining(0.008),
-                gaining(-0.004)
-            ],
-            [
-                Judgement::VeryGood,
-                Judgement::Good,
-                Judgement::GainingTooFast,
-                Judgement::WrongWay
-            ]
-        );
-    }
-
-    #[test]
-    fn within_1_percent_of_the_aim_and_steady_is_holding() {
-        assert_eq!(
-            judged(&aiming_at(70.0, a_man_weighed(70.5, 0.0))),
-            Judgement::Holding
-        );
     }
 
     #[test]
@@ -489,34 +286,6 @@ mod tests {
     }
 
     #[test]
-    fn a_light_body_loses_no_more_than_1_percent_of_its_mass_a_week() {
-        let light_and_round = a_man_with_a_waist_weighed(100.0, 60.0, 0.0);
-
-        let pace = pace_on(day("2026-10-10"), &light_and_round).expect("a pace");
-
-        assert!(
-            (pace.safe_loss_kg - 0.6).abs() < 1e-9,
-            "{}",
-            pace.safe_loss_kg
-        );
-        assert_eq!(pace.safe_loss_by, SafeLoss::MassShare);
-    }
-
-    #[test]
-    fn a_heavy_body_loses_no_more_than_a_kilo_a_week() {
-        let heavy_and_round = a_man_with_a_waist_weighed(125.0, 130.0, 0.0);
-
-        let pace = pace_on(day("2026-10-10"), &heavy_and_round).expect("a pace");
-
-        assert!(
-            (pace.safe_loss_kg - 1.0).abs() < 1e-9,
-            "{}",
-            pace.safe_loss_kg
-        );
-        assert_eq!(pace.safe_loss_by, SafeLoss::AKilo);
-    }
-
-    #[test]
     fn the_fortnights_pace_reads_the_slope_of_the_seven_day_average_over_its_fourteen_days() {
         let weighed = [
             71.4, 71.0, 71.1, 71.2, 71.4, 71.4, 70.9, 71.5, 71.0, 71.7, 71.7, 71.4, 71.5, 71.7,
@@ -538,45 +307,6 @@ mod tests {
         let pace = pace_on(day("2026-10-19"), &gathered).expect("a pace");
 
         assert!((pace.body_mass.by - -0.542).abs() < 1e-3);
-    }
-
-    fn a_pace_with(lean_mass: Option<Change>) -> Pace {
-        Pace {
-            body_mass: Change {
-                by: -0.62,
-                heading: Heading::Toward,
-            },
-            lean_mass,
-            fat_mass: None,
-            fat_ratio: None,
-            judgement: Judgement::LosingTooFast,
-            safe_loss_kg: 0.5,
-            safe_loss_by: SafeLoss::FatStore,
-            weigh_ins: 5,
-        }
-    }
-
-    #[test]
-    fn the_lean_mass_leaves_when_it_falls_past_steady_holds_otherwise_and_goes_unmeasured_without_a_waist()
-     {
-        let moving = |by: f64, heading: Heading| a_pace_with(Some(Change { by, heading })).lean();
-
-        assert_eq!(
-            [
-                moving(-0.2, Heading::Away),
-                moving(-0.05, Heading::Steady),
-                moving(0.0, Heading::Away),
-                moving(0.2, Heading::Toward),
-                a_pace_with(None).lean(),
-            ],
-            [
-                Lean::Leaving(-0.2),
-                Lean::Holding,
-                Lean::Holding,
-                Lean::Holding,
-                Lean::Unmeasured
-            ]
-        );
     }
 
     #[test]
